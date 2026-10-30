@@ -1,0 +1,17 @@
+MUGEN WEB ARENA
+
+PLAY: Open MUGEN-Arena.html in a current browser. If using the website ZIP, extract it and open index.html.
+Choose a mode and click Fight now (or Watch match for CPU vs CPU).
+
+CONTROLS: WASD/arrows move, J punch, K kick, L special, Space guard.
+P/Escape pause, R restart. Touch controls appear on touchscreens.
+Versus: P1 WASD + F/G/H; P2 arrows + J/K/L.
+
+CHARACTERS: Import a character ZIP or open Character lab. Files stay on your device.
+The arena uses its own combat rules, not native MUGEN CNS/CMD scripts.
+
+HOSTING: Upload index.html to any static web host. No build step or backend required.
+
+Kung Fu Man is by Elecbyte, supplied under its Creative Commons Noncommercial license.
+See KFM-README.txt. This bundled demo is for noncommercial use.
+Fonts are under SIL OFL; see the font license files.
