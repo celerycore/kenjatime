@@ -1,0 +1,381 @@
+import {FighterRuntime} from './runtime.js';
+import {ProjectileRuntime} from './projectiles.js';
+import {StageRuntime} from './stages.js';
+import {RoundFlow} from './rounds.js';
+import {CpuController,characterCommands,normalizeAILevel} from './cpu.js';
+import {baseScale,animationSource} from './coordinates.js';
+import {combatRules as readCombatRules} from './combat-rules.js';
+
+const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+const flagText = value => String(value ?? '').toUpperCase().replace(/\s/g, '');
+
+function constant(fighter, name, fallback) {
+  const values = fighter.program?.constants;
+  const value = values instanceof Map ? values.get(name) : values?.[name];
+  return value === undefined ? fallback : finite(value, fallback);
+}
+
+/** AIR boxes in the match's 320-wide coordinate system; each result is [left, top, right, bottom].
+ * AIR element offsets/flips are sprite controls: collision rectangles remain relative to the fighter axis.
+ */
+export function transformedBoxes(fighter, kind = 'clsn1', frame = fighter.collisionFrame ?? fighter.currentFrame) {
+  if (!frame || !Array.isArray(frame[kind])) return [];
+  const animationOwner=animationSource(fighter),coordinate=baseScale(animationOwner);
+  const facing = fighter.facing < 0 ? -1 : 1;
+  const sx = constant(animationOwner, 'size.xscale', 1) * coordinate * facing;
+  const sy = constant(animationOwner, 'size.yscale', 1) * coordinate;
+  const originX = finite(fighter.pos?.x) + constant(fighter, 'size.draw.offset.x', 0) * baseScale(fighter) * facing + finite(fighter.drawOffset?.x);
+  const originY = finite(fighter.pos?.y) + constant(fighter, 'size.draw.offset.y', 0) * baseScale(fighter) + finite(fighter.drawOffset?.y);
+  return frame[kind].filter(box => Array.isArray(box) && box.length >= 4 && box.slice(0, 4).every(value => Number.isFinite(Number(value)))).map(box => {
+    const x1 = originX + Number(box[0]) * sx;
+    const x2 = originX + Number(box[2]) * sx;
+    const y1 = originY + Number(box[1]) * sy;
+    const y2 = originY + Number(box[3]) * sy;
+    return [Math.min(x1, x2), Math.min(y1, y2), Math.max(x1, x2), Math.max(y1, y2)];
+  });
+}
+
+export function boxesOverlap(a, b) {
+  return a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+}
+
+function contactArea(attackBoxes, hurtBoxes) {
+  for (const a of attackBoxes) for (const b of hurtBoxes) {
+    if (boxesOverlap(a, b)) return [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
+  }
+  return null;
+}
+
+function allowsState(hit, defender) {
+  const flags = flagText(hit.hitFlag ?? hit.hitflag ?? 'MAF');
+  if (!/[HLAMFD]/.test(flags) || (flags.includes('+') && flags.includes('-'))) return false;
+  const inHit = defender.moveType === 'H';
+  if (flags.includes('+') && !inHit || flags.includes('-') && inHit) return false;
+  if (defender.stateType === 'L') return flags.includes('D');
+  if (defender.stateType === 'A') return flags.includes(defender.moveType==='H'&&defender.getHitVars?.fall?'F':'A');
+  return defender.stateType === 'C' ? /[LM]/.test(flags) : /[HM]/.test(flags);
+}
+
+function canGuard(hit, attacker, defender, commands) {
+  const guardStun=defender.moveType==='H'&&!!defender.getHitVars?.guarded;
+  if ((!defender.ctrl&&!guardStun) || defender.moveType === 'H'&&!guardStun || !['S', 'C', 'A'].includes(defender.stateType)) return false;
+  if (attacker.asserted?.has('unguardable')) return false;
+  const forbiddenGuard = defender.stateType === 'A' ? 'noairguard' : defender.stateType === 'C' ? 'nocrouchguard' : 'nostandguard';
+  if (defender.asserted?.has(forbiddenGuard)) return false;
+  const normalized = new Set([...commands].map(command => String(command).toLowerCase()));
+  if (!normalized.has('holdback')) return false;
+  const flags = flagText(hit.guardFlag ?? hit.guardflag);
+  return defender.stateType === 'A' ? flags.includes('A') : defender.stateType === 'C' ? /[LM]/.test(flags) : /[HM]/.test(flags);
+}
+
+function priority(hit) {
+  const parts = Array.isArray(hit.priority) ? hit.priority : String(hit.priority ?? '4,Hit').split(',');
+  const type = String(parts[1] ?? 'Hit').trim().toLowerCase();
+  return {level: Math.max(1, Math.min(7, finite(parts[0], 4))), type: ['hit', 'miss', 'dodge'].includes(type) ? type : 'hit'};
+}
+
+function chooseContacts(contacts) {
+  if (contacts.length < 2) return contacts;
+  const a = priority(contacts[0].hit), b = priority(contacts[1].hit);
+  if (a.level !== b.level) return [contacts[a.level > b.level ? 0 : 1]];
+  if (a.type === 'dodge' || b.type === 'dodge') return [];
+  if (a.type === 'miss' && b.type === 'miss') return [];
+  return contacts.filter((_, index) => (index ? b : a).type === 'hit');
+}
+
+/** Deterministic, two-fighter training. Stage bounds and ground push separation are intentionally simple. */
+export class TrainingMatch {
+  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0} = {}) {
+    this.combatRules=readCombatRules(character.files,combatRules);
+    if (!Number.isFinite(leftBound) || !Number.isFinite(rightBound) || leftBound >= rightBound) throw Error('Invalid training stage bounds.');
+    this.character = character;
+    this.opponentCharacter = opponentCharacter;
+    this.commonText = commonText;
+    this.leftBound = leftBound;
+    this.rightBound = rightBound;
+    this.pushboxes = pushboxes;
+    this.commonAnimations = commonAnimations; this.maxHelpers = Math.min(256,Math.max(0,maxHelpers)); this.maxProjectiles = Math.min(1024,Math.max(0,maxProjectiles));
+    this.initialize=initialize;this.skipIntro=skipIntro;
+    this.playerPalette=playerPalette;this.opponentPalette=opponentPalette;
+    this.playerAILevel=normalizeAILevel(playerAILevel);this.opponentAILevel=normalizeAILevel(opponentAILevel);
+    this.stage=stage?new StageRuntime(stage):null;this.rules=rules;
+    if(this.stage){this.leftBound=stage.leftBound;this.rightBound=stage.rightBound;}
+    this.reset();
+  }
+
+  reset({preserveMatch=false}={}) {
+    const prior=preserveMatch?{players:[this.player,this.opponent],flow:this.roundFlow,ticks:this.ticks,diagnostics:this.diagnostics}:null;
+    this.roundFlow=prior?.flow||(this.rules?new RoundFlow(this.rules):null);this.roundGeneration=(this.roundGeneration||0)+1;
+    if(this.stage)this.stage.reset({backgrounds:!preserveMatch||this.stage.definition.resetBG});
+    const starts=this.stage?.definition.starts||[{x:-70,y:0,facing:1},{x:70,y:0,facing:-1}];
+    this.player = new FighterRuntime(this.character, {world:this,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[0], facing:starts[0].facing, id: 1, teamSide: 1,paletteNo:this.playerPalette,aiLevel:this.playerAILevel});
+    this.opponent = new FighterRuntime(this.opponentCharacter, {world:this,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[1], facing:starts[1].facing, id: 2, teamSide: 2,paletteNo:this.opponentPalette,aiLevel:this.opponentAILevel});
+    this.player.teamSide = 1;
+    this.opponent.teamSide = 2;
+    this.player.opponent=this.opponent;this.opponent.opponent=this.player;
+    this._entities = [this.player,this.opponent]; this.projectiles = []; this.nextEntityId = 3;
+    this.usedHits = new Map();this.juggles=new Map(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
+    this.commandBuffers = new Map(); this.presentationEvents = [];this.eventEntities=[];
+    this.events = [];
+    this.cpus=new Map();
+    for(const actor of this._entities)if(actor.aiLevel){const parsed=characterCommands(actor.character);this.cpus.set(actor,new CpuController(parsed,{level:actor.aiLevel,seed:0x6d2b79f5^(actor.id*0x9e3779b9)^(this.roundFlow?.roundNo||1)}));for(const issue of parsed.diagnostics)actor.diagnostic('command',issue.message,{source:actor.character.def.files.cmd,line:issue.line});}
+    this.ticks = prior?.ticks||0;
+    this.winner = null;
+    if(prior){
+      this.archiveDiagnostics(prior.diagnostics);
+      for(const [i,fighter]of[this.player,this.opponent].entries()){
+        const old=prior.players[i];fighter.power=old.power;fighter.victoryQuoteIndex=old.victoryQuoteIndex;
+        const ints=Math.max(0,Math.min(60,Math.trunc(fighter.program.constants.get('data.intpersistindex')??60))),floats=Math.max(0,Math.min(40,Math.trunc(fighter.program.constants.get('data.floatpersistindex')??40)));
+        fighter.vars.set(old.vars.subarray(ints),ints);fighter.fvars.set(old.fvars.subarray(floats),floats);
+      }
+    }
+    this.syncEnvironment();
+    if(this.initialize)for(const fighter of this._entities)if(fighter.program.states.has(5900)){fighter._initializing=true;fighter.options.skipIntro=this.skipIntro;fighter.changeState(5900);}
+    return this;
+  }
+
+  get diagnostics() {
+    const diagnostics = [...this.archivedDiagnostics,...(this.stage?.diagnostics||[]),...this.entities.flatMap(p=>p.diagnostics || []),...this.projectiles.flatMap(p=>p.diagnostics || []),...[...(this.cpus||new Map())].flatMap(([actor,cpu])=>cpu.buffer.diagnostics.map(issue=>({...issue,source:actor.character.def.files.cmd})))];
+    const seen = new Set();
+    return diagnostics.filter(item => {
+      const key = typeof item === 'string' ? item : JSON.stringify(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  get entities() { return this._entities.filter(p=>!p.destroyed); }
+  get view(){return this.stage?.view()||{left:-160,right:160,top:-200,bottom:40,width:320,height:240,displayHeight:240,groundY:200,zoom:1};}
+  get matchOver(){return this.roundFlow?.matchOver||false;}
+  syncEnvironment(){for(const actor of this._entities||[]){
+    if(this.stage){actor.cameraPos=this.stage.camera;actor.cameraZoom=this.stage.camera.zoom;}
+    if(this.roundFlow){actor.roundState=this.roundFlow.roundState;actor.roundNo=this.roundFlow.roundNo;actor.roundsExisted=this.roundFlow.roundsExisted;}
+  }}
+  findPlayer(id) { return this.entities.find(p=>p.id === id); }
+  spawnHelper(owner,spec) {
+    if (this.entities.filter(p=>p.parent).length >= this.maxHelpers) { owner.diagnostic('resource-limit',`Helper limit (${this.maxHelpers}) reached.`); return null; }
+    const helper = owner.createHelper(spec,{id:this.nextEntityId++});
+    if (!helper.destroyed) {this._entities.push(helper);this.syncEnvironment();}
+    else this.archiveDiagnostics(helper.diagnostics);
+    return helper;
+  }
+  spawnProjectile(owner,spec) {
+    if (this.projectiles.length >= this.maxProjectiles) { owner.diagnostic('resource-limit',`Projectile limit (${this.maxProjectiles}) reached.`); return null; }
+    const projectile = new ProjectileRuntime(owner,spec,{id:this.nextEntityId++});
+    const afterimage=Object.fromEntries(Object.entries(spec).filter(([k])=>k.startsWith('afterimage.')).map(([k,v])=>[k.slice(11),v]));
+    if(Object.keys(afterimage).length)this.presentationEvents.push({...afterimage,type:'afterimage',entity:projectile});
+    this.projectiles.push(projectile); return projectile;
+  }
+  requestPause(owner,spec) {
+    const time = Math.max(0,Math.trunc(spec.time)); if (!Number.isFinite(time) || time > 360000) { owner.diagnostic('resource-limit','Pause time must be between 0 and 360000 ticks.'); return; }
+    const pause = {...spec,owner,time,remaining:time,elapsed:0,moved:new Map(),movetime:Math.max(0,Math.min(time,spec.movetime || 0)),endcmdbuftime:Math.max(0,Math.min(time,spec.endcmdbuftime || 0))};
+    this.pendingPauses.push(pause);
+    if (spec.type === 'superpause') {
+      owner.power = Math.max(0,Math.min(owner.maxPower,owner.power+(spec.poweradd || 0)));
+      this.presentationEvents.push({...pause,type:'superpause'});
+    }
+  }
+  isFrozen(actor) {
+    const pause = this.superPause?.remaining > 0 ? this.superPause : this.pause?.remaining > 0 ? this.pause : null;
+    if (!pause) return false;
+    const allowance = actor === pause.owner ? pause.movetime : pause.type === 'superpause' ? actor.superMoveTime || 0 : actor.pauseMoveTime || 0;
+    return (pause.moved.get(actor)||0) >= allowance;
+  }
+  isSuperUnhittable(actor) { return !!(this.superPause?.remaining > 0 && this.superPause.owner === actor && this.superPause.unhittable !== 0); }
+  advancePause() {
+    const active = this.superPause?.remaining > 0 ? this.superPause : this.pause?.remaining > 0 ? this.pause : null;
+    const restore=pause=>{for(const [target,{before,applied}]of pause?.defence||[])if(target.defenceMultiplier===applied)target.defenceMultiplier=before;};
+    if (active) {
+      for(const actor of [...this.entities,...this.projectiles])if(!this.isFrozen(actor))active.moved.set(actor,(active.moved.get(actor)||0)+1);
+      active.remaining--; active.elapsed++;if(!active.remaining)restore(active);
+    }
+    for (const pause of this.pendingPauses) {
+      const key=pause.type === 'superpause'?'superPause':'pause';restore(this[key]);this[key]=pause;
+      if(key==='superPause'&&pause.remaining>0){
+        const factor=pause.p2defmul>0?pause.p2defmul:this.combatRules.superTargetDefence||1.5;pause.defence=new Map();
+        for(const target of pause.owner.targets){const before=target.defenceMultiplier,applied=before/factor;pause.defence.set(target,{before,applied});target.defenceMultiplier=applied;}
+      }
+    }
+    this.pendingPauses = [];
+  }
+
+  tick(commands = new Set(), opponentCommands = new Set(),{playerInput=null,opponentInput=null}={}) {
+    this.events = []; this.presentationEvents = [];
+    commands = commands instanceof Set ? commands : new Set(commands);
+    opponentCommands = opponentCommands instanceof Set ? opponentCommands : new Set(opponentCommands);
+    const backgroundPaused=!!(this.superPause?.remaining>0||this.pause?.remaining>0&&this.pause.pausebg!==0);
+    const globallyPaused=!!(this.superPause?.remaining>0||this.pause?.remaining>0);
+    const effectPause=this.pause?.remaining>0?this.pause:null,effectSuperPause=this.superPause?.remaining>0?this.superPause:null;
+    this.syncEnvironment();
+    if(this.cpus.has(this.player))commands=this.cpus.get(this.player).tick(this.player,this.opponent,{paused:this.isFrozen(this.player)||this.player.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
+    if(this.cpus.has(this.opponent))opponentCommands=this.cpus.get(this.opponent).tick(this.opponent,this.player,{paused:this.isFrozen(this.opponent)||this.opponent.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
+    if(this.cpus.has(this.player))playerInput=this.cpus.get(this.player).raw;
+    if(this.cpus.has(this.opponent))opponentInput=this.cpus.get(this.opponent).raw;
+    const paused = new Set([...this.entities,...this.projectiles].filter(fighter => fighter.hitPauseTime > 0));
+    const frozen = new Set();
+    // Newly spawned helpers join later in this pass, with a bounded entity count.
+    for (let index=0;index<this._entities.length;index++) {
+      const fighter = this._entities[index]; if (fighter.destroyed) continue;
+      let input = fighter.root === this.player ? commands : opponentCommands;
+      if (!fighter.keyCtrl||this.roundFlow&&this.roundFlow.roundState!==2) input = new Set();
+      const other = fighter.teamSide === this.player.teamSide ? this.opponent : this.player;
+      const stopped = this.isFrozen(fighter);
+      if (stopped) {
+        frozen.add(fighter);
+        const pause = this.superPause?.remaining > 0 ? this.superPause : this.pause;
+        if (pause && pause.remaining <= pause.endcmdbuftime) {
+          if (!this.commandBuffers.has(fighter)) this.commandBuffers.set(fighter,new Set());
+          for (const command of input) this.commandBuffers.get(fighter).add(command);
+        }
+      } else if (this.commandBuffers.has(fighter)) { input = new Set([...input,...this.commandBuffers.get(fighter)]); this.commandBuffers.delete(fighter); }
+      fighter.tick({commands:input,opponent:other,paused:stopped,input:fighter.keyCtrl?(fighter.root===this.player?playerInput:opponentInput):new Set()});
+    }
+    for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile.tick({paused:stopped}); }
+    if(this.stage){for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));this.stage.updateCamera(this.entities);this.syncEnvironment();this.stage.tick({paused:backgroundPaused});}
+    this.constrainPositions();
+    const fighters = this.entities;
+    for(const defender of fighters)if(defender.moveType!=='H'&&defender.stateType!=='L')for(const records of this.juggles.values())records.delete(defender.id);
+    const projectiles = this.projectiles.filter(p=>!p.removed && !p.removing);
+    // Opposing projectiles cancel using attack boxes and projectile priorities.
+    for (let i=0;i<projectiles.length;i++) for (let j=i+1;j<projectiles.length;j++) {
+      const a = projectiles[i], b = projectiles[j];
+      if (a.teamSide === b.teamSide || a.removing || b.removing || frozen.has(a) && frozen.has(b) || !contactArea(transformedBoxes(a),transformedBoxes(b))) continue;
+      if (a.priority === b.priority) { a.cancel(); b.cancel(); }
+      else { const high = a.priority > b.priority ? a : b, low = high === a ? b : a; low.cancel(); high.priority--; }
+    }
+    const contacts = [];
+    const reversed = new Set();
+    for (const defender of fighters) for (const attacker of fighters) {
+      if(this.roundFlow&&this.roundFlow.roundState!==2)continue;
+      const reversal = defender.reversalDef, hit = attacker.hitDef;
+      if (!reversal || !hit || attacker === defender || attacker.teamSide === defender.teamSide || frozen.has(defender) || paused.has(defender) || paused.has(attacker) || reversed.has(attacker)) continue;
+      if (!defender.attributeMatches(reversal['reversal.attr'],hit.attr) || this.usedHits.get(defender)?.get(attacker.id) === reversal.serial) continue;
+      const overlap = contactArea(transformedBoxes(defender),transformedBoxes(attacker)); if (!overlap) continue;
+      const result = attacker.receiveHit(reversal,defender); if (result.rejected) continue;
+      this.applyCornerPush(defender,attacker,result.cornerPush,reversal.coordinateScale);
+      attacker.moveContact=attacker.moveHit=attacker.moveGuarded=0;attacker.moveReversed = 1; attacker.hitDef = null; reversed.add(attacker);
+      if (!this.usedHits.has(defender)) this.usedHits.set(defender,new Map()); this.usedHits.get(defender).set(attacker.id,reversal.serial);
+      this.events.push({type:'reversal',attacker:defender,defender:attacker,hitDef:reversal,damage:result.damage,guarded:false,x:(overlap[0]+overlap[2])/2,y:(overlap[1]+overlap[3])/2,tick:this.ticks});
+    }
+    for (const attacker of [...fighters,...projectiles]) for (const defender of [...fighters].sort((a,b)=>Math.abs(a.pos.x-attacker.pos.x)-Math.abs(b.pos.x-attacker.pos.x))) {
+      if (attacker === defender || this.winner ||this.roundFlow&&this.roundFlow.roundState!==2|| attacker.destroyed || frozen.has(attacker) || reversed.has(attacker)) continue;
+      const hit = attacker.hitDef;
+      if (!hit || attacker.life <= 0 || defender.life <= 0 || paused.has(attacker) || paused.has(defender) || attacker.moveType !== 'A') continue;
+      if (!/^[SCA]\s*,\s*[NSH][ATP]$/i.test(String(hit.attr ?? '').trim()) || !allowsState(hit, defender)) continue;
+      const team = flagText(hit.affectteam ?? 'E'), friend = attacker.teamSide === defender.teamSide;
+      if (team === 'E' && friend || team === 'F' && !friend) continue;
+      if (typeof defender.canBeHit === 'function' && !defender.canBeHit(hit,attacker)) continue;
+      if(String(hit[defender.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()!=='none'&&!this.canJuggle(attacker,defender,hit))continue;
+      const activation = hit.serial ?? hit;
+      if (attacker instanceof ProjectileRuntime ? !attacker.canHit(defender,this.ticks) : this.usedHits.get(attacker)?.get(defender.id) === activation) continue;
+      const attackBoxes = transformedBoxes(attacker), hurtBoxes = transformedBoxes(defender, 'clsn2');
+      const overlap = contactArea(attackBoxes, hurtBoxes);
+      if (!overlap) continue;
+      contacts.push({attacker, defender, hit, activation, overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall, guarded: canGuard(hit, attacker, defender, defender.root === this.player ? commands : opponentCommands)});
+    }
+    // Resolve from a shared snapshot so a simultaneous normal hit can trade.
+    const accepted = contacts.filter(contact => {
+      const reverse = contacts.find(c=>c.attacker === contact.defender && c.defender === contact.attacker);
+      return !reverse || chooseContacts([contact,reverse]).includes(contact);
+    });
+    for (const contact of accepted) {
+      if (contact.attacker instanceof ProjectileRuntime && !contact.attacker.canHit(contact.defender,this.ticks)) continue;
+      const result = contact.defender.receiveHit(contact.hit, contact.attacker, {guarded: contact.guarded});
+      if (result?.rejected) continue;
+      this.applyCornerPush(contact.attacker,contact.defender,result.cornerPush,contact.hit.coordinateScale);
+      if(!contact.guarded&&!result.typeNone)this.recordJuggle(contact.attacker,contact.defender,contact.hit,{wasFalling:contact.wasFalling});
+      if (!this.usedHits.has(contact.attacker)) this.usedHits.set(contact.attacker,new Map());
+      this.usedHits.get(contact.attacker).set(contact.defender.id,contact.activation);
+      if (contact.attacker instanceof ProjectileRuntime) contact.attacker.onContact({guarded:contact.guarded,defender:contact.defender,tick:this.ticks});
+      this.events.push({type: contact.guarded ? 'guard' : 'hit', attacker: contact.attacker, defender: contact.defender, hitDef: contact.hit, damage: result?.damage ?? 0, guarded: contact.guarded,typeNone:!!result.typeNone, x: (contact.overlap[0] + contact.overlap[2]) / 2, y: (contact.overlap[1] + contact.overlap[3]) / 2, tick: this.ticks});
+    }
+    for(const fighter of this.entities)fighter.updateExplods({hitPaused:paused.has(fighter),pause:effectPause,superPause:effectSuperPause});
+    this.eventEntities=[...fighters,...this.projectiles];this.cleanupEntities(); this.advancePause(); this.ticks++;
+    const asserted=flag=>this.entities.some(p=>p.asserted.has(flag));
+    if (!this.roundFlow&&!asserted('noko')&&(this.player.life<=0||this.opponent.life<=0)) this.winner = this.player.life <= 0 && this.opponent.life <= 0 ? 'draw' : this.player.life <= 0 ? 'opponent' : 'player';
+    if(this.roundFlow){
+      const flow=this.roundFlow,players=[this.player,this.opponent];
+      const events=flow.step({players,paused:globallyPaused,intro:asserted('intro'),roundNotOver:asserted('roundnotover'),timerFreeze:asserted('timerfreeze'),noKO:players.map(()=>asserted('noko'))});
+      this.syncEnvironment();
+      for(const event of events){
+        if(event.type==='fight')for(const p of players)if(p.stateNo===0)p.ctrl=1;
+        if(event.type==='round-over')this.winner=event.winner;
+        if(event.type==='result')for(const p of players){const won=event.winner===(p===this.player?'player':'opponent'),state=won?180:event.reason==='time'?170:null;if(state!==null&&p.program.states.has(state))p.changeState(state,0,p);}
+        if(event.type==='next-round')this.reset({preserveMatch:true});
+        this.presentationEvents.push({...event,type:'round',event:event.type});
+      }
+      if(flow.matchOver&&flow.roundWinner!=='draw')this[flow.roundWinner]?.selectVictoryQuote();
+    }
+    return this.events;
+  }
+
+  cleanupEntities() {
+    const dead = this._entities.filter(p=>p.destroyed);
+    for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor); this.commandBuffers.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
+    this._entities = this._entities.filter(p=>!p.destroyed);
+    this.projectiles = this.projectiles.filter(p=>!p.removed);
+    for (const fighter of this._entities) {
+      fighter.helpers = fighter.helpers.filter(h=>!h.destroyed);
+      fighter.targets = fighter.targets.filter(t=>!t.destroyed);
+      for(const id of fighter.targetHitIds.keys())if(!this.findPlayer(id))fighter.targetHitIds.delete(id);
+      if (fighter.bound?.target.destroyed) fighter.bound = null;
+    }
+  }
+
+  archiveDiagnostics(items){for(const item of items){const key=JSON.stringify(item);if(!this.archivedDiagnosticKeys.has(key)){this.archivedDiagnosticKeys.add(key);this.archivedDiagnostics.push(item);}}}
+
+  canJuggle(attacker,defender,hit){
+    if((attacker.isProjectile?attacker.creator:attacker).asserted?.has('nojugglecheck'))return true;
+    const falling=defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&defender.getHitVars?.fall;
+    if(!falling)return true;
+    const owner=attacker.isProjectile?attacker.owner:attacker,record=this.juggles.get(owner)?.get(defender.id),remaining=record?.remaining??owner.constant('data.airjuggle');
+    const cost=attacker.isProjectile?hit['air.juggle']||0:record?.group===hit.juggleGroup?0:hit.juggleCost||0;
+    return remaining>=cost;
+  }
+  recordJuggle(attacker,defender,hit,{wasFalling=false}={}){
+    if(!wasFalling&&!defender.getHitVars?.fall&&defender.stateType!=='L')return;
+    const owner=attacker.isProjectile?attacker.owner:attacker;if(!this.juggles.has(owner))this.juggles.set(owner,new Map());
+    const records=this.juggles.get(owner),old=records.get(defender.id),skip=(attacker.isProjectile?attacker.creator:attacker).asserted?.has('nojugglecheck'),cost=skip?0:attacker.isProjectile?hit['air.juggle']||0:old?.group===hit.juggleGroup?0:hit.juggleCost||0;
+    records.set(defender.id,{remaining:Math.max(0,(old?.remaining??owner.constant('data.airjuggle'))-cost),group:hit.juggleGroup});
+  }
+
+  bodyWidth(fighter,direction,edge=false){
+      const side = fighter.facing === direction ? 'front' : 'back';
+      const posture = fighter.stateType === 'A' ? 'air' : 'ground';
+      const override = edge ? fighter.width?.edge?.[side === 'front' ? 0 : 1] : fighter.width?.[side];
+      return Math.max(0,override===undefined?constant(fighter,`size.${posture}.${side}`,15)*baseScale(fighter):finite(override)*(fighter.coordinateScale||baseScale(fighter)));
+  }
+  horizontalLimits(fighter){
+      let min = this.stage?Math.max(this.leftBound,this.view.left+Math.max(this.stage.definition.screenLeft,this.bodyWidth(fighter,-1,true))):this.leftBound+this.bodyWidth(fighter,-1,true);
+      let max = this.stage?Math.min(this.rightBound,this.view.right-Math.max(this.stage.definition.screenRight,this.bodyWidth(fighter,1,true))):this.rightBound-this.bodyWidth(fighter,1,true);
+      if (min > max) min = max = (this.leftBound + this.rightBound) / 2;
+      return{min,max};
+  }
+  applyCornerPush(attacker,defender,velocity=0,scale=attacker.coordinateScale){
+    if(!velocity||attacker instanceof ProjectileRuntime||defender.screenBound===false)return;
+    const {min,max}=this.horizontalLimits(defender),direction=defender.pos.x===attacker.pos.x?attacker.facing:Math.sign(defender.pos.x-attacker.pos.x);
+    if(direction>0?defender.pos.x<max-.01:defender.pos.x>min+.01)return;
+    attacker.cornerPush=velocity*scale*direction;
+  }
+  constrainPositions() {
+    const fighters = [this.player, this.opponent],width=(fighter,direction)=>this.bodyWidth(fighter,direction);
+    const limits=new Map(fighters.map(fighter=>[fighter,this.horizontalLimits(fighter)]));
+    const clamp = fighter => {
+      const {min, max} = limits.get(fighter);
+      if (fighter.screenBound !== false) fighter.pos.x = Math.max(min, Math.min(max, fighter.pos.x));
+    };
+    fighters.forEach(clamp);
+    if (!this.pushboxes || fighters.some(fighter => fighter.playerPush === false || fighter.stateType === 'A' || fighter.stateType === 'L' || fighter.pos.y < 0)) return;
+    const [left, right] = this.player.pos.x <= this.opponent.pos.x ? fighters : [...fighters].reverse();
+    const overlap = left.pos.x + width(left, 1) - (right.pos.x - width(right, -1));
+    if (overlap <= 0) return;
+    const leftAvailable = left.screenBound === false ? Infinity : Math.max(0, left.pos.x - limits.get(left).min);
+    const rightAvailable = right.screenBound === false ? Infinity : Math.max(0, limits.get(right).max - right.pos.x);
+    const leftTravel = Math.min(overlap / 2, leftAvailable);
+    const rightTravel = Math.min(overlap - leftTravel, rightAvailable);
+    left.pos.x -= Math.min(overlap - rightTravel, leftAvailable);
+    right.pos.x += rightTravel;
+    fighters.forEach(clamp);
+  }
+}

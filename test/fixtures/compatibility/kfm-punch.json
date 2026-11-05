@@ -1,0 +1,10 @@
+{
+  "id": "kfm-walk-punch",
+  "inputs": [
+    {"ticks": 50, "player": ["R"]},
+    {"ticks": 1, "player": []},
+    {"ticks": 1, "player": ["x"]},
+    {"ticks": 70, "player": []}
+  ],
+  "samples": [0, 1, 25, 50, 51, 52, 55, 60, 80, 122]
+}
