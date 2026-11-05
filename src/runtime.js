@@ -389,12 +389,12 @@ export class FighterRuntime {
     if (name === 'command') return +this.commands.has(String(args[0]));
     if(name==='stagevar'){if(!this.world?.stage)throw Error('StageVar requires an imported stage.');return this.world.stage.variable(args[0]);}
     if (name === 'ishelper' && args.length) return +(!!this.parent && this.helperId === +args[0]);
-    if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === +args[0]).length;
+    if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === Math.max(0,Math.trunc(+args[0]))).length;
     if (/^proj(contact|hit|guarded|cancel)time$/.test(name)) {
       const kind = name.slice(4, -4), wanted = Math.max(0,+args[0] || 0), record = this.projectileHistory.at(-1);
       return record && (!wanted || record.projId === wanted) && (kind === 'contact' ? ['hit','guarded'].includes(record.type) : record.type === kind) ? (this.world?.ticks ?? this.gameTime) - record.tick : -1;
     }
-    if (/^(parentdist|rootdist) [xy]$/.test(name)) { const parent = name.startsWith('parent') ? this.parent : this.root; if (!parent) { const e = Error('No parent'); e.bottom = true; throw e; } const axis = name.at(-1); return (parent.pos[axis] - this.pos[axis]) * (axis === 'x' ? this.facing : 1) / scale; }
+    if (/^(parentdist|rootdist) [xy]$/.test(name)) { const parent = !this.parent?null:name.startsWith('parent') ? this.parent : this.root; if (!parent||parent.destroyed||name.startsWith('parent')&&!parent.alive) { const e = Error('No live parent or root'); e.bottom = true; throw e; } const axis = name.at(-1); return (parent.pos[axis] - this.pos[axis]) * (axis === 'x' ? this.facing : 1) / scale; }
     if (name === 'const') return this.constant(args[0],scale);
     if (name === 'const240p') return numeric(args[0]) / this.coordinateScale;
     if (name === 'const480p') return numeric(args[0]) / (2*this.coordinateScale);
@@ -589,7 +589,7 @@ export class FighterRuntime {
         if (!this.diagnostics.some(d => d.message.includes(error.message) && d.source === controller.source)) this.diagnostic('controller', error.message, controller);
       }
       this._executing = null;this._scriptOwner=previousOwner;
-      if (this._entrySerial !== entry) break;
+      if (this.destroyed||this._entrySerial !== entry) break;
     }
   }
 
@@ -641,6 +641,7 @@ export class FighterRuntime {
       this.runState(-2, paused, this);
     }
     if (this.keyCtrl && this.stateOwner === this&&!this._initializing) this.runState(-1, paused, this.parent ? this.root : this);
+    if(this.destroyed){this.gameTime++;return this.events;}
     if (!paused&&!this._initializing) this.automaticTransitions();
     if(!paused&&this.stateNo===5110&&this.time>=1&&this.alive&&(this.getHitVars.recovertime??1)<=0&&this.stateOwner.program.states.has(5120))this.changeState(5120);
     let serial;
@@ -649,6 +650,7 @@ export class FighterRuntime {
       else this.runState(this.stateNo, paused);
     }
     while (serial !== this._entrySerial && this._changeCount <= 64);
+    if(this.destroyed){this.gameTime++;return this.events;}
     if(!paused)this._initializing=false;
     this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner;
     if (paused) {advanceHitState(this,{hitPaused:true});if(!this.world)this.updateExplods({hitPaused:true});this.hitPauseTime = Math.max(0, this.hitPauseTime - 1); this.gameTime++; return this.events; }
@@ -898,8 +900,9 @@ export class FighterRuntime {
       return;
     }
     if (['bindtoroot', 'bindtoparent', 'bindtotarget'].includes(type)) {
+      if(type!=='bindtotarget'&&!this.parent)return;
       const id=int('id',-1),target = type === 'bindtoroot' ? this.root : type === 'bindtoparent' ? this.parent : this.targets.find(target=>id<0||(this.targetHitIds.get(target.id)??target.hitId)===id);
-      if (!target) throw new Error(`${type} has no matching player`);
+      if (!target||target.destroyed){if(type==='bindtoparent'&&this.parent){this.bound=null;return;}throw new Error(`${type} has no matching player`);}
       let point=[0,0],x,y;
       if(type==='bindtotarget'){
         const parts=splitArguments(controller.values.pos||'0,0'),anchor=unquote(parts[2]||'foot').toLowerCase();
@@ -926,8 +929,8 @@ export class FighterRuntime {
     if (type === 'offset') { this.drawOffset = { x: num('x') * this.coordinateScale, y: num('y') * this.coordinateScale }; return; }
     if (type === 'destroyself') {
       if (!this.parent) { this.diagnostic('unsupported-controller', 'DestroySelf is valid only for helpers.', controller); return; }
-      this.destroyed = true;
-      if(num('recursive')&&this.world)for(const entity of this.world.entities){let parent=entity.parent,depth=0;while(parent&&depth++<256){if(parent===this){entity.destroyed=true;break;}parent=parent.parent;}}
+      const recursive=!!num('recursive'),removeExplods=!!num('removeexplods');
+      if(this.world)this.world.destroyHelper(this,{recursive,removeExplods});else{this.destroyed=true;if(removeExplods)this.explods=this.drawExplods=[];}
       return;
     }
     this.diagnostic('unsupported-controller', `Controller ${type} is not implemented.`, controller);
@@ -1165,6 +1168,7 @@ export class FighterRuntime {
   updateBinding() {
     const binding = this.bound;
     if (!binding) return;
+    if(binding.target.destroyed){this.bound=null;return;}
     this.pos.x = binding.target.pos.x + binding.x * binding.target.facing;
     this.pos.y = binding.target.pos.y + binding.y;
     if (binding.facing) this.facing = binding.target.facing * (binding.facing < 0 ? -1 : 1);

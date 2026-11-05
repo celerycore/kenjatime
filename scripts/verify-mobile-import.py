@@ -52,7 +52,7 @@ with sync_playwright() as p:
         page.on('requestfailed', lambda req: failures.append(req.url))
         page.on('response', lambda response: samples.append(response.url) if response.url.endswith('/kfm.zip') else None)
         page.goto(os.environ.get('MUGEN_TEST_URL', 'http://127.0.0.1:5173/'), wait_until='networkidle')
-        assert page.locator('.tag i').inner_text() == '15'
+        assert page.locator('.tag i').inner_text() == '16'
         assert page.evaluate('document.documentElement.scrollWidth') <= 390
 
         def choose(selector, name, data, mime='application/octet-stream', keyboard=False):

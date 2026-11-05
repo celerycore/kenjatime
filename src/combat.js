@@ -5,6 +5,8 @@ import {RoundFlow} from './rounds.js';
 import {CpuController,characterCommands,normalizeAILevel} from './cpu.js';
 import {baseScale,animationSource} from './coordinates.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
+import {CommandBuffer} from './commands.js';
+import {unbindExplods} from './explods.js';
 
 const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const flagText = value => String(value ?? '').toUpperCase().replace(/\s/g, '');
@@ -114,6 +116,7 @@ export class TrainingMatch {
     this.opponent.teamSide = 2;
     this.player.opponent=this.opponent;this.opponent.opponent=this.player;
     this._entities = [this.player,this.opponent]; this.projectiles = []; this.nextEntityId = 3;
+    this.orphanEffectOwners=[];this.renderEntities=[...this._entities];this.drawProjectiles=[];this.helperCommands=new Map();
     this.usedHits = new Map();this.juggles=new Map(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
     this.commandBuffers = new Map(); this.presentationEvents = [];this.eventEntities=[];
     this.events = [];
@@ -135,7 +138,7 @@ export class TrainingMatch {
   }
 
   get diagnostics() {
-    const diagnostics = [...this.archivedDiagnostics,...(this.stage?.diagnostics||[]),...this.entities.flatMap(p=>p.diagnostics || []),...this.projectiles.flatMap(p=>p.diagnostics || []),...[...(this.cpus||new Map())].flatMap(([actor,cpu])=>cpu.buffer.diagnostics.map(issue=>({...issue,source:actor.character.def.files.cmd})))];
+    const diagnostics = [...this.archivedDiagnostics,...(this.stage?.diagnostics||[]),...this.entities.flatMap(p=>p.diagnostics || []),...this.orphanEffectOwners.flatMap(p=>p.diagnostics||[]),...this.projectiles.flatMap(p=>p.diagnostics || []),...[...(this.cpus||new Map())].flatMap(([actor,cpu])=>cpu.buffer.diagnostics.map(issue=>({...issue,source:actor.character.def.files.cmd})))];
     const seen = new Set();
     return diagnostics.filter(item => {
       const key = typeof item === 'string' ? item : JSON.stringify(item);
@@ -156,16 +159,30 @@ export class TrainingMatch {
   spawnHelper(owner,spec) {
     if (this.entities.filter(p=>p.parent).length >= this.maxHelpers) { owner.diagnostic('resource-limit',`Helper limit (${this.maxHelpers}) reached.`); return null; }
     const helper = owner.createHelper(spec,{id:this.nextEntityId++});
-    if (!helper.destroyed) {this._entities.push(helper);this.syncEnvironment();}
+    if (!helper.destroyed) {this._entities.push(helper);if(helper.keyCtrl)this.helperCommands.set(helper,new CommandBuffer(characterCommands(helper.root.character)));this.syncEnvironment();}
     else this.archiveDiagnostics(helper.diagnostics);
     return helper;
   }
   spawnProjectile(owner,spec) {
     if (this.projectiles.length >= this.maxProjectiles) { owner.diagnostic('resource-limit',`Projectile limit (${this.maxProjectiles}) reached.`); return null; }
     const projectile = new ProjectileRuntime(owner,spec,{id:this.nextEntityId++});
+    if(projectile.removed){this.archiveDiagnostics(projectile.diagnostics);return projectile;}
     const afterimage=Object.fromEntries(Object.entries(spec).filter(([k])=>k.startsWith('afterimage.')).map(([k,v])=>[k.slice(11),v]));
     if(Object.keys(afterimage).length)this.presentationEvents.push({...afterimage,type:'afterimage',entity:projectile});
     this.projectiles.push(projectile); return projectile;
+  }
+  retireEffects(actor,{removeExplods=false}={}){
+    if(actor._effectsDetached)return;actor._effectsDetached=true;
+    if(removeExplods){actor.explods=[];actor.drawExplods=[];}
+    else{actor.drawExplods=[];if(actor.explods.length){for(const effect of actor.explods)effect.orphaned=true;this.orphanEffectOwners.push(actor);}}
+    for(const owner of new Set([...this._entities,...this.orphanEffectOwners])){
+      if(owner.bound?.target===actor)owner.bound=null;unbindExplods(owner,actor);
+    }
+  }
+  destroyHelper(actor,{recursive=false,removeExplods=false}={}){
+    const victims=[actor];if(recursive)for(const entity of this._entities){let parent=entity.parent,depth=0;while(parent&&depth++<256){if(parent===actor){victims.push(entity);break;}parent=parent.parent;}}
+    for(const victim of victims)victim.destroyed=true;
+    for(const victim of victims)this.retireEffects(victim,{removeExplods});
   }
   requestPause(owner,spec) {
     const time = Math.max(0,Math.trunc(spec.time)); if (!Number.isFinite(time) || time > 360000) { owner.diagnostic('resource-limit','Pause time must be between 0 and 360000 ticks.'); return; }
@@ -215,9 +232,13 @@ export class TrainingMatch {
     const paused = new Set([...this.entities,...this.projectiles].filter(fighter => fighter.hitPauseTime > 0));
     const frozen = new Set();
     // Newly spawned helpers join later in this pass, with a bounded entity count.
+    const updatedActors=[];
     for (let index=0;index<this._entities.length;index++) {
       const fighter = this._entities[index]; if (fighter.destroyed) continue;
+      updatedActors.push(fighter);
       let input = fighter.root === this.player ? commands : opponentCommands;
+      const physical=fighter.root===this.player?playerInput:opponentInput;
+      if(fighter.parent&&fighter.keyCtrl&&physical!==null)input=this.helperCommands.get(fighter).update(physical,fighter.facing);
       if (!fighter.keyCtrl||this.roundFlow&&this.roundFlow.roundState!==2) input = new Set();
       const other = fighter.teamSide === this.player.teamSide ? this.opponent : this.player;
       const stopped = this.isFrozen(fighter);
@@ -237,12 +258,11 @@ export class TrainingMatch {
     const fighters = this.entities;
     for(const defender of fighters)if(defender.moveType!=='H'&&defender.stateType!=='L')for(const records of this.juggles.values())records.delete(defender.id);
     const projectiles = this.projectiles.filter(p=>!p.removed && !p.removing);
-    // Opposing projectiles cancel using attack boxes and projectile priorities.
+    // Projectile cancellation uses Clsn2, independently of attack hitboxes.
     for (let i=0;i<projectiles.length;i++) for (let j=i+1;j<projectiles.length;j++) {
       const a = projectiles[i], b = projectiles[j];
-      if (a.teamSide === b.teamSide || a.removing || b.removing || frozen.has(a) && frozen.has(b) || !contactArea(transformedBoxes(a),transformedBoxes(b))) continue;
-      if (a.priority === b.priority) { a.cancel(); b.cancel(); }
-      else { const high = a.priority > b.priority ? a : b, low = high === a ? b : a; low.cancel(); high.priority--; }
+      if (a.teamSide === b.teamSide || a.removing || b.removing || frozen.has(a) && frozen.has(b) || !contactArea(transformedBoxes(a,'clsn2'),transformedBoxes(b,'clsn2'))) continue;
+      a.clash(b);b.clash(a);
     }
     const contacts = [];
     const reversed = new Set();
@@ -272,7 +292,7 @@ export class TrainingMatch {
       const attackBoxes = transformedBoxes(attacker), hurtBoxes = transformedBoxes(defender, 'clsn2');
       const overlap = contactArea(attackBoxes, hurtBoxes);
       if (!overlap) continue;
-      contacts.push({attacker, defender, hit, activation, overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall, guarded: canGuard(hit, attacker, defender, defender.root === this.player ? commands : opponentCommands)});
+      contacts.push({attacker, defender, hit, activation, overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall, guarded: canGuard(hit, attacker, defender, defender.parent?defender.commands:defender===this.player?commands:opponentCommands)});
     }
     // Resolve from a shared snapshot so a simultaneous normal hit can trade.
     const accepted = contacts.filter(contact => {
@@ -291,7 +311,11 @@ export class TrainingMatch {
       this.events.push({type: contact.guarded ? 'guard' : 'hit', attacker: contact.attacker, defender: contact.defender, hitDef: contact.hit, damage: result?.damage ?? 0, guarded: contact.guarded,typeNone:!!result.typeNone, x: (contact.overlap[0] + contact.overlap[2]) / 2, y: (contact.overlap[1] + contact.overlap[3]) / 2, tick: this.ticks});
     }
     for(const fighter of this.entities)fighter.updateExplods({hitPaused:paused.has(fighter),pause:effectPause,superPause:effectSuperPause});
-    this.eventEntities=[...fighters,...this.projectiles];this.cleanupEntities(); this.advancePause(); this.ticks++;
+    for(const actor of this._entities)if(actor.destroyed&&!actor._effectsDetached)this.retireEffects(actor);
+    for(const owner of this.orphanEffectOwners)owner.updateExplods({pause:effectPause,superPause:effectSuperPause});
+    this.orphanEffectOwners=this.orphanEffectOwners.filter(owner=>owner.explods.length||owner.drawExplods.length);
+    this.drawProjectiles=this.projectiles.filter(projectile=>projectile.drawVisible);
+    this.eventEntities=[...updatedActors,...this.projectiles];this.cleanupEntities(); this.advancePause(); this.ticks++;
     const asserted=flag=>this.entities.some(p=>p.asserted.has(flag));
     if (!this.roundFlow&&!asserted('noko')&&(this.player.life<=0||this.opponent.life<=0)) this.winner = this.player.life <= 0 && this.opponent.life <= 0 ? 'draw' : this.player.life <= 0 ? 'opponent' : 'player';
     if(this.roundFlow){
@@ -312,7 +336,8 @@ export class TrainingMatch {
 
   cleanupEntities() {
     const dead = this._entities.filter(p=>p.destroyed);
-    for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor); this.commandBuffers.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
+    for(const actor of dead)if(!actor._effectsDetached)this.retireEffects(actor);
+    for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor); this.commandBuffers.delete(actor);this.helperCommands.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
     this._entities = this._entities.filter(p=>!p.destroyed);
     this.projectiles = this.projectiles.filter(p=>!p.removed);
     for (const fighter of this._entities) {
@@ -321,6 +346,7 @@ export class TrainingMatch {
       for(const id of fighter.targetHitIds.keys())if(!this.findPlayer(id))fighter.targetHitIds.delete(id);
       if (fighter.bound?.target.destroyed) fighter.bound = null;
     }
+    this.renderEntities=[...this._entities,...this.orphanEffectOwners].sort((a,b)=>a.id-b.id);
   }
 
   archiveDiagnostics(items){for(const item of items){const key=JSON.stringify(item);if(!this.archivedDiagnosticKeys.has(key)){this.archivedDiagnosticKeys.add(key);this.archivedDiagnostics.push(item);}}}
@@ -366,6 +392,7 @@ export class TrainingMatch {
       if (fighter.screenBound !== false) fighter.pos.x = Math.max(min, Math.min(max, fighter.pos.x));
     };
     fighters.forEach(clamp);
+    for(const helper of this.entities)if(helper.parent&&helper.screenBound!==false){const {min,max}=this.horizontalLimits(helper);helper.pos.x=Math.max(min,Math.min(max,helper.pos.x));}
     if (!this.pushboxes || fighters.some(fighter => fighter.playerPush === false || fighter.stateType === 'A' || fighter.stateType === 'L' || fighter.pos.y < 0)) return;
     const [left, right] = this.player.pos.x <= this.opponent.pos.x ? fighters : [...fighters].reverse();
     const overlap = left.pos.x + width(left, 1) - (right.pos.x - width(right, -1));

@@ -7,11 +7,12 @@ export class ProjectileRuntime {
   constructor(creator, spec, {id} = {}) {
     this.creator = creator; this.owner = creator.root || creator; this.root = this.owner;
     this.isProjectile=true;
-    this.world = creator.world; this.id = id; this.projId = Math.trunc(spec.projid ?? 0);
+    this.world = creator.world; this.id = id; this.projId = Math.max(0,Math.trunc(spec.projid ?? 0));
     this.teamSide = creator.teamSide; this.character = creator.character; this.coordinateScale = creator.coordinateScale;
     this.baseCoordinateScale=this.coordinateScale;
     this.animations = creator.animations; this.program = {...creator.program,constants:new Map(creator.program.constants)};
     this.spec = spec; this.events = []; this.diagnostics = []; this.asserted = new Set();
+    if(Number(spec.projid)<0)this.diagnostic('projectile-id','Negative ProjID was clamped to 0.');
     Object.assign(this,spawnPosition(creator,spec,true));
     const scale = vector(spec.projscale,[1,1]), doscale = creator.constant('size.proj.doscale') !== 0;
     this.program.constants.set('size.xscale',scale[0] * (doscale ? creator.constant('size.xscale') : 1));
@@ -23,13 +24,12 @@ export class ProjectileRuntime {
     this.hitDef = spec.hitDef; this.hitPauseTime = 0; this.hitCount = 0;
     this.moveType = 'A'; this.stateType = (this.hitDef?.attr || 'S')[0].toUpperCase();
     this.priority = Math.max(1,Math.trunc(spec.projpriority ?? 1)); this.sprPriority = spec.projsprpriority ?? 3;
-    this.remainingHits = Math.max(1,Math.trunc(spec.projhits ?? 1)); this.missTime = Math.max(0,Math.trunc(spec.projmisstime ?? 0));
+    this.remainingHits = Math.max(0,Math.trunc(spec.projhits ?? 1)); this.missTime = Math.max(0,Math.trunc(spec.projmisstime ?? 0));
     this.pauseMoveTime = Math.max(0,spec.pausemovetime || 0); this.superMoveTime = Math.max(0,spec.supermovetime || 0);
-    this.ownPal = !!spec.ownpal; this.time = 0; this.removing = false; this.removed = false; this.nextHitTick = 0;
+    this.ownPal = !!spec.ownpal; this.time = 0; this.removing = false; this.removed = false; this.activeTicks=0;this.nextHitAge=0;this.drawVisible=true;this._inTick=false;
     this._paletteRemaps=new Map(this.owner.paletteRemaps);if(this.ownPal&&spec.remappal&&spec.remappal[0]!==-1){this._paletteRemaps.clear();this._paletteRemaps.set('*',spec.remappal);}
     this.attackMultiplier = creator.attackMultiplier;
     if (!this.animations.has(this.anim)) { this.diagnostic('missing-animation',`Projectile animation ${this.anim} does not exist.`); this.removed = true; }
-    if (spec.projshadow) this.diagnostic('unsupported-projectile','Projectile shadows are not rendered.');
   }
   get currentFrame() { return this.animations.get(this.anim)?.frames[this.frameIndex] || null; }
   get life() { return this.removed || this.removing ? 0 : 1; }
@@ -50,29 +50,51 @@ export class ProjectileRuntime {
     for (let i=history.length-2;i>=0;i--) if (history[i].type === type && history[i].projId === this.projId) history.splice(i,1);
     if (history.length > 4096) { history.shift(); this.diagnostic('resource-limit','Projectile history exceeded 4096 distinct ID/event pairs.'); }
   }
-  canHit(_defender,tick = this.world?.ticks ?? this.time) { return !this.removed && !this.removing && !!this.hitDef && tick >= this.nextHitTick && this.remainingHits > 0; }
+  canHit() { return !this.removed && !this.removing && !!this.hitDef && this.activeTicks >= this.nextHitAge && this.remainingHits > 0; }
   onContact({guarded = false,tick = this.world?.ticks ?? this.time} = {}) {
-    this.record(guarded ? 'guarded' : 'hit'); this.remainingHits--; this.nextHitTick = tick + this.missTime + 1;
-    if (this.spec.projremove !== 0 || this.remainingHits <= 0) this.remove('hit');
+    this.record(guarded ? 'guarded' : 'hit'); this.remainingHits--; this.nextHitAge = this.activeTicks + this.missTime + 1;
+    if (this.spec.projremove !== 0 && this.remainingHits <= 0) this.remove('hit');
   }
   cancel() { if (!this.removing && !this.removed) { this.record('cancel'); this.remove('cancel'); } }
+  clash(other){
+    if(this.priority>other.priority)this.priority--;else this.remainingHits--;
+    if(this.remainingHits<=0)this.cancel();else this.hitPauseTime=Math.max(this.hitPauseTime,this.hitDef?.pauseTime?.[0]||0);
+  }
   remove(reason = 'expire') {
     if (this.removing || this.removed) return;
     this.removing = true; this.hitDef = null; this.hitPauseTime = 0;
     const hitAnim = this.spec.projhitanim ?? -1, remAnim = this.spec.projremanim ?? hitAnim;
     const anim = reason === 'hit' ? hitAnim : reason === 'cancel' ? this.spec.projcancelanim ?? remAnim : remAnim;
     const velocity = vector(this.spec.remvelocity); this.vel = {x:velocity[0]*this.coordinateScale,y:velocity[1]*this.coordinateScale};
-    if (anim < 0 || !this.animations.has(anim)) { this.removed = true; return; }
+    if (anim < 0) { this.removed = true;this.drawVisible=false;return; }
+    let changed=false;
+    if(!this.animations.has(anim)){this.diagnostic('missing-animation',`Projectile removal animation ${anim} does not exist; retaining action ${this.anim}.`);}
+    else if(Math.trunc(anim)!==this.anim){changed=true;this._loopedThisTick=false;
     this.anim = Math.trunc(anim); this.frameIndex = this.frameTime = 0;
+    }
+    if(changed||!this.collisionFrame){
     this.collisionFrame = this.currentFrame;
     this.collisionAnimation=this.animations.get(this.anim);this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime;
+    }
+    // Contacts/cancellation happen after tick(). Consume the first removal
+    // frame now so a one-tick action is displayed once, including its last frame.
+    this.drawVisible=!!this.collisionFrame;if(changed&&!this._inTick)this.advanceFrame();else if(!changed&&!this._inTick&&this._loopedThisTick)this.removed=true;
+  }
+  advanceFrame(){
+    const frame=this.currentFrame,animation=this.animations.get(this.anim);
+    if(frame&&frame.ticks>=0&&++this.frameTime>=Math.max(1,frame.ticks)){
+      this.frameTime=0;this.frameIndex++;if(this.frameIndex>=animation.frames.length){this._loopedThisTick=true;if(this.removing)this.removed=true;this.frameIndex=animation.loopStart||0;}
+    }
   }
   tick({paused = false} = {}) {
     this.events = [];
-    if (paused || this.removed) return;
+    if(this.removed){this.drawVisible=false;return;}
+    if (paused) return;
+    this.drawVisible=true;
     this.collisionFrame = this.currentFrame;
     this.collisionAnimation=this.animations.get(this.anim);this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime;
     if (this.hitPauseTime > 0) { this.hitPauseTime--; return; }
+    this._inTick=true;this._loopedThisTick=false;this.activeTicks++;
     this.pos.x += this.vel.x * this.facing; this.pos.y += this.vel.y;
     if (!this.removing) {
       this.vel.x = (this.vel.x + this.accel[0]) * this.velmul[0]; this.vel.y = (this.vel.y + this.accel[1]) * this.velmul[1];
@@ -82,14 +104,6 @@ export class ProjectileRuntime {
       const left = this.world?.leftBound ?? -160, right = this.world?.rightBound ?? 160,screenLeft=this.world?.view.left??left,screenRight=this.world?.view.right??right;
       if ((this.spec.projremovetime ?? -1) >= 0 && this.time >= this.spec.projremovetime || this.pos.x < Math.max(left-stage,screenLeft-edge) || this.pos.x > Math.min(right+stage,screenRight+edge) || this.pos.y < height[0] || this.pos.y > height[1]) this.remove();
     }
-    const frame = this.currentFrame, animation = this.animations.get(this.anim);
-    if (frame && frame.ticks >= 0 && ++this.frameTime >= Math.max(1,frame.ticks)) {
-      this.frameTime = 0; this.frameIndex++;
-      if (this.frameIndex >= animation.frames.length) {
-        if (this.removing) this.removed = true;
-        this.frameIndex = animation.loopStart || 0;
-      }
-    }
-    this.time++;
+    if(!this.removed)this.advanceFrame();this._inTick=false;this.time++;
   }
 }

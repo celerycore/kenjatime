@@ -91,5 +91,10 @@ export class EffectsState {
     }
     return snapshots.reverse();
   }
-  cleanup(entities){const liveEntities=new Set(entities);for(const map of [this.palettes,this.afterimages])for(const entity of map.keys())if(!liveEntities.has(entity))map.delete(entity);}
+  cleanup(entities,{paletteOwners=entities}={}){
+    const live=new Set(entities),paletteLive=new Set();
+    for(let entity of paletteOwners){let depth=0;while(entity&&depth++<256&&!paletteLive.has(entity)){paletteLive.add(entity);if(entity.ownPal||entity.ownpal||entity.paletteSnapshot)break;entity=entity.parent||entity.owner;}}
+    for(const entity of this.palettes.keys())if(!paletteLive.has(entity))this.palettes.delete(entity);
+    for(const entity of this.afterimages.keys())if(!live.has(entity))this.afterimages.delete(entity);
+  }
 }

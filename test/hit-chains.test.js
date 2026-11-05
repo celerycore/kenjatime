@@ -71,7 +71,8 @@ test('guarded hitonce contacts consume the activation without damaging another o
 test('projectile chains use their owner identity while projectile hits follow projhits and miss-time limits',()=>{
   const {w,near}=multi();w.player.hitDef=null;
   const projectile=w.spawnProjectile(w.player,{projanim:0,projhits:2,projremove:0,velocity:[0,0],hitDef:hit(w.player,'id=41\nhitonce=1')});projectile.pos={x:0,y:0};
-  // Native projectile lifetime is controlled by projhits; hitonce does not drop the owner's other targets.
+  // Projhits limits damage; projremove=0 keeps the exhausted projectile alive.
+  // Hitonce does not drop the owner's other targets.
   w.player.targets.push(w.opponent);w.player.targetHitIds.set(w.opponent.id,10);
   assert.equal(w.tick().length,1);assert.equal(near.life,900);assert.equal(w.opponent.life,1000);
   assert.equal(near.receiveHit(hit(w.player,'nochainID=41'),w.player).rejected,true);

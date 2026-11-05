@@ -100,6 +100,16 @@ function pauseAllows(e,pause,key){
   if(e[key+'Moved']>=Math.max(0,e[field]||0))return false;e[key+'Moved']++;return true;
 }
 
+/** DestroySelf unbinds effects immediately, retaining their last world position. */
+export function unbindExplods(owner,target){
+  for(const e of owner.explods){
+    const bound=e.bindingTarget===target||!e.bindingTarget&&(e.postype==='p1'&&owner===target||e.postype==='p2'&&owner.opponent===target||e.bindID===target.id||e.bindID===-1&&owner.root===target);
+    if(!bound||!e.initialBinding&&e.bindtime===0)continue;
+    if(e.initialBinding||!e.positioned){e.pos={x:target.pos.x+e.bindOffset[0]*target.facing,y:target.pos.y+e.bindOffset[1]};e.facing=e.relativeFacing*target.facing;}
+    e.bindingTarget=null;e.bindtime=0;e.initialBinding=false;e.positioned=true;
+  }
+}
+
 export function updateExplods(owner,{hitPaused=false,pause=null,superPause=null,forceFrozen=false}={}){
   const rendered=[];
   for(const e of owner.explods){

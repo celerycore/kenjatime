@@ -182,8 +182,8 @@ test('Projectile lifetime, removal animation and high-resolution/facing movement
 
 test('Opposing projectile priorities cancel lower projectiles and preserve cancellation-time queries',()=>{
   const match=world('',{opponentCharacter:character()});
-  const a=match.spawnProjectile(match.player,{projid:1,projanim:100,projpriority:2,offset:[60,0],hitDef:null});
-  const b=match.spawnProjectile(match.opponent,{projid:2,projanim:100,projpriority:1,offset:[60,0],hitDef:null});
+  const a=match.spawnProjectile(match.player,{projid:1,projanim:100,projpriority:2,offset:[70,0],hitDef:null});
+  const b=match.spawnProjectile(match.opponent,{projid:2,projanim:100,projpriority:1,offset:[70,0],hitDef:null});
   match.tick();assert.equal(b.removed,true);assert.equal(a.removed,false);assert.equal(a.priority,1);
   assert.equal(match.opponent.resolveTrigger('projcanceltime',[2]),1);
 });
