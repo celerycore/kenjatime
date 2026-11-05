@@ -2,7 +2,7 @@ export function mountArena({setMode,setPlaying,configureMatch,status,hasCharacte
   const $=selector=>document.querySelector(selector),classic=document.body.dataset.classic==='true';document.body.classList.add('arena-page');
   document.title=classic?'MUGEN / Classic Arena':'MUGEN / Web Arena';$('.brand small').textContent=classic?'MUGEN CLASSIC ARENA':'MUGEN WEB ARENA';
   $('.eyebrow').textContent='BRING YOUR FIGHTER';$('h1').innerHTML='Your next match starts here<span>.</span>';
-  $('.heading p').textContent='Import your characters. Choose a rival. Fight using their own scripts.';
+  $('.heading p').textContent='Import your fighters and stages. Choose a rival. Fight using their own scripts.';
   $('header > span').textContent=classic?'PLAY / CLASSIC ARENA':'PLAY / WEB ARENA';
   $('#lab').textContent='Character preview';$('#training').textContent='Arena';
   $('.legacy-arena').href='../';$('.legacy-arena').textContent='Open lab';

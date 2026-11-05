@@ -1,5 +1,6 @@
 import {FrameClock} from './frame-clock.js';
-import {TickInputBuffer,gamepadKeys} from './input-buffer.js';
+import {TickInputBuffer} from './input-buffer.js';
+import {mountControllerSetup} from './gamepads.js';
 import {GraphicsQuality} from './graphics.js';
 import {CanvasRenderer,compositePlan,spriteBounds} from './canvas-renderer.js';
 import {MemoryLRU} from './memory-cache.js';
@@ -38,22 +39,24 @@ export function mountApp({arena=false}={}) {
   const playerPalettes=new WeakMap(),opponentPalettes=new WeakMap();
 
   $('#upload').textContent = '＋ Import character / stage / engine';
-  $('.heading p').textContent = 'Import a character. Inspect its scripts. Test it in motion.';
-  $('.tag i').textContent = '19';
+  $('.heading p').textContent = 'Import fighters and stages. Test them in a local match.';
+  $('.tag i').textContent = '20';
   $('#drop small').textContent=`ZIP / RAR up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
   $('#file').accept=archiveAccept;
+  $('#stage-file').accept=archiveAccept;
   $('.notice').textContent = 'Script execution and collision-based combat are available in training. Character compatibility is incomplete; see the report below.';
   $('#hint').textContent = 'Inspect the character’s SFF sprites and AIR animations. Open training to execute its scripts.';
   $('#hud').innerHTML = '<label>PLAYER 1 <progress id="p1life" max="1000" value="1000"></progress></label><b>VS</b><label>TRAINING DUMMY <progress id="p2life" max="1000" value="1000"></progress></label>';
   $('.coordinates').innerHTML = 'X <span id="pos">0</span> &nbsp; Y <span id="posy">0</span> &nbsp; <span id="state"></span>';
   $('.transport').insertAdjacentHTML('afterend', `<div id="training-tools" class="training-tools" hidden>
     <label><input id="boxes" type="checkbox"> Collision boxes</label><label><input id="sound" type="checkbox" checked> Sound</label>
-    <label>P1 control <select id="player-control"><option value="keyboard">Keyboard</option><option value="cpu">CPU</option></select></label>
+    <label>P1 control <select id="player-control"><option value="keyboard">Keyboard / controller</option><option value="cpu">CPU</option></select></label>
     <label>P2 control <select id="dummy-mode"><option value="stand">Stand</option><option value="guard">Guard</option><option value="crouch">Crouch</option><option value="crouchguard">Crouch + guard</option><option value="cpu">CPU</option></select></label>
     <label>CPU level <select id="cpu-level" disabled>${Array.from({length:8},(_,i)=>`<option value="${i+1}" ${i===3?'selected':''}>${i+1}</option>`).join('')}</select></label>
     <button class="secondary" id="reset">Reset round</button></div>`);
-  $('#training-tools').insertAdjacentHTML('beforeend','<label>Stage <select id="stage-select"><option value="-1">Training grid</option></select></label><label>Opponent <select id="opponent-select"><option value="-1">Mirror character</option></select></label><label>Mode <select id="match-mode"><option value="training">Training</option><option value="match">Match · first to 2</option></select></label>');
-  $('#dummy-mode').insertAdjacentHTML('beforeend','<option value="keyboard">Keyboard P2 · numpad</option>');
+  $('.heading').insertAdjacentHTML('afterend','<section class="stage-library" aria-label="Stage setup"><label>Stage <select id="stage-select"><option value="-1">Training grid</option></select></label><span id="stage-summary">Add a stage ZIP or RAR to use its background and music.</span></section>');
+  $('#training-tools').insertAdjacentHTML('beforeend','<label>Opponent <select id="opponent-select"><option value="-1">Mirror character</option></select></label><label>Mode <select id="match-mode"><option value="training">Training</option><option value="match">Match · first to 2</option></select></label>');
+  $('#dummy-mode').insertAdjacentHTML('beforeend','<option value="keyboard">Keyboard / controller P2 · numpad</option>');
   $('#training-tools').insertAdjacentHTML('beforeend','<label title="Ctrl+D"><input id="debug-text" type="checkbox"> Debug text</label>');
   $('#training-tools').insertAdjacentHTML('beforeend','<label>P1 palette <select id="palette-select"></select></label><label>P2 palette <select id="opponent-palette-select"></select></label>');
   $('.stage-label').innerHTML='TRAINING GRID <span id="round-status">LOCAL SESSION</span>';
@@ -168,20 +171,26 @@ export function mountApp({arena=false}={}) {
     }
   }
   const audio = new CharacterAudio();
-  const haptics=new ForceFeedbackState({onIssue:message=>issue(message,'gamepad')});
-  async function load(bytes) {
+  let haptics,controllerFocus=document.hasFocus();
+  const controllers=mountControllerSetup($('.stage-library'),{onChange:()=>{p1Input.clearSource('gamepad');p2Input.clearSource('gamepad');haptics?.stop();dirty=true;},onCheck:()=>void audio.unlock()});
+  haptics=new ForceFeedbackState({getGamepads:()=>controllers.manager.assigned(),onIssue:message=>issue(message,'gamepad')});
+  async function load(bytes,{stageOnly=false}={}) {
     try {
-      const {files,characters,stages:importedStages}=await unpackArchive(bytes,{onProgress:status});
+      const {files,characters:importedCharacters,stages:importedStages}=await unpackArchive(bytes,{onProgress:status});
+      const characters=stageOnly?[]:importedCharacters;
+      if(stageOnly&&!importedStages.length)throw Error('No stage DEF found. Choose a stage ZIP or RAR containing a DEF and SFF.');
       if(!characters.length&&!importedStages.length)throw Error('No character or stage DEF found in the archive.');
-      if(Object.keys(files).some(path=>/(?:^|\/)data\/(?:fightfx\.sff|common\.snd)$/.test(path))){systemFiles=files;audio.setSystem(files);}
+      if(!stageOnly&&Object.keys(files).some(path=>/(?:^|\/)data\/(?:fightfx\.sff|common\.snd)$/.test(path))){systemFiles=files;audio.setSystem(files);}
       roster.push(...characters);stages.push(...importedStages);renderStageOptions();renderOpponentOptions();
       if(characters.length){if(!selectedStage&&importedStages.length)selectedStage=importedStages.find(s=>/training/i.test(s.name))||importedStages[0];select(roster.length-characters.length);}
-      else if(importedStages.length){selectedStage=importedStages[0];if(selected)configureMatch();renderStageOptions();}
-      status(`Imported ${characters.length} character${characters.length!==1?'s':''} and ${importedStages.length} stage${importedStages.length!==1?'s':''}. Files stay on your device.`);
+      else if(importedStages.length){selectedStage=importedStages[0];if(selected){configureMatch();setMode('training');}renderStageOptions();}
+      status(`Imported ${characters.length} character${characters.length!==1?'s':''} and ${importedStages.length} stage${importedStages.length!==1?'s':''}.${!selected&&importedStages.length?' Load a fighter or the Kung Fu Man sample to play here.':' Files stay on your device.'}`);
     } catch (error) { status(`Import failed: ${error.message}`); }
   }
   function renderStageOptions(){
     $('#stage-select').innerHTML='<option value="-1">Training grid</option>'+stages.map((s,i)=>`<option value="${i}" ${s===selectedStage?'selected':''}>${escape(s.name)}</option>`).join('');
+    text('#stage-summary',selectedStage?`${selectedStage.elements?.length||0} backgrounds · ${selectedStage.music?.path?'Music ready':'No music'}${selectedStage.diagnostics.length?` · ${selectedStage.diagnostics.length} reported issue(s)`:''}`:'Add a stage ZIP or RAR to use its background and music.');
+    $('#stage-summary').title=selectedStage?.diagnostics.map(d=>d.message).join('\n')||'';
   }
   function renderOpponentOptions(){
     const prior=$('#opponent-select').value;$('#opponent-select').innerHTML='<option value="-1">Mirror character</option>'+roster.map((c,i)=>`<option value="${i}">${escape(c.def.info.displayname||c.def.info.name||c.path)}</option>`).join('');
@@ -370,19 +379,19 @@ export function mountApp({arena=false}={}) {
   const parallaxSurface=document.createElement('canvas');parallaxSurface.width=960;parallaxSurface.height=540;
   const parallaxContext=performanceMonitor.track(parallaxSurface.getContext('2d'));parallaxContext.imageSmoothingEnabled=false;
   function drawStageLayer(layer,layout){
-    const stage=match.stage,d=stage.definition,factor=d.coordinateScale;
+    const stage=match.stage,d=stage.definition,backgroundScale=d.backgroundScale??1,factor=d.coordinateScale*backgroundScale,cameraX=stage.camera.x*backgroundScale,cameraY=stage.camera.y*backgroundScale;
     for(const [index,e]of stage.elements.entries()){
       if(e.layer!==layer||!e.enabled||!e.visible||e.type==='dummy'||!d.sprite)continue;
       const frame=e.animated?sampleAnimation(stage.animations.get(e.anim),e.drawFrameIndex??e.frameIndex,e.drawFrameTime??e.frameTime):stage.frame(e);if(!frame)continue;
       let sp=sprite(frame.group,frame.number,d);if(!sp)continue;if(!e.mask)sp=opaqueSprite(sp);
       const pos=stage.position(index),zoom=1+(stage.camera.zoom-1)*e.zoomDelta;
-      const x=480+(pos.x*factor-stage.camera.x*pos.delta[0])*layout.px*stage.camera.zoom;
-      const y=layout.ground+(pos.y*factor-layout.view.zoffset-stage.camera.y*pos.delta[1])*layout.px*stage.camera.zoom;
-      const scaleX=factor*layout.px*zoom*d.xscale*(e.scaleStart[0]+stage.camera.y/factor*e.scaleDelta[0]);
-      const scaleY=factor*layout.px*zoom*d.yscale*(e.scaleStart[1]+stage.camera.y/factor*e.scaleDelta[1]);
+      const x=480+(pos.x*factor-cameraX*pos.delta[0])*layout.px*stage.camera.zoom;
+      const y=layout.ground+(pos.y*factor-layout.view.zoffset-cameraY*pos.delta[1])*layout.px*stage.camera.zoom;
+      const scaleX=factor*layout.px*zoom*d.xscale*(e.scaleStart[0]+cameraY/factor*e.scaleDelta[0]);
+      const scaleY=factor*layout.px*zoom*d.yscale*(e.scaleStart[1]+cameraY/factor*e.scaleDelta[1]);
       const trans=e.transSpecified?{mode:e.trans,alpha:e.alpha}:null,palette=effects.backgroundPalette;
       ctx.save();
-      if(e.window?.length===4){const offset=e.windowCentered?480:layout.left,endpoint=e.windowCentered?0:1;const wx=offset+(e.window[0]*factor-stage.camera.x*e.windowDelta[0])*layout.px,wy=layout.top+(e.window[1]*factor-stage.camera.y*e.windowDelta[1]-layout.view.cropTop)*layout.px;ctx.beginPath();ctx.rect(wx,wy,(e.window[2]-e.window[0]+endpoint)*factor*layout.px,(e.window[3]-e.window[1]+endpoint)*factor*layout.px);ctx.clip();}
+      if(e.window?.length===4){const offset=e.windowCentered?480:layout.left,endpoint=e.windowCentered?0:1;const wx=offset+(e.window[0]*factor-cameraX*e.windowDelta[0])*layout.px,wy=layout.top+(e.window[1]*factor-cameraY*e.windowDelta[1]-layout.view.cropTop)*layout.px;ctx.beginPath();ctx.rect(wx,wy,(e.window[2]-e.window[0]+endpoint)*factor*layout.px,(e.window[3]-e.window[1]+endpoint)*factor*layout.px);ctx.clip();}
       if(e.type==='parallax'){
         const blend=e.trans==='default'?frame.blend||'':e.trans==='none'?'':['add','addalpha'].includes(e.trans)?`AS${e.alpha[0]}D${e.alpha[1]}`:e.trans;
         const plan=compositePlan(blend);
@@ -390,9 +399,9 @@ export function mountApp({arena=false}={}) {
         const cached=parallaxCache.get(cacheKey);if(cached){renderer.draw(cached,0,0,plan,{left:0,top:0,width:canvas.width,height:canvas.height},960,540);ctx.restore();continue;}
         parallaxContext.clearRect(0,0,960,540);const source=coloredSprite(sp,palette,plan.brightness);
         for(let row=0;row<sp.h;row++){
-          const scales=parallaxScale(e,sp.w,row,sp.h,stage.camera.y/factor),sx=scaleX*scales.x*(frame.scaleX??1),sy=scaleY*scales.y*(frame.scaleY??1);
+          const scales=parallaxScale(e,sp.w,row,sp.h,cameraY/factor),sx=scaleX*scales.x*(frame.scaleX??1),sy=scaleY*scales.y*(frame.scaleY??1);
           if(!Number.isFinite(sx)||!Number.isFinite(sy)||!sx||!sy)continue;
-          const rowX=480+(pos.x*factor-stage.camera.x*pos.delta[0]*scales.delta)*layout.px*stage.camera.zoom+(frame.x||0)*scaleX;
+          const rowX=480+(pos.x*factor-cameraX*pos.delta[0]*scales.delta)*layout.px*stage.camera.zoom+(frame.x||0)*scaleX;
           const axis=e.width?sp.w/2:sp.x,flipX=(frame.flip||'').includes('H')?-1:1,flipY=(frame.flip||'').includes('V')?-1:1;
           const step=sp.w*Math.abs(sx),xs=tileOffsets(rowX-axis*sx,step,step,e.tile[0],layout.left,layout.left+layout.width);
           for(const ix of xs){parallaxContext.save();parallaxContext.translate(rowX+ix*step,y+(frame.y||0)*scaleY);parallaxContext.scale(flipX*sx,flipY*sy);parallaxContext.drawImage(source,0,row,sp.w,1,-axis,row-sp.y,sp.w,1+.02/Math.abs(sy));parallaxContext.restore();}
@@ -482,7 +491,10 @@ export function mountApp({arena=false}={}) {
   let lastReport = 0,lastUi=0;
   function measureSimulation(sampleTime){const start=performanceMonitor.enabled?performance.now():0;simulate(sampleTime);if(performanceMonitor.enabled)performanceMonitor.simulation(performance.now()-start);}
   function performanceCounts(){return {activeSprites:drawCount,sprites:spriteCache.size,paletteVariants:paletteCache.size,graphicsMode:graphics.mode,graphicsPreset:graphics.preset,renderScale,targetFPS:graphics.settings.fps,simulationDebt:clock.debt,cacheBytes:paletteCache.bytes+spriteCache.bytes+parallaxCache.bytes+[...decodedBanks].reduce((sum,bank)=>sum+(bank.cacheStats?.().bytes||0),0),impacts:impactEffects.length,explods:match?[...match.entities,...match.orphanEffectOwners].reduce((n,a)=>n+a.explods.length,0):0,orphanExplods:match?.orphanEffectOwners.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
-  function pollGamepads(time){const pads=navigator.getGamepads?.()||[];p1Input.record('gamepad',gamepadKeys(pads[0]),time);p2Input.record('gamepad',gamepadKeys(pads[1]),time);}
+  function pollGamepads(time){
+    const manager=controllers.poll(),editing=document.activeElement?.matches('.controller-setup input,.controller-setup select'),active=controllerFocus&&!document.hidden&&mode==='training'&&!editing;
+    p1Input.record('gamepad',active?manager.keys(0):[],time);p2Input.record('gamepad',active?manager.keys(1):[],time);
+  }
   function draw(t) {
     if(document.hidden)return;
     pollGamepads(t);performanceMonitor.begin(t);
@@ -566,23 +578,24 @@ export function mountApp({arena=false}={}) {
   $('#step').onclick = () => { setPlaying(false); simulate(); updateReport(); canvas.focus(); };
   $('#actions').onchange = event => {dirty=true; action = selected.animations[+event.target.value]; previewFrame = 0; previewElapsed = 0; clock.suspend(); };
   $('#sound').onchange = () => { if ($('#sound').checked) void audio.unlock(); else {audio.stop();audio.stopMusic();} };
-  $('#stage-select').onchange=event=>{selectedStage=stages[+event.target.value]||null;configureMatch();canvas.focus();};
+  $('#stage-select').onchange=event=>{selectedStage=stages[+event.target.value]||null;renderStageOptions();configureMatch();if(selected)setMode('training');canvas.focus();};
   $('#opponent-select').onchange=$('#match-mode').onchange=()=>{configureMatch();canvas.focus();};
   $('#palette-select').onchange=event=>{playerPalettes.set(selected,+event.target.value);configureMatch();canvas.focus();};
   $('#opponent-palette-select').onchange=event=>{opponentPalettes.set(match.opponent.character,+event.target.value);configureMatch();canvas.focus();};
   $('#dummy-mode').onchange=()=>{if($('#dummy-mode').value==='cpu'||match?.opponent.aiLevel)configureMatch();updateHint();player2Keys.clear();p2Input.reset();dummyBuffer?.reset();canvas.focus();};
   $('#player-control').onchange=$('#cpu-level').onchange=()=>{configureMatch();canvas.focus();};
   canvas.onclick = () => { canvas.focus(); void audio.unlock(); };
-  for(const label of [$('#upload'),$('#browse')])label.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();$('#file').click();}};
-  async function importSource(read){if(importing){status('An archive is already being imported. Please wait for it to finish.');return;}importing=true;$('#file').disabled=$('#sample').disabled=true;$('#drop').setAttribute('aria-busy','true');try{await load(await read());}catch(error){status(`Import failed: ${error.message}`);}finally{importing=false;$('#file').disabled=$('#sample').disabled=false;$('#drop').setAttribute('aria-busy','false');}}
-  async function readFile(file) {if(!file)return;await importSource(async()=>{status(`Reading ${file.name||'ZIP / RAR archive'}…`);return readArchiveFile(file);});}
-  $('#file').onchange = async event => {try{await readFile(event.target.files[0]);}finally{event.target.value='';} };
+  for(const label of [$('#upload'),$('#browse'),$('#add-stage')])label.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();document.getElementById(label.htmlFor).click();}};
+  async function importSource(read,options){if(importing){status('An archive is already being imported. Please wait for it to finish.');return;}importing=true;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=true;$('#drop').setAttribute('aria-busy','true');try{await load(await read(),options);}catch(error){status(`Import failed: ${error.message}`);}finally{importing=false;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=false;$('#drop').setAttribute('aria-busy','false');}}
+  async function readFile(file,options) {if(!file)return;await importSource(async()=>{status(`Reading ${file.name||'ZIP / RAR archive'}…`);return readArchiveFile(file);},options);}
+  for(const input of [$('#file'),$('#stage-file')])input.onchange = async event => {try{await readFile(event.target.files[0],{stageOnly:input.id==='stage-file'});}finally{event.target.value='';} };
   $('#sample').onclick = () => importSource(async()=>{status('Loading Kung Fu Man…');const response=await fetch(new URL(arena?'../kfm.zip':'kfm.zip',document.baseURI));if(!response.ok)throw Error('Sample unavailable');return new Uint8Array(await response.arrayBuffer());});
   for (const eventName of ['dragover','drop']) $('#drop').addEventListener(eventName, async event => { event.preventDefault(); if (eventName === 'drop') await readFile(event.dataTransfer.files[0]); });
   const keymap = {ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',KeyZ:'x',KeyX:'y',KeyC:'z',KeyA:'a',KeyS:'b',KeyD:'c',Enter:'s'};
   const keymap2={Numpad8:'U',Numpad2:'D',Numpad4:'L',Numpad6:'R',Numpad1:'a',Numpad3:'b',Numpad5:'c',Numpad7:'x',Numpad9:'y',NumpadDecimal:'z',NumpadEnter:'s'};
   window.addEventListener('keydown', event => { if (event.defaultPrevented || event.target.matches('input,select,button,[role=button],a') || mode !== 'training') return; if(event.ctrlKey&&event.code==='KeyD'){event.preventDefault();if(!event.repeat){$('#debug-text').checked=!$('#debug-text').checked;dirty=true;}return;} if (event.code === 'KeyR' && !event.repeat) { resetRound(); return; } const key = keymap[event.code],key2=keymap2[event.code]; if (!key&&!key2) return; event.preventDefault();if(key){keys.add(key);p1Input.record('keyboard',keys,performance.now());}if(key2){player2Keys.add(key2);p2Input.record('keyboard',player2Keys,performance.now());} void audio.unlock(); });
   window.addEventListener('keyup', event => { if(keymap[event.code]){keys.delete(keymap[event.code]);p1Input.record('keyboard',keys,performance.now());}if(keymap2[event.code]){player2Keys.delete(keymap2[event.code]);p2Input.record('keyboard',player2Keys,performance.now());} });
-  window.addEventListener('blur', () => { keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset(); commandBuffer?.reset(); dummyBuffer?.reset(); audio.stop();haptics.stop(); });
+  window.addEventListener('focus',()=>{controllerFocus=true;});
+  window.addEventListener('blur', () => {controllerFocus=false; keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset(); commandBuffer?.reset(); dummyBuffer?.reset(); audio.stop();haptics.stop(); });
   if(arena)mountArena({setMode,setPlaying,configureMatch,status,hasCharacter:()=>!!selected&&!!match});
 }

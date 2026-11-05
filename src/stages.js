@@ -21,7 +21,17 @@ export function stageDefinitions(files){
 export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)){
   const diagnostics=[],report=(message,section,type='stage')=>diagnostics.push({source:path,line:section?.line||0,type,message});
   const base=path.slice(0,path.lastIndexOf('/')+1),marker=path.indexOf('/stages/'),engineRoot=marker>=0?path.slice(0,marker+1):'';
-  const resolve=value=>[base,engineRoot,''].map(root=>{try{return packagePath(value,root,true);}catch{return null;}}).find(p=>p&&files[p]);
+  const resolve=value=>{
+    // Native engine references may keep a sound/stages prefix after the author
+    // packs the actual resource beside its DEF. Prefer every exact path first.
+    const roots=[...new Set([base,engineRoot,''])],filename=String(value).replaceAll('\\','/').split('/').at(-1);
+    const candidates=roots.map(root=>{try{return packagePath(value,root,true);}catch{return null;}});
+    const exact=candidates.find(p=>p&&files[p]);if(exact)return exact;
+    // Only an adjacent file can satisfy a relocated reference; never search
+    // unrelated stage folders by basename or read outside this virtual archive.
+    if(filename&&filename!=='.'&&filename!=='..')try{const adjacent=packagePath(filename,base);if(files[adjacent])return adjacent;}catch{}
+    return null;
+  };
   const localcoord=vector(def.stageinfo?.localcoord,[320,240]);
   if(localcoord.length!==2||localcoord.some(v=>!Number.isFinite(v)||v<=0))throw Error('Invalid stage localcoord.');
   const coordinateScale=320/localcoord[0],c=def.camera||{},p=def.playerinfo||{},b=def.bound||{},s=def.stageinfo||{};
@@ -33,15 +43,16 @@ export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)
     verticalFollow:clamp(read(c,'verticalfollow',.2),0,1),zoomIn:read(c,'zoomin',1),zoomOut:read(c,'zoomout',1),startZoom:read(c,'startzoom',1)};
   if(camera.left>camera.right||camera.high>camera.low||camera.zoomOut<=0||camera.zoomIn<camera.zoomOut)throw Error('Invalid stage camera bounds or zoom limits.');
   const spritePath=def.bgdef.spr?resolve(def.bgdef.spr):null;if(!spritePath)report(`Stage sprite file is missing: ${def.bgdef.spr||'(unspecified)'}`);
+  const music=def.music||{},musicVolume=music.bgmvolume!==undefined?read(music,'bgmvolume',100):100*(1+clamp(read(music,'bgvolume',0),-255,255)/256);
   const stage={path,name:def.info?.displayname||def.info?.name||path,files,def,localcoord,coordinateScale,camera,
     sprite:spritePath?{path:spritePath}:null,animations:animations(text),elements:[],controllers:[],diagnostics,
     leftBound:read(p,'leftbound',-1000)*coordinateScale,rightBound:read(p,'rightbound',1000)*coordinateScale,
     starts:[1,2].map(i=>({x:read(p,`p${i}startx`,i===1?-70:70)*coordinateScale,y:read(p,`p${i}starty`,0)*coordinateScale,facing:read(p,`p${i}facing`,i===1?1:-1)<0?-1:1})),
     screenLeft:Math.max(0,read(b,'screenleft',15)*coordinateScale),screenRight:Math.max(0,read(b,'screenright',15)*coordinateScale),
     zoffset:read(s,'zoffset',200)*coordinateScale,resetBG:read(s,'resetbg',1)!==0,autoturn:read(s,'autoturn',1)!==0,
-    xscale:read(s,'xscale',1),yscale:read(s,'yscale',1),zoffsetlink:s.zoffsetlink===undefined?null:read(s,'zoffsetlink',0),
+    xscale:read(s,'xscale',1),yscale:read(s,'yscale',1),backgroundScale:read(s,'hires',0)!==0?.5:1,zoffsetlink:s.zoffsetlink===undefined?null:read(s,'zoffsetlink',0),
     cropHigh:Math.max(0,read(c,'cuthigh',0)*coordinateScale),cropLow:Math.max(0,read(c,'cutlow',0)*coordinateScale),
-    music:{path:def.music?.bgmusic?resolve(def.music.bgmusic):null,requested:def.music?.bgmusic||'',volume:read(def.music||{},'bgmvolume',100),loop:read(def.music||{},'bgmloop',1)!==0,loopStart:read(def.music||{},'bgmloopstart',0),loopEnd:read(def.music||{},'bgmloopend',0)}};
+    music:{path:music.bgmusic?resolve(music.bgmusic):null,requested:music.bgmusic||'',volume:musicVolume,loop:read(music,'bgmloop',1)!==0,loopStart:read(music,'bgmloopstart',0),loopEnd:read(music,'bgmloopend',0)}};
   stage.shadow={intensity:clamp(read(def.shadow||{},'intensity',128),0,256),color:vector(def.shadow?.color,[0,0,0]),yscale:read(def.shadow||{},'yscale',.4),fade:def.shadow?.['fade.range']?vector(def.shadow['fade.range']):null};
   stage.reflection=clamp(read(def.reflection||{},'intensity',0),0,256);
   if(stage.leftBound>=stage.rightBound)throw Error('Invalid stage player bounds.');

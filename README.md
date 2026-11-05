@@ -19,13 +19,13 @@ npm ci
 npm run dev
 ```
 
-Open the development server in your browser. Choose **Load Kung Fu Man sample**, or import/drop a character, stage or full MUGEN distribution ZIP. Characters and stages in nested folders are discovered automatically. Stage-only ZIPs add stages to the existing roster. Uploaded files stay in the browser; the roster and stages clear on reload.
+Open the development server in your browser. Choose **Load Kung Fu Man sample**, or import/drop a character, stage or full MUGEN distribution ZIP/RAR. Characters and stages in nested folders are discovered automatically. Use **Add stage** for stage-only ZIP/RAR archives. The stage picker remains visible before a fighter is loaded. Uploaded files stay in the browser; the roster and stages clear on reload.
 
 On a phone, tap **Import character / stage / engine** or **browse files** and choose a ZIP or RAR from Files or Downloads. Archive signatures identify ZIP/RAR4/RAR5, so providers with empty or generic MIME types work. The importer handles archive-root slashes, Windows separators, contained `..` segments, Unicode filenames and Apple metadata. References to shared resources outside a standalone archive appear as missing resources; the built-in common-state fallback remains available. Stale absolute resource references can resolve to an adjacent file inside the archive. Entries that escape the archive root and conflicting duplicate files remain blocked, with the offending filename shown. RAR extraction runs in a worker with a same-origin decoder loaded only when needed. Password-protected/multipart RARs, 7z and encrypted ZIPs are unsupported. If a cloud provider cannot read the file, download it to the phone first.
 
-Production assets use relative URLs for GitHub Pages project paths. **Web Arena** at `arena/` shares the current lab's importer, CNS/CMD runtime, renderer, audio and compatibility reports. It offers player-versus-CPU, two-keyboard-player, CPU spectator and training modes, plus touch directions and all six MUGEN attack buttons. Touch directions support diagonals, sliding between buttons and independent simultaneous fingers. **Classic Arena** at `arena-classic/` now uses the same corrected runtime and uploader, with its own Classic Arena identity. Build all three entries before deployment.
+Production assets use relative URLs for GitHub Pages project paths. **Web Arena** at `arena/` shares the current lab's importer, CNS/CMD runtime, renderer, audio and compatibility reports. It offers player-versus-CPU, two-player keyboard/controller, CPU spectator and training modes, plus touch directions and all six MUGEN attack buttons. Touch directions support diagonals, sliding between buttons and independent simultaneous fingers. **Classic Arena** at `arena-classic/` now uses the same corrected runtime and uploader, with its own Classic Arena identity. Build all three entries before deployment.
 
-ZIPs up to 128 MB compressed and 512 MB expanded unpack in a dedicated worker, transferring buffers to avoid an additional full copy on the main thread. The 5,000-entry limit, path checks and conflicting-duplicate checks remain in force. Large packages still require enough available device memory. Imports are serialized and a failed import leaves the current roster available.
+ZIP/RAR archives up to 128 MB compressed and 512 MB expanded unpack in a dedicated worker, transferring buffers to avoid an additional full copy on the main thread. The 5,000-entry limit, path checks and conflicting-duplicate checks remain in force. Large packages still require enough available device memory. Imports are serialized and a failed import leaves the current roster available.
 
 **Export character scripts** downloads the selected DEF and its available CMD, CNS/state and AIR references, plus file sizes and missing-reference evidence. Sprite and sound banks are omitted, keeping the export small enough for analysis. The result is not a playable character package.
 
@@ -38,6 +38,8 @@ ZIPs up to 128 MB compressed and 512 MB expanded unpack in a dedicated worker, t
 | A / S / D | Numpad 1 / 3 / 5 | a / b / c |
 | Enter | Numpad Enter | Start (`s`) |
 | R | — | Reset training or restart the match, clearing command history |
+
+Open **Controllers** above the viewer for PS5/DualSense and other browser-standard controllers. Pair the controller through your device's Bluetooth settings or connect USB, then press a face button. P1/P2 assignment is automatic and can be changed; choose **Two players** or **Keyboard / controller P2** for the second player. Default PlayStation mapping is □ = x, △ = y, L1 = z, × = a, ○ = b, R1 = c, Options = Start. Each player can remap buttons and adjust the stick deadzone. Settings persist locally. Disconnects and unfocused windows release controller inputs. Vibration uses browser-exposed actuators; adaptive triggers, controller speakers and LEDs are not implemented. Physical USB/Bluetooth pairing and hardware operation still require device checks.
 
 Moves and combos come from the character's CMD definitions. For the bundled KFM, Z performs a light punch and down, down-forward, forward, Z performs the light Kung Fu Palm. These keys are subject to the character's `[Remap]` section.
 
@@ -103,6 +105,8 @@ Web Edition 17 adds [helper/projectile interactions](docs/helper-projectile-inte
 Web Edition 18 improves [controller/trigger and custom-state palette accuracy](docs/custom-state-palette-accuracy.md): destination control ordering, animation-bank triggers, persistence isolation, Width/body distances, fresh independent PalFX, creator-family projectile palettes, and validated/nontransitive remaps. The 411-test suite includes 30 new cases; a two-character browser fixture verifies foreign AIR with the victim's own cyan sprites and palette. Native frame/version parity remains unverified.
 
 Web Edition 19 adds [RAR4/RAR5 uploads, the shared Classic Arena build and landing defaults](docs/rar-classic-landing.md). Tomoka and all three supplied Taiga variants import on all routes; large RAR/FileReader/ZIP/touch checks pass. Missing native recovery constants exposed by Shiki R's fall report are supplied, with actual-script and browser landing regressions. The full local corpus passes 438 tests.
+
+Web Edition 20 adds [stage import and PS5/controller setup](docs/stages-controllers.md). Forest of King Cruel imports with all 84 sprites, two animated fire layers and its packed 88-second MP3; legacy hires backgrounds and relocated music references are handled. Stage and simulated DualSense flows pass on all three pages. The full corpus passes 455 tests.
 
 Full compatibility still requires substantial engine work, including:
 

@@ -1,0 +1,567 @@
+{
+  "edition": 20,
+  "completeCompatibility": false,
+  "tests": {
+    "fullSuite": 455,
+    "passed": 455,
+    "failed": 0,
+    "skipped": 0,
+    "newCases": 17,
+    "finalControllerFollowup": 11,
+    "corpus": "Native KFM examples, Tomoka/Taiga RARs, Shiki scripts/report and Forest stage"
+  },
+  "stageArchive": {
+    "fileName": "Forest of King Cruel.rar",
+    "sha256": "a0f05f933abf8c6506eedf58acfdfa37bb4d36a0717e75d0025334d109fbb6c0",
+    "format": "RAR4",
+    "compressedBytes": 4640778,
+    "expandedBytes": 6627105,
+    "files": [
+      {
+        "name": "forest_of_king_cruel.def",
+        "bytes": 6936
+      },
+      {
+        "name": "forest_of_king_cruel.sff",
+        "bytes": 3094285
+      },
+      {
+        "name": "blood heat!.mp3",
+        "bytes": 3525884
+      }
+    ],
+    "stage": {
+      "name": "Forest of King Cruel",
+      "author": "Wargame",
+      "backgroundScale": 0.5,
+      "localcoord": [
+        320,
+        240
+      ],
+      "camera": {
+        "startX": 0,
+        "startY": 0,
+        "left": -140,
+        "right": 140,
+        "high": -170,
+        "low": 0,
+        "tension": 40,
+        "floorTension": 62,
+        "verticalFollow": 0.95,
+        "zoomIn": 1,
+        "zoomOut": 1,
+        "startZoom": 1
+      },
+      "floor": 220,
+      "spriteCount": 84,
+      "decodedSprites": 84,
+      "normalBackgrounds": 64,
+      "animatedBackgrounds": 2,
+      "animationFrames": [
+        {
+          "id": 1,
+          "frames": 10
+        },
+        {
+          "id": 2,
+          "frames": 10
+        }
+      ],
+      "music": {
+        "path": "blood heat!.mp3",
+        "requested": "sound/Blood heat!.mp3",
+        "volume": 199.609375,
+        "loop": true,
+        "loopStart": 0,
+        "loopEnd": 0
+      },
+      "missingFrames": [],
+      "diagnostics": []
+    }
+  },
+  "stageBrowser": [
+    {
+      "route": "/",
+      "stageOnlyImport": true,
+      "wrongArchiveRejected": true,
+      "fileReaderFallback": false,
+      "music": {
+        "duration": 88,
+        "loop": true,
+        "sampleRate": 44100
+      },
+      "cameraX": 136.00000953674316,
+      "backgroundTicks": 6,
+      "additionalDiagnostics": [],
+      "baselineCharacterWarnings": 3,
+      "errors": [],
+      "failedRequests": [],
+      "hiresPixelEquivalent": true,
+      "equivalenceCameraX": 80
+    },
+    {
+      "route": "arena/",
+      "stageOnlyImport": true,
+      "wrongArchiveRejected": true,
+      "fileReaderFallback": false,
+      "music": {
+        "duration": 88,
+        "loop": true,
+        "sampleRate": 44100
+      },
+      "cameraX": 136.00000953674316,
+      "backgroundTicks": 6,
+      "additionalDiagnostics": [],
+      "baselineCharacterWarnings": 3,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena-classic/",
+      "stageOnlyImport": true,
+      "wrongArchiveRejected": true,
+      "fileReaderFallback": true,
+      "music": {
+        "duration": 88,
+        "loop": true,
+        "sampleRate": 44100
+      },
+      "cameraX": 136.00000953674316,
+      "backgroundTicks": 6,
+      "additionalDiagnostics": [],
+      "baselineCharacterWarnings": 3,
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "controllerBrowser": [
+    {
+      "route": "/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena-classic/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "controllerHardware": "Simulated Gamepad API DualSense devices only; no physical PS5/phone available.",
+  "rarBrowser": [
+    {
+      "route": "/",
+      "fileReaderFallback": false,
+      "rar4": true,
+      "rar5": true,
+      "unsafeRejected": true,
+      "encryptedRejected": true,
+      "retryPassed": true,
+      "largeRarMiB": 40.56,
+      "heartbeatTicks": 17,
+      "actualArchives": [
+        {
+          "name": "Tomoka",
+          "variants": 1,
+          "imported": true,
+          "diagnosticCount": 7
+        },
+        {
+          "name": "Taiga Aisaka",
+          "variants": 3,
+          "imported": true,
+          "diagnosticCount": 41
+        }
+      ],
+      "wasmSameOrigin": true,
+      "wasmLazyForZip": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena/",
+      "fileReaderFallback": false,
+      "rar4": true,
+      "rar5": true,
+      "unsafeRejected": true,
+      "encryptedRejected": true,
+      "retryPassed": true,
+      "largeRarMiB": 40.56,
+      "heartbeatTicks": 17,
+      "actualArchives": [
+        {
+          "name": "Tomoka",
+          "variants": 1,
+          "imported": true,
+          "diagnosticCount": 7
+        },
+        {
+          "name": "Taiga Aisaka",
+          "variants": 3,
+          "imported": true,
+          "diagnosticCount": 45
+        }
+      ],
+      "wasmSameOrigin": true,
+      "wasmLazyForZip": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena-classic/",
+      "fileReaderFallback": true,
+      "rar4": true,
+      "rar5": true,
+      "unsafeRejected": true,
+      "encryptedRejected": true,
+      "retryPassed": true,
+      "largeRarMiB": 40.56,
+      "heartbeatTicks": 19,
+      "actualArchives": [
+        {
+          "name": "Tomoka",
+          "variants": 1,
+          "imported": true,
+          "diagnosticCount": 7
+        },
+        {
+          "name": "Taiga Aisaka",
+          "variants": 3,
+          "imported": true,
+          "diagnosticCount": 45
+        }
+      ],
+      "wasmSameOrigin": true,
+      "wasmLazyForZip": true,
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "landingBrowser": [
+    {
+      "route": "/",
+      "foreignState": 6050,
+      "landedNextTick": true,
+      "landingState": 5100,
+      "landingY": 0,
+      "recoveredState": 0,
+      "recoveredCtrl": 1,
+      "errors": []
+    },
+    {
+      "route": "arena-classic/",
+      "foreignState": 6050,
+      "landedNextTick": true,
+      "landingState": 5100,
+      "landingY": 0,
+      "recoveredState": 0,
+      "recoveredCtrl": 1,
+      "errors": []
+    }
+  ],
+  "classicArena": {
+    "zipMB": 55.56,
+    "workerCount": 2,
+    "importHeartbeatTicks": 9,
+    "touchPunchDamage": 23,
+    "multiTouchInput": [
+      "R",
+      "D",
+      "a"
+    ],
+    "scriptExportBytes": 30701,
+    "cpuMatch": true,
+    "errors": [],
+    "failedRequests": []
+  },
+  "compatibilityReplay": {
+    "samples": 10,
+    "diagnostics": 0,
+    "nativeComparison": false
+  },
+  "performance": {
+    "scope": "Software Chromium benchmark scenes. Timing changes are not a physical-phone speedup claim. Controller name text was corrected after the benchmark; rendering/simulation paths are unchanged.",
+    "comparison": {
+      "beforeEnvironment": {
+        "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+        "physicalAndroid": false,
+        "viewport": [
+          390,
+          844
+        ],
+        "dpr": 2,
+        "cpuThrottle": 1,
+        "frames": 90,
+        "browser": "154.0.8037.57",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "powerMode": "unknown",
+        "thermalState": "uncontrolled host"
+      },
+      "afterEnvironment": {
+        "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+        "physicalAndroid": false,
+        "viewport": [
+          390,
+          844
+        ],
+        "dpr": 2,
+        "cpuThrottle": 1,
+        "frames": 90,
+        "browser": "154.0.8037.57",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "powerMode": "unknown",
+        "thermalState": "uncontrolled host"
+      },
+      "visualTolerance": 3,
+      "scenes": {
+        "idle": {
+          "beforeP50Ms": 0.09999999403953552,
+          "afterP50Ms": 0.09999999403953552,
+          "beforeP95Ms": 0.20000000298023224,
+          "afterP95Ms": 0.29999999701976776,
+          "p95ReductionPercent": -49.999996274709744,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "sparks": {
+          "beforeP50Ms": 1.1000000089406967,
+          "afterP50Ms": 1.1000000089406967,
+          "beforeP95Ms": 1.5,
+          "afterP95Ms": 1.5,
+          "p95ReductionPercent": 0.0,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "additive": {
+          "beforeP50Ms": 13.5,
+          "afterP50Ms": 12.199999988079071,
+          "beforeP95Ms": 19.700000002980232,
+          "afterP95Ms": 14.400000005960464,
+          "p95ReductionPercent": 26.90355328029431,
+          "beforeSlowFrames": 14,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "custom": {
+          "beforeP50Ms": 14.300000011920929,
+          "afterP50Ms": 14.100000008940697,
+          "beforeP95Ms": 18.599999994039536,
+          "afterP95Ms": 16.099999994039536,
+          "p95ReductionPercent": 13.44086021936095,
+          "beforeSlowFrames": 19,
+          "afterSlowFrames": 1,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "entities": {
+          "beforeP50Ms": 10.200000002980232,
+          "afterP50Ms": 9.800000011920929,
+          "beforeP95Ms": 13.299999997019768,
+          "afterP95Ms": 11.5,
+          "p95ReductionPercent": 13.53383456709103,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "parallax": {
+          "beforeP50Ms": 1,
+          "afterP50Ms": 1,
+          "beforeP95Ms": 1.2999999970197678,
+          "afterP95Ms": 1.4000000059604645,
+          "p95ReductionPercent": -7.692308397688108,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "combined": {
+          "beforeP50Ms": 28.5,
+          "afterP50Ms": 25.700000002980232,
+          "beforeP95Ms": 41.79999999701977,
+          "afterP95Ms": 32,
+          "p95ReductionPercent": 23.444976071096846,
+          "beforeSlowFrames": 90,
+          "afterSlowFrames": 90,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "allSevenBehaviorAndPixelsEqual": true,
+    "cadence": {
+      "shortPressDamage": 10,
+      "lowModeSimulationTicks": 66,
+      "lowModeRenderedFPS": 30.001875117194828,
+      "offscreenTicks": 18,
+      "offscreenDraws": 0,
+      "pausedDraws": 0,
+      "hiddenTicks": 0,
+      "resumeTicks": 17,
+      "sizes": [
+        [
+          960,
+          540
+        ],
+        [
+          720,
+          405
+        ],
+        [
+          576,
+          324
+        ]
+      ],
+      "settingsPersisted": true,
+      "instrumentationOffByDefault": true,
+      "autoStress": null,
+      "errors": []
+    }
+  },
+  "build": {
+    "entries": {
+      "index.html": {
+        "mainAsset": "main-DWEMfUlf.js",
+        "sha256": "47a55b726c0a46df98bb9776090ce4b045e0b7d9023e3b5b244eb3202ea5bec7"
+      },
+      "arena/index.html": {
+        "mainAsset": "main-DWEMfUlf.js",
+        "sha256": "18d465717ad02702acfafd66ec25505159637b9f0edea23f47d17df4e7aee2bc"
+      },
+      "arena-classic/index.html": {
+        "mainAsset": "main-DWEMfUlf.js",
+        "sha256": "2b48517cc0e77bc65d60c84c8d0bbf79b04bec79e758adbcdec60ee9bd71bd2a"
+      }
+    },
+    "assets": [
+      {
+        "name": "archive-worker-B3ENsLNt.js",
+        "bytes": 23660,
+        "sha256": "c0457b431be0aec0b8e1b4aca2e3d5a1c183582887daab6e68afa4c4c35b44bc"
+      },
+      {
+        "name": "main-Cirtp32l.css",
+        "bytes": 14315,
+        "sha256": "73cf66c8ccc08255ad751d01e49cea63505c9dc15303733019ca51089cc3ff54"
+      },
+      {
+        "name": "main-DWEMfUlf.js",
+        "bytes": 273704,
+        "sha256": "5e924adc89d7a389a0e558b3d0e06e85996bcf20bbc9a6a9cd3c40a0f169166b"
+      },
+      {
+        "name": "rar-reader-Cr3p4lRV.js",
+        "bytes": 43968,
+        "sha256": "eeea85db396aee54d790078fd029dde1eec567e304af012491edbfa9c88dc9b6"
+      },
+      {
+        "name": "unrar-De7VYsPt.wasm",
+        "bytes": 207593,
+        "sha256": "c7d79f869196e3c79c053ba74a8f629116de8293a94f60cc851bbcd7977d0c2b"
+      }
+    ]
+  },
+  "limitations": [
+    "Native MUGEN executable/frame parity and fractional-camera/other legacy hires combinations remain unverified.",
+    "Physical DualSense USB/Bluetooth pairing, wireless latency, actual haptic output and physical-phone performance were not tested.",
+    "Adaptive triggers, speakers and controller LEDs are not implemented. Nonstandard gamepad layouts require explicit opt-in and manual button configuration.",
+    "Supplied Tomoka/Taiga archives retain reported controller/CMD/AIR gaps. Exact Maid Taiga/Shiki combo and full Kirito archive remain unverified; see Edition 19 scope."
+  ]
+}
