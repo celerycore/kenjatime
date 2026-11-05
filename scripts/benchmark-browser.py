@@ -103,7 +103,7 @@ ctrl=0
     with ZipFile(path,'w',ZIP_DEFLATED) as target:
         files={'fighter.def':f'[Info]\nname=Performance {scene}\n[Files]\ncns=fighter.cns\nst=fighter.cns\nanim=fighter.air\ncmd=fighter.cmd\nsprite=fighter.sff',
                'fighter.cns':cns,'fighter.cmd':'','fighter.air':air,'fighter.sff':sprite}
-        if scene in ['parallax','combined']:
+        if scene in ['parallax','combined','moving-parallax']:
             files['stage.def']='''[Info]
 name=Performance parallax
 [Camera]
@@ -126,6 +126,7 @@ tile=1,0
 trans=addalpha
 alpha=160,192
 '''
+        if scene=='moving-parallax':files['stage.def']+='velocity=.3,.05\nsin.y=5,120\n'
         for name,data in files.items():target.writestr(name,data)
     return str(path)
 
@@ -134,6 +135,10 @@ result={'environment':{'host':platform.platform(),'kind':'headless Chromium, mob
 with sync_playwright() as p:
     browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox'])
     result['environment']['browser']=browser.version
+    gpu=browser.new_browser_cdp_session().send('SystemInfo.getInfo')['gpu']
+    result['environment']['renderer']=gpu.get('auxAttributes',{}).get('glRenderer','unknown')
+    result['environment']['powerMode']='unknown';result['environment']['thermalState']='uncontrolled host'
+
     for scene in args.scenes.split(','):
         context=browser.new_context(viewport={'width':390,'height':844},device_scale_factor=2,is_mobile=True,has_touch=True,accept_downloads=True)
         page=context.new_page();errors=[]
@@ -146,7 +151,7 @@ with sync_playwright() as p:
         page.locator('#training').click();page.locator('#play').click();page.locator('#reset').click()
         page.evaluate('()=>{for(let i=0;i<100;i++)document.querySelector("#step").click()}')
         page.evaluate('()=>window.__kenjatimePerformance.benchmark({frames:15,ticksPerFrame:1})')
-        measurement=page.evaluate('(frames)=>window.__kenjatimePerformance.benchmark({frames,ticksPerFrame:1})',args.frames)
+        measurement=page.evaluate('''(frames)=>{const samples=[];for(let i=0;i<frames;i++)samples.push(window.__kenjatimePerformance.benchmark({frames:1,ticksPerFrame:1}));const render=samples.map(s=>s.renderAverageMs),sort=[...render].sort((a,b)=>a-b),sum=key=>samples.reduce((n,s)=>n+s[key],0),result={...samples.at(-1),samples:frames,renderAverageMs:render.reduce((a,b)=>a+b,0)/frames,renderP50Ms:sort[Math.floor(frames*.5)],renderP95Ms:sort[Math.floor(frames*.95)],rawRenderMs:render,renderOver16_7Ms:render.filter(n=>n>1000/60).length,renderOver33_3Ms:render.filter(n=>n>1000/30).length};for(const key of ['ticks','drawCalls','readbacks','readbackPixels','pixelWrites'])result[key]=sum(key);result.simulationTickMs=samples.reduce((n,s)=>n+s.simulationTickMs*s.ticks,0)/(result.ticks||1);return result;}''',args.frames)
         with page.expect_download() as download:page.locator('#export-report').click()
         reportpath=Path('work/performance')/(scene+'-report.json');download.value.save_as(reportpath)
         report=json.loads(reportpath.read_text())

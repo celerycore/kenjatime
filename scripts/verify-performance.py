@@ -70,6 +70,24 @@ with sync_playwright() as p:
     page.set_viewport_size({'width':844,'height':390});page.wait_for_timeout(100);assert page.evaluate('document.documentElement.scrollWidth')<=844
     page.goto(url,wait_until='networkidle');assert page.locator('#graphics-mode').input_value()=='low'
     assert page.evaluate('window.__kenjatimePerformance===undefined')
+    auto=None
+    stress=os.environ.get('MUGEN_STRESS_FIXTURE')
+    if stress:
+        page.set_viewport_size({'width':390,'height':844})
+        page.locator('#file').set_input_files(stress)
+        page.wait_for_function("document.querySelector('#name').textContent==='Performance combined'")
+        page.locator('#training').click();page.locator('#play').click();page.locator('#reset').click()
+        page.evaluate('()=>{for(let i=0;i<100;i++)document.querySelector("#step").click()}')
+        page.locator('#graphics-mode').select_option('auto');page.locator('#performance-toggle').check()
+        cdp=context.new_cdp_session(page);cdp.send('Emulation.setCPUThrottlingRate',{'rate':4})
+        page.locator('#play').evaluate('(el)=>el.click()');page.locator('canvas').scroll_into_view_if_needed()
+        page.wait_for_timeout(9000);auto=page.evaluate('window.__kenjatimePerformance.snapshot()')
+        assert auto['counts']['graphicsPreset']=='low',auto
+        assert [auto['counts'][k] for k in ['explods','projectiles','helpers']]==[64,12,8],auto
+        assert auto['counts']['cacheBytes']<50*1024*1024
+        assert not report()['issues']
+        cdp.send('Emulation.setCPUThrottlingRate',{'rate':1})
+        page.screenshot(path='work/performance-auto-mobile.png',full_page=True)
     assert not errors,errors
-    result={'shortPressDamage':10,'lowModeSimulationTicks':cadence['ticks'],'lowModeRenderedFPS':cadence['fps'],'offscreenTicks':offscreen['ticks'],'offscreenDraws':offscreen['drawCalls'],'pausedDraws':paused['drawCalls'],'hiddenTicks':hidden['ticks'],'resumeTicks':resumed['ticks'],'sizes':sizes,'settingsPersisted':True,'instrumentationOffByDefault':True,'errors':errors}
+    result={'shortPressDamage':10,'lowModeSimulationTicks':cadence['ticks'],'lowModeRenderedFPS':cadence['fps'],'offscreenTicks':offscreen['ticks'],'offscreenDraws':offscreen['drawCalls'],'pausedDraws':paused['drawCalls'],'hiddenTicks':hidden['ticks'],'resumeTicks':resumed['ticks'],'sizes':sizes,'settingsPersisted':True,'instrumentationOffByDefault':True,'autoStress':auto,'errors':errors}
     Path('work/browser-performance-result.json').write_text(json.dumps(result,indent=2));print(json.dumps(result));browser.close()

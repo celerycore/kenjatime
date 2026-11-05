@@ -53,6 +53,10 @@ test('SFF cache eviction preserves complete decoded sprite and palette results',
 test('Auto requires sustained load/headroom, manual graphics remain fixed, and all modes retain 60 Hz simulation',()=>{
   const q=new GraphicsQuality();for(let i=0;i<359;i++)q.observe(25);assert.equal(q.preset,'high');q.observe(25);assert.equal(q.preset,'balanced');for(let i=0;i<360;i++)q.observe(25);assert.equal(q.preset,'low');for(let i=0;i<899;i++)q.observe(2);assert.equal(q.preset,'low');q.observe(2);assert.equal(q.preset,'balanced');q.setMode('high');for(let i=0;i<1000;i++)q.observe(100);assert.equal(q.preset,'high');
 });
+test('Auto observes delayed presentation and adapts by elapsed time even at ten displayed frames per second',()=>{
+  const q=new GraphicsQuality();for(let i=0;i<59;i++)q.observeFrame(2,100);assert.equal(q.preset,'high');q.observeFrame(2,100);assert.equal(q.preset,'balanced');
+  const smooth=new GraphicsQuality();for(let i=0;i<1000;i++)smooth.observeFrame(2,1000/60);assert.equal(smooth.preset,'high');
+});
 test('telemetry is transparent when enabled and restores untouched Canvas methods when disabled',()=>{
   const context={drawImage:()=>7,getImageData:()=>9,putImageData:()=>11},original=context.drawImage,monitor=new PerformanceMonitor();monitor.track(context);assert.equal(context.drawImage,original);monitor.setEnabled(true);monitor.begin(0);assert.equal(context.drawImage(),7);context.getImageData(0,0,20,30);monitor.simulation(2,2);monitor.end(4);assert.equal(monitor.snapshot().readbackPixels,600);assert.equal(monitor.snapshot().simulationTickMs,1);monitor.setEnabled(false);assert.equal(context.drawImage,original);
 });

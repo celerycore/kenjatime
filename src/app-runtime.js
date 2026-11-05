@@ -29,7 +29,7 @@ export function mountApp({arena=false}={}) {
   let playing = true, mode = 'preview', match, commandBuffer, dummyBuffer;
   let stages=[],selectedStage=null,player2Keys=new Set(),systemFiles=null;
   let spriteCache = new MemoryLRU({maxBytes:12*1024*1024,sizeOf:sp=>sp?(sp.w*sp.h*4+sp.rgba.byteLength+(sp.indices?.byteLength||0)+(sp.opaque?sp.w*sp.h*8:0)):0}), keys = new Set(), importDiagnostics = [];
-  const clock=new FrameClock(),p1Input=new TickInputBuffer(),p2Input=new TickInputBuffer();let reportVersion='',dirty=true,renderScale=1,raf=0,renderVisible=true;
+  const clock=new FrameClock(),p1Input=new TickInputBuffer(),p2Input=new TickInputBuffer();let reportVersion='',dirty=true,renderScale=1,raf=0,renderVisible=true,lastPresentationTime=null;
   let savedGraphics='auto';try{savedGraphics=localStorage.getItem('kenjatime.graphics')||'auto';}catch{}
   const graphics=new GraphicsQuality({mode:new URLSearchParams(location.search).get('graphics')||savedGraphics,mobile:matchMedia('(pointer:coarse)').matches});
   let effects = new EffectsState(),commonResource=null,impactEffects=[],packs=new WeakMap(),resourceIds=new WeakMap(),nextResourceId=1;
@@ -384,7 +384,7 @@ export function mountApp({arena=false}={}) {
       if(e.type==='parallax'){
         const blend=e.trans==='default'?frame.blend||'':e.trans==='none'?'':['add','addalpha'].includes(e.trans)?`AS${e.alpha[0]}D${e.alpha[1]}`:e.trans;
         const plan=compositePlan(blend);
-        const cacheKey=JSON.stringify([sp.key,palette.key,frame,x,y,scaleX,scaleY,stage.camera,pos,e.width,e.xscale,e.tile,e.yScaleStart,e.yScaleDelta,layout.left,layout.top,layout.width,layout.height]);
+        const cacheKey=JSON.stringify([sp.key,palette.key,frame,blend,plan.brightness,x,y,scaleX,scaleY,stage.camera,pos,e.width,e.xscale,e.tile,e.yScaleStart,e.yScaleDelta,layout.left,layout.top,layout.width,layout.height]);
         const cached=parallaxCache.get(cacheKey);if(cached){renderer.draw(cached,0,0,plan,{left:0,top:0,width:canvas.width,height:canvas.height},960,540);ctx.restore();continue;}
         parallaxContext.clearRect(0,0,960,540);const source=coloredSprite(sp,palette,plan.brightness);
         for(let row=0;row<sp.h;row++){
@@ -486,7 +486,7 @@ export function mountApp({arena=false}={}) {
     pollGamepads(t);performanceMonitor.begin(t);
     clock.advance(t,{running:playing&&!!selected,speed:+$('#speed').value},measureSimulation);
     let duration=0;const renderNow=renderVisible&&(dirty||(playing&&!!selected&&clock.renderDue(t,graphics.settings.fps)));
-    if(renderNow){const start=performance.now();render(t);duration=performance.now()-start;dirty=false;if(graphics.observe(duration))dirty=true;}
+    if(renderNow){const start=performance.now();render(t);duration=performance.now()-start;dirty=false;if(playing&&selected&&graphics.observeFrame(duration,lastPresentationTime===null?1000/graphics.settings.fps:t-lastPresentationTime))dirty=true;lastPresentationTime=t;}
     performanceMonitor.end(duration,performanceMonitor.enabled?performanceCounts():{},renderNow);
     raf=requestAnimationFrame(draw);
   }
@@ -535,10 +535,10 @@ export function mountApp({arena=false}={}) {
   $('#graphics-mode').onchange=()=>{graphics.setMode($('#graphics-mode').value);try{localStorage.setItem('kenjatime.graphics',graphics.mode);}catch{}dirty=true;};
   $('.viewer').addEventListener('change',()=>{dirty=true;});
   window.addEventListener('resize',()=>{dirty=true;});
-  if(typeof IntersectionObserver!=='undefined')new IntersectionObserver(entries=>{renderVisible=entries[0].isIntersecting;if(renderVisible)dirty=true;},{rootMargin:'200px'}).observe($('.viewer'));
+  if(typeof IntersectionObserver!=='undefined')new IntersectionObserver(entries=>{renderVisible=entries[0].isIntersecting;if(renderVisible){dirty=true;lastPresentationTime=null;}},{rootMargin:'200px'}).observe($('.viewer'));
   document.addEventListener('visibilitychange',()=>{clock.suspend();keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset();touch.reset();p1Input.reset();p2Input.reset();commandBuffer?.reset();dummyBuffer?.reset();audio.stop();haptics.stop();cancelAnimationFrame(raf);if(document.hidden){void audio.context?.suspend().catch(()=>{});}else{if(playing&&$('#sound').checked)void audio.context?.resume().catch(()=>{});dirty=true;raf=requestAnimationFrame(draw);}});
   raf=requestAnimationFrame(draw);
-  function setPlaying(value) { dirty=true;playing = value; clock.suspend(); $('#play').textContent = playing ? 'Ⅱ' : '▶'; $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play'); if (!playing){audio.stop();haptics.stop();} }
+  function setPlaying(value) {lastPresentationTime=null;dirty=true;playing = value; clock.suspend(); $('#play').textContent = playing ? 'Ⅱ' : '▶'; $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play'); if (!playing){audio.stop();haptics.stop();} }
   function setMode(value) {
     dirty=true;mode = value; keys.clear();p1Input.reset();touch.reset(); clock.suspend(); $('#lab').classList.toggle('active',mode === 'preview'); $('#training').classList.toggle('active',mode === 'training');
     touch.panel.hidden=mode!=='training'||$('#player-control').value==='cpu';
