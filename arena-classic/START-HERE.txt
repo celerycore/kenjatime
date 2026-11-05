@@ -2,11 +2,15 @@ MUGEN CLASSIC ARENA
 
 Play at https://celerycore.github.io/kenjatime/arena-classic/
 This address now uses the current shared character runtime, uploader and mobile controls.
-Character ZIP and unencrypted, single-volume RAR4/RAR5 archives are supported.
+Character and stage ZIP and unencrypted, single-volume RAR4/RAR5 archives are supported.
 Files remain local to your browser. The compressed limit is 128 MiB and the expanded
 limit is 512 MiB / 5,000 entries. Password-protected/multipart RARs require repackaging.
 
 Choose Player vs CPU, Two players, Watch CPU match or Training.
+Use Add stage for a stage ZIP/RAR, then select it in the stage picker.
+Open Controllers for PS5/DualSense USB/Bluetooth gamepads, P1/P2 assignment,
+button remapping, deadzone settings and browser-supported vibration.
+Pair through your device settings, then press a face button to activate.
 The controls shown in the arena map to the character's MUGEN commands; touch controls
 are available on mobile devices. Character scripts, controllers, helpers, projectiles,
 custom states and palettes use the same implementation as the lab and Web Arena.
