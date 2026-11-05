@@ -1,4 +1,4 @@
-MUGEN WEB ARENA — WEB EDITION 15
+MUGEN WEB ARENA — WEB EDITION 16
 
 PLAY: https://celerycore.github.io/kenjatime/arena/
 LAB: https://celerycore.github.io/kenjatime/
@@ -18,9 +18,10 @@ Export character scripts saves DEF/CMD/CNS/state/AIR files and a file-size inven
 Full MUGEN compatibility remains unfinished. See each character report.
 The bundled KFM sample belongs to Elecbyte; see KFM-README.txt for its noncommercial license.
 
-Edition 15: native Canvas compositing removes routine sprite/stage pixel readbacks, with bounded LRU caches, static parallax reuse, fixed 60 Hz simulation, buffered inputs and Auto/High/Balanced/Low graphics. Select Performance for opt-in local diagnostics.
+Edition 16: helper DestroySelf/orphan Explods, bindings, shared palette lifetimes and per-helper inputs; projectile hit quotas, paused spacing, Clsn2 clashes, finite removal frames, IDs and verified stage shadows. Reports include helper relationships, orphan effects and projectile state. 340 tests pass; native equivalence remains unverified.
 
-SOURCE: https://github.com/celerycore/kenjatime/tree/source/mobile-performance
-MEASUREMENTS: https://github.com/celerycore/kenjatime/blob/source/mobile-performance/docs/performance-baseline.md
-Source checkpoint: ca40943f77bae635a644221d0cd3ab961c033e96
-Physical Android performance is unverified; the extreme CPU-throttled software-renderer scene remains below the 30 FPS presentation target. No MUGEN entities/effects were removed for performance.
+SOURCE: https://github.com/celerycore/kenjatime/tree/source/mugen-compatibility
+ENTITY REPORT: https://github.com/celerycore/kenjatime/blob/source/mugen-compatibility/docs/helper-projectile-edges.md
+PERFORMANCE CHECKPOINT: https://github.com/celerycore/kenjatime/blob/source/mobile-performance/docs/performance-baseline.md
+Source checkpoint: 931891c076cb01457a29f0316dea05d729106af2
+Physical Android performance remains unverified. Existing mobile graphics and fixed 60 Hz simulation are preserved.
