@@ -18,7 +18,7 @@ with sync_playwright() as p:
         context=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,accept_downloads=True)
         context.add_init_script(probe);page=context.new_page();errors=[];failures=[]
         page.on('pageerror',lambda e:errors.append(str(e)));page.on('requestfailed',lambda req:failures.append(req.url))
-        page.goto(base+route+'?perf=1&graphics=low&v=20',wait_until='networkidle')
+        page.goto(base+route+'?perf=1&graphics=low&v=21',wait_until='networkidle')
         if not route:page.locator('#sample').click()
         page.wait_for_function("document.querySelector('#name').textContent==='Kung Fu Man'")
         if route:page.locator('#arena-mode').select_option('training')

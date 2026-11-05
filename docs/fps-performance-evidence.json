@@ -1,0 +1,593 @@
+{
+  "edition": 21,
+  "completeCompatibility": false,
+  "baselineSource": "a2b3de6a50cb692f9dd4106c19f91fe772bb2f4b",
+  "tests": {
+    "total": 466,
+    "passed": 466,
+    "failed": 0,
+    "skipped": 0,
+    "newCases": 11
+  },
+  "scope": "Software Chromium/V8; desktop Brave and physical GPU FPS were not measured.",
+  "forest": {
+    "high": {
+      "beforeP50Ms": 26.799999997019768,
+      "afterP50Ms": 3.0999999940395355,
+      "beforeP95Ms": 130.20000000298023,
+      "afterP95Ms": 18.099999994039536,
+      "p95ReductionPercent": 86.0983102967548,
+      "beforeUploads": {
+        "canvases": 7991,
+        "writes": 7991,
+        "bytes": 1028770656
+      },
+      "afterUploads": {
+        "canvases": 43,
+        "writes": 43,
+        "bytes": 160298520
+      },
+      "behaviorEqual": true,
+      "maxChannelDifference": 0
+    },
+    "low": {
+      "beforeP50Ms": 26.600000008940697,
+      "afterP50Ms": 2.199999988079071,
+      "beforeP95Ms": 124.09999999403954,
+      "afterP95Ms": 19.099999994039536,
+      "p95ReductionPercent": 84.60918614427325,
+      "beforeUploads": {
+        "canvases": 7991,
+        "writes": 7991,
+        "bytes": 1028770656
+      },
+      "afterUploads": {
+        "canvases": 43,
+        "writes": 43,
+        "bytes": 160298520
+      },
+      "behaviorEqual": true,
+      "maxChannelDifference": 0
+    }
+  },
+  "paletteCpu": {
+    "scope": "Node/V8 CPU transform of 524,288 RGBA pixels with two PalFX layers; not browser/physical FPS.",
+    "beforeMs": 226.75026100000014,
+    "afterMs": 15.657693999999992,
+    "speedup": 14.481714931968925,
+    "maxChannelDifference": 0,
+    "samples": {
+      "before": [
+        267.338241,
+        224.73885699999994,
+        219.77828099999988,
+        238.7758120000001,
+        226.75026100000014
+      ],
+      "after": [
+        20.131032000000005,
+        15.091339000000062,
+        16.13786099999993,
+        15.657693999999992,
+        14.846473999999944
+      ]
+    }
+  },
+  "scenes": {
+    "beforeEnvironment": {
+      "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+      "physicalAndroid": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "dpr": 2,
+      "cpuThrottle": 1,
+      "frames": 90,
+      "browser": "154.0.8037.57",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+      "powerMode": "unknown",
+      "thermalState": "uncontrolled host"
+    },
+    "afterEnvironment": {
+      "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+      "physicalAndroid": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "dpr": 2,
+      "cpuThrottle": 1,
+      "frames": 90,
+      "browser": "154.0.8037.57",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+      "powerMode": "unknown",
+      "thermalState": "uncontrolled host"
+    },
+    "visualTolerance": 3,
+    "scenes": {
+      "idle": {
+        "beforeP50Ms": 0.09999999403953552,
+        "afterP50Ms": 0.09999999403953552,
+        "beforeP95Ms": 0.29999999701976776,
+        "afterP95Ms": 0.20000000298023224,
+        "p95ReductionPercent": 33.33333167764874,
+        "beforeSlowFrames": 0,
+        "afterSlowFrames": 0,
+        "beforeReadbacks": 0,
+        "afterReadbacks": 0,
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "meanChannelDifference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "sparks": {
+        "beforeP50Ms": 1.1000000089406967,
+        "afterP50Ms": 1.0999999940395355,
+        "beforeP95Ms": 1.5,
+        "afterP95Ms": 1.4000000059604645,
+        "p95ReductionPercent": 6.666666269302368,
+        "beforeSlowFrames": 0,
+        "afterSlowFrames": 0,
+        "beforeReadbacks": 0,
+        "afterReadbacks": 0,
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "meanChannelDifference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "additive": {
+        "beforeP50Ms": 12.199999988079071,
+        "afterP50Ms": 11.799999997019768,
+        "beforeP95Ms": 14.400000005960464,
+        "afterP95Ms": 13.199999988079071,
+        "p95ReductionPercent": 8.333333454060332,
+        "beforeSlowFrames": 0,
+        "afterSlowFrames": 0,
+        "beforeReadbacks": 0,
+        "afterReadbacks": 0,
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "meanChannelDifference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "custom": {
+        "beforeP50Ms": 14.100000008940697,
+        "afterP50Ms": 13.099999994039536,
+        "beforeP95Ms": 16.099999994039536,
+        "afterP95Ms": 15.599999994039536,
+        "p95ReductionPercent": 3.105590063261543,
+        "beforeSlowFrames": 1,
+        "afterSlowFrames": 2,
+        "beforeReadbacks": 0,
+        "afterReadbacks": 0,
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "meanChannelDifference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "entities": {
+        "beforeP50Ms": 9.800000011920929,
+        "afterP50Ms": 9.800000011920929,
+        "beforeP95Ms": 11.5,
+        "afterP95Ms": 12.099999994039536,
+        "p95ReductionPercent": -5.2173912525177,
+        "beforeSlowFrames": 0,
+        "afterSlowFrames": 0,
+        "beforeReadbacks": 0,
+        "afterReadbacks": 0,
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "meanChannelDifference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "parallax": {
+        "beforeP50Ms": 1,
+        "afterP50Ms": 1,
+        "beforeP95Ms": 1.4000000059604645,
+        "afterP95Ms": 1.2999999970197678,
+        "p95ReductionPercent": 7.142857751067799,
+        "beforeSlowFrames": 0,
+        "afterSlowFrames": 0,
+        "beforeReadbacks": 0,
+        "afterReadbacks": 0,
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "meanChannelDifference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "combined": {
+        "beforeP50Ms": 25.700000002980232,
+        "afterP50Ms": 26.299999997019768,
+        "beforeP95Ms": 32,
+        "afterP95Ms": 32,
+        "p95ReductionPercent": 0.0,
+        "beforeSlowFrames": 90,
+        "afterSlowFrames": 90,
+        "beforeReadbacks": 0,
+        "afterReadbacks": 0,
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "meanChannelDifference": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    }
+  },
+  "allSevenPixelsAndBehaviorEqual": true,
+  "unchangedCoreFiles": [
+    "src/canvas-renderer.js",
+    "src/combat.js",
+    "src/runtime.js",
+    "src/commands.js",
+    "src/frame-clock.js"
+  ],
+  "cacheLimitsMiB": {
+    "surfaces": 12,
+    "decodedPerBank": 16,
+    "colorVariants": 8,
+    "parallax": 8
+  },
+  "browser": {
+    "stages": [
+      {
+        "route": "/",
+        "stageOnlyImport": true,
+        "wrongArchiveRejected": true,
+        "fileReaderFallback": false,
+        "music": {
+          "duration": 88,
+          "loop": true,
+          "sampleRate": 44100
+        },
+        "cameraX": 136.00000953674316,
+        "backgroundTicks": 6,
+        "additionalDiagnostics": [],
+        "baselineCharacterWarnings": 3,
+        "errors": [],
+        "failedRequests": [],
+        "hiresPixelEquivalent": true,
+        "equivalenceCameraX": 80
+      },
+      {
+        "route": "arena/",
+        "stageOnlyImport": true,
+        "wrongArchiveRejected": true,
+        "fileReaderFallback": false,
+        "music": {
+          "duration": 88,
+          "loop": true,
+          "sampleRate": 44100
+        },
+        "cameraX": 136.00000953674316,
+        "backgroundTicks": 6,
+        "additionalDiagnostics": [],
+        "baselineCharacterWarnings": 3,
+        "errors": [],
+        "failedRequests": []
+      },
+      {
+        "route": "arena-classic/",
+        "stageOnlyImport": true,
+        "wrongArchiveRejected": true,
+        "fileReaderFallback": true,
+        "music": {
+          "duration": 88,
+          "loop": true,
+          "sampleRate": 44100
+        },
+        "cameraX": 136.00000953674316,
+        "backgroundTicks": 6,
+        "additionalDiagnostics": [],
+        "baselineCharacterWarnings": 3,
+        "errors": [],
+        "failedRequests": []
+      }
+    ],
+    "palettes": {
+      "foreignState": {
+        "stateOwner": 1,
+        "animationOwner": 1,
+        "coordinateScale": 1,
+        "animExistMask": 10,
+        "victimPalette": 2,
+        "cyanPixels": 81
+      },
+      "selfState": {
+        "stateOwner": 2,
+        "animationOwner": 1,
+        "coordinateScale": 0.5,
+        "ctrl": 0
+      },
+      "creationPixels": {
+        "cyan": 81,
+        "green": 648,
+        "teal": 0,
+        "purple": 0
+      },
+      "projectilePixels": {
+        "cyan": 81,
+        "green": 648,
+        "teal": 648,
+        "purple": 648
+      },
+      "expiredPixels": {
+        "cyan": 81,
+        "green": 972,
+        "teal": 0,
+        "purple": 648
+      },
+      "creatorPaletteRetained": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    "controllers": [
+      {
+        "route": "/",
+        "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+        "p1PunchDamage": 23,
+        "p2PunchDamage": 23,
+        "shortPressRetainedAt30Fps": true,
+        "remapping": true,
+        "exclusiveAssignment": true,
+        "disconnectReleased": true,
+        "blurSuspended": true,
+        "vibrationTarget": 5,
+        "settingsPersisted": true,
+        "errors": [],
+        "failedRequests": []
+      },
+      {
+        "route": "arena/",
+        "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+        "p1PunchDamage": 23,
+        "p2PunchDamage": 23,
+        "shortPressRetainedAt30Fps": true,
+        "remapping": true,
+        "exclusiveAssignment": true,
+        "disconnectReleased": true,
+        "blurSuspended": true,
+        "vibrationTarget": 5,
+        "settingsPersisted": true,
+        "errors": [],
+        "failedRequests": []
+      },
+      {
+        "route": "arena-classic/",
+        "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+        "p1PunchDamage": 23,
+        "p2PunchDamage": 23,
+        "shortPressRetainedAt30Fps": true,
+        "remapping": true,
+        "exclusiveAssignment": true,
+        "disconnectReleased": true,
+        "blurSuspended": true,
+        "vibrationTarget": 5,
+        "settingsPersisted": true,
+        "errors": [],
+        "failedRequests": []
+      }
+    ],
+    "rar": [
+      {
+        "route": "/",
+        "fileReaderFallback": false,
+        "rar4": true,
+        "rar5": true,
+        "unsafeRejected": true,
+        "encryptedRejected": true,
+        "retryPassed": true,
+        "largeRarMiB": 40.56,
+        "heartbeatTicks": 23,
+        "actualArchives": [
+          {
+            "name": "Tomoka",
+            "variants": 1,
+            "imported": true,
+            "diagnosticCount": 7
+          },
+          {
+            "name": "Taiga Aisaka",
+            "variants": 3,
+            "imported": true,
+            "diagnosticCount": 41
+          }
+        ],
+        "wasmSameOrigin": true,
+        "wasmLazyForZip": true,
+        "errors": [],
+        "failedRequests": []
+      },
+      {
+        "route": "arena/",
+        "fileReaderFallback": false,
+        "rar4": true,
+        "rar5": true,
+        "unsafeRejected": true,
+        "encryptedRejected": true,
+        "retryPassed": true,
+        "largeRarMiB": 40.56,
+        "heartbeatTicks": 22,
+        "actualArchives": [
+          {
+            "name": "Tomoka",
+            "variants": 1,
+            "imported": true,
+            "diagnosticCount": 7
+          },
+          {
+            "name": "Taiga Aisaka",
+            "variants": 3,
+            "imported": true,
+            "diagnosticCount": 45
+          }
+        ],
+        "wasmSameOrigin": true,
+        "wasmLazyForZip": true,
+        "errors": [],
+        "failedRequests": []
+      },
+      {
+        "route": "arena-classic/",
+        "fileReaderFallback": true,
+        "rar4": true,
+        "rar5": true,
+        "unsafeRejected": true,
+        "encryptedRejected": true,
+        "retryPassed": true,
+        "largeRarMiB": 40.56,
+        "heartbeatTicks": 21,
+        "actualArchives": [
+          {
+            "name": "Tomoka",
+            "variants": 1,
+            "imported": true,
+            "diagnosticCount": 7
+          },
+          {
+            "name": "Taiga Aisaka",
+            "variants": 3,
+            "imported": true,
+            "diagnosticCount": 45
+          }
+        ],
+        "wasmSameOrigin": true,
+        "wasmLazyForZip": true,
+        "errors": [],
+        "failedRequests": []
+      }
+    ],
+    "landing": [
+      {
+        "route": "/",
+        "foreignState": 6050,
+        "landedNextTick": true,
+        "landingState": 5100,
+        "landingY": 0,
+        "recoveredState": 0,
+        "recoveredCtrl": 1,
+        "errors": []
+      },
+      {
+        "route": "arena-classic/",
+        "foreignState": 6050,
+        "landedNextTick": true,
+        "landingState": 5100,
+        "landingY": 0,
+        "recoveredState": 0,
+        "recoveredCtrl": 1,
+        "errors": []
+      }
+    ],
+    "cadence": {
+      "shortPressDamage": 10,
+      "lowModeSimulationTicks": 66,
+      "lowModeRenderedFPS": 29.99906252929596,
+      "offscreenTicks": 19,
+      "offscreenDraws": 0,
+      "pausedDraws": 0,
+      "hiddenTicks": 0,
+      "resumeTicks": 18,
+      "sizes": [
+        [
+          960,
+          540
+        ],
+        [
+          720,
+          405
+        ],
+        [
+          576,
+          324
+        ]
+      ],
+      "settingsPersisted": true,
+      "instrumentationOffByDefault": true,
+      "autoStress": null,
+      "errors": []
+    }
+  },
+  "compatibilityReplay": {
+    "samples": 10,
+    "diagnostics": 0,
+    "nativeComparison": false
+  },
+  "build": {
+    "entries": {
+      "index.html": {
+        "mainAsset": "main-ByIS7Js5.js",
+        "sha256": "8f2740b6ae754043c14993b2bc192786f8edca91ab4cfb8a9f1cdb8e9846840f"
+      },
+      "arena/index.html": {
+        "mainAsset": "main-ByIS7Js5.js",
+        "sha256": "4dfc701d87f4d0fb9118e685be3df4591031bb12e99eb9ddc1919b4c308e3a96"
+      },
+      "arena-classic/index.html": {
+        "mainAsset": "main-ByIS7Js5.js",
+        "sha256": "ac8f4c7c7022ea04c4e33dd73eeb2ec6360d4ae775f8a1974b4a6e2ee0ba570f"
+      }
+    },
+    "assets": [
+      {
+        "name": "archive-worker-B3ENsLNt.js",
+        "bytes": 23660,
+        "sha256": "c0457b431be0aec0b8e1b4aca2e3d5a1c183582887daab6e68afa4c4c35b44bc"
+      },
+      {
+        "name": "main-ByIS7Js5.js",
+        "bytes": 273914,
+        "sha256": "6c3204387874928a74aa933c106088f6d255a63e82682bbe6054ceee4cb93d21"
+      },
+      {
+        "name": "main-Cirtp32l.css",
+        "bytes": 14315,
+        "sha256": "73cf66c8ccc08255ad751d01e49cea63505c9dc15303733019ca51089cc3ff54"
+      },
+      {
+        "name": "rar-reader-Cr3p4lRV.js",
+        "bytes": 43968,
+        "sha256": "eeea85db396aee54d790078fd029dde1eec567e304af012491edbfa9c88dc9b6"
+      },
+      {
+        "name": "unrar-De7VYsPt.wasm",
+        "bytes": 207593,
+        "sha256": "c7d79f869196e3c79c053ba74a8f629116de8293a94f60cc851bbcd7977d0c2b"
+      }
+    ]
+  },
+  "limits": [
+    "No physical Brave/Android/GPU-driver FPS measurement or independent native MUGEN frame comparison.",
+    "Some real-character controller/CMD/AIR gaps remain.",
+    "Heavy Canvas blends, streaming large true-color frames and animated color effects can remain expensive; measured improvements do not guarantee a particular FPS."
+  ]
+}

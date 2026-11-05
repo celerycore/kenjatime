@@ -4,6 +4,7 @@ import {mountControllerSetup} from './gamepads.js';
 import {GraphicsQuality} from './graphics.js';
 import {CanvasRenderer,compositePlan,spriteBounds} from './canvas-renderer.js';
 import {MemoryLRU} from './memory-cache.js';
+import {createSpriteSurface,spritePalette} from './sprite-surfaces.js';
 import {PerformanceMonitor} from './performance.js';
 import {sff, soundArchive, decodeText, animations} from './formats.js';
 import {parseCommands, CommandBuffer} from './commands.js';
@@ -29,7 +30,7 @@ export function mountApp({arena=false}={}) {
   let roster = [], selected, pack, action, previewFrame = 0, previewElapsed = 0, importing=false;
   let playing = true, mode = 'preview', match, commandBuffer, dummyBuffer;
   let stages=[],selectedStage=null,player2Keys=new Set(),systemFiles=null;
-  let spriteCache = new MemoryLRU({maxBytes:12*1024*1024,sizeOf:sp=>sp?(sp.w*sp.h*4+sp.rgba.byteLength+(sp.indices?.byteLength||0)+(sp.opaque?sp.w*sp.h*8:0)):0}), keys = new Set(), importDiagnostics = [];
+  let spriteCache = new MemoryLRU({maxBytes:12*1024*1024,sizeOf:sp=>sp?sp.w*sp.h*4:0}), keys = new Set(), importDiagnostics = [];
   const clock=new FrameClock(),p1Input=new TickInputBuffer(),p2Input=new TickInputBuffer();let reportVersion='',dirty=true,renderScale=1,raf=0,renderVisible=true,lastPresentationTime=null;
   let savedGraphics='auto';try{savedGraphics=localStorage.getItem('kenjatime.graphics')||'auto';}catch{}
   const graphics=new GraphicsQuality({mode:new URLSearchParams(location.search).get('graphics')||savedGraphics,mobile:matchMedia('(pointer:coarse)').matches});
@@ -40,7 +41,7 @@ export function mountApp({arena=false}={}) {
 
   $('#upload').textContent = '＋ Import character / stage / engine';
   $('.heading p').textContent = 'Import fighters and stages. Test them in a local match.';
-  $('.tag i').textContent = '20';
+  $('.tag i').textContent = '21';
   $('#drop small').textContent=`ZIP / RAR up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
   $('#file').accept=archiveAccept;
   $('#stage-file').accept=archiveAccept;
@@ -292,19 +293,15 @@ export function mountApp({arena=false}={}) {
       for(const diagnostic of bank.diagnostics||[])issue(diagnostic.message,diagnostic.type);
     }const bank=packs.get(resource);decodedBanks.add(bank);return bank;
   }
-  function sprite(group, number,resource=selected,remaps=null) {
+  function sprite(group, number,resource=selected,remaps=null,opaque=false) {
     if (!resource || group < 0 || number < 0) return null;
     let bank;try{bank=spriteBank(resource);}catch(error){issue(`Sprite bank: ${error.message}`);return null;}if(!resourceIds.has(resource))resourceIds.set(resource,nextResourceId++);
     bank.spriteIndex||=new Map(bank.sprites.map((sp,index)=>[`${sp.group},${sp.number}`,index]));const index=bank.spriteIndex.get(`${group},${number}`)??-1;
-    let original;try{if(index>=0)original=bank.decode(index);}catch(error){issue(`Sprite ${group},${number}: ${error.message}`);return null;}
-    const sourcePalette=bank.palettes?.[original?.palette],remap=remaps?.get(sourcePalette?`${sourcePalette.group},${sourcePalette.number}`:'')||remaps?.get('*');
-    const key = `${resourceIds.get(resource)}:${group},${number}${remap?':pal'+remap.join(','):''}`; if (spriteCache.has(key)) return spriteCache.get(key);
+    const sourcePalette=spritePalette(bank,index),remap=remaps?.get(sourcePalette?`${sourcePalette.group},${sourcePalette.number}`:'')||remaps?.get('*');
+    const key = `${resourceIds.get(resource)}:${group},${number}${remap?':pal'+remap.join(','):''}${opaque?':opaque':''}`; if (spriteCache.has(key)) return spriteCache.get(key);
     if (index < 0) { issue(`Missing sprite ${key}.`); spriteCache.set(key, null); return null; }
     try {
-      let decoded=original;if(remap)try{decoded=bank.decodeWithPalette(index,...remap);}catch(error){issue(`Palette ${remap.join(',')}: ${error.message}`,'palette');}
-      const surface = document.createElement('canvas'); surface.width = decoded.w; surface.height = decoded.h;
-      surface.getContext('2d').putImageData(new ImageData(decoded.rgba, decoded.w, decoded.h), 0, 0);
-      const result = {...decoded, canvas:surface,key,indexed:bank.version===1||!!decoded.indices}; spriteCache.set(key, result); return result;
+      const result=createSpriteSurface(bank,index,{key,remap,opaque,onPaletteError:error=>issue(`Palette ${remap.join(',')}: ${error.message}`,'palette')});spriteCache.set(key,result);return result;
     } catch (error) { issue(`Sprite ${key}: ${error.message}`); spriteCache.set(key, null); return null; }
   }
   function constant(fighter, key, fallback = 1) { const value = fighter?.program?.constants?.get(key); return Number.isFinite(Number(value)) ? Number(value) : fallback; }
@@ -319,14 +316,8 @@ export function mountApp({arena=false}={}) {
     paletteCache.set(key,surface);
     return surface;
   }
-  function opaqueSprite(sp){
-    if(!sp.indexed)return sp;if(sp.opaque)return sp.opaque;
-    const rgba=new Uint8ClampedArray(sp.rgba);for(let i=3;i<rgba.length;i+=4)if(!sp.indices||sp.indices[(i-3)/4]===0)rgba[i]=255;
-    const surface=document.createElement('canvas');surface.width=sp.w;surface.height=sp.h;surface.getContext('2d').putImageData(new ImageData(rgba,sp.w,sp.h),0,0);
-    sp.opaque={...sp,rgba,canvas:surface,key:sp.key+':opaque'};spriteCache.set(sp.key,sp);return sp.opaque;
-  }
   function drawFrame(frame, x, y, facing = 1, scaleX = 1, scaleY = 1, angle = 0, resource=selected,palette=null,trans=null,remaps=null,opaque=false,xangle=0,yangle=0) {
-    if (!frame) return; let sp = sprite(frame.group, frame.number,resource,remaps); if (!sp) return;if(opaque)sp=opaqueSprite(sp);
+    if (!frame) return; const sp = sprite(frame.group, frame.number,resource,remaps,opaque); if (!sp) return;
     const flip = (frame.flip || '').toUpperCase(); ctx.save(); ctx.translate(x, y); ctx.scale(facing * scaleX, scaleY);
     ctx.translate(frame.x, frame.y); ctx.scale((flip.includes('H') ? -1 : 1) * (frame.scaleX ?? 1), (flip.includes('V') ? -1 : 1) * (frame.scaleY ?? 1));
     if(frame.angle||angle||xangle||yangle){
@@ -383,7 +374,7 @@ export function mountApp({arena=false}={}) {
     for(const [index,e]of stage.elements.entries()){
       if(e.layer!==layer||!e.enabled||!e.visible||e.type==='dummy'||!d.sprite)continue;
       const frame=e.animated?sampleAnimation(stage.animations.get(e.anim),e.drawFrameIndex??e.frameIndex,e.drawFrameTime??e.frameTime):stage.frame(e);if(!frame)continue;
-      let sp=sprite(frame.group,frame.number,d);if(!sp)continue;if(!e.mask)sp=opaqueSprite(sp);
+      const sp=sprite(frame.group,frame.number,d,null,!e.mask);if(!sp)continue;
       const pos=stage.position(index),zoom=1+(stage.camera.zoom-1)*e.zoomDelta;
       const x=480+(pos.x*factor-cameraX*pos.delta[0])*layout.px*stage.camera.zoom;
       const y=layout.ground+(pos.y*factor-layout.view.zoffset-cameraY*pos.delta[1])*layout.px*stage.camera.zoom;

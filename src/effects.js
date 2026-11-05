@@ -8,19 +8,24 @@ const clamp = (value,lo=0,hi=255) => Math.max(lo,Math.min(hi,value));
 export function transformRgba(rgba,palette) {
   const layers = palette?.layers || (palette ? [palette] : []), out = new Uint8ClampedArray(rgba);
   if (!layers.length) return out;
+  // These parameters depend on the effect's tick, not on a pixel. Preparing
+  // once avoids RGB arrays, channel callbacks and sine calls for every pixel.
+  const prepared=layers.map(fx=>{
+    const sin=fx.sinadd||[0,0,0,0],wave=sin[3]?Math.sin(2*Math.PI*(fx.age||0)/sin[3]):0;
+    return{color:clamp(fx.color??256,0,256)/256,invert:!!fx.invertall,add:triple(fx.add,[0,0,0]),mul:triple(fx.mul,[256,256,256]),sine:[0,1,2].map(i=>Number(sin[i]||0)*wave),post:[0,1,2].map(i=>Number(fx.postadd?.[i]||0))};
+  });
   for (let pixel=0;pixel<out.length;pixel+=4) {
     if (!out[pixel+3]) continue;
-    let rgb = [out[pixel],out[pixel+1],out[pixel+2]];
-    for (const fx of layers) {
-      const color = clamp(fx.color ?? 256,0,256)/256, grey = rgb[0]*.299+rgb[1]*.587+rgb[2]*.114;
-      const add = triple(fx.add,[0,0,0]), mul = triple(fx.mul,[256,256,256]), sin = fx.sinadd || [0,0,0,0];
-      const wave = sin[3] ? Math.sin(2*Math.PI*(fx.age||0)/sin[3]) : 0;
-      rgb = rgb.map((v,i)=>{
-        v = grey+(v-grey)*color; if (fx.invertall) v=255-v;
-        return clamp((v+add[i]+Number(sin[i]||0)*wave)*mul[i]/256+Number(fx.postadd?.[i]||0));
-      });
+    let r=out[pixel],g=out[pixel+1],b=out[pixel+2];
+    for (const fx of prepared) {
+      const grey=r*.299+g*.587+b*.114;
+      r=grey+(r-grey)*fx.color;g=grey+(g-grey)*fx.color;b=grey+(b-grey)*fx.color;
+      if(fx.invert){r=255-r;g=255-g;b=255-b;}
+      r=clamp((r+fx.add[0]+fx.sine[0])*fx.mul[0]/256+fx.post[0]);
+      g=clamp((g+fx.add[1]+fx.sine[1])*fx.mul[1]/256+fx.post[1]);
+      b=clamp((b+fx.add[2]+fx.sine[2])*fx.mul[2]/256+fx.post[2]);
     }
-    for(let i=0;i<3;i++)out[pixel+i]=Math.trunc(rgb[i]+1e-8);
+    out[pixel]=Math.trunc(r+1e-8);out[pixel+1]=Math.trunc(g+1e-8);out[pixel+2]=Math.trunc(b+1e-8);
   }
   return out;
 }

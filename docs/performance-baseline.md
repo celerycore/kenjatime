@@ -1,5 +1,7 @@
 # Mobile rendering optimization: Web Edition 15
 
+Latest follow-up: [Edition 21 sprite-cache and palette-processing fixes](fps-performance.md) address the Forest/desktop Brave lag report, with unchanged cache limits and pixel/behavior comparisons. Earlier phase measurements below remain historical.
+
 This work preserves the current MUGEN simulation and improves browser presentation. The measured improvements below are CPU render timings from the actual application. They are **not physical Android FPS claims** or certification of full native MUGEN compatibility.
 
 ## Audit and reproducible source

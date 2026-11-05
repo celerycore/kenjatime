@@ -88,7 +88,7 @@ with sync_playwright() as p:
     browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox'])
     for route in ['','arena-classic/']:
         page=browser.new_page(viewport={'width':390,'height':844},accept_downloads=True);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
-        page.goto(base+route+'?perf=1&graphics=high&v=20',wait_until='networkidle')
+        page.goto(base+route+'?perf=1&graphics=high&v=21',wait_until='networkidle')
         if route:page.wait_for_function('!document.querySelector("#file").disabled')
         page.locator('#file').set_input_files('work/landing-browser-fixture.zip');page.wait_for_function("document.querySelector('#name').textContent==='Post-combo Landing Fixture'")
         if route:page.locator('#arena-mode').select_option('training')

@@ -209,20 +209,30 @@ export function decodePng(bytes, expectedWidth, expectedHeight, indexedPalette) 
   if(colorType===3) {
    const index=pixels[source],p=index*(indexedPalette?4:3),colors=indexedPalette||palette;
    if(p+2>=colors.length)throw Error('PNG palette index out of range');
-   rgba.set([colors[p],colors[p+1],colors[p+2],indexedPalette?colors[p+3]:(alpha?.[index]??255)],target);
+   rgba[target]=colors[p];rgba[target+1]=colors[p+1];rgba[target+2]=colors[p+2];rgba[target+3]=indexedPalette?colors[p+3]:(alpha?.[index]??255);
   } else if(colorType===0||colorType===4) {
    const gray=pixels[source];let a=colorType===4?pixels[source+1]:255;
    if(colorType===0&&alpha?.length===2&&gray===((alpha[0]<<8)|alpha[1]))a=0;
-   rgba.set([gray,gray,gray,a],target);
+   rgba[target]=gray;rgba[target+1]=gray;rgba[target+2]=gray;rgba[target+3]=a;
   } else {
    const r=pixels[source],g=pixels[source+1],b=pixels[source+2];let a=colorType===6?pixels[source+3]:255;
    if(colorType===2&&alpha?.length===6&&r===((alpha[0]<<8)|alpha[1])&&g===((alpha[2]<<8)|alpha[3])&&b===((alpha[4]<<8)|alpha[5]))a=0;
-   rgba.set([r,g,b,a],target);
+   rgba[target]=r;rgba[target+1]=g;rgba[target+2]=b;rgba[target+3]=a;
   }
  }
  return {w:width,h:height,rgba,...(colorType===3?{indices:pixels}: {})};
 }
 export function decodePixels(data,size,format){const out=new Uint8Array(size);let i=0,j=0,rb=0,rbc=0;const read=()=>{if(i>=data.length)throw Error('Truncated sprite data');return data[i++];};const run=(n,c)=>{if(n<1||j+n>size)throw Error('Invalid sprite run');out.fill(c,j,j+n);j+=n;};if(format===0){if(data.length<size)throw Error('Truncated raw sprite');return data.slice(0,size);}if(format===2){while(j<size){let d=read();if((d&192)===64){let n=d&63;run(n,read());}else run(1,d);}return out;}if(format===3){while(j<size){let n=read()+1,d=read(),pack=d&127,c=d&128?read():0;run(n,c);while(pack--){let v=read();run((v>>5)+1,v&31);}}return out;}if(format!==4)throw Error('Unsupported sprite compression '+format);while(j<size){let control=read();for(let bit=0;bit<8&&j<size;bit++){let d=read();if(control&(1<<bit)){let n,offset;if((d&63)===0){offset=((d<<2)|read())+1;n=read()+3;}else{rb|=(d&192)>>rbc;rbc+=2;n=(d&63)+1;if(rbc<8)offset=read()+1;else{offset=rb+1;rb=0;rbc=0;}}if(offset>j||j+n>size)throw Error('Invalid sprite backreference');while(n--){out[j]=out[j-offset];j++;}}else{let n;if(!(d&224))n=read()+8;else{n=d>>5;d&=31;}run(n,d);}}}return out;}
+/** Copy native RGBA words without allocating a typed-array view per pixel.
+ * Copying palette bytes into a word table first works on either endianness
+ * and accepts unaligned palette views without changing alpha or RGB values. */
+export function expandIndexedRgba(indices,colors,message='SFF palette index out of range'){
+ const lookup=new Uint32Array(Math.ceil(colors.length/4));new Uint8Array(lookup.buffer).set(colors);
+ const rgba=new Uint8ClampedArray(indices.length*4),words=new Uint32Array(rgba.buffer);
+ for(let i=0;i<indices.length;i++){const color=indices[i];if(color*4+2>=colors.length)throw Error(message);words[i]=lookup[color];}
+ return rgba;
+}
+
 export function sff(bytes,options={}) {
  if (!(bytes instanceof Uint8Array) || bytes.length<32 || new TextDecoder().decode(bytes.subarray(0,12))!=='ElecbyteSpr\0') throw Error('Invalid SFF signature');
  if(bytes[15]===1)return sffV1(bytes,options);
@@ -255,7 +265,7 @@ export function sff(bytes,options={}) {
   seen.add(index);const sp=sprites[index];
   if(!sp.length) {
    const linked=decode(sp.link,seen),result={...linked,...sp,w:linked.w,h:linked.h,rgba:linked.rgba};
-   if(linked.indices&&sp.palette!==linked.palette){const colors=palette(sp.palette),rgba=new Uint8ClampedArray(linked.rgba.length);for(let i=0;i<linked.indices.length;i++){const c=linked.indices[i],p=c*4;if(p+2>=colors.length)throw Error('Linked sprite palette index out of range');rgba.set(colors.subarray(p,p+4),i*4);}result.rgba=rgba;}
+   if(linked.indices&&sp.palette!==linked.palette)result.rgba=expandIndexedRgba(linked.indices,palette(sp.palette),'Linked sprite palette index out of range');
    cache.set(index,result);return result;
   }
   if(!sp.w||!sp.h||sp.w*sp.h>4e6)throw Error('Invalid SFF sprite dimensions');
@@ -266,11 +276,7 @@ export function sff(bytes,options={}) {
   if(sp.format>=10&&sp.format<=12)result={...sp,...decodePng(raw,sp.w,sp.h,sp.format===10&&palcount?palette(sp.palette):undefined)};
   else {
    if(sp.depth!==8&&sp.depth!==5)throw Error('Unsupported non-indexed SFF compression: '+sp.format);
-   const pixels=decodePixels(raw,sp.w*sp.h,sp.format),pal=palette(sp.palette),rgba=new Uint8ClampedArray(pixels.length*4);
-   for(let i=0;i<pixels.length;i++) {
-    const c=pixels[i];if(c*4+2>=pal.length)throw Error('SFF palette index out of range');
-    rgba.set(pal.subarray(c*4,c*4+4),i*4);
-   }
+   const pixels=decodePixels(raw,sp.w*sp.h,sp.format),rgba=expandIndexedRgba(pixels,palette(sp.palette));
    result={...sp,rgba,indices:pixels};
   }
   cache.set(index,result);return result;
@@ -279,8 +285,7 @@ export function sff(bytes,options={}) {
   const original=decode(index);if(!original.indices)return original;
   const target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);
   const source=palettes[original.palette];if(source&&Math.ceil(Math.log2(source.colors))!==Math.ceil(Math.log2(target.colors)))return original;
-  const colors=palette(target.index),rgba=new Uint8ClampedArray(original.rgba.length);
-  for(let i=0;i<original.indices.length;i++){const c=original.indices[i],p=c*4;if(p+2>=colors.length)throw Error('Palette depth does not match indexed sprite');rgba.set(colors.subarray(p,p+4),i*4);}
+  const rgba=expandIndexedRgba(original.indices,palette(target.index),'Palette depth does not match indexed sprite');
   return{...original,rgba};
  }
  return {sprites,decode,decodeWithPalette,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
@@ -315,7 +320,7 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
   else{const index=colors.length;colors.push(rgba);palettes.push({index,group:1,number,colors:256});}
  }
  const cache=new MemoryLRU({maxBytes:cacheBytes,sizeOf:sp=>sp.rgba.byteLength+(sp.indices?.byteLength||0)});
- function recolor(original,rgba){const out=new Uint8ClampedArray(original.indices.length*4);for(let i=0;i<original.indices.length;i++)out.set(rgba.subarray(original.indices[i]*4,original.indices[i]*4+4),i*4);return{...original,rgba:out};}
+ function recolor(original,rgba){return{...original,rgba:expandIndexedRgba(original.indices,rgba)};}
  function decode(index,seen=new Set()){
   if(cache.has(index))return cache.get(index);
   if(!Number.isInteger(index)||index<0||index>=sprites.length||seen.has(index))throw Error('Invalid SFF v1 sprite link');seen.add(index);const sp=sprites[index];

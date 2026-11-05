@@ -25,7 +25,7 @@ with sync_playwright() as p:
     page.on('worker',lambda worker:workers.append(worker.url))
     page.goto(url,wait_until='networkidle')
     page.wait_for_function("document.querySelector('#name').textContent==='Kung Fu Man'")
-    assert page.locator('.tag i').inner_text()=='20'
+    assert page.locator('.tag i').inner_text()=='21'
     assert page.locator('#match-mode').input_value()=='match'
     assert page.locator('#dummy-mode').input_value()=='cpu'
     assert page.evaluate('document.documentElement.scrollWidth')<=390
