@@ -1,4 +1,4 @@
-MUGEN WEB ARENA — WEB EDITION 12
+MUGEN WEB ARENA — WEB EDITION 13
 
 PLAY: https://celerycore.github.io/kenjatime/arena/
 LAB: https://celerycore.github.io/kenjatime/
@@ -17,3 +17,5 @@ Export character scripts saves DEF/CMD/CNS/state/AIR files and a file-size inven
 
 Full MUGEN compatibility remains unfinished. See each character report.
 The bundled KFM sample belongs to Elecbyte; see KFM-README.txt for its noncommercial license.
+
+Edition 13: 32-bit script arithmetic, native bottom handling, controller/trigger validation, once-only parameter evaluation, state persistence expressions and expanded variable reports. Exact native equivalence remains unverified.
