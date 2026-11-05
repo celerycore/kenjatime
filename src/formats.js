@@ -1,3 +1,4 @@
+import {MemoryLRU} from './memory-cache.js';
 import { unzipSync, unzlibSync } from 'fflate';
 import {MAX_ZIP_BYTES,MAX_EXPANDED_BYTES,MAX_ARCHIVE_FILES,ZIP_LIMIT_MB} from './archive-limits.js';
 
@@ -223,7 +224,7 @@ export function sff(bytes,options={}) {
  const offset=u(36),count=u(40),paloff=u(44),palcount=u(48),ldata=u(52),tdata=u(60);
  if(count>20000||palcount>4096)throw Error('SFF table too large');
  if(offset+count*28>bytes.length||paloff+palcount*16>bytes.length)throw Error('Truncated SFF table');
- const sprites=[],cache=new Map(),paletteCache=new Map();
+ const sprites=[],cache=new MemoryLRU({maxBytes:options.cacheBytes??16*1024*1024,sizeOf:sp=>sp.rgba.byteLength+(sp.indices?.byteLength||0)}),paletteCache=new Map();
  const palettes=Array.from({length:palcount},(_,index)=>({index,group:h(paloff+index*16),number:h(paloff+index*16+2),colors:h(paloff+index*16+4)}));
  for(let i=0;i<count;i++) {
   const p=offset+i*28;
@@ -273,10 +274,10 @@ export function sff(bytes,options={}) {
   for(let i=0;i<original.indices.length;i++){const c=original.indices[i],p=c*4;if(p+2>=colors.length)throw Error('Palette depth does not match indexed sprite');rgba.set(colors.subarray(p,p+4),i*4);}
   return{...original,rgba};
  }
- return {sprites,decode,decodeWithPalette,palettes,version:2};
+ return {sprites,decode,decodeWithPalette,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
-function sffV1(bytes,{externalPalettes=new Map()}={}){
+function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),u=p=>view.getUint32(p,true),h=p=>view.getUint16(p,true),signed=p=>view.getInt16(p,true);
  const sprites=[],palettes=[],colors=[],visited=new Set(),count=u(20);let offset=u(24),previous=-1,base=-1;
  if(count>20000)throw Error('SFF table too large');
@@ -304,7 +305,7 @@ function sffV1(bytes,{externalPalettes=new Map()}={}){
   if(number===1&&base>=0)colors[base]=rgba;
   else{const index=colors.length;colors.push(rgba);palettes.push({index,group:1,number,colors:256});}
  }
- const cache=new Map();
+ const cache=new MemoryLRU({maxBytes:cacheBytes,sizeOf:sp=>sp.rgba.byteLength+(sp.indices?.byteLength||0)});
  function recolor(original,rgba){const out=new Uint8ClampedArray(original.indices.length*4);for(let i=0;i<original.indices.length;i++)out.set(rgba.subarray(original.indices[i]*4,original.indices[i]*4+4),i*4);return{...original,rgba:out};}
  function decode(index,seen=new Set()){
   if(cache.has(index))return cache.get(index);
@@ -320,7 +321,7 @@ function sffV1(bytes,{externalPalettes=new Map()}={}){
   const result=recolor({...sp,w,h:height,indices},palette);cache.set(index,result);return result;
  }
  function decodeWithPalette(index,group,number){const original=decode(index),target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return recolor(original,colors[target.index]);}
- return{sprites,palettes,decode,decodeWithPalette,version:1};
+ return{sprites,palettes,decode,decodeWithPalette,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
 export function decodeAct(bytes){

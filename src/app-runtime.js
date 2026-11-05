@@ -1,3 +1,5 @@
+import {CanvasRenderer,compositePlan,spriteBounds} from './canvas-renderer.js';
+import {MemoryLRU} from './memory-cache.js';
 import {PerformanceMonitor} from './performance.js';
 import {sff, soundArchive, decodeText, animations} from './formats.js';
 import {parseCommands, CommandBuffer} from './commands.js';
@@ -17,15 +19,17 @@ import {ForceFeedbackState} from './haptics.js';
 import {characterSpriteBank} from './palettes.js';
 
 export function mountApp({arena=false}={}) {
-  const $ = selector => document.querySelector(selector);
+  const dom=new Map();const $=selector=>{let element=dom.get(selector);if(!element?.isConnected){element=document.querySelector(selector);if(element)dom.set(selector,element);}return element;};
+  const text=(selector,value)=>{const element=$(selector);if(element.textContent!==value)element.textContent=value;};
   const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c]));
   let roster = [], selected, pack, action, previewFrame = 0, previewElapsed = 0, importing=false;
   let playing = true, mode = 'preview', match, commandBuffer, dummyBuffer;
   let stages=[],selectedStage=null,player2Keys=new Set(),systemFiles=null;
-  let spriteCache = new Map(), keys = new Set(), importDiagnostics = [];
+  let spriteCache = new MemoryLRU({maxBytes:12*1024*1024,sizeOf:sp=>sp?(sp.w*sp.h*4+sp.rgba.byteLength+(sp.indices?.byteLength||0)+(sp.opaque?sp.w*sp.h*8:0)):0}), keys = new Set(), importDiagnostics = [];
   let accumulator = 0, last = 0, reportVersion = '';
   let effects = new EffectsState(),commonResource=null,impactEffects=[],packs=new WeakMap(),resourceIds=new WeakMap(),nextResourceId=1;
-  const paletteCache=new Map();let palettePixels=0;
+  const paletteCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:128,sizeOf:surface=>surface.width*surface.height*4});
+  const decodedBanks=new Set(),parallaxCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:4,sizeOf:surface=>surface.width*surface.height*4}),parallaxKeys=new Map();
   const playerPalettes=new WeakMap(),opponentPalettes=new WeakMap();
 
   $('#upload').textContent = '＋ Import character / stage / engine ZIP';
@@ -56,6 +60,7 @@ export function mountApp({arena=false}={}) {
     <details id="issues"><summary>Controller and trigger diagnostics</summary><div id="diagnostics"><p>No fighter selected.</p></div></details></section>`);
   const performanceMonitor=new PerformanceMonitor({enabled:new URLSearchParams(location.search).get('perf')==='1'});
   const canvas = $('canvas'), ctx = performanceMonitor.track(canvas.getContext('2d'));
+  const renderer=new CanvasRenderer(ctx,{track:context=>performanceMonitor.track(context)});
   $('.stage').insertAdjacentHTML('beforeend','<pre id=performance-overlay hidden aria-live=off style="position:absolute;top:36px;right:8px;background:#000c;padding:8px;color:#dfb;font:11px monospace;pointer-events:none"></pre>');
   let touchKeys=new Set();const touch=mountTouchControls($('.viewer'),value=>{touchKeys=value;});
   canvas.tabIndex = 0; canvas.setAttribute('aria-label', 'Character preview and training stage');
@@ -177,6 +182,7 @@ export function mountApp({arena=false}={}) {
   }
   function configureMatch(){
     if(!selected)return;
+    parallaxCache.clear();parallaxKeys.clear();drawPool.length=drawLayers.length=drawActors.length=0;paletteCache.clear();spriteCache.clear();for(const bank of decodedBanks)bank.clearDecodedCache?.();decodedBanks.clear();
     touch.panel.hidden=mode!=='training'||$('#player-control').value==='cpu';
     $('#cpu-level').disabled=$('#player-control').value!=='cpu'&&$('#dummy-mode').value!=='cpu';
     try{
@@ -203,9 +209,9 @@ export function mountApp({arena=false}={}) {
     $('#cards').querySelectorAll('button').forEach(button => button.onclick = () => select(+button.dataset.id));
   }
   function select(index) {
-    selected = roster[index]; spriteCache.clear(); keys.clear(); importDiagnostics = [];
+    selected = roster[index];for(const bank of decodedBanks)bank.clearDecodedCache?.();decodedBanks.clear();spriteCache.clear();parallaxCache.clear();parallaxKeys.clear(); keys.clear(); importDiagnostics = [];
     audio.stop(); audio.generation++;
-    effects=new EffectsState();impactEffects=[];packs=new WeakMap();resourceIds=new WeakMap();paletteCache.clear();palettePixels=0;commonResource=null;
+    effects=new EffectsState();impactEffects=[];packs=new WeakMap();resourceIds=new WeakMap();paletteCache.clear();commonResource=null;
     pack = null; match = null; commandBuffer = null; dummyBuffer = null; previewFrame = 0; previewElapsed = 0; accumulator = 0; reportVersion = '';
     action = selected.animations.find(a => a.id === 0) || selected.animations[0];
     $('#name').textContent = selected.def.info.displayname || selected.def.info.name || 'Unnamed';
@@ -266,12 +272,12 @@ export function mountApp({arena=false}={}) {
     if(!packs.has(resource)){
       const bank=resource.def?.files?.sprite?characterSpriteBank(resource):sff(resource.files[resource.sprite.path]);packs.set(resource,bank);
       for(const diagnostic of bank.diagnostics||[])issue(diagnostic.message,diagnostic.type);
-    }return packs.get(resource);
+    }const bank=packs.get(resource);decodedBanks.add(bank);return bank;
   }
   function sprite(group, number,resource=selected,remaps=null) {
     if (!resource || group < 0 || number < 0) return null;
     let bank;try{bank=spriteBank(resource);}catch(error){issue(`Sprite bank: ${error.message}`);return null;}if(!resourceIds.has(resource))resourceIds.set(resource,nextResourceId++);
-    const index = bank.sprites.findIndex(s => s.group === group && s.number === number);
+    bank.spriteIndex||=new Map(bank.sprites.map((sp,index)=>[`${sp.group},${sp.number}`,index]));const index=bank.spriteIndex.get(`${group},${number}`)??-1;
     let original;try{if(index>=0)original=bank.decode(index);}catch(error){issue(`Sprite ${group},${number}: ${error.message}`);return null;}
     const sourcePalette=bank.palettes?.[original?.palette],remap=remaps?.get(sourcePalette?`${sourcePalette.group},${sourcePalette.number}`:'')||remaps?.get('*');
     const key = `${resourceIds.get(resource)}:${group},${number}${remap?':pal'+remap.join(','):''}`; if (spriteCache.has(key)) return spriteCache.get(key);
@@ -280,28 +286,26 @@ export function mountApp({arena=false}={}) {
       let decoded=original;if(remap)try{decoded=bank.decodeWithPalette(index,...remap);}catch(error){issue(`Palette ${remap.join(',')}: ${error.message}`,'palette');}
       const surface = document.createElement('canvas'); surface.width = decoded.w; surface.height = decoded.h;
       surface.getContext('2d').putImageData(new ImageData(decoded.rgba, decoded.w, decoded.h), 0, 0);
-      const result = {...decoded, canvas:surface,key,indexed:bank.version===1||!!decoded.indices}; spriteCache.set(key, result);if(spriteCache.size>512)spriteCache.delete(spriteCache.keys().next().value); return result;
+      const result = {...decoded, canvas:surface,key,indexed:bank.version===1||!!decoded.indices}; spriteCache.set(key, result); return result;
     } catch (error) { issue(`Sprite ${key}: ${error.message}`); spriteCache.set(key, null); return null; }
   }
   function constant(fighter, key, fallback = 1) { const value = fighter?.program?.constants?.get(key); return Number.isFinite(Number(value)) ? Number(value) : fallback; }
-  const blendSurface=document.createElement('canvas');blendSurface.width=960;blendSurface.height=540;
-  const blendContext=performanceMonitor.track(blendSurface.getContext('2d',{willReadFrequently:true}));blendContext.imageSmoothingEnabled=false;
   const pixelSurface=document.createElement('canvas');pixelSurface.width=960;pixelSurface.height=540;const pixelContext=performanceMonitor.track(pixelSurface.getContext('2d'));
   function writePixels(pixels,left,top){pixelContext.putImageData(pixels,left,top);ctx.save();ctx.resetTransform();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(pixelSurface,left,top,pixels.width,pixels.height,left,top,pixels.width,pixels.height);ctx.restore();}
-  function coloredSprite(sp,palette){
-    if(!palette?.layers?.length)return sp.canvas;
-    const key=sp.key+':'+palette.key;if(paletteCache.has(key))return paletteCache.get(key);
+  function coloredSprite(sp,palette,brightness=1){
+    if(!palette?.layers?.length&&brightness===1)return sp.canvas;
+    const key=sp.key+':'+(palette?.key||'')+':'+brightness;if(paletteCache.has(key))return paletteCache.get(key);
     const surface=document.createElement('canvas');surface.width=sp.w;surface.height=sp.h;
-    surface.getContext('2d').putImageData(new ImageData(transformRgba(sp.rgba,palette),sp.w,sp.h),0,0);
-    paletteCache.set(key,surface);palettePixels+=sp.w*sp.h;
-    while(paletteCache.size>64||palettePixels>8e6){const first=paletteCache.keys().next().value,old=paletteCache.get(first);paletteCache.delete(first);palettePixels-=old.width*old.height;}
+    const rgba=transformRgba(sp.rgba,palette);if(brightness!==1)for(let i=0;i<rgba.length;i+=4)for(let c=0;c<3;c++)rgba[i+c]=Math.round(rgba[i+c]*brightness);
+    surface.getContext('2d').putImageData(new ImageData(rgba,sp.w,sp.h),0,0);
+    paletteCache.set(key,surface);
     return surface;
   }
   function opaqueSprite(sp){
     if(!sp.indexed)return sp;if(sp.opaque)return sp.opaque;
     const rgba=new Uint8ClampedArray(sp.rgba);for(let i=3;i<rgba.length;i+=4)if(!sp.indices||sp.indices[(i-3)/4]===0)rgba[i]=255;
     const surface=document.createElement('canvas');surface.width=sp.w;surface.height=sp.h;surface.getContext('2d').putImageData(new ImageData(rgba,sp.w,sp.h),0,0);
-    sp.opaque={...sp,rgba,canvas:surface,key:sp.key+':opaque'};return sp.opaque;
+    sp.opaque={...sp,rgba,canvas:surface,key:sp.key+':opaque'};spriteCache.set(sp.key,sp);return sp.opaque;
   }
   function drawFrame(frame, x, y, facing = 1, scaleX = 1, scaleY = 1, angle = 0, resource=selected,palette=null,trans=null,remaps=null,opaque=false,xangle=0,yangle=0) {
     if (!frame) return; let sp = sprite(frame.group, frame.number,resource,remaps); if (!sp) return;if(opaque)sp=opaqueSprite(sp);
@@ -315,18 +319,8 @@ export function mountApp({arena=false}={}) {
     let blend=frame.blend||'';
     if(typeof trans==='string')blend=trans;
     else if(trans&&trans.mode!=='default')blend=trans.mode==='sub'?'S':trans.mode==='none'?'':trans.mode==='add1'?'A1':`AS${trans.alpha?.[0]??256}D${trans.alpha?.[1]??256}`;
-    const surface=coloredSprite(sp,palette),coefficients=blendCoefficients(blend);
-    if(coefficients.mode==='normal')ctx.drawImage(surface,-sp.x,-sp.y);
-    else{
-      const matrix=ctx.getTransform(),corners=[[-sp.x,-sp.y],[sp.w-sp.x,-sp.y],[-sp.x,sp.h-sp.y],[sp.w-sp.x,sp.h-sp.y]].map(([px,py])=>matrix.transformPoint({x:px,y:py}));
-      const left=Math.max(0,Math.floor(Math.min(...corners.map(p=>p.x)))),top=Math.max(0,Math.floor(Math.min(...corners.map(p=>p.y))));
-      const right=Math.min(960,Math.ceil(Math.max(...corners.map(p=>p.x)))),bottom=Math.min(540,Math.ceil(Math.max(...corners.map(p=>p.y))));
-      if(right>left&&bottom>top){
-        blendContext.resetTransform();blendContext.clearRect(0,0,960,540);blendContext.setTransform(matrix);blendContext.globalAlpha=ctx.globalAlpha;blendContext.drawImage(surface,-sp.x,-sp.y);blendContext.resetTransform();blendContext.globalAlpha=1;
-        const source=blendContext.getImageData(left,top,right-left,bottom-top),destination=ctx.getImageData(left,top,right-left,bottom-top);
-        destination.data.set(blendPixels(destination.data,source.data,coefficients));writePixels(destination,left,top);
-      }
-    }
+    const bounds=spriteBounds(ctx.getTransform(),-sp.x,-sp.y,sp.w,sp.h,canvas.width,canvas.height);
+    if(bounds.width&&bounds.height){const plan=compositePlan(blend),surface=coloredSprite(sp,palette,plan.brightness);renderer.draw(surface,-sp.x,-sp.y,plan,bounds);}
     ctx.restore();
   }
   function worldScale() { return 2.2 * 320 / (parseInt(selected?.def.info.localcoord, 10) || 320); }
@@ -343,11 +337,11 @@ export function mountApp({arena=false}={}) {
       for (const [left, top, right, bottom] of transformedBoxes(fighter, kind)) ctx.strokeRect(480 + left * scale, 440 + top * scale, (right - left) * scale, (bottom - top) * scale);
     }
   }
-  function drawExplod(fighter, effect) {
+  function drawExplod(fighter, effect,layout=stageLayout()) {
     const frame = sampleAnimation(effect.animation,effect.frameIndex,effect.frameTime);
     const scale = effect.scale || [1, 1];
     const coordinate=effect.common?1:effect.coordinateScale??fighter.coordinateScale;
-    const source=effect.source||effect,remaps=effect.common?null:effect.ownpal?source.paletteRemaps:fighter.paletteRemaps,layout=stageLayout();
+    const source=effect.source||effect,remaps=effect.common?null:effect.ownpal?source.paletteRemaps:fighter.paletteRemaps;
     ctx.save();let x=480+effect.pos.x*2.2,y=440+effect.pos.y*2.2,pixels=2.2;
     if(effect.space==='screen'){ctx.resetTransform();pixels=layout.px;x=layout.left+effect.pos.x*pixels;y=layout.top+effect.pos.y*pixels;}
     const sx=pixels*coordinate*(scale[0]??1),sy=pixels*coordinate*(scale[1]??1)*(effect.vfacing||1),resource=effect.common?commonResource:fighter.character;
@@ -365,7 +359,7 @@ export function mountApp({arena=false}={}) {
     ctx.save();if(layout){ctx.translate(480,layout.ground);ctx.scale(layout.scale/2.2,layout.scale/2.2);ctx.translate(-480-layout.camera.x*2.2,-440-layout.camera.y*2.2);}draw();ctx.restore();
   }
   const parallaxSurface=document.createElement('canvas');parallaxSurface.width=960;parallaxSurface.height=540;
-  const parallaxContext=performanceMonitor.track(parallaxSurface.getContext('2d',{willReadFrequently:true}));parallaxContext.imageSmoothingEnabled=false;
+  const parallaxContext=performanceMonitor.track(parallaxSurface.getContext('2d'));parallaxContext.imageSmoothingEnabled=false;
   function drawStageLayer(layer,layout){
     const stage=match.stage,d=stage.definition,factor=d.coordinateScale;
     for(const [index,e]of stage.elements.entries()){
@@ -381,7 +375,11 @@ export function mountApp({arena=false}={}) {
       ctx.save();
       if(e.window?.length===4){const offset=e.windowCentered?480:layout.left,endpoint=e.windowCentered?0:1;const wx=offset+(e.window[0]*factor-stage.camera.x*e.windowDelta[0])*layout.px,wy=layout.top+(e.window[1]*factor-stage.camera.y*e.windowDelta[1]-layout.view.cropTop)*layout.px;ctx.beginPath();ctx.rect(wx,wy,(e.window[2]-e.window[0]+endpoint)*factor*layout.px,(e.window[3]-e.window[1]+endpoint)*factor*layout.px);ctx.clip();}
       if(e.type==='parallax'){
-        parallaxContext.clearRect(0,0,960,540);const source=coloredSprite(sp,palette);
+        const blend=e.trans==='default'?frame.blend||'':e.trans==='none'?'':['add','addalpha'].includes(e.trans)?`AS${e.alpha[0]}D${e.alpha[1]}`:e.trans;
+        const plan=compositePlan(blend);
+        const cacheKey=JSON.stringify([sp.key,palette.key,frame,x,y,scaleX,scaleY,stage.camera,pos,e.width,e.xscale,e.tile,e.yScaleStart,e.yScaleDelta,layout.left,layout.top,layout.width,layout.height]);
+        const cached=parallaxCache.get(cacheKey);if(cached){renderer.draw(cached,0,0,plan,{left:0,top:0,width:canvas.width,height:canvas.height},960,540);ctx.restore();continue;}
+        parallaxContext.clearRect(0,0,960,540);const source=coloredSprite(sp,palette,plan.brightness);
         for(let row=0;row<sp.h;row++){
           const scales=parallaxScale(e,sp.w,row,sp.h,stage.camera.y/factor),sx=scaleX*scales.x*(frame.scaleX??1),sy=scaleY*scales.y*(frame.scaleY??1);
           if(!Number.isFinite(sx)||!Number.isFinite(sy)||!sx||!sy)continue;
@@ -390,9 +388,8 @@ export function mountApp({arena=false}={}) {
           const step=sp.w*Math.abs(sx),xs=tileOffsets(rowX-axis*sx,step,step,e.tile[0],layout.left,layout.left+layout.width);
           for(const ix of xs){parallaxContext.save();parallaxContext.translate(rowX+ix*step,y+(frame.y||0)*scaleY);parallaxContext.scale(flipX*sx,flipY*sy);parallaxContext.drawImage(source,0,row,sp.w,1,-axis,row-sp.y,sp.w,1+.02/Math.abs(sy));parallaxContext.restore();}
         }
-        const blend=e.trans==='default'?frame.blend||'':e.trans==='none'?'':['add','addalpha'].includes(e.trans)?`AS${e.alpha[0]}D${e.alpha[1]}`:e.trans;
-        if(blendCoefficients(blend).mode==='normal')ctx.drawImage(parallaxSurface,0,0);
-        else{blendContext.resetTransform();blendContext.clearRect(0,0,960,540);blendContext.setTransform(ctx.getTransform());blendContext.drawImage(parallaxSurface,0,0);blendContext.resetTransform();const dst=ctx.getImageData(0,0,960,540),src=blendContext.getImageData(0,0,960,540);dst.data.set(blendPixels(dst.data,src.data,blend));writePixels(dst,0,0);}
+        if(parallaxKeys.get(index)===cacheKey){const copy=document.createElement('canvas');copy.width=960;copy.height=540;copy.getContext('2d').drawImage(parallaxSurface,0,0);parallaxCache.set(cacheKey,copy);}parallaxKeys.set(index,cacheKey);
+        renderer.draw(parallaxSurface,0,0,plan,{left:0,top:0,width:canvas.width,height:canvas.height},960,540);
       }else{
         const stepX=backgroundTileStep(e,sp.w)*Math.abs(scaleX),stepY=backgroundTileStep(e,sp.h,1)*Math.abs(scaleY);
         const xs=tileOffsets(x-sp.x*scaleX,sp.w*Math.abs(scaleX),stepX,e.tile[0],layout.left,layout.left+layout.width);
@@ -467,12 +464,15 @@ export function mountApp({arena=false}={}) {
       for(const event of match.presentationEvents){if(event.type==='superpause')superPresentation(event);else if(event.type==='round')status(event.event==='fight'?'Fight!':event.event==='next-round'?`Round ${event.roundNo}`:event.winner==='draw'?'Draw round.':`${event.winner==='player'?match.player.name:match.opponent.name} wins${event.matchOver?' the match':''}.`);else effects.consume([event],{entity:event.entity||event.owner});}
       for(const contact of match.events)contactPresentation(contact);
       const liveActors=[...match.entities,...match.projectiles];effects.capture(liveActors,{paused});effects.cleanup(liveActors);
-      $('#p1life').max = match.player.maxLife; $('#p1life').value = match.player.life; $('#p2life').max = match.opponent.maxLife; $('#p2life').value = match.opponent.life;
+      for(const [id,actor]of [['#p1life',match.player],['#p2life',match.opponent]]){const meter=$(id);if(meter.max!==actor.maxLife)meter.max=actor.maxLife;if(meter.value!==actor.life)meter.value=actor.life;}
     } catch (error) { issue(`Simulation stopped: ${error.message}`, 'runtime'); setPlaying(false); status(`Simulation stopped: ${error.message}`); }
   }
-  let lastReport = 0;
+  const drawActors=[],drawLayers=[],drawPool=[];let drawCount=0;
+  function addDraw(kind,priority,actor,item){const row=drawPool[drawCount]||(drawPool[drawCount]={});row.kind=kind;row.priority=priority;row.actor=actor;row.item=item;row.order=drawCount++;drawLayers.push(row);}
+  function drawLayer(row,layout){const fighter=row.actor,item=row.item;if(row.kind==='fighter')drawFighter(fighter);else if(row.kind==='explod')drawExplod(fighter,item,layout);else if(row.kind==='trail')drawFrame(item.frame,480+(item.pos.x+(item.drawOffset?.x||0))*2.2,440+(item.pos.y+(item.drawOffset?.y||0))*2.2,item.facing,2.2*item.coordinateScale*item.sizeX*(item.drawScale?.x??1),2.2*item.coordinateScale*item.sizeY*(item.drawScale?.y??1),item.angle,item.character,item.palette,item.trans,item.paletteRemaps);else drawFrame(sampleAnimation(item.animation,item.frameIndex,item.frameTime),480+item.pos.x*2.2,440+item.pos.y*2.2,item.facing,2.2*item.coordinateScale,2.2*item.coordinateScale,0,item.resource,effects.paletteFor(null),null,item.paletteRemaps);}
+  let lastReport = 0,lastUi=0;
   function measureSimulation(){const start=performanceMonitor.enabled?performance.now():0;simulate();if(performanceMonitor.enabled)performanceMonitor.simulation(performance.now()-start);}
-  function performanceCounts(){return {sprites:spriteCache.size,paletteVariants:paletteCache.size,cacheBytes:palettePixels*4,explods:match?.entities.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
+  function performanceCounts(){return {sprites:spriteCache.size,paletteVariants:paletteCache.size,cacheBytes:paletteCache.bytes+spriteCache.bytes+parallaxCache.bytes+[...decodedBanks].reduce((sum,bank)=>sum+(bank.cacheStats?.().bytes||0),0),impacts:impactEffects.length,explods:match?.entities.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
   function draw(t) {
     performanceMonitor.begin(t);
     const dt = last ? Math.min((t - last) / 1000, 0.1) : 0; last = t;
@@ -495,28 +495,25 @@ export function mountApp({arena=false}={}) {
     }
     const environment=mode==='training'?effects.environmentColor:null;if(environment?.under){ctx.fillStyle=`rgb(${environment.value.join(',')})`;ctx.fillRect(0,0,960,540);}
     if (mode === 'training' && match) {
-      const layers = [];
-      for (const fighter of [...match.entities,...match.projectiles]) {
-        for(const trail of effects.trailsFor(fighter))layers.push({priority:(fighter.sprPriority||0)-.1,draw:()=>drawFrame(trail.frame,480+(trail.pos.x+(trail.drawOffset?.x||0))*2.2,440+(trail.pos.y+(trail.drawOffset?.y||0))*2.2,trail.facing,2.2*trail.coordinateScale*trail.sizeX*(trail.drawScale?.x??1),2.2*trail.coordinateScale*trail.sizeY*(trail.drawScale?.y??1),trail.angle,trail.character,trail.palette,trail.trans,trail.paletteRemaps)});
-        layers.push({priority:fighter.sprPriority || 0, draw:() => drawFighter(fighter)});
-        for (const effect of fighter.drawExplods||[]) layers.push({priority: effect.ontop ? 1000 : effect.sprpriority || 0, draw:() => drawExplod(fighter, effect)});
-      }
-      for(const effect of impactEffects)layers.push({priority:effect.ontop?1000:effect.under?-1000:100,draw:()=>drawFrame(sampleAnimation(effect.animation,effect.frameIndex,effect.frameTime),480+effect.pos.x*2.2,440+effect.pos.y*2.2,effect.facing,2.2*effect.coordinateScale,2.2*effect.coordinateScale,0,effect.resource,effects.paletteFor(null),null,effect.paletteRemaps)});
-      const sorted=layers.sort((a,b)=>a.priority-b.priority);
-      withWorld(layout,()=>{for(const fighter of [...match.entities,...match.projectiles])drawGroundEffects(fighter);for(const layer of sorted.filter(l=>l.priority<1000))layer.draw();});
+      drawActors.length=0;drawLayers.length=0;drawCount=0;for(const actor of match.entities)drawActors.push(actor);for(const actor of match.projectiles)drawActors.push(actor);
+      for(const fighter of drawActors){for(const trail of effects.trailsFor(fighter))addDraw('trail',(fighter.sprPriority||0)-.1,fighter,trail);addDraw('fighter',fighter.sprPriority||0,fighter,null);for(const effect of fighter.drawExplods||[])addDraw('explod',effect.ontop?1000:effect.sprpriority||0,fighter,effect);}
+      for(const effect of impactEffects)addDraw('impact',effect.ontop?1000:effect.under?-1000:100,null,effect);
+      drawLayers.sort((a,b)=>a.priority-b.priority||a.order-b.order);
+      withWorld(layout,()=>{for(const fighter of drawActors)drawGroundEffects(fighter);for(const row of drawLayers)if(row.priority<1000)drawLayer(row,layout);});
       if(layout&&match.stage&&!match.entities.some(e=>e.asserted.has('nofg')))drawStageLayer(1,layout);
       if(environment&&!environment.under){ctx.fillStyle=`rgb(${environment.value.join(',')})`;ctx.fillRect(0,0,960,540);}
       if(match.superPause?.remaining>0&&match.superPause.darken!==0){ctx.fillStyle='#0008';ctx.fillRect(0,0,960,540);}
-      withWorld(layout,()=>{for(const layer of sorted.filter(l=>l.priority>=1000))layer.draw();});
+      withWorld(layout,()=>{for(const row of drawLayers)if(row.priority>=1000)drawLayer(row,layout);});
       const flow=match.roundFlow;
-      $('#round-status').textContent=flow?`ROUND ${flow.roundNo} · ${flow.timeLeft<0?'∞':Math.ceil(flow.timeLeft/60)} · ${flow.wins.player} : ${flow.wins.opponent}`:'LOCAL TRAINING';
-      $('#match-banner').textContent=!flow?'':flow.roundState===0?`ROUND ${flow.roundNo}`:flow.roundState===1?'READY':flow.roundState===2&&flow.phaseTime<30?'FIGHT':flow.roundState===3?flow.reason==='time'?'TIME OVER':flow.reason==='double-ko'?'DOUBLE KO':'KO':flow.roundState===4?flow.roundWinner==='draw'?'DRAW':`${flow.roundWinner==='player'?match.player.name:match.opponent.name} wins${flow.matchOver?' the match':''}`:'';
+      text('#round-status',flow?`ROUND ${flow.roundNo} · ${flow.timeLeft<0?'∞':Math.ceil(flow.timeLeft/60)} · ${flow.wins.player} : ${flow.wins.opponent}`:'LOCAL TRAINING');
+      text('#match-banner',!flow?'':flow.roundState===0?`ROUND ${flow.roundNo}`:flow.roundState===1?'READY':flow.roundState===2&&flow.phaseTime<30?'FIGHT':flow.roundState===3?flow.reason==='time'?'TIME OVER':flow.reason==='double-ko'?'DOUBLE KO':'KO':flow.roundState===4?flow.roundWinner==='draw'?'DRAW':`${flow.roundWinner==='player'?match.player.name:match.opponent.name} wins${flow.matchOver?' the match':''}`:'');
       $('#hud').hidden=match.entities.some(e=>e.asserted.has('nobardisplay'));
-      $('#debug-output').hidden=!$('#debug-text').checked;$('#debug-output').textContent=match.entities.filter(e=>e.clipboard).map(e=>`${e.parent?'HELPER '+e.id:'P'+e.teamSide} · ${e.name}\n${e.clipboard}`).join('\n\n');
-      const quote=flow?.matchOver&&flow.roundState===4?match[flow.roundWinner]?.victoryQuote:null;$('#victory-quote').hidden=!quote;$('#victory-quote').textContent=quote||'';
-      $('#state').textContent = `STATE ${match.player.stateNo} · T ${match.player.time} · POWER ${Math.round(match.player.power)} · H ${match.entities.length-2} / P ${match.projectiles.length}`;
-      $('#pos').textContent = match.player.pos.x.toFixed(1); $('#posy').textContent = match.player.pos.y.toFixed(1); $('#frame').textContent = `ANIM ${match.player.anim} · FRAME ${match.player.frameIndex + 1}`;
-    } else { const scale = worldScale(),palette=playerPalettes.get(selected)||1; drawFrame(sampleAnimation(action,previewFrame,previewElapsed),480,440,1,scale,scale,0,selected,null,null,palette===1?null:new Map([['1,1',[1,palette]]])); $('#frame').textContent = `FRAME ${action ? previewFrame + 1 : 0} / ${action?.frames.length || 0}`; $('#state').textContent = ''; $('#pos').textContent = $('#posy').textContent = '0';$('#match-banner').textContent='';$('#debug-output').hidden=$('#victory-quote').hidden=true; }
+      $('#debug-output').hidden=!$('#debug-text').checked;if($('#debug-text').checked&&(t-lastUi>=100||!playing))text('#debug-output',match.entities.filter(e=>e.clipboard).map(e=>`${e.parent?'HELPER '+e.id:'P'+e.teamSide} · ${e.name}\n${e.clipboard}`).join('\n\n'));
+      const uiDue=t-lastUi>=100||!playing;
+      const quote=flow?.matchOver&&flow.roundState===4?match[flow.roundWinner]?.victoryQuote:null;$('#victory-quote').hidden=!quote;text('#victory-quote',quote||'');
+      if(uiDue){lastUi=t;text('#state',`STATE ${match.player.stateNo} · T ${match.player.time} · POWER ${Math.round(match.player.power)} · H ${match.entities.length-2} / P ${match.projectiles.length}`);
+      text('#pos',match.player.pos.x.toFixed(1)); text('#posy',match.player.pos.y.toFixed(1)); text('#frame',`ANIM ${match.player.anim} · FRAME ${match.player.frameIndex + 1}`);}
+    } else { const scale = worldScale(),palette=playerPalettes.get(selected)||1; drawFrame(sampleAnimation(action,previewFrame,previewElapsed),480,440,1,scale,scale,0,selected,null,null,palette===1?null:new Map([['1,1',[1,palette]]])); text('#frame',`FRAME ${action ? previewFrame + 1 : 0} / ${action?.frames.length || 0}`); text('#state',''); text('#pos','0');text('#posy','0');text('#match-banner','');$('#debug-output').hidden=$('#victory-quote').hidden=true; }
     ctx.restore();
     if (t - lastReport >= 250) { updateReport(); lastReport = t; if(performanceMonitor.enabled){const p=performanceMonitor.snapshot(),overlay=$('#performance-overlay');overlay.hidden=false;overlay.textContent=`${p.fps.toFixed(1)} FPS · slow ${(p.slowFrameRate*100).toFixed(1)}%\nframe avg/p95 ${p.frameAverageMs.toFixed(1)}/${p.frameP95Ms.toFixed(1)} ms\nrender ${p.renderAverageMs.toFixed(2)} ms · tick ${p.simulationTickMs.toFixed(2)} ms\n${p.counts.explods||0} Explods · ${p.counts.projectiles||0} projectiles · ${p.counts.trails||0} trails\n${p.drawCalls} draws · ${p.readbacks} reads / ${(p.readbackPixels/1e6).toFixed(1)} MP\ncache ${(p.counts.cacheBytes/1048576).toFixed(1)} MiB`;}}
   }
