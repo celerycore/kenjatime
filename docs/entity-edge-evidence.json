@@ -1,0 +1,69 @@
+{
+  "edition": 16,
+  "completeNativeCompatibility": false,
+  "nodeTests": {
+    "passed": 340,
+    "failed": 0,
+    "skipped": 0
+  },
+  "newFocusedTests": 31,
+  "browser": {
+    "orphanRedPixels": 324,
+    "orphanPalettePixels": 324,
+    "quotaLives": [
+      990,
+      980,
+      970
+    ],
+    "oneTickRemovalVisible": true,
+    "exhaustedProjectileLife": 990,
+    "shadowPixels": [
+      0,
+      84
+    ],
+    "errors": [],
+    "failedRequests": []
+  },
+  "compatibilityReplay": {
+    "samples": 10,
+    "diagnostics": 0,
+    "nativeComparison": false
+  },
+  "performanceRegression": {
+    "idle": {
+      "behaviorEqual": true,
+      "maximumChannelDifference": 0,
+      "readbacks": 0
+    },
+    "sparks": {
+      "behaviorEqual": true,
+      "maximumChannelDifference": 0,
+      "readbacks": 0
+    },
+    "additive": {
+      "behaviorEqual": true,
+      "maximumChannelDifference": 0,
+      "readbacks": 0
+    },
+    "custom": {
+      "behaviorEqual": true,
+      "maximumChannelDifference": 0,
+      "readbacks": 0
+    },
+    "entities": {
+      "behaviorEqual": true,
+      "maximumChannelDifference": 0,
+      "readbacks": 0
+    },
+    "parallax": {
+      "behaviorEqual": true,
+      "maximumChannelDifference": 0,
+      "readbacks": 0
+    },
+    "combined": {
+      "behaviorEqual": true,
+      "maximumChannelDifference": 0,
+      "readbacks": 0
+    }
+  }
+}

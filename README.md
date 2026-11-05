@@ -8,7 +8,7 @@ Web Edition 15 adds Auto/High/Balanced/Low graphics and an opt-in Performance di
 
 The measured seven-scene pass removes sprite/stage pixel readbacks through native Canvas compositing, bounds asset caches, reuses static parallax/draw records, and buffers keyboard/touch/gamepad inputs independently of presentation. See [measurements, exact source changes, test results and deployment instructions](docs/performance-baseline.md). Physical Android performance is still unverified, and the extreme CPU-throttled software-renderer test remains below 30 FPS.
 
-The editable project is on `source/mobile-performance`; `gh-pages` contains the built site. Build the source branch before deploying.
+Current source development is on `source/mugen-compatibility`; `source/mobile-performance` preserves the Edition 15 checkpoint. `gh-pages` contains the built site. Build the source branch before deploying.
 
 ## Run
 
@@ -95,6 +95,8 @@ Unknown syntax and failed trigger expressions do not become unconditional succes
 Web Edition 13 adds the [shared CNS execution rules](docs/script-semantics.md): signed 32-bit integer/single-precision float expressions, native bottom handling, constant-only controller flags, contiguous trigger numbering, basic required-parameter checks, once-per-activation target/range expressions, alternate variable indices, and expression-based state-entry persistence flags. Reports now include working/system variables and control/type/physics fields. Individual controller options and exact native phase ordering still require further work and native comparisons.
 
 Web Edition 14 adds the [combat rules pass](docs/combat-rules.md): continued guarding during guard stun, separate helper/projectile juggle costs, HitDef defaults, damage/healing scaling, configurable power awards, distinct hit counters, and trip/down/bounce/KO reactions. Reports include combat coefficients, counters, hit clocks and damage multipliers. Native captures are still needed for exact phase/rounding behavior, legacy quirks and the remaining combat interactions.
+
+Web Edition 16 fixes [helper/projectile edge cases](docs/helper-projectile-edges.md): DestroySelf/orphan Explods and bindings, helper-relative inputs, multi-hit/persistent projectile quotas, paused hit spacing, Clsn2 cancellation, finite removal frames, IDs and stage shadows. Reports expose helper relationships, orphan effects and projectile state. The new cases have unit/browser coverage; native timing/version comparisons remain pending.
 
 Full compatibility still requires substantial engine work, including:
 
