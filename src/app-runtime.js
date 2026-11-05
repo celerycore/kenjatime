@@ -1,3 +1,6 @@
+import {FrameClock} from './frame-clock.js';
+import {TickInputBuffer,gamepadKeys} from './input-buffer.js';
+import {GraphicsQuality} from './graphics.js';
 import {CanvasRenderer,compositePlan,spriteBounds} from './canvas-renderer.js';
 import {MemoryLRU} from './memory-cache.js';
 import {PerformanceMonitor} from './performance.js';
@@ -6,7 +9,7 @@ import {parseCommands, CommandBuffer} from './commands.js';
 import {TrainingMatch, transformedBoxes} from './combat.js';
 import {COMMON_STATES, COMMON_LIMITATIONS} from './common.js';
 import {EffectsState,transformRgba} from './effects.js';
-import {sampleAnimation,sampleFighterAnimation,blendCoefficients,blendPixels,tileOffsets,backgroundTileStep,parallaxScale,spriteRotation} from './rendering.js';
+import {sampleAnimation,sampleFighterAnimation,tileOffsets,backgroundTileStep,parallaxScale,spriteRotation} from './rendering.js';
 import {baseScale} from './coordinates.js';
 import {readZipFile,zipAccept,unpackZip} from './uploads.js';
 import {ZIP_LIMIT_MB} from './archive-limits.js';
@@ -26,7 +29,9 @@ export function mountApp({arena=false}={}) {
   let playing = true, mode = 'preview', match, commandBuffer, dummyBuffer;
   let stages=[],selectedStage=null,player2Keys=new Set(),systemFiles=null;
   let spriteCache = new MemoryLRU({maxBytes:12*1024*1024,sizeOf:sp=>sp?(sp.w*sp.h*4+sp.rgba.byteLength+(sp.indices?.byteLength||0)+(sp.opaque?sp.w*sp.h*8:0)):0}), keys = new Set(), importDiagnostics = [];
-  let accumulator = 0, last = 0, reportVersion = '';
+  const clock=new FrameClock(),p1Input=new TickInputBuffer(),p2Input=new TickInputBuffer();let reportVersion='',dirty=true,renderScale=1,raf=0,renderVisible=true;
+  let savedGraphics='auto';try{savedGraphics=localStorage.getItem('kenjatime.graphics')||'auto';}catch{}
+  const graphics=new GraphicsQuality({mode:new URLSearchParams(location.search).get('graphics')||savedGraphics,mobile:matchMedia('(pointer:coarse)').matches});
   let effects = new EffectsState(),commonResource=null,impactEffects=[],packs=new WeakMap(),resourceIds=new WeakMap(),nextResourceId=1;
   const paletteCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:128,sizeOf:surface=>surface.width*surface.height*4});
   const decodedBanks=new Set(),parallaxCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:4,sizeOf:surface=>surface.width*surface.height*4}),parallaxKeys=new Map();
@@ -34,7 +39,7 @@ export function mountApp({arena=false}={}) {
 
   $('#upload').textContent = '＋ Import character / stage / engine ZIP';
   $('.heading p').textContent = 'Import a character. Inspect its scripts. Test it in motion.';
-  $('.tag i').textContent = '14';
+  $('.tag i').textContent = '15';
   $('#drop small').textContent=`ZIP up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
   $('#file').accept=zipAccept;
   $('.notice').textContent = 'Script execution and collision-based combat are available in training. Character compatibility is incomplete; see the report below.';
@@ -61,8 +66,10 @@ export function mountApp({arena=false}={}) {
   const performanceMonitor=new PerformanceMonitor({enabled:new URLSearchParams(location.search).get('perf')==='1'});
   const canvas = $('canvas'), ctx = performanceMonitor.track(canvas.getContext('2d'));
   const renderer=new CanvasRenderer(ctx,{track:context=>performanceMonitor.track(context)});
+  $('#training-tools').insertAdjacentHTML('beforeend','<label>Graphics <select id=graphics-mode aria-label="Graphics quality"><option value=auto>Auto</option><option value=high>High</option><option value=balanced>Balanced</option><option value=low>Low · 30 FPS</option></select></label><label><input id=performance-toggle type=checkbox> Performance</label>');
+  $('#graphics-mode').value=graphics.mode;$('#performance-toggle').checked=performanceMonitor.enabled;
   $('.stage').insertAdjacentHTML('beforeend','<pre id=performance-overlay hidden aria-live=off style="position:absolute;top:36px;right:8px;background:#000c;padding:8px;color:#dfb;font:11px monospace;pointer-events:none"></pre>');
-  let touchKeys=new Set();const touch=mountTouchControls($('.viewer'),value=>{touchKeys=value;});
+  const touch=mountTouchControls($('.viewer'),value=>{p1Input.record('touch',value,performance.now());dirty=true;});
   canvas.tabIndex = 0; canvas.setAttribute('aria-label', 'Character preview and training stage');
   ctx.imageSmoothingEnabled = false;
   function status(message) { $('#status').textContent = message; }
@@ -181,7 +188,7 @@ export function mountApp({arena=false}={}) {
     if(roster[+prior])$('#opponent-select').value=prior;
   }
   function configureMatch(){
-    if(!selected)return;
+    dirty=true;if(!selected)return;
     parallaxCache.clear();parallaxKeys.clear();drawPool.length=drawLayers.length=drawActors.length=0;paletteCache.clear();spriteCache.clear();for(const bank of decodedBanks)bank.clearDecodedCache?.();decodedBanks.clear();
     touch.panel.hidden=mode!=='training'||$('#player-control').value==='cpu';
     $('#cpu-level').disabled=$('#player-control').value!=='cpu'&&$('#dummy-mode').value!=='cpu';
@@ -195,7 +202,7 @@ export function mountApp({arena=false}={}) {
         opponentCharacter,playerPalette:playerPalettes.get(selected),opponentPalette:opponentPalettes.get(opponentCharacter),playerAILevel:$('#player-control').value==='cpu'?+$('#cpu-level').value:0,opponentAILevel:$('#dummy-mode').value==='cpu'?+$('#cpu-level').value:0,rules:$('#match-mode').value==='match'?{roundsToWin:2}:null});
       const opponent=match.opponent.character,cmd=opponent.checks.find(c=>c.key==='cmd'&&c.ok);
       dummyBuffer=new CommandBuffer(parseCommands(cmd?decodeText(opponent.files[cmd.path]):''));
-      keys.clear();player2Keys.clear();touch.reset();commandBuffer?.reset();effects=new EffectsState();impactEffects=[];audio.stop();haptics.stop();audio.setMusic(selectedStage);accumulator=0;reportVersion='';
+      keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset();touch.reset();commandBuffer?.reset();effects=new EffectsState();impactEffects=[];audio.stop();haptics.stop();audio.setMusic(selectedStage);clock.suspend();reportVersion='';
       const labels=$('#hud').querySelectorAll('label');labels[0].firstChild.textContent=`P1 · ${match.player.name} `;labels[1].firstChild.textContent=`P2 · ${match.opponent.name} `;
       $('.stage-label').firstChild.textContent=(selectedStage?.name||'TRAINING GRID').toUpperCase()+' ';
       $('#reset').textContent=match.roundFlow?'Restart match':'Reset round';
@@ -209,10 +216,10 @@ export function mountApp({arena=false}={}) {
     $('#cards').querySelectorAll('button').forEach(button => button.onclick = () => select(+button.dataset.id));
   }
   function select(index) {
-    selected = roster[index];for(const bank of decodedBanks)bank.clearDecodedCache?.();decodedBanks.clear();spriteCache.clear();parallaxCache.clear();parallaxKeys.clear(); keys.clear(); importDiagnostics = [];
+    dirty=true;selected = roster[index];for(const bank of decodedBanks)bank.clearDecodedCache?.();decodedBanks.clear();spriteCache.clear();parallaxCache.clear();parallaxKeys.clear(); keys.clear();p1Input.reset(); importDiagnostics = [];
     audio.stop(); audio.generation++;
     effects=new EffectsState();impactEffects=[];packs=new WeakMap();resourceIds=new WeakMap();paletteCache.clear();commonResource=null;
-    pack = null; match = null; commandBuffer = null; dummyBuffer = null; previewFrame = 0; previewElapsed = 0; accumulator = 0; reportVersion = '';
+    pack = null; match = null; commandBuffer = null; dummyBuffer = null; previewFrame = 0; previewElapsed = 0; clock.suspend(); reportVersion = '';
     action = selected.animations.find(a => a.id === 0) || selected.animations[0];
     $('#name').textContent = selected.def.info.displayname || selected.def.info.name || 'Unnamed';
     $('#author').textContent = `by ${selected.def.info.author || 'Unknown author'}`;
@@ -261,7 +268,7 @@ export function mountApp({arena=false}={}) {
   $('#export-report').onclick = () => {
     const explod=e=>({id:e.id,anim:e.anim,space:e.space,pos:{...e.pos},time:e.time,frameIndex:e.frameIndex,bindtime:e.bindtime,ownpal:e.ownpal,coordinateScale:e.coordinateScale,angle:e.angle,xangle:e.xangle,yangle:e.yangle,facing:e.facing,vfacing:e.vfacing,scale:e.scale});
     const snapshot=actor=>actor?{id:actor.id,teamSide:actor.teamSide,name:actor.name,stateNo:actor.stateNo,stateOwner:actor.stateOwner.id,animationOwner:actor.animationOwner.id,coordinateScale:actor.coordinateScale,baseCoordinateScale:actor.baseCoordinateScale,time:actor.time,anim:actor.anim,ctrl:actor.ctrl,stateType:actor.stateType,moveType:actor.moveType,physics:actor.physics,variables:{int:[...actor.vars],float:[...actor.fvars],systemInt:[...actor.sysvars],systemFloat:[...actor.sysfvars]},pos:{...actor.pos},vel:{...actor.vel},getHitVars:{...actor.getHitVars},hitCount:actor.hitCount,uniqHitCount:actor.uniqHitCount,comboHits:actor.comboHits,moveContact:actor.moveContact,moveHit:actor.moveHit,moveGuarded:actor.moveGuarded,moveReversed:actor.moveReversed||0,hitTime:actor.hitTime,hitPauseTime:actor.hitPauseTime,damageMultipliers:{attack:actor.attackMultiplier,defence:actor.defenceMultiplier,fallDefence:actor._fallDefenceMultiplier},hitId:actor.hitId,hitSourceId:actor.hitSourceId,targets:actor.targets.map(target=>target.id),rawInput:[...actor.rawInput],life:actor.life,power:actor.power,aiLevel:actor.aiLevel,commands:[...actor.commands],clipboard:actor.clipboard,victoryQuoteIndex:actor.victoryQuoteIndex,victoryQuote:actor.victoryQuote,paletteNo:actor.paletteNo,paletteRemaps:[...actor.paletteRemaps],explods:actor.explods.map(explod),renderedExplods:actor.drawExplods.map(explod)}:null;
-    const data = {character: selected?.def.info.name, definition: selected?.path, engine: 'MUGEN Web Lab', completeCompatibility: false, combatRules:match?.combatRules, generatedAt: new Date().toISOString(), issues: diagnostics(), player:snapshot(match?.player),opponent:snapshot(match?.opponent),entities:match?.entities.map(snapshot),
+    const data = {graphics:{mode:graphics.mode,preset:graphics.preset,...graphics.settings},performance:performanceMonitor.enabled?performanceMonitor.snapshot():undefined,character: selected?.def.info.name, definition: selected?.path, engine: 'MUGEN Web Lab', completeCompatibility: false, combatRules:match?.combatRules, generatedAt: new Date().toISOString(), issues: diagnostics(), player:snapshot(match?.player),opponent:snapshot(match?.opponent),entities:match?.entities.map(snapshot),
       stage:match?.stage?{path:match.stage.definition.path,name:match.stage.definition.name,camera:{...match.stage.camera},backgroundTime:match.stage.time}:null,
       match:match?.roundFlow?{roundNo:match.roundFlow.roundNo,phase:match.roundFlow.roundState,timeLeft:match.roundFlow.timeLeft,wins:match.roundFlow.wins,matchOver:match.roundFlow.matchOver}:null};
     const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}));
@@ -343,7 +350,7 @@ export function mountApp({arena=false}={}) {
     const coordinate=effect.common?1:effect.coordinateScale??fighter.coordinateScale;
     const source=effect.source||effect,remaps=effect.common?null:effect.ownpal?source.paletteRemaps:fighter.paletteRemaps;
     ctx.save();let x=480+effect.pos.x*2.2,y=440+effect.pos.y*2.2,pixels=2.2;
-    if(effect.space==='screen'){ctx.resetTransform();pixels=layout.px;x=layout.left+effect.pos.x*pixels;y=layout.top+effect.pos.y*pixels;}
+    if(effect.space==='screen'){ctx.setTransform(renderScale,0,0,renderScale,0,0);pixels=layout.px;x=layout.left+effect.pos.x*pixels;y=layout.top+effect.pos.y*pixels;}
     const sx=pixels*coordinate*(scale[0]??1),sy=pixels*coordinate*(scale[1]??1)*(effect.vfacing||1),resource=effect.common?commonResource:fighter.character;
     if(effect.shadow&&effect.space==='stage'){
       const shadow=match.stage?.definition.shadow||{intensity:128,yscale:.4};ctx.save();ctx.globalAlpha=shadow.intensity/256;
@@ -448,13 +455,13 @@ export function mountApp({arena=false}={}) {
     const sound=Array.isArray(event.sound)?event.sound:[event.sound??-1,0];
     if(sound[0]>=0)void audio.consume([{type:'playsnd',group:sound[0],number:sound[1]||0,common:event.soundCommon,channel:-1}],String(owner.id),owner.character);
   }
-  function simulate() {
+  function simulate(sampleTime=performance.now()) {
     if (mode === 'preview') { advancePreview(); return; } if (!match) return;
     try {
-      const playerInput=new Set([...keys,...touchKeys]),commands = commandBuffer.update(playerInput, match.player.facing), dummyKeys = new Set(), dummyMode = $('#dummy-mode').value;
+      const playerInput=p1Input.sample(sampleTime),sampledP2=p2Input.sample(sampleTime),commands = commandBuffer.update(playerInput, match.player.facing), dummyKeys = new Set(), dummyMode = $('#dummy-mode').value;
       if (dummyMode.includes('guard') && match.player.moveType === 'A') dummyKeys.add(match.opponent.facing === 1 ? 'L' : 'R');
       if (dummyMode.includes('crouch')) dummyKeys.add('D');
-      if(dummyMode==='keyboard')for(const key of player2Keys)dummyKeys.add(key);
+      if(dummyMode==='keyboard')for(const key of sampledP2)dummyKeys.add(key);
       const paused=entity=>match.isFrozen(entity)||entity.hitPauseTime>0;
       effects.advance({paused,backgroundPaused:!!(match.superPause?.remaining>0||match.pause?.remaining>0&&match.pause.pausebg!==0)});advanceImpacts(!!(match.superPause?.remaining>0||match.pause?.remaining>0));haptics.advance();
       const generation=match.roundGeneration;match.tick(commands, dummyBuffer.update(dummyKeys, match.opponent.facing),{playerInput,opponentInput:dummyKeys});
@@ -471,16 +478,20 @@ export function mountApp({arena=false}={}) {
   function addDraw(kind,priority,actor,item){const row=drawPool[drawCount]||(drawPool[drawCount]={});row.kind=kind;row.priority=priority;row.actor=actor;row.item=item;row.order=drawCount++;drawLayers.push(row);}
   function drawLayer(row,layout){const fighter=row.actor,item=row.item;if(row.kind==='fighter')drawFighter(fighter);else if(row.kind==='explod')drawExplod(fighter,item,layout);else if(row.kind==='trail')drawFrame(item.frame,480+(item.pos.x+(item.drawOffset?.x||0))*2.2,440+(item.pos.y+(item.drawOffset?.y||0))*2.2,item.facing,2.2*item.coordinateScale*item.sizeX*(item.drawScale?.x??1),2.2*item.coordinateScale*item.sizeY*(item.drawScale?.y??1),item.angle,item.character,item.palette,item.trans,item.paletteRemaps);else drawFrame(sampleAnimation(item.animation,item.frameIndex,item.frameTime),480+item.pos.x*2.2,440+item.pos.y*2.2,item.facing,2.2*item.coordinateScale,2.2*item.coordinateScale,0,item.resource,effects.paletteFor(null),null,item.paletteRemaps);}
   let lastReport = 0,lastUi=0;
-  function measureSimulation(){const start=performanceMonitor.enabled?performance.now():0;simulate();if(performanceMonitor.enabled)performanceMonitor.simulation(performance.now()-start);}
-  function performanceCounts(){return {sprites:spriteCache.size,paletteVariants:paletteCache.size,cacheBytes:paletteCache.bytes+spriteCache.bytes+parallaxCache.bytes+[...decodedBanks].reduce((sum,bank)=>sum+(bank.cacheStats?.().bytes||0),0),impacts:impactEffects.length,explods:match?.entities.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
+  function measureSimulation(sampleTime){const start=performanceMonitor.enabled?performance.now():0;simulate(sampleTime);if(performanceMonitor.enabled)performanceMonitor.simulation(performance.now()-start);}
+  function performanceCounts(){return {sprites:spriteCache.size,paletteVariants:paletteCache.size,graphicsMode:graphics.mode,graphicsPreset:graphics.preset,renderScale,targetFPS:graphics.settings.fps,simulationDebt:clock.debt,cacheBytes:paletteCache.bytes+spriteCache.bytes+parallaxCache.bytes+[...decodedBanks].reduce((sum,bank)=>sum+(bank.cacheStats?.().bytes||0),0),impacts:impactEffects.length,explods:match?.entities.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
+  function pollGamepads(time){const pads=navigator.getGamepads?.()||[];p1Input.record('gamepad',gamepadKeys(pads[0]),time);p2Input.record('gamepad',gamepadKeys(pads[1]),time);}
   function draw(t) {
-    performanceMonitor.begin(t);
-    const dt = last ? Math.min((t - last) / 1000, 0.1) : 0; last = t;
-    if (playing) { accumulator += dt * 60 * +$('#speed').value; let steps = 0; while (accumulator >= 1 && steps++ < 12) { measureSimulation(); accumulator--; } }
-    const start=performanceMonitor.enabled?performance.now():0;render(t);performanceMonitor.end(performanceMonitor.enabled?performance.now()-start:0,performanceMonitor.enabled?performanceCounts():{});
-    requestAnimationFrame(draw);
+    if(document.hidden)return;
+    pollGamepads(t);performanceMonitor.begin(t);
+    clock.advance(t,{running:playing&&!!selected,speed:+$('#speed').value},measureSimulation);
+    let duration=0;const renderNow=renderVisible&&(dirty||(playing&&!!selected&&clock.renderDue(t,graphics.settings.fps)));
+    if(renderNow){const start=performance.now();render(t);duration=performance.now()-start;dirty=false;if(graphics.observe(duration))dirty=true;}
+    performanceMonitor.end(duration,performanceMonitor.enabled?performanceCounts():{},renderNow);
+    raf=requestAnimationFrame(draw);
   }
   function render(t){
+    const settings=graphics.settings,w=Math.round(960*settings.scale),h=Math.round(540*settings.scale);if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;ctx.imageSmoothingEnabled=false;}renderScale=settings.scale;ctx.setTransform(renderScale,0,0,renderScale,0,0);
     const layout=mode==='training'?stageLayout():null;
     ctx.clearRect(0,0,960,540); ctx.fillStyle = '#0c111b'; ctx.fillRect(0,0,960,540);ctx.save();
     if(layout){ctx.beginPath();ctx.rect(layout.left,layout.top,layout.width,layout.height);ctx.clip();}
@@ -491,13 +502,14 @@ export function mountApp({arena=false}={}) {
       for (let x = -700; x < 1700; x += 80) { ctx.beginPath(); ctx.moveTo(480 + (x - 480) * .3,320); ctx.lineTo(x,540); ctx.stroke(); }
       for (let y = 330; y < 540; y += (y - 300) * .3) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(960,y); ctx.stroke(); }
       ctx.strokeStyle = '#466055'; ctx.beginPath(); ctx.moveTo(0,layout?.ground??440); ctx.lineTo(960,layout?.ground??440); ctx.stroke();
-      if(mode==='training'&&effects.backgroundPalette.layers.length){const pixels=ctx.getImageData(0,0,960,540);pixels.data.set(transformRgba(pixels.data,effects.backgroundPalette));writePixels(pixels,0,0);}
+      if(mode==='training'&&effects.backgroundPalette.layers.length){const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);pixels.data.set(transformRgba(pixels.data,effects.backgroundPalette));writePixels(pixels,0,0);}
     }
     const environment=mode==='training'?effects.environmentColor:null;if(environment?.under){ctx.fillStyle=`rgb(${environment.value.join(',')})`;ctx.fillRect(0,0,960,540);}
     if (mode === 'training' && match) {
       drawActors.length=0;drawLayers.length=0;drawCount=0;for(const actor of match.entities)drawActors.push(actor);for(const actor of match.projectiles)drawActors.push(actor);
       for(const fighter of drawActors){for(const trail of effects.trailsFor(fighter))addDraw('trail',(fighter.sprPriority||0)-.1,fighter,trail);addDraw('fighter',fighter.sprPriority||0,fighter,null);for(const effect of fighter.drawExplods||[])addDraw('explod',effect.ontop?1000:effect.sprpriority||0,fighter,effect);}
       for(const effect of impactEffects)addDraw('impact',effect.ontop?1000:effect.under?-1000:100,null,effect);
+      for(let i=drawCount;i<drawPool.length;i++){drawPool[i].actor=null;drawPool[i].item=null;}
       drawLayers.sort((a,b)=>a.priority-b.priority||a.order-b.order);
       withWorld(layout,()=>{for(const fighter of drawActors)drawGroundEffects(fighter);for(const row of drawLayers)if(row.priority<1000)drawLayer(row,layout);});
       if(layout&&match.stage&&!match.entities.some(e=>e.asserted.has('nofg')))drawStageLayer(1,layout);
@@ -515,13 +527,20 @@ export function mountApp({arena=false}={}) {
       text('#pos',match.player.pos.x.toFixed(1)); text('#posy',match.player.pos.y.toFixed(1)); text('#frame',`ANIM ${match.player.anim} · FRAME ${match.player.frameIndex + 1}`);}
     } else { const scale = worldScale(),palette=playerPalettes.get(selected)||1; drawFrame(sampleAnimation(action,previewFrame,previewElapsed),480,440,1,scale,scale,0,selected,null,null,palette===1?null:new Map([['1,1',[1,palette]]])); text('#frame',`FRAME ${action ? previewFrame + 1 : 0} / ${action?.frames.length || 0}`); text('#state',''); text('#pos','0');text('#posy','0');text('#match-banner','');$('#debug-output').hidden=$('#victory-quote').hidden=true; }
     ctx.restore();
-    if (t - lastReport >= 250) { updateReport(); lastReport = t; if(performanceMonitor.enabled){const p=performanceMonitor.snapshot(),overlay=$('#performance-overlay');overlay.hidden=false;overlay.textContent=`${p.fps.toFixed(1)} FPS · slow ${(p.slowFrameRate*100).toFixed(1)}%\nframe avg/p95 ${p.frameAverageMs.toFixed(1)}/${p.frameP95Ms.toFixed(1)} ms\nrender ${p.renderAverageMs.toFixed(2)} ms · tick ${p.simulationTickMs.toFixed(2)} ms\n${p.counts.explods||0} Explods · ${p.counts.projectiles||0} projectiles · ${p.counts.trails||0} trails\n${p.drawCalls} draws · ${p.readbacks} reads / ${(p.readbackPixels/1e6).toFixed(1)} MP\ncache ${(p.counts.cacheBytes/1048576).toFixed(1)} MiB`;}}
+    if (t - lastReport >= 250) { updateReport(); lastReport = t; if(performanceMonitor.enabled){const p=performanceMonitor.snapshot(),overlay=$('#performance-overlay');overlay.hidden=false;overlay.textContent=`${p.fps.toFixed(1)} FPS · slow ${(p.slowFrameRate*100).toFixed(1)}%\nframe avg/p95 ${p.frameAverageMs.toFixed(1)}/${p.frameP95Ms.toFixed(1)} ms\nrender ${p.renderAverageMs.toFixed(2)} ms · tick ${p.simulationTickMs.toFixed(2)} ms\n${p.counts.explods||0} Explods · ${p.counts.projectiles||0} projectiles · ${p.counts.trails||0} trails\n${p.drawCalls} draws · ${p.readbacks} reads / ${(p.readbackPixels/1e6).toFixed(1)} MP\ncache ${(p.counts.cacheBytes/1048576).toFixed(1)} MiB\n${p.counts.graphicsPreset} · ${p.counts.targetFPS} FPS target · debt ${(p.counts.simulationDebt||0).toFixed(1)} ticks`;}}
   }
-  if(performanceMonitor.enabled)window.__kenjatimePerformance={snapshot:()=>performanceMonitor.snapshot(),reset:()=>performanceMonitor.reset(),benchmark:({frames=60,ticksPerFrame=1}={})=>{setPlaying(false);performanceMonitor.reset();for(let i=0;i<frames;i++){const t=performance.now();performanceMonitor.begin(t);for(let tick=0;tick<ticksPerFrame;tick++)measureSimulation();const start=performance.now();render(t);performanceMonitor.end(performance.now()-start,performanceCounts());}return performanceMonitor.snapshot();}};
-  requestAnimationFrame(draw);
-  function setPlaying(value) { playing = value; accumulator = 0; $('#play').textContent = playing ? 'Ⅱ' : '▶'; $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play'); if (!playing){audio.stop();haptics.stop();} }
+  function exposePerformance(){window.__kenjatimePerformance=performanceMonitor.enabled?{snapshot:()=>performanceMonitor.snapshot(),reset:()=>performanceMonitor.reset(),benchmark:({frames=60,ticksPerFrame=1}={})=>{setPlaying(false);performanceMonitor.reset();for(let i=0;i<frames;i++){const t=performance.now();performanceMonitor.begin(t);for(let tick=0;tick<ticksPerFrame;tick++)measureSimulation();const start=performance.now();render(t);performanceMonitor.end(performance.now()-start,performanceCounts());}return performanceMonitor.snapshot();}}:undefined;}
+  exposePerformance();
+  $('#performance-toggle').onchange=()=>{performanceMonitor.setEnabled($('#performance-toggle').checked);$('#performance-overlay').hidden=!performanceMonitor.enabled;exposePerformance();dirty=true;};
+  $('#graphics-mode').onchange=()=>{graphics.setMode($('#graphics-mode').value);try{localStorage.setItem('kenjatime.graphics',graphics.mode);}catch{}dirty=true;};
+  $('.viewer').addEventListener('change',()=>{dirty=true;});
+  window.addEventListener('resize',()=>{dirty=true;});
+  if(typeof IntersectionObserver!=='undefined')new IntersectionObserver(entries=>{renderVisible=entries[0].isIntersecting;if(renderVisible)dirty=true;},{rootMargin:'200px'}).observe($('.viewer'));
+  document.addEventListener('visibilitychange',()=>{clock.suspend();keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset();touch.reset();p1Input.reset();p2Input.reset();commandBuffer?.reset();dummyBuffer?.reset();audio.stop();haptics.stop();cancelAnimationFrame(raf);if(document.hidden){void audio.context?.suspend().catch(()=>{});}else{if(playing&&$('#sound').checked)void audio.context?.resume().catch(()=>{});dirty=true;raf=requestAnimationFrame(draw);}});
+  raf=requestAnimationFrame(draw);
+  function setPlaying(value) { dirty=true;playing = value; clock.suspend(); $('#play').textContent = playing ? 'Ⅱ' : '▶'; $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play'); if (!playing){audio.stop();haptics.stop();} }
   function setMode(value) {
-    mode = value; keys.clear();touch.reset(); accumulator = 0; $('#lab').classList.toggle('active',mode === 'preview'); $('#training').classList.toggle('active',mode === 'training');
+    dirty=true;mode = value; keys.clear();p1Input.reset();touch.reset(); clock.suspend(); $('#lab').classList.toggle('active',mode === 'preview'); $('#training').classList.toggle('active',mode === 'training');
     touch.panel.hidden=mode!=='training'||$('#player-control').value==='cpu';
     $('#hud').hidden = $('#training-tools').hidden = mode !== 'training'; $('#actions').disabled = mode === 'training'; $('#viewtitle').textContent = mode === 'preview' ? 'CHARACTER PREVIEW' : arena&&$('#match-mode').value==='match'?'SCRIPTED MATCH':'SCRIPTED TRAINING';
     updateHint();
@@ -539,17 +558,17 @@ export function mountApp({arena=false}={}) {
     }
     $('#hint').textContent=hint;
   }
-  function resetRound() { keys.clear();player2Keys.clear();touch.reset(); commandBuffer?.reset(); dummyBuffer?.reset(); match?.reset(); audio.stop();haptics.stop();effects=new EffectsState();impactEffects=[]; accumulator = 0; status(match?.roundFlow?'Match restarted.':'Round reset.'); canvas.focus(); }
+  function resetRound() {dirty=true;keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset();touch.reset(); commandBuffer?.reset(); dummyBuffer?.reset(); match?.reset(); audio.stop();haptics.stop();effects=new EffectsState();impactEffects=[]; clock.suspend(); status(match?.roundFlow?'Match restarted.':'Round reset.'); canvas.focus(); }
   $('#lab').onclick = () => setMode('preview'); $('#training').onclick = () => setMode('training'); $('#reset').onclick = resetRound;
   $('#play').onclick = () => { setPlaying(!playing); void audio.unlock(); canvas.focus(); };
   $('#step').onclick = () => { setPlaying(false); simulate(); updateReport(); canvas.focus(); };
-  $('#actions').onchange = event => { action = selected.animations[+event.target.value]; previewFrame = 0; previewElapsed = 0; accumulator = 0; };
+  $('#actions').onchange = event => {dirty=true; action = selected.animations[+event.target.value]; previewFrame = 0; previewElapsed = 0; clock.suspend(); };
   $('#sound').onchange = () => { if ($('#sound').checked) void audio.unlock(); else {audio.stop();audio.stopMusic();} };
   $('#stage-select').onchange=event=>{selectedStage=stages[+event.target.value]||null;configureMatch();canvas.focus();};
   $('#opponent-select').onchange=$('#match-mode').onchange=()=>{configureMatch();canvas.focus();};
   $('#palette-select').onchange=event=>{playerPalettes.set(selected,+event.target.value);configureMatch();canvas.focus();};
   $('#opponent-palette-select').onchange=event=>{opponentPalettes.set(match.opponent.character,+event.target.value);configureMatch();canvas.focus();};
-  $('#dummy-mode').onchange=()=>{if($('#dummy-mode').value==='cpu'||match?.opponent.aiLevel)configureMatch();updateHint();player2Keys.clear();dummyBuffer?.reset();canvas.focus();};
+  $('#dummy-mode').onchange=()=>{if($('#dummy-mode').value==='cpu'||match?.opponent.aiLevel)configureMatch();updateHint();player2Keys.clear();p2Input.reset();dummyBuffer?.reset();canvas.focus();};
   $('#player-control').onchange=$('#cpu-level').onchange=()=>{configureMatch();canvas.focus();};
   canvas.onclick = () => { canvas.focus(); void audio.unlock(); };
   for(const label of [$('#upload'),$('#browse')])label.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();$('#file').click();}};
@@ -560,8 +579,8 @@ export function mountApp({arena=false}={}) {
   for (const eventName of ['dragover','drop']) $('#drop').addEventListener(eventName, async event => { event.preventDefault(); if (eventName === 'drop') await readFile(event.dataTransfer.files[0]); });
   const keymap = {ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',KeyZ:'x',KeyX:'y',KeyC:'z',KeyA:'a',KeyS:'b',KeyD:'c',Enter:'s'};
   const keymap2={Numpad8:'U',Numpad2:'D',Numpad4:'L',Numpad6:'R',Numpad1:'a',Numpad3:'b',Numpad5:'c',Numpad7:'x',Numpad9:'y',NumpadDecimal:'z',NumpadEnter:'s'};
-  window.addEventListener('keydown', event => { if (event.defaultPrevented || event.target.matches('input,select,button,[role=button],a') || mode !== 'training') return; if(event.ctrlKey&&event.code==='KeyD'){event.preventDefault();if(!event.repeat)$('#debug-text').checked=!$('#debug-text').checked;return;} if (event.code === 'KeyR' && !event.repeat) { resetRound(); return; } const key = keymap[event.code],key2=keymap2[event.code]; if (!key&&!key2) return; event.preventDefault();if(key)keys.add(key);if(key2)player2Keys.add(key2); void audio.unlock(); });
-  window.addEventListener('keyup', event => { if (keymap[event.code]) keys.delete(keymap[event.code]);if(keymap2[event.code])player2Keys.delete(keymap2[event.code]); });
-  window.addEventListener('blur', () => { keys.clear();player2Keys.clear(); commandBuffer?.reset(); dummyBuffer?.reset(); audio.stop();haptics.stop(); });
+  window.addEventListener('keydown', event => { if (event.defaultPrevented || event.target.matches('input,select,button,[role=button],a') || mode !== 'training') return; if(event.ctrlKey&&event.code==='KeyD'){event.preventDefault();if(!event.repeat){$('#debug-text').checked=!$('#debug-text').checked;dirty=true;}return;} if (event.code === 'KeyR' && !event.repeat) { resetRound(); return; } const key = keymap[event.code],key2=keymap2[event.code]; if (!key&&!key2) return; event.preventDefault();if(key){keys.add(key);p1Input.record('keyboard',keys,performance.now());}if(key2){player2Keys.add(key2);p2Input.record('keyboard',player2Keys,performance.now());} void audio.unlock(); });
+  window.addEventListener('keyup', event => { if(keymap[event.code]){keys.delete(keymap[event.code]);p1Input.record('keyboard',keys,performance.now());}if(keymap2[event.code]){player2Keys.delete(keymap2[event.code]);p2Input.record('keyboard',player2Keys,performance.now());} });
+  window.addEventListener('blur', () => { keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset(); commandBuffer?.reset(); dummyBuffer?.reset(); audio.stop();haptics.stop(); });
   if(arena)mountArena({setMode,setPlaying,configureMatch,status,hasCharacter:()=>!!selected&&!!match});
 }

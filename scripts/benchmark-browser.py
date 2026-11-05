@@ -1,7 +1,7 @@
 """Reproducible production-renderer CPU benchmark; not a physical phone FPS test."""
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
-import argparse, base64, json, os, platform, time
+import argparse, base64, hashlib, json, os, platform, time
 from playwright.sync_api import sync_playwright
 
 ROOT=Path(__file__).resolve().parent.parent
@@ -140,7 +140,7 @@ with sync_playwright() as p:
         page.on('pageerror',lambda error:errors.append(str(error)))
         cdp=context.new_cdp_session(page)
         if args.cpu!=1:cdp.send('Emulation.setCPUThrottlingRate',{'rate':args.cpu})
-        page.goto(args.url+('&' if '?' in args.url else '?')+'perf=1',wait_until='networkidle')
+        page.goto(args.url+('&' if '?' in args.url else '?')+'perf=1&graphics=high',wait_until='networkidle')
         page.locator('#file').set_input_files(fixture(scene))
         page.wait_for_function('(scene)=>document.querySelector("#name").textContent==="Performance "+scene',arg=scene)
         page.locator('#training').click();page.locator('#play').click();page.locator('#reset').click()
@@ -154,6 +154,8 @@ with sync_playwright() as p:
         assert not errors,errors
         measurement['state']={side:{key:report[side][key] for key in ['stateNo','time','pos','vel','life','power','getHitVars','variables']} for side in ['player','opponent']}
         measurement['entities']=len(report['entities'])
+        behavior={key:report.get(key) for key in ['player','opponent','entities','stage','match','combatRules']}
+        measurement['behaviorSha256']=hashlib.sha256(json.dumps(behavior,sort_keys=True).encode()).hexdigest()
         measurement['canvasHash']=page.evaluate('async()=>{const data=document.querySelector("canvas").getContext("2d").getImageData(0,0,960,540).data;const hash=await crypto.subtle.digest("SHA-256",data);return [...new Uint8Array(hash)].map(n=>n.toString(16).padStart(2,"0")).join("")}')
         images=Path(args.output).with_suffix('');images.mkdir(parents=True,exist_ok=True)
         image=page.locator('canvas').evaluate('(canvas)=>canvas.toDataURL()').split(',')[1]

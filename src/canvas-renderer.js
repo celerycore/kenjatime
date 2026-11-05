@@ -31,22 +31,27 @@ export class CanvasRenderer {
     if(plan.mode==='normal'){ctx.drawImage(surface,x,y,width,height);return true;}
     // Compose offscreen, then apply the destination clip once. Direct multi-pass
     // blending would change partially covered mask/window edges.
-    if(!this.surface){this.surface=this.createCanvas();this.scratch=this.track(this.surface.getContext('2d'));}
+    if(!this.surface){this.surface=this.createCanvas();this.scratch=this.track(this.surface.getContext('2d'));this.sourceSurface=this.createCanvas();this.sourceContext=this.track(this.sourceSurface.getContext('2d'));}
     // Retain destination device coordinates. Translating the scratch origin to
     // a cropped ROI can move nearest-neighbour edges at floating-point ties.
     if(this.surface.width!==ctx.canvas.width)this.surface.width=ctx.canvas.width;
     if(this.surface.height!==ctx.canvas.height)this.surface.height=ctx.canvas.height;
+    if(this.sourceSurface.width!==ctx.canvas.width)this.sourceSurface.width=ctx.canvas.width;
+    if(this.sourceSurface.height!==ctx.canvas.height)this.sourceSurface.height=ctx.canvas.height;
     const target=this.scratch,matrix=ctx.getTransform();
+    // Rasterize coverage once using source-over, as the compatibility renderer
+    // did. Native lighter/difference rasterizers otherwise choose different
+    // nearest-neighbour edge pixels for some fractional transforms.
+    const source=this.sourceContext;source.resetTransform();source.clearRect(bounds.left,bounds.top,bounds.width,bounds.height);source.imageSmoothingEnabled=false;source.globalAlpha=ctx.globalAlpha;source.setTransform(matrix);source.drawImage(surface,x,y,width,height);
     target.resetTransform();target.globalCompositeOperation='source-over';target.globalAlpha=1;target.imageSmoothingEnabled=false;
     target.drawImage(ctx.canvas,bounds.left,bounds.top,bounds.width,bounds.height,bounds.left,bounds.top,bounds.width,bounds.height);
-    target.setTransform(matrix);
-    const alpha=ctx.globalAlpha;target.globalAlpha=alpha;
+    const paint=()=>target.drawImage(this.sourceSurface,bounds.left,bounds.top,bounds.width,bounds.height,bounds.left,bounds.top,bounds.width,bounds.height);
     if(plan.mode==='subtract'){
       const invert=()=>{target.save();target.resetTransform();target.globalAlpha=1;target.globalCompositeOperation='difference';target.fillStyle='#fff';target.fillRect(bounds.left,bounds.top,bounds.width,bounds.height);target.restore();};
-      invert();target.globalCompositeOperation='lighter';target.drawImage(surface,x,y,width,height);invert();
+      invert();target.globalCompositeOperation='lighter';paint();invert();
     }else{
-      if(plan.opacity){target.globalCompositeOperation='source-over';target.globalAlpha=alpha*plan.opacity;target.drawImage(surface,x,y,width,height);}
-      if(plan.add){target.globalCompositeOperation='lighter';target.globalAlpha=alpha*plan.add;target.drawImage(surface,x,y,width,height);}
+      if(plan.opacity){target.globalCompositeOperation='source-over';target.globalAlpha=plan.opacity;paint();}
+      if(plan.add){target.globalCompositeOperation='lighter';target.globalAlpha=plan.add;paint();}
     }
     ctx.save();ctx.resetTransform();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(this.surface,bounds.left,bounds.top,bounds.width,bounds.height,bounds.left,bounds.top,bounds.width,bounds.height);ctx.restore();return true;
   }
