@@ -1,17 +1,14 @@
-MUGEN WEB ARENA
+MUGEN WEB LAB — WEB EDITION 11
 
-PLAY: Open MUGEN-Arena.html in a current browser. If using the website ZIP, extract it and open index.html.
-Choose a mode and click Fight now (or Watch match for CPU vs CPU).
+Open https://celerycore.github.io/kenjatime/ in a current browser.
+Import a character, stage or engine ZIP, or load the Kung Fu Man sample.
+On a phone, tap Import or browse files and choose a ZIP in Files/Downloads.
+ZIP paths are normalized inside the archive. Missing external resources are reported.
 
-CONTROLS: WASD/arrows move, J punch, K kick, L special, Space guard.
-P/Escape pause, R restart. Touch controls appear on touchscreens.
-Versus: P1 WASD + F/G/H; P2 arrows + J/K/L.
+Choose Training sandbox to run character CNS/CMD scripts and collision-based combat.
+P1: arrows to move, Z/X/C and A/S/D to attack. Enter: start. R: reset.
+P2: choose keyboard or CPU using the training controls.
+The compatibility report lists unsupported behavior; full MUGEN compatibility remains unfinished.
 
-CHARACTERS: Import a character ZIP or open Character lab. Files stay on your device.
-The arena uses its own combat rules, not native MUGEN CNS/CMD scripts.
-
-HOSTING: Upload index.html to any static web host. No build step or backend required.
-
-Kung Fu Man is by Elecbyte, supplied under its Creative Commons Noncommercial license.
-See KFM-README.txt. This bundled demo is for noncommercial use.
-Fonts are under SIL OFL; see the font license files.
+The previous Arena interface is preserved at arena/index.html.
+The bundled Kung Fu Man sample belongs to Elecbyte. See KFM-README.txt for its noncommercial license.
