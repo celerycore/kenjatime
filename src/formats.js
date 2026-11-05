@@ -32,11 +32,20 @@ export function packageFiles(bytes){
  if(bytes.length>MAX_ZIP_BYTES)throw Error(`ZIP exceeds the ${ZIP_LIMIT_MB} MB limit.`);
  let total=0,count=0;
  const files=unzipSync(bytes,{filter:f=>{total+=f.originalSize;count++;if(total>MAX_EXPANDED_BYTES||count>MAX_ARCHIVE_FILES)throw Error('Archive exceeds 512 MB expanded or 5,000 files.');return true;}});
- const normalized=Object.create(null);for(const [name,data] of Object.entries(files)){
-  // ZIP paths are a virtual namespace, never phone or server filesystem paths.
-  const entry=name.replaceAll('\\','/');if(entry.endsWith('/'))continue;
-  let path;try{path=packagePath(entry.replace(/^\/+/,''),'',true);}catch{throw Error(`Unsafe archive path: ${name}. A file points outside the ZIP's folders.`);}
-  if(!path||path.split('/').some(part=>part==='__macosx'||part==='.ds_store'||part.startsWith('._')))continue;
+ return normalizedPackageFiles(Object.entries(files));
+}
+export function packageEntryPath(name){
+  // Archive paths are a virtual namespace, never phone or server filesystem paths.
+  const entry=String(name).replaceAll('\\','/');if(entry.endsWith('/'))return null;
+  let path;try{path=packagePath(entry.replace(/^\/+/,''),'',true);}catch{throw Error(`Unsafe archive path: ${name}. A file points outside the archive's folders.`);}
+  return !path||path.split('/').some(part=>part==='__macosx'||part==='.ds_store'||part.startsWith('._'))?null:path;
+}
+export function normalizedPackageFiles(entries){
+ const normalized=Object.create(null);let total=0,count=0;
+ for(const [name,data]of entries){
+  if(!(data instanceof Uint8Array))throw Error('Archive entry has invalid data.');
+  total+=data.byteLength;if(++count>MAX_ARCHIVE_FILES||total>MAX_EXPANDED_BYTES)throw Error('Archive exceeds 512 MB expanded or 5,000 files.');
+  const path=packageEntryPath(name);if(!path)continue;
   if(Object.hasOwn(normalized,path)){
    if(normalized[path].length===data.length&&normalized[path].every((value,index)=>value===data[index]))continue;
    throw Error('Duplicate archive path with different contents: '+path);

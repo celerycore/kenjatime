@@ -11,7 +11,7 @@ import {COMMON_STATES, COMMON_LIMITATIONS} from './common.js';
 import {EffectsState,transformRgba} from './effects.js';
 import {sampleAnimation,sampleFighterAnimation,tileOffsets,backgroundTileStep,parallaxScale,spriteRotation} from './rendering.js';
 import {baseScale} from './coordinates.js';
-import {readZipFile,zipAccept,unpackZip} from './uploads.js';
+import {readArchiveFile,archiveAccept,unpackArchive} from './uploads.js';
 import {ZIP_LIMIT_MB} from './archive-limits.js';
 import {characterScriptArchive} from './script-export.js';
 import {mountTouchControls} from './touch-controls.js';
@@ -37,11 +37,11 @@ export function mountApp({arena=false}={}) {
   const decodedBanks=new Set(),parallaxCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:4,sizeOf:surface=>surface.width*surface.height*4}),parallaxKeys=new Map();
   const playerPalettes=new WeakMap(),opponentPalettes=new WeakMap();
 
-  $('#upload').textContent = '＋ Import character / stage / engine ZIP';
+  $('#upload').textContent = '＋ Import character / stage / engine';
   $('.heading p').textContent = 'Import a character. Inspect its scripts. Test it in motion.';
-  $('.tag i').textContent = '18';
-  $('#drop small').textContent=`ZIP up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
-  $('#file').accept=zipAccept;
+  $('.tag i').textContent = '19';
+  $('#drop small').textContent=`ZIP / RAR up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
+  $('#file').accept=archiveAccept;
   $('.notice').textContent = 'Script execution and collision-based combat are available in training. Character compatibility is incomplete; see the report below.';
   $('#hint').textContent = 'Inspect the character’s SFF sprites and AIR animations. Open training to execute its scripts.';
   $('#hud').innerHTML = '<label>PLAYER 1 <progress id="p1life" max="1000" value="1000"></progress></label><b>VS</b><label>TRAINING DUMMY <progress id="p2life" max="1000" value="1000"></progress></label>';
@@ -171,8 +171,8 @@ export function mountApp({arena=false}={}) {
   const haptics=new ForceFeedbackState({onIssue:message=>issue(message,'gamepad')});
   async function load(bytes) {
     try {
-      const {files,characters,stages:importedStages}=await unpackZip(bytes,{onProgress:status});
-      if(!characters.length&&!importedStages.length)throw Error('No character or stage DEF found in the ZIP.');
+      const {files,characters,stages:importedStages}=await unpackArchive(bytes,{onProgress:status});
+      if(!characters.length&&!importedStages.length)throw Error('No character or stage DEF found in the archive.');
       if(Object.keys(files).some(path=>/(?:^|\/)data\/(?:fightfx\.sff|common\.snd)$/.test(path))){systemFiles=files;audio.setSystem(files);}
       roster.push(...characters);stages.push(...importedStages);renderStageOptions();renderOpponentOptions();
       if(characters.length){if(!selectedStage&&importedStages.length)selectedStage=importedStages.find(s=>/training/i.test(s.name))||importedStages[0];select(roster.length-characters.length);}
@@ -574,8 +574,8 @@ export function mountApp({arena=false}={}) {
   $('#player-control').onchange=$('#cpu-level').onchange=()=>{configureMatch();canvas.focus();};
   canvas.onclick = () => { canvas.focus(); void audio.unlock(); };
   for(const label of [$('#upload'),$('#browse')])label.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();$('#file').click();}};
-  async function importSource(read){if(importing){status('A ZIP is already being imported. Please wait for it to finish.');return;}importing=true;$('#file').disabled=$('#sample').disabled=true;$('#drop').setAttribute('aria-busy','true');try{await load(await read());}catch(error){status(`Import failed: ${error.message}`);}finally{importing=false;$('#file').disabled=$('#sample').disabled=false;$('#drop').setAttribute('aria-busy','false');}}
-  async function readFile(file) {if(!file)return;await importSource(async()=>{status(`Reading ${file.name||'ZIP archive'}…`);return readZipFile(file);});}
+  async function importSource(read){if(importing){status('An archive is already being imported. Please wait for it to finish.');return;}importing=true;$('#file').disabled=$('#sample').disabled=true;$('#drop').setAttribute('aria-busy','true');try{await load(await read());}catch(error){status(`Import failed: ${error.message}`);}finally{importing=false;$('#file').disabled=$('#sample').disabled=false;$('#drop').setAttribute('aria-busy','false');}}
+  async function readFile(file) {if(!file)return;await importSource(async()=>{status(`Reading ${file.name||'ZIP / RAR archive'}…`);return readArchiveFile(file);});}
   $('#file').onchange = async event => {try{await readFile(event.target.files[0]);}finally{event.target.value='';} };
   $('#sample').onclick = () => importSource(async()=>{status('Loading Kung Fu Man…');const response=await fetch(new URL(arena?'../kfm.zip':'kfm.zip',document.baseURI));if(!response.ok)throw Error('Sample unavailable');return new Uint8Array(await response.arrayBuffer());});
   for (const eventName of ['dragover','drop']) $('#drop').addEventListener(eventName, async event => { event.preventDefault(); if (eventName === 'drop') await readFile(event.dataTransfer.files[0]); });

@@ -15,7 +15,7 @@ export function bodyWidthWorld(actor,direction,{edge=false}={}){
 }
 
 export function spatialConstant(name){
-  if(name.startsWith('velocity.'))return true;
+  if(name.startsWith('velocity.'))return !/\.mul(?:\.|$)/.test(name);
   if(name.startsWith('size.'))return !['size.xscale','size.yscale','size.proj.doscale'].includes(name);
   return name.startsWith('movement.')&&!/(?:\.friction$|\.num$|\.time$|\.mul(?:\.|$))/.test(name);
 }

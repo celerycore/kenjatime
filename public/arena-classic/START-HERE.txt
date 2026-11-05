@@ -1,17 +1,20 @@
-MUGEN WEB ARENA
+MUGEN CLASSIC ARENA
 
-PLAY: Open MUGEN-Arena.html in a current browser. If using the website ZIP, extract it and open index.html.
-Choose a mode and click Fight now (or Watch match for CPU vs CPU).
+Play at https://celerycore.github.io/kenjatime/arena-classic/
+This address now uses the current shared character runtime, uploader and mobile controls.
+Character ZIP and unencrypted, single-volume RAR4/RAR5 archives are supported.
+Files remain local to your browser. The compressed limit is 128 MiB and the expanded
+limit is 512 MiB / 5,000 entries. Password-protected/multipart RARs require repackaging.
 
-CONTROLS: WASD/arrows move, J punch, K kick, L special, Space guard.
-P/Escape pause, R restart. Touch controls appear on touchscreens.
-Versus: P1 WASD + F/G/H; P2 arrows + J/K/L.
+Choose Player vs CPU, Two players, Watch CPU match or Training.
+The controls shown in the arena map to the character's MUGEN commands; touch controls
+are available on mobile devices. Character scripts, controllers, helpers, projectiles,
+custom states and palettes use the same implementation as the lab and Web Arena.
+Full native MUGEN compatibility remains unfinished.
 
-CHARACTERS: Import a character ZIP or open Character lab. Files stay on your device.
-The arena uses its own combat rules, not native MUGEN CNS/CMD scripts.
+Build all three pages from the source branch using npm install and npm run build,
+then host the complete dist directory. Opening an old standalone HTML file will not
+include the current worker, decoder or runtime corrections.
 
-HOSTING: Upload index.html to any static web host. No build step or backend required.
-
-Kung Fu Man is by Elecbyte, supplied under its Creative Commons Noncommercial license.
-See KFM-README.txt. This bundled demo is for noncommercial use.
-Fonts are under SIL OFL; see the font license files.
+Kung Fu Man is by Elecbyte; see KFM-README.txt. This bundled demo is for noncommercial use.
+The retained font license files are under SIL OFL. Archive decoder licenses are in ../licenses/.

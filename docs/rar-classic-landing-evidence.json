@@ -1,0 +1,614 @@
+{
+  "edition": 19,
+  "completeCompatibility": false,
+  "tests": {
+    "node": 438,
+    "passed": 438,
+    "failed": 0,
+    "skipped": 0,
+    "newCases": 27,
+    "corpus": "Native MUGEN 1.1 KFM examples, supplied Tomoka/Taiga RARs, supplied Shiki scripts/report"
+  },
+  "archives": [
+    {
+      "fileName": "Tomoka.rar",
+      "sha256": "feab6a5c73db06a607ac7fb4123c6b4da381222dc72af11c550a5ecb8eaabb85",
+      "compressedBytes": 22266092,
+      "format": "RAR5",
+      "fileCount": 32,
+      "expandedBytes": 44134434,
+      "definitions": [
+        {
+          "path": "tomoka/tomoka.def",
+          "name": "Tomoka Minato",
+          "missingReferences": []
+        }
+      ]
+    },
+    {
+      "fileName": "KOFXIII_Taiga.rar",
+      "sha256": "6ca453b5ede49eb38a64e798dbbb412590bfedb59261134260870ebf9a1aeed5",
+      "compressedBytes": 13885873,
+      "format": "RAR5",
+      "fileCount": 24,
+      "expandedBytes": 31809827,
+      "definitions": [
+        {
+          "path": "kofxiii_taiga/kofxiii_taiga.def",
+          "name": "Taiga Aisaka",
+          "missingReferences": []
+        },
+        {
+          "path": "kofxiii_taiga/kofxiii_taigaeasy.def",
+          "name": "Taiga Aisaka",
+          "missingReferences": []
+        },
+        {
+          "path": "kofxiii_taiga/kofxiii_taiganoai.def",
+          "name": "Taiga Aisaka",
+          "missingReferences": []
+        }
+      ]
+    }
+  ],
+  "rarBrowser": [
+    {
+      "route": "/",
+      "fileReaderFallback": false,
+      "rar4": true,
+      "rar5": true,
+      "unsafeRejected": true,
+      "encryptedRejected": true,
+      "retryPassed": true,
+      "largeRarMiB": 40.56,
+      "heartbeatTicks": 18,
+      "actualArchives": [
+        {
+          "name": "Tomoka",
+          "variants": 1,
+          "imported": true,
+          "diagnosticCount": 7
+        },
+        {
+          "name": "Taiga Aisaka",
+          "variants": 3,
+          "imported": true,
+          "diagnosticCount": 41
+        }
+      ],
+      "wasmSameOrigin": true,
+      "wasmLazyForZip": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena/",
+      "fileReaderFallback": false,
+      "rar4": true,
+      "rar5": true,
+      "unsafeRejected": true,
+      "encryptedRejected": true,
+      "retryPassed": true,
+      "largeRarMiB": 40.56,
+      "heartbeatTicks": 20,
+      "actualArchives": [
+        {
+          "name": "Tomoka",
+          "variants": 1,
+          "imported": true,
+          "diagnosticCount": 7
+        },
+        {
+          "name": "Taiga Aisaka",
+          "variants": 3,
+          "imported": true,
+          "diagnosticCount": 45
+        }
+      ],
+      "wasmSameOrigin": true,
+      "wasmLazyForZip": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena-classic/",
+      "fileReaderFallback": true,
+      "rar4": true,
+      "rar5": true,
+      "unsafeRejected": true,
+      "encryptedRejected": true,
+      "retryPassed": true,
+      "largeRarMiB": 40.56,
+      "heartbeatTicks": 21,
+      "actualArchives": [
+        {
+          "name": "Tomoka",
+          "variants": 1,
+          "imported": true,
+          "diagnosticCount": 7
+        },
+        {
+          "name": "Taiga Aisaka",
+          "variants": 3,
+          "imported": true,
+          "diagnosticCount": 45
+        }
+      ],
+      "wasmSameOrigin": true,
+      "wasmLazyForZip": true,
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "shiki": {
+    "scriptsSha256": "86f224d58b76891e1be98ab4d4ae7c79834ae71708e0ae522bccf62228099ca1",
+    "reportSha256": "2b6ac1feac4ff210b352ba3ba734cd0c90a9d3883c0a46e23df982bfdf069f5c",
+    "capturedState": 6050,
+    "capturedStateOwner": "Maid Taiga",
+    "capturedY": 22019.649592906237,
+    "capturedVelocityY": 124.14999780058861,
+    "cause": "Missing documented stock Const landing/recovery values raised errors in CNS transition triggers.",
+    "replay": {
+      "scope": "Supplied Shiki scripts/AIR with captured position/velocity/get-hit values in their own common fall state 5050; foreign Maid Taiga state 6050 is not in the export.",
+      "frames": [
+        {
+          "tick": 1,
+          "state": 5100,
+          "y": 0,
+          "vy": 0
+        },
+        {
+          "tick": 2,
+          "state": 5100,
+          "y": 0,
+          "vy": 0
+        },
+        {
+          "tick": 3,
+          "state": 5100,
+          "y": 0,
+          "vy": 0
+        },
+        {
+          "tick": 4,
+          "state": 5101,
+          "y": 20,
+          "vy": -4.0999999940395355
+        },
+        {
+          "tick": 5,
+          "state": 5101,
+          "y": 16.30000001192093,
+          "vy": -3.699999988079071
+        },
+        {
+          "tick": 31,
+          "state": 5110,
+          "y": 0,
+          "vy": 0
+        },
+        {
+          "tick": 61,
+          "state": 5120,
+          "y": 0,
+          "vy": 0
+        },
+        {
+          "tick": 91,
+          "state": 0,
+          "y": 0,
+          "vy": 0
+        },
+        {
+          "tick": 121,
+          "state": 0,
+          "y": 0,
+          "vy": 0
+        },
+        {
+          "tick": 151,
+          "state": 0,
+          "y": 0,
+          "vy": 0
+        }
+      ],
+      "unknownConstants": []
+    },
+    "browser": [
+      {
+        "route": "/",
+        "foreignState": 6050,
+        "landedNextTick": true,
+        "landingState": 5100,
+        "landingY": 0,
+        "recoveredState": 0,
+        "recoveredCtrl": 1,
+        "errors": []
+      },
+      {
+        "route": "arena-classic/",
+        "foreignState": 6050,
+        "landedNextTick": true,
+        "landingState": 5100,
+        "landingY": 0,
+        "recoveredState": 0,
+        "recoveredCtrl": 1,
+        "errors": []
+      }
+    ]
+  },
+  "classic": {
+    "sharedRuntime": true,
+    "palette": {
+      "foreignState": {
+        "stateOwner": 1,
+        "animationOwner": 1,
+        "coordinateScale": 1,
+        "animExistMask": 10,
+        "victimPalette": 2,
+        "cyanPixels": 81
+      },
+      "selfState": {
+        "stateOwner": 2,
+        "animationOwner": 1,
+        "coordinateScale": 0.5,
+        "ctrl": 0
+      },
+      "creationPixels": {
+        "cyan": 81,
+        "green": 648,
+        "teal": 0,
+        "purple": 0
+      },
+      "projectilePixels": {
+        "cyan": 81,
+        "green": 648,
+        "teal": 648,
+        "purple": 648
+      },
+      "expiredPixels": {
+        "cyan": 81,
+        "green": 972,
+        "teal": 0,
+        "purple": 648
+      },
+      "creatorPaletteRetained": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    "helperProjectile": {
+      "guardObservation": [
+        0,
+        1
+      ],
+      "simultaneousLife": [
+        990,
+        990
+      ],
+      "pauseTicks": 2,
+      "pausedPixels": {
+        "red": 324,
+        "green": 0
+      },
+      "removedPixels": {
+        "red": 0,
+        "green": 324
+      },
+      "cameraY": [
+        -60,
+        0
+      ],
+      "pushDistance": 32,
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    "arena": {
+      "zipMB": 55.56,
+      "workerCount": 2,
+      "importHeartbeatTicks": 43,
+      "touchPunchDamage": 23,
+      "multiTouchInput": [
+        "R",
+        "D",
+        "a"
+      ],
+      "scriptExportBytes": 30701,
+      "cpuMatch": true,
+      "errors": [],
+      "failedRequests": []
+    }
+  },
+  "mobileZip": [
+    {
+      "fileReaderFallback": false,
+      "punchDamage": 23,
+      "unsafeEntryBlocked": true,
+      "retryPassed": true,
+      "sampleURL": "http://127.0.0.1:5186/next/kfm.zip",
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "fileReaderFallback": true,
+      "punchDamage": 23,
+      "unsafeEntryBlocked": true,
+      "retryPassed": true,
+      "sampleURL": "http://127.0.0.1:5186/next/kfm.zip",
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "compatibilityReplay": {
+    "samples": 10,
+    "diagnostics": 0,
+    "completeCompatibility": false
+  },
+  "nativeExampleStateSweep": {
+    "ticksPerState": 30,
+    "characters": [
+      {
+        "path": "mugen-1.1b1/chars/kfm720/kfm720.def",
+        "states": 106,
+        "diagnostics": 0,
+        "uncaught": []
+      },
+      {
+        "path": "mugen-1.1b1/chars/kfm/kfm.def",
+        "states": 106,
+        "diagnostics": 0,
+        "uncaught": []
+      }
+    ]
+  },
+  "performance": {
+    "scope": "Software Chromium, Edition 18 versus 19; timing variation is not a physical-phone speedup claim.",
+    "comparison": {
+      "beforeEnvironment": {
+        "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+        "physicalAndroid": false,
+        "viewport": [
+          390,
+          844
+        ],
+        "dpr": 2,
+        "cpuThrottle": 1,
+        "frames": 90,
+        "browser": "154.0.8037.57",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "powerMode": "unknown",
+        "thermalState": "uncontrolled host"
+      },
+      "afterEnvironment": {
+        "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+        "physicalAndroid": false,
+        "viewport": [
+          390,
+          844
+        ],
+        "dpr": 2,
+        "cpuThrottle": 1,
+        "frames": 90,
+        "browser": "154.0.8037.57",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "powerMode": "unknown",
+        "thermalState": "uncontrolled host"
+      },
+      "visualTolerance": 3,
+      "scenes": {
+        "idle": {
+          "beforeP50Ms": 0.10000000894069672,
+          "afterP50Ms": 0.09999999403953552,
+          "beforeP95Ms": 0.29999999701976776,
+          "afterP95Ms": 0.20000000298023224,
+          "p95ReductionPercent": 33.33333167764874,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "sparks": {
+          "beforeP50Ms": 1.2000000029802322,
+          "afterP50Ms": 1.1000000089406967,
+          "beforeP95Ms": 2,
+          "afterP95Ms": 1.5,
+          "p95ReductionPercent": 25.0,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "additive": {
+          "beforeP50Ms": 14.799999997019768,
+          "afterP50Ms": 13.5,
+          "beforeP95Ms": 17.900000005960464,
+          "afterP95Ms": 19.700000002980232,
+          "p95ReductionPercent": -10.055865901789907,
+          "beforeSlowFrames": 16,
+          "afterSlowFrames": 14,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "custom": {
+          "beforeP50Ms": 16.799999997019768,
+          "afterP50Ms": 14.300000011920929,
+          "beforeP95Ms": 23.700000002980232,
+          "afterP95Ms": 18.599999994039536,
+          "p95ReductionPercent": 21.518987376790633,
+          "beforeSlowFrames": 50,
+          "afterSlowFrames": 19,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "entities": {
+          "beforeP50Ms": 10.900000005960464,
+          "afterP50Ms": 10.200000002980232,
+          "beforeP95Ms": 13.899999991059303,
+          "afterP95Ms": 13.299999997019768,
+          "p95ReductionPercent": 4.316546722485359,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "parallax": {
+          "beforeP50Ms": 1,
+          "afterP50Ms": 1,
+          "beforeP95Ms": 1.5999999940395355,
+          "afterP95Ms": 1.2999999970197678,
+          "p95ReductionPercent": 18.749999883584678,
+          "beforeSlowFrames": 0,
+          "afterSlowFrames": 0,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "combined": {
+          "beforeP50Ms": 26.5,
+          "afterP50Ms": 28.5,
+          "beforeP95Ms": 46.70000000298023,
+          "afterP95Ms": 41.79999999701977,
+          "p95ReductionPercent": 10.492505365412775,
+          "beforeSlowFrames": 90,
+          "afterSlowFrames": 90,
+          "beforeReadbacks": 0,
+          "afterReadbacks": 0,
+          "behaviorEqual": true,
+          "maxChannelDifference": 0,
+          "meanChannelDifference": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "allSevenBehaviorAndPixelsEqual": true,
+    "cadence": {
+      "shortPressDamage": 10,
+      "lowModeSimulationTicks": 66,
+      "lowModeRenderedFPS": 30.004688232536328,
+      "offscreenTicks": 18,
+      "offscreenDraws": 0,
+      "pausedDraws": 0,
+      "hiddenTicks": 0,
+      "resumeTicks": 17,
+      "sizes": [
+        [
+          960,
+          540
+        ],
+        [
+          720,
+          405
+        ],
+        [
+          576,
+          324
+        ]
+      ],
+      "settingsPersisted": true,
+      "instrumentationOffByDefault": true,
+      "autoStress": null,
+      "errors": []
+    }
+  },
+  "build": {
+    "entries": {
+      "index.html": {
+        "mainAsset": "main-gMVXCu1q.js",
+        "sha256": "000229c146392d0da578b3a4d22e19579a924e40c1f2640ada7331f605d47fe0"
+      },
+      "arena/index.html": {
+        "mainAsset": "main-gMVXCu1q.js",
+        "sha256": "8381f0295652f9f58f52aae288837a14119c25ee778ad4353dec16982dbac7a5"
+      },
+      "arena-classic/index.html": {
+        "mainAsset": "main-gMVXCu1q.js",
+        "sha256": "ec7ea8d17d63159bf5920f8fdee7146f45192c947bc654bcc2587572bbf50bc1"
+      }
+    },
+    "assets": [
+      {
+        "name": "archive-worker-Bo_c-I_D.js",
+        "bytes": 23463,
+        "sha256": "8882d3c40cbf8427101fc356cfdc62013183ffd9165adfa5b130f73639fa4aa0"
+      },
+      {
+        "name": "main-DWAF97kg.css",
+        "bytes": 12612,
+        "sha256": "43cc5133252d6e34b2aa0d2e18ceb12f0df2f4be1f6c0e17980d290c05f6ac42"
+      },
+      {
+        "name": "main-gMVXCu1q.js",
+        "bytes": 264377,
+        "sha256": "7245898a89a13df0db6b1c11ee3c89ac8a3e6efaa58090391d0610932f316069"
+      },
+      {
+        "name": "rar-reader-CdZ6ZuM2.js",
+        "bytes": 43968,
+        "sha256": "95bd110d433294404d34c218d658687444569ab4d2add6023700734d132167d6"
+      },
+      {
+        "name": "unrar-De7VYsPt.wasm",
+        "bytes": 207593,
+        "sha256": "c7d79f869196e3c79c053ba74a8f629116de8293a94f60cc851bbcd7977d0c2b"
+      }
+    ]
+  },
+  "limitations": [
+    "Kirito_MB.rar and the full Shiki sprite ZIP exceeded the session attachment-transfer limit of 32 MiB. They were not inspected; application upload cap remains 128 MiB.",
+    "The exact Maid Taiga state 6050/input sequence was not included. Actual Shiki common-state replay and a separate foreign-state fixture were verified.",
+    "Tomoka/Taiga retain reported AIR, CMD and trigger compatibility gaps; import success does not certify every move.",
+    "Native executable equivalence and physical-phone performance are not verified."
+  ]
+}

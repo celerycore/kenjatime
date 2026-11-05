@@ -34,9 +34,9 @@ test('mobile file providers can omit or mislabel MIME types and extensions; ZIP 
     const bytes=zipSync({'hero.def':strToU8(definition)}),file={name,type,size:bytes.length,arrayBuffer:async()=>bytes.buffer};assert.deepEqual(await readZipFile(file),bytes);
   }
   assert.match(zipAccept,/application\/zip/);assert.equal(await readZipFile(null),null);
-  await assert.rejects(()=>readZipFile({size:10,arrayBuffer:async()=>strToU8('not a zip').buffer}),/Choose a ZIP/);
+  await assert.rejects(()=>readZipFile({size:10,arrayBuffer:async()=>strToU8('not a zip').buffer}),/Choose a ZIP or RAR/);
   await assert.rejects(()=>readZipFile({size:128*1024*1024+1,arrayBuffer:async()=>{throw Error('should not read');}}),/128 MB/);
-  await assert.rejects(()=>readZipFile({size:10,arrayBuffer:async()=>{throw Error('SecurityError');}}),/Download the ZIP to your device/);
+  await assert.rejects(()=>readZipFile({size:10,arrayBuffer:async()=>{throw Error('SecurityError');}}),/Download the archive to your device/);
 });
 
 test('expanded-size and entry-count limits reject before expanding oversized payloads',()=>{

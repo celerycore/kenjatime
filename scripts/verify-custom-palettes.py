@@ -234,9 +234,12 @@ with sync_playwright() as p:
     browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox'])
     page=browser.new_page(viewport={'width':1440,'height':1000},accept_downloads=True);errors=[];failures=[]
     page.on('pageerror',lambda e:errors.append(str(e)));page.on('requestfailed',lambda r:failures.append(r.url))
-    page.goto(os.environ.get('MUGEN_TEST_URL','http://127.0.0.1:5186/next/')+'?perf=1&graphics=high',wait_until='networkidle');assert page.locator('.tag i').inner_text()=='18'
+    page.goto(os.environ.get('MUGEN_TEST_URL','http://127.0.0.1:5186/next/')+'?perf=1&graphics=high',wait_until='networkidle');assert page.locator('.tag i').inner_text()=='19'
+    page.wait_for_function('!document.querySelector("#file").disabled')
     page.locator('#file').set_input_files('work/custom-palette-browser-fixture.zip');page.wait_for_function("document.querySelector('#name').textContent==='Accuracy Attacker'")
+    if page.locator('#arena-mode').count():page.locator('#arena-mode').select_option('training')
     page.locator('#training').click();page.locator('#play').click();page.locator('#opponent-select').select_option(label='Accuracy Victim');page.locator('#opponent-palette-select').select_option('2');page.locator('#reset').click()
+    page.evaluate('window.__kenjatimePerformance.benchmark({frames:1,ticksPerFrame:0})')
     def steps(n):page.evaluate('(n)=>{for(let i=0;i<n;i++)document.querySelector("#step").click()}',n)
     def press(key):
         page.locator('canvas').click();page.keyboard.down(key);steps(1);page.keyboard.up(key)

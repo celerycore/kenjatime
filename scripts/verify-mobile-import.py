@@ -52,7 +52,7 @@ with sync_playwright() as p:
         page.on('requestfailed', lambda req: failures.append(req.url))
         page.on('response', lambda response: samples.append(response.url) if response.url.endswith('/kfm.zip') else None)
         page.goto(os.environ.get('MUGEN_TEST_URL', 'http://127.0.0.1:5173/'), wait_until='networkidle')
-        assert page.locator('.tag i').inner_text() == '18'
+        assert page.locator('.tag i').inner_text() == '19'
         assert page.evaluate('document.documentElement.scrollWidth') <= 390
 
         def choose(selector, name, data, mime='application/octet-stream', keyboard=False):
@@ -93,7 +93,7 @@ with sync_playwright() as p:
         assert page.locator('#name').inner_text() == 'Kung Fu Man'
         assert page.locator('#file').input_value() == ''
         choose('#browse', 'broken.zip', b'RAR archive')
-        page.wait_for_function("document.querySelector('#status').textContent.includes('Choose a ZIP archive')")
+        page.wait_for_function("document.querySelector('#status').textContent.includes('Choose a ZIP or RAR archive')")
         assert page.locator('#name').inner_text() == 'Kung Fu Man'
         # Retry the same filename after a failure, using a generic provider MIME.
         choose('#upload', 'broken.zip', zip_bytes, mime='', keyboard=True)
