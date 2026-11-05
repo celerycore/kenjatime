@@ -1,3 +1,4 @@
+import {PerformanceMonitor} from './performance.js';
 import {sff, soundArchive, decodeText, animations} from './formats.js';
 import {parseCommands, CommandBuffer} from './commands.js';
 import {TrainingMatch, transformedBoxes} from './combat.js';
@@ -53,7 +54,9 @@ export function mountApp({arena=false}={}) {
     <div class="report-heading"><div><h2>Compatibility report <span id="issue-count">—</span></h2><p id="runtime-summary">Select a fighter to inspect its runtime.</p></div><div class="report-actions"><button class="secondary" id="export-report" disabled>Download report</button><button class="secondary" id="export-scripts" title="Download DEF, AIR and state/command scripts without sprites or sound" disabled>Export character scripts</button></div></div>
     <p class="compatibility-note">${escape(COMMON_LIMITATIONS)} Helpers, projectiles, foreign-state throws, pauses and visual effects run in training. Some controller options, combat rules, palettes, stages and match systems remain incomplete. A clean report is not certification of full compatibility.</p>
     <details id="issues"><summary>Controller and trigger diagnostics</summary><div id="diagnostics"><p>No fighter selected.</p></div></details></section>`);
-  const canvas = $('canvas'), ctx = canvas.getContext('2d');
+  const performanceMonitor=new PerformanceMonitor({enabled:new URLSearchParams(location.search).get('perf')==='1'});
+  const canvas = $('canvas'), ctx = performanceMonitor.track(canvas.getContext('2d'));
+  $('.stage').insertAdjacentHTML('beforeend','<pre id=performance-overlay hidden aria-live=off style="position:absolute;top:36px;right:8px;background:#000c;padding:8px;color:#dfb;font:11px monospace;pointer-events:none"></pre>');
   let touchKeys=new Set();const touch=mountTouchControls($('.viewer'),value=>{touchKeys=value;});
   canvas.tabIndex = 0; canvas.setAttribute('aria-label', 'Character preview and training stage');
   ctx.imageSmoothingEnabled = false;
@@ -282,8 +285,8 @@ export function mountApp({arena=false}={}) {
   }
   function constant(fighter, key, fallback = 1) { const value = fighter?.program?.constants?.get(key); return Number.isFinite(Number(value)) ? Number(value) : fallback; }
   const blendSurface=document.createElement('canvas');blendSurface.width=960;blendSurface.height=540;
-  const blendContext=blendSurface.getContext('2d',{willReadFrequently:true});blendContext.imageSmoothingEnabled=false;
-  const pixelSurface=document.createElement('canvas');pixelSurface.width=960;pixelSurface.height=540;const pixelContext=pixelSurface.getContext('2d');
+  const blendContext=performanceMonitor.track(blendSurface.getContext('2d',{willReadFrequently:true}));blendContext.imageSmoothingEnabled=false;
+  const pixelSurface=document.createElement('canvas');pixelSurface.width=960;pixelSurface.height=540;const pixelContext=performanceMonitor.track(pixelSurface.getContext('2d'));
   function writePixels(pixels,left,top){pixelContext.putImageData(pixels,left,top);ctx.save();ctx.resetTransform();ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(pixelSurface,left,top,pixels.width,pixels.height,left,top,pixels.width,pixels.height);ctx.restore();}
   function coloredSprite(sp,palette){
     if(!palette?.layers?.length)return sp.canvas;
@@ -362,7 +365,7 @@ export function mountApp({arena=false}={}) {
     ctx.save();if(layout){ctx.translate(480,layout.ground);ctx.scale(layout.scale/2.2,layout.scale/2.2);ctx.translate(-480-layout.camera.x*2.2,-440-layout.camera.y*2.2);}draw();ctx.restore();
   }
   const parallaxSurface=document.createElement('canvas');parallaxSurface.width=960;parallaxSurface.height=540;
-  const parallaxContext=parallaxSurface.getContext('2d',{willReadFrequently:true});parallaxContext.imageSmoothingEnabled=false;
+  const parallaxContext=performanceMonitor.track(parallaxSurface.getContext('2d',{willReadFrequently:true}));parallaxContext.imageSmoothingEnabled=false;
   function drawStageLayer(layer,layout){
     const stage=match.stage,d=stage.definition,factor=d.coordinateScale;
     for(const [index,e]of stage.elements.entries()){
@@ -468,9 +471,16 @@ export function mountApp({arena=false}={}) {
     } catch (error) { issue(`Simulation stopped: ${error.message}`, 'runtime'); setPlaying(false); status(`Simulation stopped: ${error.message}`); }
   }
   let lastReport = 0;
+  function measureSimulation(){const start=performanceMonitor.enabled?performance.now():0;simulate();if(performanceMonitor.enabled)performanceMonitor.simulation(performance.now()-start);}
+  function performanceCounts(){return {sprites:spriteCache.size,paletteVariants:paletteCache.size,cacheBytes:palettePixels*4,explods:match?.entities.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
   function draw(t) {
+    performanceMonitor.begin(t);
     const dt = last ? Math.min((t - last) / 1000, 0.1) : 0; last = t;
-    if (playing) { accumulator += dt * 60 * +$('#speed').value; let steps = 0; while (accumulator >= 1 && steps++ < 12) { simulate(); accumulator--; } }
+    if (playing) { accumulator += dt * 60 * +$('#speed').value; let steps = 0; while (accumulator >= 1 && steps++ < 12) { measureSimulation(); accumulator--; } }
+    const start=performanceMonitor.enabled?performance.now():0;render(t);performanceMonitor.end(performanceMonitor.enabled?performance.now()-start:0,performanceMonitor.enabled?performanceCounts():{});
+    requestAnimationFrame(draw);
+  }
+  function render(t){
     const layout=mode==='training'?stageLayout():null;
     ctx.clearRect(0,0,960,540); ctx.fillStyle = '#0c111b'; ctx.fillRect(0,0,960,540);ctx.save();
     if(layout){ctx.beginPath();ctx.rect(layout.left,layout.top,layout.width,layout.height);ctx.clip();}
@@ -508,8 +518,9 @@ export function mountApp({arena=false}={}) {
       $('#pos').textContent = match.player.pos.x.toFixed(1); $('#posy').textContent = match.player.pos.y.toFixed(1); $('#frame').textContent = `ANIM ${match.player.anim} · FRAME ${match.player.frameIndex + 1}`;
     } else { const scale = worldScale(),palette=playerPalettes.get(selected)||1; drawFrame(sampleAnimation(action,previewFrame,previewElapsed),480,440,1,scale,scale,0,selected,null,null,palette===1?null:new Map([['1,1',[1,palette]]])); $('#frame').textContent = `FRAME ${action ? previewFrame + 1 : 0} / ${action?.frames.length || 0}`; $('#state').textContent = ''; $('#pos').textContent = $('#posy').textContent = '0';$('#match-banner').textContent='';$('#debug-output').hidden=$('#victory-quote').hidden=true; }
     ctx.restore();
-    if (t - lastReport >= 250) { updateReport(); lastReport = t; } requestAnimationFrame(draw);
+    if (t - lastReport >= 250) { updateReport(); lastReport = t; if(performanceMonitor.enabled){const p=performanceMonitor.snapshot(),overlay=$('#performance-overlay');overlay.hidden=false;overlay.textContent=`${p.fps.toFixed(1)} FPS · slow ${(p.slowFrameRate*100).toFixed(1)}%\nframe avg/p95 ${p.frameAverageMs.toFixed(1)}/${p.frameP95Ms.toFixed(1)} ms\nrender ${p.renderAverageMs.toFixed(2)} ms · tick ${p.simulationTickMs.toFixed(2)} ms\n${p.counts.explods||0} Explods · ${p.counts.projectiles||0} projectiles · ${p.counts.trails||0} trails\n${p.drawCalls} draws · ${p.readbacks} reads / ${(p.readbackPixels/1e6).toFixed(1)} MP\ncache ${(p.counts.cacheBytes/1048576).toFixed(1)} MiB`;}}
   }
+  if(performanceMonitor.enabled)window.__kenjatimePerformance={snapshot:()=>performanceMonitor.snapshot(),reset:()=>performanceMonitor.reset(),benchmark:({frames=60,ticksPerFrame=1}={})=>{setPlaying(false);performanceMonitor.reset();for(let i=0;i<frames;i++){const t=performance.now();performanceMonitor.begin(t);for(let tick=0;tick<ticksPerFrame;tick++)measureSimulation();const start=performance.now();render(t);performanceMonitor.end(performance.now()-start,performanceCounts());}return performanceMonitor.snapshot();}};
   requestAnimationFrame(draw);
   function setPlaying(value) { playing = value; accumulator = 0; $('#play').textContent = playing ? 'Ⅱ' : '▶'; $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play'); if (!playing){audio.stop();haptics.stop();} }
   function setMode(value) {
