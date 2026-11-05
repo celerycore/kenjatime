@@ -1,0 +1,176 @@
+{
+  "beforeEnvironment": {
+    "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+    "physicalAndroid": false,
+    "viewport": [
+      390,
+      844
+    ],
+    "dpr": 2,
+    "cpuThrottle": 1,
+    "frames": 90,
+    "browser": "154.0.8037.57",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "powerMode": "unknown",
+    "thermalState": "uncontrolled host",
+    "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+    "node": "24.19.0",
+    "python": "3.12.14"
+  },
+  "afterEnvironment": {
+    "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+    "physicalAndroid": false,
+    "viewport": [
+      390,
+      844
+    ],
+    "dpr": 2,
+    "cpuThrottle": 1,
+    "frames": 90,
+    "browser": "154.0.8037.57",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "powerMode": "unknown",
+    "thermalState": "uncontrolled host",
+    "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+    "node": "24.19.0",
+    "python": "3.12.14"
+  },
+  "visualTolerance": 3,
+  "scenes": {
+    "idle": {
+      "beforeP50Ms": 0.09999999403953552,
+      "afterP50Ms": 0.09999999403953552,
+      "beforeP95Ms": 0.19999998807907104,
+      "afterP95Ms": 0.20000000298023224,
+      "p95ReductionPercent": -7.450581041013038e-06,
+      "beforeSlowFrames": 0,
+      "afterSlowFrames": 0,
+      "beforeReadbacks": 0,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 0,
+      "meanChannelDifference": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "sparks": {
+      "beforeP50Ms": 3,
+      "afterP50Ms": 1.2999999970197678,
+      "beforeP95Ms": 4.799999997019768,
+      "afterP95Ms": 1.7999999970197678,
+      "p95ReductionPercent": 62.50000003880511,
+      "beforeSlowFrames": 0,
+      "afterSlowFrames": 0,
+      "beforeReadbacks": 810,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 0,
+      "meanChannelDifference": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "additive": {
+      "beforeP50Ms": 43,
+      "afterP50Ms": 13.900000005960464,
+      "beforeP95Ms": 49.599999994039536,
+      "afterP95Ms": 18.799999997019768,
+      "p95ReductionPercent": 62.096774195002055,
+      "beforeSlowFrames": 90,
+      "afterSlowFrames": 16,
+      "beforeReadbacks": 11520,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 0,
+      "meanChannelDifference": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "custom": {
+      "beforeP50Ms": 55.19999998807907,
+      "afterP50Ms": 16.599999994039536,
+      "beforeP95Ms": 66.70000000298023,
+      "afterP95Ms": 22.299999997019768,
+      "p95ReductionPercent": 66.56671664764112,
+      "beforeSlowFrames": 90,
+      "afterSlowFrames": 42,
+      "beforeReadbacks": 11520,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 2,
+      "meanChannelDifference": [
+        0.09082368827160493,
+        0.1250462962962963,
+        0.07481481481481482,
+        0.0
+      ]
+    },
+    "entities": {
+      "beforeP50Ms": 36.29999999701977,
+      "afterP50Ms": 10.5,
+      "beforeP95Ms": 43.5,
+      "afterP95Ms": 13.400000005960464,
+      "p95ReductionPercent": 69.19540228514836,
+      "beforeSlowFrames": 90,
+      "afterSlowFrames": 1,
+      "beforeReadbacks": 11520,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 0,
+      "meanChannelDifference": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "parallax": {
+      "beforeP50Ms": 5.299999997019768,
+      "afterP50Ms": 1,
+      "beforeP95Ms": 10.300000011920929,
+      "afterP95Ms": 1.2999999970197678,
+      "p95ReductionPercent": 87.37864082024093,
+      "beforeSlowFrames": 0,
+      "afterSlowFrames": 0,
+      "beforeReadbacks": 180,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 0,
+      "meanChannelDifference": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "combined": {
+      "beforeP50Ms": 99.20000000298023,
+      "afterP50Ms": 25.899999991059303,
+      "beforeP95Ms": 123.3999999910593,
+      "afterP95Ms": 33.8999999910593,
+      "p95ReductionPercent": 72.52836305225652,
+      "beforeSlowFrames": 90,
+      "afterSlowFrames": 90,
+      "beforeReadbacks": 23220,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 2,
+      "meanChannelDifference": [
+        0.035646219135802466,
+        0.043917824074074074,
+        0.024149305555555556,
+        0.0
+      ]
+    }
+  }
+}

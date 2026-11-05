@@ -1,0 +1,62 @@
+{
+  "beforeEnvironment": {
+    "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+    "physicalAndroid": false,
+    "viewport": [
+      390,
+      844
+    ],
+    "dpr": 2,
+    "cpuThrottle": 1,
+    "frames": 30,
+    "browser": "154.0.8037.57",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "powerMode": "unknown",
+    "thermalState": "uncontrolled host",
+    "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+    "node": "24.19.0",
+    "python": "3.12.14"
+  },
+  "afterEnvironment": {
+    "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+    "physicalAndroid": false,
+    "viewport": [
+      390,
+      844
+    ],
+    "dpr": 2,
+    "cpuThrottle": 1,
+    "frames": 30,
+    "browser": "154.0.8037.57",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "powerMode": "unknown",
+    "thermalState": "uncontrolled host",
+    "cpuModel": "AMD EPYC 9V74 80-Core Processor",
+    "node": "24.19.0",
+    "python": "3.12.14"
+  },
+  "visualTolerance": 3,
+  "scenes": {
+    "moving-parallax": {
+      "beforeP50Ms": 5.0999999940395355,
+      "afterP50Ms": 3.2999999970197678,
+      "beforeP95Ms": 7.899999991059303,
+      "afterP95Ms": 4,
+      "p95ReductionPercent": 49.36708855029196,
+      "beforeSlowFrames": 0,
+      "afterSlowFrames": 0,
+      "beforeReadbacks": 60,
+      "afterReadbacks": 0,
+      "behaviorEqual": true,
+      "maxChannelDifference": 0,
+      "meanChannelDifference": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

@@ -4,6 +4,7 @@ The target is native MUGEN character behavior, starting with the supplied MUGEN 
 
 | Area | Current evidence | Remaining work |
 | --- | --- | --- |
+| Rendering performance / scheduling | Native Canvas blend composition, byte-bounded LRU assets, static parallax reuse, fixed 60 Hz ticks with retained debt, timestamped inputs and graphics presets have unit/browser coverage. See [measured performance](performance-baseline.md). | Physical Android profiling, extreme effect batching, dynamic BGPalFX cost and wider native visual comparisons. |
 | Guard / damage / power | Guard during stun, posture changes, kill flags, rounded/scaled damage and healing, raw-damage power awards, CFG coefficients and super-pause defence are covered. See [combat rules](combat-rules.md). | Native rounding/phase captures, full guard/pause edge cases and remaining options. |
 | Hit counters / priority / juggling | Distinct HitCount/UniqHitCount/combo totals, HitAdd target selection, full Hit/Miss/Dodge matrix, lethal trades, helper budgets and projectile-only juggle costs are tested. | Simultaneous multi-attacker/native override/reversal interactions and team combat. |
 | HitDef `chainID` / `nochainID` | Collision and direct-contact tests cover matching IDs, two exclusions, intervening third parties, rejected contacts and projectile ownership. | Native frame captures for simultaneous multi-attacker interactions. |
