@@ -1,3 +1,4 @@
+import {copyPaletteRemaps,remapAllPalettes} from './palettes.js';
 const pair=(value,fallback=[0,0])=>value===undefined?[...fallback]:Array.isArray(value)?[value[0]??fallback[0],value[1]??fallback[1]]:[value,fallback[1]];
 const direction=value=>value<0?-1:1;
 const integer=value=>Math.trunc(Number(value));
@@ -7,12 +8,12 @@ const options=new Set(['anim','id','space','pos','facing','vfacing','bindid','bi
 function setPalette(owner,e,data,creating=false){
   const ownpal=data.ownpal===undefined?(creating?e.common:e.ownpal):!!data.ownpal;
   if(ownpal&&(creating||!e.ownpal)){
-    e.paletteRemaps=e.common?new Map():new Map(owner.paletteRemaps);
+    e.paletteRemaps=e.common?new Map():copyPaletteRemaps(owner.paletteRemaps);
     owner.events.push({type:'palettesnapshot',target:e,common:e.common});
   }
   if(!ownpal){e.paletteRemaps=null;e.paletteSnapshot=null;}
   e.ownpal=ownpal;
-  if(ownpal&&!e.common&&data.remappal!==undefined){const dest=pair(data.remappal,[-1,0]);if(dest[0]!==-1){e.paletteRemaps.clear();e.paletteRemaps.set('*',dest);}}
+  if(ownpal&&!e.common&&data.remappal!==undefined)try{remapAllPalettes(e.paletteRemaps,owner.character,data.remappal);}catch(error){owner.diagnostic('palette',error.message);}
 }
 
 function position(owner,e,data,creating){

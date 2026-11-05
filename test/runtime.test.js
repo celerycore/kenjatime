@@ -339,12 +339,12 @@ damage=100
   assert.equal(victim.receiveHit(fighter.hitDef,fighter).rejected,true);assert.equal(victim.life,victim.maxLife);
 });
 
-test('Width front/back and shared value follow native parameter order',()=>{
+test('Width front/back follow native parameter order',()=>{
   const fighter=new FighterRuntime(fixture(idle+`
 [State 0, width]
 type=Width
 trigger1=1
-value=7,11
+edge=7,11
 player=13,17
 `));fighter.tick();
   assert.deepEqual(fighter.width,{front:13,back:17,edge:[7,11]});

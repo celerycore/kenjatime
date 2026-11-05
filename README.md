@@ -100,6 +100,8 @@ Web Edition 16 fixes [helper/projectile edge cases](docs/helper-projectile-edges
 
 Web Edition 17 adds [helper/projectile interactions](docs/helper-projectile-interactions.md): complete root/helper/projectile guard-proximity scanning, helper body pushing and camera axes, simultaneous contacts, projectile contact immunity, preserved hitpause flags and deferred removal, movement-allowance clocks and boundary handling. The 381-test suite and browser fixtures cover these paths; exact native frame/version parity still needs captured comparisons.
 
+Web Edition 18 improves [controller/trigger and custom-state palette accuracy](docs/custom-state-palette-accuracy.md): destination control ordering, animation-bank triggers, persistence isolation, Width/body distances, fresh independent PalFX, creator-family projectile palettes, and validated/nontransitive remaps. The 411-test suite includes 30 new cases; a two-character browser fixture verifies foreign AIR with the victim's own cyan sprites and palette. Native frame/version parity remains unverified.
+
 Full compatibility still requires substantial engine work, including:
 
 - Every option and edge case of the implemented controllers. Common resources are available only when imported, and browser gamepad capabilities limit physical feedback.

@@ -4,7 +4,7 @@ import {ProjectileRuntime} from './projectiles.js';
 import {StageRuntime} from './stages.js';
 import {RoundFlow} from './rounds.js';
 import {CpuController,characterCommands,normalizeAILevel} from './cpu.js';
-import {baseScale,animationSource} from './coordinates.js';
+import {baseScale,bodyWidthWorld,animationSource} from './coordinates.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
 import {CommandBuffer} from './commands.js';
 import {unbindExplods} from './explods.js';
@@ -387,10 +387,7 @@ export class TrainingMatch {
   }
 
   bodyWidth(fighter,direction,edge=false){
-      const side = fighter.facing === direction ? 'front' : 'back';
-      const posture = fighter.stateType === 'A' ? 'air' : 'ground';
-      const override = edge ? fighter.width?.edge?.[side === 'front' ? 0 : 1] : fighter.width?.[side];
-      return Math.max(0,override===undefined?constant(fighter,`size.${posture}.${side}`,15)*baseScale(fighter):finite(override)*(fighter.coordinateScale||baseScale(fighter)));
+      return bodyWidthWorld(fighter,direction,{edge});
   }
   horizontalLimits(fighter){
       let min = this.stage?Math.max(this.leftBound,this.view.left+Math.max(this.stage.definition.screenLeft,this.bodyWidth(fighter,-1,true))):this.leftBound+this.bodyWidth(fighter,-1,true);

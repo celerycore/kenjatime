@@ -1,3 +1,4 @@
+import {validatePaletteRemap,copyPaletteRemaps,remapAllPalettes,normalizePalFX} from './palettes.js';
 import {inGuardDistance} from './guard-distance.js';
 import { evaluateExpression, evaluateTypedExpression, splitArguments,BottomError,UnsupportedExpressionError } from './expressions.js';
 import { decodeText } from './formats.js';
@@ -6,7 +7,7 @@ import {clipboardFormat,formatClipboard,decodeQuotedText} from './debug.js';
 import {forceFeedbackParameters} from './haptics.js';
 import {executeExplod,updateExplods as advanceExplods} from './explods.js';
 import {hitAttribute,attributeMatches as matchAttribute,filterAllows} from './hit-filters.js';
-import {baseScale,spatialConstant,spatialHitVars,changeCoordinateScale} from './coordinates.js';
+import {baseScale,bodyWidthWorld,spatialConstant,spatialHitVars,changeCoordinateScale} from './coordinates.js';
 import {allowsHitActivation,claimHitActivation,hitSourceId,recordHitContact} from './hit-rules.js';
 import {initialHitVariables,hitVariableNames,sampleRecoveryInput,advanceHitState} from './hit-state.js';
 import {scaledDamage,hitPower,koVelocity} from './combat-rules.js';
@@ -404,7 +405,7 @@ export class FighterRuntime {
       this._seed ^= this._seed << 13; this._seed ^= this._seed >>> 17; this._seed ^= this._seed << 5;
       return (this._seed >>> 0) % 1000;
     }
-    if (name === 'animexist' || name === 'selfanimexist') return +(name === 'selfanimexist' ? this : this.stateOwner).animations.has(integer(args[0]));
+    if (name === 'animexist' || name === 'selfanimexist') return +(name === 'selfanimexist' ? this : this.animationOwner).animations.has(integer(args[0]));
     if (name === 'animelemtime') {
       const index = integer(args[0]) - 1, frames = this.animation?.frames || [];
       if (index < 0 || index >= frames.length) { const error = new Error(`Animation element out of range: ${index + 1}`); error.bottom = true; throw error; }
@@ -442,7 +443,7 @@ export class FighterRuntime {
       const direction = this.facing * (front ? 1 : -1);
       const boundary = direction > 0 ? (this.world?.view.right??this.options.rightBound ?? 160) : (this.world?.view.left??this.options.leftBound ?? -160);
       let distance = (direction>0?boundary-this.pos.x:this.pos.x-boundary) / scale;
-      if (name.includes('body')) distance -= this.constant(`size.${this.stateType === 'A' ? 'air' : 'ground'}.${front ? 'front' : 'back'}`,scale);
+      if (name.includes('body')) distance -= bodyWidthWorld(this,direction,{edge:true})/scale;
       return distance;
     }
     if(name==='p1name')return this.name;
@@ -459,15 +460,13 @@ export class FighterRuntime {
     if (name === 'p2bodydist x' || name === 'p2dist x') {
       if (!other) return 0;
       let distance = (other.pos.x - this.pos.x) * this.facing / scale;
-      if (name === 'p2bodydist x') distance -= this.constant(`size.${this.stateType === 'A' ? 'air' : 'ground'}.front`,scale) + other.constant(`size.${other.stateType === 'A' ? 'air' : 'ground'}.front`,scale);
+      if (name === 'p2bodydist x') {const ahead=distance>=0;distance-=bodyWidthWorld(this,this.facing)/scale+(ahead?1:-1)*bodyWidthWorld(other,ahead? -this.facing:this.facing)/scale;}
       return distance;
     }
     if (name === 'p2bodydist y' || name === 'p2dist y') return other ? (other.pos.y - this.pos.y) / scale : 0;
     if (name === 'hitdefattr') {
-      const requested = args.map(String).join(',').toUpperCase().split(',').map(v => v.trim());
-      if (!this.hitDef) return 0;
-      const [state, attack] = this.hitDef.attr.toUpperCase().split(',').map(v => v.trim());
-      return +(requested[0]?.includes(state) && requested.slice(1).some(v => v === attack));
+      if(this.moveType!=='A'||!this.hitDef?.attr)return 0;
+      return +matchAttribute(args.map(String).join(','),this.hitDef.attr);
     }
     if (Object.hasOwn(values, name)) return values[name];
     throw new UnsupportedExpressionError(`Unsupported trigger: ${name}`);
@@ -497,12 +496,13 @@ export class FighterRuntime {
 
   changeAnimation(number, element = 1, owner = this) {
     number = integer(number);
+    if(number<0){this.diagnostic('animation-value','Negative animation number; using action 0.');number=0;}
     if (!owner.animations.has(number)) {
       this.diagnostic('missing-animation', `Animation ${number} does not exist.`);
       return false;
     }
     const frames = owner.animations.get(number).frames;
-    const index = clamp(integer(element) - 1, 0, Math.max(0, frames.length - 1));
+    const requested=integer(element)-1,index=requested>=0&&requested<frames.length?requested:0;
     this.animationOwner = owner; this.anim = number; this.frameIndex = index; this.frameTime = 0; this.animationEnded = false;
     this.animationTime = frames.slice(0, index).reduce((sum, frame) => sum + Math.max(1, frame.ticks), 0);
     this.animationCycleTime = this.animationTime; this.animationLooped = false;
@@ -524,6 +524,7 @@ export class FighterRuntime {
     this.stateOwner = owner;
     changeCoordinateScale(this,baseScale(owner));
     this.prevStateNo = this.stateNo; this.stateNo = number; this.time = 0;
+    if(ctrl!==undefined&&integer(ctrl)>=0)this.ctrl=+truth(integer(ctrl));
     this._entrySerial++; this._controllerCounts.clear();
     let keepHit=false,keepContact=false,keepCount=false;
     try{keepHit=truth(this.value(state,'hitdefpersist',0));keepContact=truth(this.value(state,'movehitpersist',0));keepCount=truth(this.value(state,'hitcountpersist',0));}catch{/* Keep a failed definition from preserving an old attack. */}
@@ -538,8 +539,7 @@ export class FighterRuntime {
       if (physics !== 'U') this.physics = physics;
       if (state.values.movetype) { const value = this.text(state, 'movetype').toUpperCase(); this.moveType = value === 'U' ? previousMoveType : value; }
       if (state.values.ctrl !== undefined) this.ctrl = +truth(this.value(state, 'ctrl', this.ctrl));
-      if (ctrl !== undefined) this.ctrl = +truth(numeric(ctrl));
-      if (state.values.anim !== undefined) this.changeAnimation(this.value(state, 'anim', this.anim));
+      if (state.values.anim !== undefined) {const anim=integer(this.value(state,'anim',-1));if(anim!==-1)this.changeAnimation(anim);}
       if (state.values.velset !== undefined) {
         const [x = 0, y = 0] = this.vector(state, 'velset'); this.vel = { x: x * this.coordinateScale, y: y * this.coordinateScale };
       }
@@ -573,8 +573,8 @@ export class FighterRuntime {
     }
     if (!enabled) return false;
     const persistent = rules.persistent;
-    const count = this._controllerCounts.get(controller.id) || 0;
-    this._controllerCounts.set(controller.id, count + 1);
+    const count = this._controllerCounts.get(controller) || 0;
+    this._controllerCounts.set(controller, count + 1);
     return persistent === 0 ? count === 0 : count % persistent === 0;
   }
 
@@ -650,7 +650,7 @@ export class FighterRuntime {
     if(!paused&&this.stateNo===5110&&this.time>=1&&this.alive&&(this.getHitVars.recovertime??1)<=0&&this.stateOwner.program.states.has(5120))this.changeState(5120);
     let serial;
     do { serial = this._entrySerial;
-      if(this._initializing&&this.options.skipIntro&&[190,191].includes(this.stateNo))this.changeState(0,1);
+      if(this._initializing&&this.options.skipIntro&&[190,191].includes(this.stateNo)){this.changeState(0);this.ctrl=1;}
       else this.runState(this.stateNo, paused);
     }
     while (serial !== this._entrySerial && this._changeCount <= 64);
@@ -728,7 +728,7 @@ export class FighterRuntime {
       return;
     }
     if (type === 'changestate' || type === 'selfstate') {
-      const state=int('value'),ctrl=controller.values.ctrl===undefined?undefined:num('ctrl'),anim=controller.values.anim===undefined?undefined:int('anim');
+      const state=int('value'),ctrl=controller.values.ctrl===undefined?undefined:int('ctrl'),anim=controller.values.anim===undefined?undefined:int('anim');
       const owner=type==='selfstate'?this:this.stateOwner;
       // The destination Statedef may replace the controller's optional animation.
       if(owner.program.states.has(state)&&anim!==undefined&&anim!==-1)this.changeAnimation(anim);
@@ -780,10 +780,17 @@ export class FighterRuntime {
     if (type === 'movehitreset') { this.moveContact = this.moveHit = this.moveGuarded = 0; return; }
     if (type === 'attackdist') {this.attackDist=num('value');if(this.hitDef)this.hitDef['guard.dist']=this.attackDist*this.coordinateScale/(this.hitDef.coordinateScale??this.coordinateScale);return;}
     if(type==='remappal'){
-      const source=vec('source',[-1,0]),dest=vec('dest',[-1,0]),key=source[0]===-1?'*':source.join(',');
+      const pair=key=>{const v=vec(key,[-1,0]);return[integer(v[0]),integer(v[1]??0)];},source=pair('source'),dest=pair('dest'),key=source[0]===-1?'*':source.join(',');
+      if(source[0]===-1&&dest[0]===-1){this.paletteRemaps.clear();return;}
+      if(source[0]<-1||source[0]!==-1&&source[1]<0||dest[0]<-1||dest[0]!==-1&&dest[1]<0)throw Error('Invalid RemapPal palette pair.');
+      const remove=dest[0]===-1||source.join(',')===dest.join(',');
+      if(!remove)validatePaletteRemap(this.character,source,dest);
+      // A reset underneath an all-palettes mapping needs an identity exception.
+      const identity=remove&&this.paletteRemaps.has('*')&&source[0]!==-1;
+      if(source[0]!==-1&&(!remove||identity)&&!this.paletteRemaps.has(key)&&this.paletteRemaps.size>=8){this.diagnostic('resource-limit','RemapPal supports at most 8 simultaneous mappings.',controller);return;}
       if(source[0]===-1)this.paletteRemaps.clear();
-      if(dest[0]!==-1&&source.join(',')!==dest.join(',')&&!this.paletteRemaps.has(key)&&this.paletteRemaps.size>=8){this.diagnostic('resource-limit','RemapPal supports at most 8 simultaneous mappings.',controller);return;}
-      if(dest[0]===-1||source.join(',')===dest.join(','))this.paletteRemaps.delete(key);else this.paletteRemaps.set(key,dest);
+      if(identity)this.paletteRemaps.set(key,source);
+      else if(remove)this.paletteRemaps.delete(key);else this.paletteRemaps.set(key,dest);
       return;
     }
     if (type === 'fallenvshake') {
@@ -836,10 +843,10 @@ export class FighterRuntime {
     if (type === 'screenbound') { this.screenBound = truth(num('value', 0));const [x,y]=vec('movecamera');this.moveCamera={x:!!x,y:!!y}; return; }
     if (type === 'playerpush') { this.playerPush = truth(num('value', 1)); return; }
     if (type === 'width') {
-      const fallback = [this.constant('size.ground.front'), this.constant('size.ground.back')];
-      const common = controller.values.value === undefined ? null : vec('value', fallback);
-      const [front, back] = vec('player', common || fallback);
-      this.width = { front, back, edge: controller.values.edge !== undefined ? vec('edge') : common }; return;
+      if(controller.values.value!==undefined&&(controller.values.player!==undefined||controller.values.edge!==undefined))throw Error('Width value cannot be combined with player or edge.');
+      const common=controller.values.value===undefined?[0,0]:vec('value');
+      const [front=0,back=0]=vec('player',common);
+      const edge=vec('edge',common);this.width={front:integer(front),back:integer(back),edge:[integer(edge[0]??0),integer(edge[1]??0)]}; return;
     }
     if (type === 'assertspecial') {
       const supported = new Set(['nowalk', 'nojump', 'nocrouch', 'noautoturn', 'invisible', 'noshadow', 'unguardable', 'noairguard', 'nostandguard', 'nocrouchguard','nojugglecheck','intro','roundnotover','timerfreeze','noko','nobardisplay','nobg','nofg']);
@@ -875,7 +882,9 @@ export class FighterRuntime {
       const attr=text('attr'),attribute=hitAttribute(attr);if(!time)this.hitOverrides.delete(slot);else this.hitOverrides.set(slot,{attr,attribute,stateNo:int('stateno'),time,forceAir:truth(num('forceair'))});return;
     }
     if (DELEGATED_EFFECTS.has(type)) {
-      const data = this.effectParameters(controller);
+      if(type==='palfx'&&this.parent&&!this.ownPal)return;
+      let data = this.effectParameters(controller);
+      if(['palfx','allpalfx','bgpalfx'].includes(type))data=normalizePalFX(data);
       if (type === 'playsnd') {
         const [group = 0, number = 0] = Array.isArray(data.value) ? data.value : [data.value || 0, 0];
         Object.assign(data, { group, number, common: /^\s*f/i.test(controller.values.value || ''), volumeScale: data.volumescale, freqMul: data.freqmul });
@@ -992,11 +1001,11 @@ export class FighterRuntime {
       id,position:pos,facing,parent:this,root:this.root,helperId:Math.trunc(spec.id||0),keyCtrl:!!spec.keyctrl,
       ownPal:!!spec.ownpal,teamSide:this.teamSide,pauseMoveTime:spec.pausemovetime||0,superMoveTime:spec.supermovetime||0});
     helper.name = spec.name || `${this.name}'s helper`; helper.opponent = this.opponent;
-    if(spec.ownpal)helper._paletteRemaps=new Map(this.paletteRemaps);
+    if(spec.ownpal)helper._paletteRemaps=copyPaletteRemaps(this.paletteRemaps);
     if(spec.ownpal)this.events.push({type:'palettesnapshot',target:helper});
     const known=new Set(['id','name','stateno','postype','pos','facing','helpertype','keyctrl','ownpal','pausemovetime','supermovetime','remappal','source','line']);
     for(const key of Object.keys(spec))if(!known.has(key)&&!key.startsWith('size.'))helper.diagnostic('unsupported-helper',`Helper parameter ${key} is not implemented.`);
-    if (spec.ownpal&&spec.remappal && spec.remappal[0] !== -1){helper.paletteRemaps.clear();helper.paletteRemaps.set('*',spec.remappal);}
+    if(spec.ownpal&&spec.remappal!==undefined)try{remapAllPalettes(helper.paletteRemaps,helper.character,spec.remappal);}catch(error){helper.diagnostic('palette',error.message);}
     if (!helper.changeState(spec.stateno ?? 0)) { helper.destroyed = true; return helper; }
     this.helpers.push(helper); return helper;
   }

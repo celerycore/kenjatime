@@ -29,7 +29,7 @@ script='[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=1\nanim=0\n'
 for state in range(200,208):
     script+=f'[Statedef {state}]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\n'
     if state in [200,201,207]:
-        script+=f'[State Helper]\ntype=Helper\ntrigger1=Time=0\nstateno={ {200:300,201:301,207:302}[state] }\nid=77\n'
+        script+=f'[State Helper]\ntype=Helper\ntrigger1=Time=0\nstateno={ {200:300,201:301,207:302}[state] }\nid=77\nownpal={1 if state==207 else 0}\n'
     else:
         params={202:'projhits=3\nprojhitanim=102',203:'projhits=1\nprojhitanim=102',204:'projhits=1\nprojremove=0',205:'projanim=0\nprojshadow=0\noffset=70,0',206:'projanim=0\nprojshadow=1\noffset=70,0'}[state]
         script+='[State Projectile]\ntype=Projectile\ntrigger1=Time=0\nprojid=80\nprojanim=100\noffset=140,0\nvelocity=0,0\nattr=S,NP\ndamage=10\nground.velocity=0,0\nground.hittime=0\nsparkno=-1\n'+params+'\n'
@@ -97,7 +97,7 @@ with sync_playwright() as p:
     page=browser.new_page(viewport={'width':1440,'height':1000},accept_downloads=True);errors=[];failures=[]
     page.on('pageerror',lambda e:errors.append(str(e)));page.on('requestfailed',lambda r:failures.append(r.url))
     page.goto(os.environ.get('MUGEN_TEST_URL','http://127.0.0.1:5186/next/')+'?perf=1&graphics=high',wait_until='networkidle')
-    assert page.locator('.tag i').inner_text()=='17'
+    assert page.locator('.tag i').inner_text()=='18'
     page.locator('#file').set_input_files('work/entity-browser-fixture.zip')
     page.wait_for_function("document.querySelector('#name').textContent==='Entity Edge Fixture'")
     page.locator('#training').click();page.locator('#play').click();page.locator('#reset').click()

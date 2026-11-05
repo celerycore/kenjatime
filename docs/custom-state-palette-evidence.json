@@ -1,0 +1,366 @@
+{
+  "edition": 18,
+  "sourceBranch": "source/mugen-compatibility",
+  "nativeEquivalenceVerified": false,
+  "tests": {
+    "passed": 411,
+    "failed": 0,
+    "skipped": 0,
+    "newRegressions": 30
+  },
+  "browserCustomPalettes": {
+    "foreignState": {
+      "stateOwner": 1,
+      "animationOwner": 1,
+      "coordinateScale": 1,
+      "animExistMask": 10,
+      "victimPalette": 2,
+      "cyanPixels": 81
+    },
+    "selfState": {
+      "stateOwner": 2,
+      "animationOwner": 1,
+      "coordinateScale": 0.5,
+      "ctrl": 0
+    },
+    "creationPixels": {
+      "cyan": 81,
+      "green": 648,
+      "teal": 0,
+      "purple": 0
+    },
+    "projectilePixels": {
+      "cyan": 81,
+      "green": 648,
+      "teal": 648,
+      "purple": 648
+    },
+    "expiredPixels": {
+      "cyan": 81,
+      "green": 972,
+      "teal": 0,
+      "purple": 648
+    },
+    "creatorPaletteRetained": true,
+    "errors": [],
+    "failedRequests": []
+  },
+  "browserRegressions": {
+    "entityLifecycle": {
+      "orphanRedPixels": 324,
+      "orphanPalettePixels": 324,
+      "quotaLives": [
+        990,
+        980,
+        970
+      ],
+      "oneTickRemovalVisible": true,
+      "exhaustedProjectileLife": 990,
+      "shadowPixels": [
+        0,
+        84
+      ],
+      "errors": [],
+      "failedRequests": []
+    },
+    "helperInteractions": {
+      "guardObservation": [
+        0,
+        1
+      ],
+      "simultaneousLife": [
+        990,
+        990
+      ],
+      "pauseTicks": 2,
+      "pausedPixels": {
+        "red": 324,
+        "green": 0
+      },
+      "removedPixels": {
+        "red": 0,
+        "green": 324
+      },
+      "cameraY": [
+        -60,
+        0
+      ],
+      "pushDistance": 32,
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    "combatRules": {
+      "normalDamage": 90,
+      "powerAwards": [
+        112,
+        45
+      ],
+      "guardPower": [
+        56,
+        22
+      ],
+      "guardComboLife": 980,
+      "tripState": 5110,
+      "downState": 5080,
+      "bounceState": 5101,
+      "koY": -15.900000035762787,
+      "noneLife": 1000,
+      "errors": [],
+      "failedRequests": []
+    },
+    "scriptSemantics": {
+      "state": 210,
+      "intVariables": [
+        1,
+        1,
+        1,
+        -2147483648,
+        0,
+        0,
+        11,
+        2,
+        0,
+        1
+      ],
+      "floatVariable": 0,
+      "clipboard": "range=1,1,1 calls=1 float=0.000000 wrap=-2147483648\nbottom=0 later=11 cmd=2",
+      "diagnosticTypes": [
+        "controller-parameter",
+        "parameter-bottom",
+        "trigger-numbering"
+      ],
+      "errors": [],
+      "failedRequests": []
+    },
+    "combatWorkflow": {
+      "foundationLife": 990,
+      "followLife": 970,
+      "blockedLife": 970,
+      "throwLife": [
+        970,
+        940
+      ],
+      "liedownBefore": 77,
+      "afterPress": 38,
+      "getupState": 0,
+      "airRecoveryState": 5210,
+      "finalState": 50,
+      "errors": [],
+      "failedRequests": []
+    }
+  },
+  "mobileProviders": [
+    {
+      "fileReaderFallback": false,
+      "punchDamage": 23,
+      "unsafeEntryBlocked": true,
+      "retryPassed": true,
+      "sampleURL": "http://127.0.0.1:5186/next/kfm.zip",
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "fileReaderFallback": true,
+      "punchDamage": 23,
+      "unsafeEntryBlocked": true,
+      "retryPassed": true,
+      "sampleURL": "http://127.0.0.1:5186/next/kfm.zip",
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "mobileArena": {
+    "zipMB": 55.56,
+    "workerCount": 2,
+    "importHeartbeatTicks": 11,
+    "touchPunchDamage": 23,
+    "multiTouchInput": [
+      "R",
+      "D",
+      "a"
+    ],
+    "scriptExportBytes": 30701,
+    "cpuMatch": true,
+    "errors": [],
+    "failedRequests": []
+  },
+  "cadencePolicy": {
+    "shortPressDamage": 10,
+    "lowModeSimulationTicks": 65,
+    "lowModeRenderedFPS": 30.001875117194828,
+    "offscreenTicks": 18,
+    "offscreenDraws": 0,
+    "pausedDraws": 0,
+    "hiddenTicks": 0,
+    "resumeTicks": 18,
+    "sizes": [
+      [
+        960,
+        540
+      ],
+      [
+        720,
+        405
+      ],
+      [
+        576,
+        324
+      ]
+    ],
+    "settingsPersisted": true,
+    "instrumentationOffByDefault": true,
+    "autoStress": null,
+    "errors": []
+  },
+  "compatibilityReplay": {
+    "scenario": "kfm-walk-punch",
+    "samples": 10,
+    "diagnostics": 0,
+    "nativeComparison": false
+  },
+  "exampleStateSweeps": [
+    {
+      "path": "mugen-1.1b1/chars/kfm720/kfm720.def",
+      "states": 106,
+      "ticksPerState": 30,
+      "diagnostics": 0,
+      "uncaught": 0
+    },
+    {
+      "path": "mugen-1.1b1/chars/kfm/kfm.def",
+      "states": 106,
+      "ticksPerState": 30,
+      "diagnostics": 0,
+      "uncaught": 0
+    }
+  ],
+  "performance": {
+    "baselineEdition": 17,
+    "currentEdition": 18,
+    "environment": {
+      "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+      "physicalAndroid": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "dpr": 2,
+      "cpuThrottle": 1,
+      "frames": 90,
+      "browser": "154.0.8037.57",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+      "powerMode": "unknown",
+      "thermalState": "uncontrolled host"
+    },
+    "scenes": {
+      "idle": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "changedBounds": null,
+        "intentionalVisualChange": false,
+        "visualChangeReason": null,
+        "renderP95Ms": 0.3,
+        "simulationTickMs": 0.072,
+        "readbacks": 0,
+        "beforeCanvasHash": "cb1aaa92bd5bdeb341de99bb1d66ca9e749225b6042ea25b2c3fd9016b0c5008",
+        "afterCanvasHash": "cb1aaa92bd5bdeb341de99bb1d66ca9e749225b6042ea25b2c3fd9016b0c5008"
+      },
+      "sparks": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "changedBounds": null,
+        "intentionalVisualChange": false,
+        "visualChangeReason": null,
+        "renderP95Ms": 2,
+        "simulationTickMs": 0.156,
+        "readbacks": 0,
+        "beforeCanvasHash": "b395cff45dde7c6fc8a4006b14451ee9bd36c17377b28e63fd5ae25e062c6981",
+        "afterCanvasHash": "b395cff45dde7c6fc8a4006b14451ee9bd36c17377b28e63fd5ae25e062c6981"
+      },
+      "additive": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "changedBounds": null,
+        "intentionalVisualChange": false,
+        "visualChangeReason": null,
+        "renderP95Ms": 17.9,
+        "simulationTickMs": 0.212,
+        "readbacks": 0,
+        "beforeCanvasHash": "2a0bc873cba2593757058fecd1670fc4aa73b5ebaff5c142e5863fbccae8be3a",
+        "afterCanvasHash": "2a0bc873cba2593757058fecd1670fc4aa73b5ebaff5c142e5863fbccae8be3a"
+      },
+      "custom": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 43,
+        "changedBounds": [
+          120,
+          0,
+          840,
+          318
+        ],
+        "intentionalVisualChange": true,
+        "visualChangeReason": "ownpal=1 Explods start with fresh PalFX instead of freezing the parent tint",
+        "renderP95Ms": 23.7,
+        "simulationTickMs": 0.233,
+        "readbacks": 0,
+        "beforeCanvasHash": "9a9be288c70cd7305ae461590c8dd24317e2c249bb551a1078d3b3a87c1025d8",
+        "afterCanvasHash": "27309d0d005d9548986e1e7426d4ac23bad4ea7b40437aa844215844b7d4ccc9"
+      },
+      "entities": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "changedBounds": null,
+        "intentionalVisualChange": false,
+        "visualChangeReason": null,
+        "renderP95Ms": 13.9,
+        "simulationTickMs": 0.283,
+        "readbacks": 0,
+        "beforeCanvasHash": "bf085aab7922bf982f0315183b622b0c671cbe6deb0947bb8c812af7b25a09f6",
+        "afterCanvasHash": "bf085aab7922bf982f0315183b622b0c671cbe6deb0947bb8c812af7b25a09f6"
+      },
+      "parallax": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "changedBounds": null,
+        "intentionalVisualChange": false,
+        "visualChangeReason": null,
+        "renderP95Ms": 1.6,
+        "simulationTickMs": 0.066,
+        "readbacks": 0,
+        "beforeCanvasHash": "393d8c836633f14eb616eaac52bec196cffc4812bea848346233ca08913c49ba",
+        "afterCanvasHash": "393d8c836633f14eb616eaac52bec196cffc4812bea848346233ca08913c49ba"
+      },
+      "combined": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 39,
+        "changedBounds": [
+          120,
+          0,
+          840,
+          318
+        ],
+        "intentionalVisualChange": true,
+        "visualChangeReason": "ownpal=1 Explods start with fresh PalFX instead of freezing the parent tint",
+        "renderP95Ms": 46.7,
+        "simulationTickMs": 0.438,
+        "readbacks": 0,
+        "beforeCanvasHash": "122abc5ca9fcee773973afbb24ffb953f719216f9f568703e8ed5702062b2738",
+        "afterCanvasHash": "4b6f5225fa148e709acfaee1cebdb45bc2f9f343a32239d27a6f0466118da742"
+      }
+    },
+    "limits": "Uncontrolled-host CPU timings, not physical Android FPS or a speedup claim. Strict Edition 17 pixel comparison correctly flags the two intentionally corrected ownpal scenes."
+  },
+  "referenceFileSha256": {
+    "sctrls.txt": "8f6e31752a9c94d755745a12269109e4cf724019e5f2f0f586274c02ab2ef96d",
+    "triggers.txt": "4e1b8f6e81611974619be7b9ffa98d0db90b320fb79ecafa388ec3819b1a4e2d",
+    "ikemen-reference-char.go": "49bb2ef28aa1ccb1a264c2b9a60b118391a436364748de2be93f927dce4305ba",
+    "ikemen-reference-bytecode.go": "818a121ca2363bddc0a3de3e048772f1b0263ace387c2af8cab56a5d9f1b4e80"
+  },
+  "buildAssets": {
+    "archive-worker-DsB7QbR4.js": "f8a0df700ce217e36f727cda19ef5f2f7e2d3ba6da072de0ef4d4e7340255b0d",
+    "main-DWAF97kg.css": "43cc5133252d6e34b2aa0d2e18ceb12f0df2f4be1f6c0e17980d290c05f6ac42",
+    "main-gc43RGd1.js": "2f26b386143448bbca451887b23e85b9fd50bacaffc64677af56bddd1f478966"
+  },
+  "remaining": "Native numerical/frame/version captures, remaining controller parameters, zero-duration/loop AIR queries, negative-state persistence, legacy offsets, private/linked palettes, blend/afterimage/motif variants and wider real-character corpus."
+}

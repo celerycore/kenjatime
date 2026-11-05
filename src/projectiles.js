@@ -1,3 +1,4 @@
+import {paletteOwner,copyPaletteRemaps,remapAllPalettes} from './palettes.js';
 import {spawnPosition} from './entities.js';
 
 const vector = (value, fallback = [0,0]) => Array.isArray(value) ? [Number(value[0] ?? fallback[0]),Number(value[1] ?? fallback[1])] : value === undefined ? [...fallback] : [Number(value),fallback[1]];
@@ -9,7 +10,7 @@ export class ProjectileRuntime {
     this.isProjectile=true;
     this.world = creator.world; this.id = id; this.projId = Math.max(0,Math.trunc(spec.projid ?? 0));
     this.teamSide = creator.teamSide; this.character = creator.character; this.coordinateScale = creator.coordinateScale;
-    this.baseCoordinateScale=this.coordinateScale;
+    this.baseCoordinateScale=this.coordinateScale;this.paletteParent=paletteOwner(creator);
     this.guardDistance=creator.constant('size.proj.attack.dist')*creator.coordinateScale;
     this.animations = creator.animations; this.program = {...creator.program,constants:new Map(creator.program.constants)};
     this.spec = spec; this.events = []; this.diagnostics = []; this.asserted = new Set();
@@ -28,7 +29,7 @@ export class ProjectileRuntime {
     this.remainingHits = Math.max(0,Math.trunc(spec.projhits ?? 1)); this.missTime = Math.max(0,Math.trunc(spec.projmisstime ?? 0));
     this.pauseMoveTime = Math.max(0,spec.pausemovetime || 0); this.superMoveTime = Math.max(0,spec.supermovetime || 0);
     this.ownPal = !!spec.ownpal; this.time = 0; this.removing = false; this.removed = false; this.activeTicks=0;this.nextHitAge=0;this.drawVisible=true;this._inTick=false;
-    this._paletteRemaps=new Map(this.owner.paletteRemaps);if(this.ownPal&&spec.remappal&&spec.remappal[0]!==-1){this._paletteRemaps.clear();this._paletteRemaps.set('*',spec.remappal);}
+    this._paletteRemaps=copyPaletteRemaps(creator.paletteRemaps);if(this.ownPal&&spec.remappal!==undefined)try{remapAllPalettes(this._paletteRemaps,this.character,spec.remappal);}catch(error){this.diagnostic('palette',error.message);}
     this.attackMultiplier = creator.attackMultiplier;
     if (!this.animations.has(this.anim)) { this.diagnostic('missing-animation',`Projectile animation ${this.anim} does not exist.`); this.removed = true; }
   }
@@ -38,7 +39,7 @@ export class ProjectileRuntime {
   get maxPower() { return this.owner.maxPower; }
   get targets(){return this.owner.targets;}
   get targetHitIds(){return this.owner.targetHitIds;}
-  get paletteRemaps(){return this.ownPal?this._paletteRemaps:this.owner.paletteRemaps;}
+  get paletteRemaps(){return this.ownPal?this._paletteRemaps:this.paletteParent.paletteRemaps;}
   constant(name) { const value = this.program.constants.get(name); return Array.isArray(value) ? value[0] : value; }
   changeState() { this.diagnostic('unsupported-projectile','A projectile cannot enter a player state.'); return false; }
   diagnostic(type,message) {

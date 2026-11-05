@@ -31,3 +31,5 @@ This pass targets shared script rules documented in the supplied MUGEN 1.1 beta 
 - Verify boundary numeric conversions, overflow and transcendental results across native versions. Engine world/physics arithmetic is a separate concern from the expression interpreter's 32-bit arithmetic.
 - Add a broader character corpus and version-specific WinMUGEN/1.0/1.1 cases. Shiki R's contents remain uninspected until its scripts are accessible.
 - Supply independent native MUGEN replay baselines. The comparison command can compare captured fields, but does not launch the Windows engine or certify full compatibility.
+
+Edition 18 continues this work with [controller/trigger and palette accuracy](custom-state-palette-accuracy.md), including current-animation-bank queries, attack masks, controller identity, Width defaults and destination control precedence.

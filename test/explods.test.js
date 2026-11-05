@@ -118,19 +118,19 @@ test('Animation expressions using fvar are character-bank effects, while F-prefi
   control(f,'Explod','anim=fvar(0)');control(f,'Explod','anim=F 11');f.tick();assert.equal(f.drawExplods[0].common,false);assert.equal(f.drawExplods[1].common,true);assert.equal(f.drawExplods[1].ownpal,true);
 });
 
-test('ownpal snapshots retain the local PalFX and remap from creation while global PalFX remains live',()=>{
+test('ownpal copies remaps with fresh local PalFX while global PalFX remains live',()=>{
   const w=world(),p=w.player,fx=new EffectsState(),pixel=new Uint8ClampedArray([1,2,3,255]);
   control(p,'PalFX','time=1\nadd=100,0,0');control(p,'RemapPal','source=1,1\ndest=1,2');control(p,'Explod','anim=11\nid=1\nownpal=1\npostype=p2');
   control(p,'PalFX','time=1\nadd=0,0,100');control(p,'RemapPal','source=1,1\ndest=1,3');control(p,'Explod','anim=11\nid=2');control(p,'AllPalFX','time=20\nadd=0,10,0');
   fx.consume(p.events,{entity:p});const own=p.explods[0],shared=p.explods[1];
-  assert.deepEqual([...transformRgba(pixel,fx.paletteFor(own))],[101,12,3,255]);assert.deepEqual([...transformRgba(pixel,fx.paletteFor(shared))],[1,12,103,255]);
-  assert.deepEqual(own.paletteRemaps.get('1,1'),[1,2]);assert.deepEqual(p.paletteRemaps.get('1,1'),[1,3]);fx.advance();assert.deepEqual([...transformRgba(pixel,fx.paletteFor(own))],[101,12,3,255]);
+  assert.deepEqual([...transformRgba(pixel,fx.paletteFor(own))],[1,12,3,255]);assert.deepEqual([...transformRgba(pixel,fx.paletteFor(shared))],[1,12,103,255]);
+  assert.deepEqual(own.paletteRemaps.get('1,1'),[1,2]);assert.deepEqual(p.paletteRemaps.get('1,1'),[1,3]);fx.advance();assert.deepEqual([...transformRgba(pixel,fx.paletteFor(own))],[1,12,3,255]);
   control(p,'Explod','anim=11\nownpal=1\nremappal=1,4');assert.deepEqual([...p.explods.at(-1).paletteRemaps],[['*',[1,4]]]);
 });
 
-test('Own-palette helpers capture their parent colors and afterimages retain palette remaps',()=>{
+test('Own-palette helpers start fresh PalFX and afterimages retain palette remaps',()=>{
   const w=world(),p=w.player,fx=new EffectsState();control(p,'PalFX','time=10\nadd=100,0,0');const h=w.spawnHelper(p,{stateno:0,ownpal:1});control(p,'PalFX','time=10\nadd=0,0,100');
-  fx.consume(p.events,{entity:p});assert.equal(fx.paletteFor(h).layers[0].add[0],100);
+  fx.consume(p.events,{entity:p});assert.equal(fx.paletteFor(h).layers.length,0);
   control(p,'RemapPal','source=1,1\ndest=1,2');fx.consume([{type:'afterimage',time:10,length:2,timegap:1,framegap:1}],{entity:p});fx.capture([p]);control(p,'RemapPal','source=1,1\ndest=1,3');assert.deepEqual(fx.trailsFor(p)[0].paletteRemaps.get('1,1'),[1,2]);
 });
 

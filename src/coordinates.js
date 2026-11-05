@@ -5,6 +5,15 @@ export function baseScale(actor){
   return width>0?320/width:1;
 }
 
+/** Body/edge widths in the shared world, independent of current state ownership. */
+export function bodyWidthWorld(actor,direction,{edge=false}={}){
+  const front=actor.facing===direction,side=front?'front':'back';
+  const override=edge?actor.width?.edge?.[front?0:1]:actor.width?.[side];
+  if(override!==undefined)return Math.max(0,Number(override)||0)*(actor.coordinateScale||baseScale(actor));
+  const value=actor.program?.constants?.get(`size.${actor.stateType==='A'?'air':'ground'}.${side}`)??15;
+  return Math.max(0,Number(value)||0)*baseScale(actor);
+}
+
 export function spatialConstant(name){
   if(name.startsWith('velocity.'))return true;
   if(name.startsWith('size.'))return !['size.xscale','size.yscale','size.proj.doscale'].includes(name);

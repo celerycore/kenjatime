@@ -1,3 +1,4 @@
+import {paletteOwner,normalizePalFX} from './palettes.js';
 import {baseScale} from './coordinates.js';
 import {sampleFighterAnimation} from './rendering.js';
 
@@ -13,7 +14,7 @@ export function transformRgba(rgba,palette) {
     for (const fx of layers) {
       const color = clamp(fx.color ?? 256,0,256)/256, grey = rgb[0]*.299+rgb[1]*.587+rgb[2]*.114;
       const add = triple(fx.add,[0,0,0]), mul = triple(fx.mul,[256,256,256]), sin = fx.sinadd || [0,0,0,0];
-      const wave = sin[3] > 0 ? Math.sin(2*Math.PI*(fx.age||0)/sin[3]) : 0;
+      const wave = sin[3] ? Math.sin(2*Math.PI*(fx.age||0)/sin[3]) : 0;
       rgb = rgb.map((v,i)=>{
         v = grey+(v-grey)*color; if (fx.invertall) v=255-v;
         return clamp((v+add[i]+Number(sin[i]||0)*wave)*mul[i]/256+Number(fx.postadd?.[i]||0));
@@ -39,12 +40,12 @@ export class EffectsState {
   consume(events,{entity}={}) {
     for(const event of events||[]){
       const type=String(event.type).toLowerCase();
-      if(type==='palfx'&&entity){const fx=descriptor(event);if(live(fx))this.palettes.set(entity,fx);else this.palettes.delete(entity);}
-      else if(type==='allpalfx')this.all=descriptor(event);
-      else if(type==='bgpalfx')this.background=descriptor(event);
+      if(type==='palfx'&&entity){const owner=paletteOwner(entity),fx=descriptor(normalizePalFX(event));if(live(fx))this.palettes.set(owner,fx);else this.palettes.delete(owner);}
+      else if(type==='allpalfx')this.all=descriptor(normalizePalFX(event));
+      else if(type==='bgpalfx')this.background=descriptor(normalizePalFX(event));
       else if(type==='envshake'){const scale=event.coordinateScale??entity?.coordinateScale??1;this.shake=descriptor(event,{time:0,freq:60,ampl:-4/scale,phase:event.freq>=90?90:0,coordinateScale:scale});}
       else if(type==='envcolor')this.environment=descriptor(event,{value:[255,255,255],under:0});
-      else if(type==='palettesnapshot'&&event.target)event.target.paletteSnapshot=event.common?{layers:[],key:'[]'}:this.paletteFor(entity,{includeAll:false});
+      else if(type==='palettesnapshot'&&event.target)event.target.paletteSnapshot={layers:[],key:'[]'};
       else if(type==='afterimage'&&entity){
         const trail=descriptor(event,{time:1,length:20,timegap:1,framegap:4,palcolor:256,palbright:[30,30,30],palcontrast:[120,120,220],palpostbright:[0,0,0],paladd:[10,10,25],palmul:[.65,.65,.75],trans:'none'});
         trail.length=clamp(Math.trunc(trail.length),0,60);trail.timegap=Math.max(1,Math.trunc(trail.timegap));trail.framegap=Math.max(1,Math.trunc(trail.framegap));trail.frames=[];
@@ -66,14 +67,8 @@ export class EffectsState {
     }
   }
   paletteFor(entity,{ownpal=entity?.ownPal??entity?.ownpal,ignoreLocal=false,includeAll=true}={}) {
-    let current=ignoreLocal?null:entity,depth=0,layers=[];
-    while(current&&depth++<64){
-      const fx=this.palettes.get(current);
-      if(live(fx)){layers=[fx];break;}
-      if(current.paletteSnapshot){layers=current.paletteSnapshot.layers;break;}
-      if(current===entity?ownpal:current.ownPal??current.ownpal)break;
-      current=current.parent||current.owner;
-    }
+    const owner=ignoreLocal?null:ownpal?entity:paletteOwner(entity),fx=this.palettes.get(owner);
+    let layers=live(fx)?[fx]:[];
     layers=[...layers,...(includeAll&&live(this.all)?[this.all]:[])].map(effect=>Object.fromEntries(Object.entries(effect).map(([key,value])=>[key,Array.isArray(value)?[...value]:value])));
     return{layers,key:JSON.stringify(layers.map(({add,mul,sinadd,color,invertall,age})=>({add,mul,sinadd,color,invertall,age:sinadd?age:0})))};
   }
@@ -93,7 +88,7 @@ export class EffectsState {
   }
   cleanup(entities,{paletteOwners=entities}={}){
     const live=new Set(entities),paletteLive=new Set();
-    for(let entity of paletteOwners){let depth=0;while(entity&&depth++<256&&!paletteLive.has(entity)){paletteLive.add(entity);if(entity.ownPal||entity.ownpal||entity.paletteSnapshot)break;entity=entity.parent||entity.owner;}}
+    for(const entity of paletteOwners){const owner=paletteOwner(entity);if(owner)paletteLive.add(owner);}
     for(const entity of this.palettes.keys())if(!paletteLive.has(entity))this.palettes.delete(entity);
     for(const entity of this.afterimages.keys())if(!live.has(entity))this.afterimages.delete(entity);
   }
