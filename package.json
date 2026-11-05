@@ -6,7 +6,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "test": "node --test --experimental-test-isolation=none test/*.test.js",
-    "compatibility": "node scripts/compatibility-audit.mjs"
+    "compatibility": "node scripts/compatibility-audit.mjs",
+    "benchmark:browser": "python scripts/benchmark-browser.py"
   },
   "dependencies": {
     "fflate": "0.8.2",

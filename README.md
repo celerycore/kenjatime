@@ -2,6 +2,14 @@
 
 A local-first browser character inspector and two-fighter runtime, developed against the supplied MUGEN 1.1 beta 1 documentation and Kung Fu Man examples. Training and matches execute a subset of the character's CNS/CMD scripts and resolve attacks against AIR collision boxes. Full MUGEN character compatibility remains unfinished.
 
+## Mobile graphics and performance
+
+Web Edition 15 adds Auto/High/Balanced/Low graphics and an opt-in Performance display. Low renders at a 30 FPS target while simulation stays at 60 Hz. All MUGEN entities/effects remain active. Settings persist locally; hidden tabs explicitly pause, and offscreen viewers stop drawing.
+
+The measured seven-scene pass removes sprite/stage pixel readbacks through native Canvas compositing, bounds asset caches, reuses static parallax/draw records, and buffers keyboard/touch/gamepad inputs independently of presentation. See [measurements, exact source changes, test results and deployment instructions](docs/performance-baseline.md). Physical Android performance is still unverified, and the extreme CPU-throttled software-renderer test remains below 30 FPS.
+
+The editable project is on `source/mobile-performance`; `gh-pages` contains the built site. Build the source branch before deploying.
+
 ## Run
 
 Node 22+ recommended. In this directory:

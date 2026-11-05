@@ -60,6 +60,9 @@ test('Auto observes delayed presentation and adapts by elapsed time even at ten 
 test('telemetry is transparent when enabled and restores untouched Canvas methods when disabled',()=>{
   const context={drawImage:()=>7,getImageData:()=>9,putImageData:()=>11},original=context.drawImage,monitor=new PerformanceMonitor();monitor.track(context);assert.equal(context.drawImage,original);monitor.setEnabled(true);monitor.begin(0);assert.equal(context.drawImage(),7);context.getImageData(0,0,20,30);monitor.simulation(2,2);monitor.end(4);assert.equal(monitor.snapshot().readbackPixels,600);assert.equal(monitor.snapshot().simulationTickMs,1);monitor.setEnabled(false);assert.equal(context.drawImage,original);
 });
+test('telemetry measures presentation cadence and uses the selected 30 FPS budget for slow frames',()=>{
+  const monitor=new PerformanceMonitor({enabled:true});for(const time of [0,1000/30,2000/30]){monitor.begin(time);monitor.end(2,{targetFPS:30});}assert.equal(monitor.snapshot().slowFrameRate,0);assert.equal(monitor.snapshot().renderedFrames,3);assert.ok(Math.abs(monitor.snapshot().fps-30)<1e-8);
+});
 test('compositor bounds respect rotation/mirroring and plans preserve exact algebraic coefficients',()=>{
   assert.deepEqual(spriteBounds({a:-2,b:0,c:0,d:3,e:30,f:20},-5,-5,10,10,100,100),{left:20,top:5,width:20,height:30});
   for(const s of [0,.1,.5,1])for(const d of [0,.25,.75,1]){const plan=compositePlan({mode:'add',source:s,destination:d});assert.ok(Math.abs(plan.opacity*plan.brightness+plan.add-s)<1e-10);assert.equal(1-plan.opacity,d);}

@@ -1,0 +1,60 @@
+{
+  "shortPressDamage": 10,
+  "lowModeSimulationTicks": 65,
+  "lowModeRenderedFPS": 30.001875117194828,
+  "offscreenTicks": 18,
+  "offscreenDraws": 0,
+  "pausedDraws": 0,
+  "hiddenTicks": 0,
+  "resumeTicks": 17,
+  "sizes": [
+    [
+      960,
+      540
+    ],
+    [
+      720,
+      405
+    ],
+    [
+      576,
+      324
+    ]
+  ],
+  "settingsPersisted": true,
+  "instrumentationOffByDefault": true,
+  "autoStress": {
+    "samples": 103,
+    "fps": 9.709114917084158,
+    "slowFrameRate": 1,
+    "frameAverageMs": 102.99600000000001,
+    "frameP95Ms": 133.39999999999964,
+    "renderAverageMs": 83.83168316890698,
+    "renderP50Ms": 82.40000000596046,
+    "renderP95Ms": 113.29999999701977,
+    "simulationAverageMs": 6.086407767482174,
+    "simulationP95Ms": 11.299999997019768,
+    "simulationTickMs": 1.0226753671299575,
+    "ticks": 613,
+    "drawCalls": 55449,
+    "readbacks": 0,
+    "readbackPixels": 0,
+    "pixelWrites": 0,
+    "counts": {
+      "sprites": 2,
+      "paletteVariants": 10,
+      "graphicsMode": "auto",
+      "graphicsPreset": "low",
+      "renderScale": 0.6,
+      "targetFPS": 30,
+      "simulationDebt": 0.9739999999999505,
+      "cacheBytes": 2452232,
+      "impacts": 0,
+      "explods": 64,
+      "projectiles": 12,
+      "helpers": 8,
+      "trails": 64
+    }
+  },
+  "errors": []
+}
