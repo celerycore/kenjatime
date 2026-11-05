@@ -1,0 +1,279 @@
+{
+  "edition": 17,
+  "nativeEquivalenceVerified": false,
+  "sourceBranch": "source/mugen-compatibility",
+  "nodeTests": {
+    "passed": 381,
+    "failed": 0,
+    "skipped": 0,
+    "newRegressions": 41
+  },
+  "browserInteractions": {
+    "guardObservation": [
+      0,
+      1
+    ],
+    "simultaneousLife": [
+      990,
+      990
+    ],
+    "pauseTicks": 2,
+    "pausedPixels": {
+      "red": 324,
+      "green": 0
+    },
+    "removedPixels": {
+      "red": 0,
+      "green": 324
+    },
+    "cameraY": [
+      -60,
+      0
+    ],
+    "pushDistance": 32,
+    "consoleErrors": [],
+    "failedRequests": []
+  },
+  "browserRegressions": {
+    "lifecyclePaletteShadow": {
+      "orphanRedPixels": 324,
+      "orphanPalettePixels": 324,
+      "quotaLives": [
+        990,
+        980,
+        970
+      ],
+      "oneTickRemovalVisible": true,
+      "exhaustedProjectileLife": 990,
+      "shadowPixels": [
+        0,
+        84
+      ],
+      "errors": [],
+      "failedRequests": []
+    },
+    "mobileProviders": [
+      {
+        "fileReaderFallback": false,
+        "punchDamage": 23,
+        "unsafeEntryBlocked": true,
+        "retryPassed": true,
+        "sampleURL": "http://127.0.0.1:5186/next/kfm.zip",
+        "errors": [],
+        "failedRequests": []
+      },
+      {
+        "fileReaderFallback": true,
+        "punchDamage": 23,
+        "unsafeEntryBlocked": true,
+        "retryPassed": true,
+        "sampleURL": "http://127.0.0.1:5186/next/kfm.zip",
+        "errors": [],
+        "failedRequests": []
+      }
+    ],
+    "combat": {
+      "normalDamage": 90,
+      "powerAwards": [
+        112,
+        45
+      ],
+      "guardPower": [
+        56,
+        22
+      ],
+      "guardComboLife": 980,
+      "tripState": 5110,
+      "downState": 5080,
+      "bounceState": 5101,
+      "koY": -15.900000035762787,
+      "noneLife": 1000,
+      "errors": [],
+      "failedRequests": []
+    },
+    "arena": {
+      "zipMB": 55.56,
+      "workerCount": 2,
+      "importHeartbeatTicks": 42,
+      "touchPunchDamage": 23,
+      "multiTouchInput": [
+        "R",
+        "D",
+        "a"
+      ],
+      "scriptExportBytes": 30701,
+      "cpuMatch": true,
+      "errors": [],
+      "failedRequests": []
+    }
+  },
+  "compatibilityReplay": {
+    "scenario": "kfm-walk-punch",
+    "samples": 10,
+    "diagnostics": 0,
+    "nativeComparison": false
+  },
+  "fullExampleSweeps": [
+    {
+      "path": "mugen-1.1b1/chars/kfm720/kfm720.def",
+      "states": 106,
+      "ticksPerState": 30,
+      "diagnostics": 0,
+      "uncaught": 0
+    },
+    {
+      "path": "mugen-1.1b1/chars/kfm/kfm.def",
+      "states": 106,
+      "ticksPerState": 30,
+      "diagnostics": 0,
+      "uncaught": 0
+    }
+  ],
+  "performance": {
+    "environment": {
+      "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "kind": "headless Chromium, mobile viewport; synchronous render CPU timings",
+      "physicalAndroid": false,
+      "viewport": [
+        390,
+        844
+      ],
+      "dpr": 2,
+      "cpuThrottle": 1,
+      "frames": 90,
+      "browser": "154.0.8037.57",
+      "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+      "powerMode": "unknown",
+      "thermalState": "uncontrolled host"
+    },
+    "comparison": "Edition 16 web benchmark; identical behavior hashes and rendered pixels in all seven scenes",
+    "scenes": {
+      "idle": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "readbacks": 0,
+        "renderP95Ms": 0.2,
+        "simulationTickMs": 0.044
+      },
+      "sparks": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "readbacks": 0,
+        "renderP95Ms": 2,
+        "simulationTickMs": 0.193
+      },
+      "additive": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "readbacks": 0,
+        "renderP95Ms": 14,
+        "simulationTickMs": 0.177
+      },
+      "custom": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "readbacks": 0,
+        "renderP95Ms": 18.8,
+        "simulationTickMs": 0.2
+      },
+      "entities": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "readbacks": 0,
+        "renderP95Ms": 15.9,
+        "simulationTickMs": 0.357
+      },
+      "parallax": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "readbacks": 0,
+        "renderP95Ms": 2.2,
+        "simulationTickMs": 0.098
+      },
+      "combined": {
+        "behaviorEqual": true,
+        "maxChannelDifference": 0,
+        "readbacks": 0,
+        "renderP95Ms": 36.6,
+        "simulationTickMs": 0.45
+      }
+    },
+    "browserPolicy": {
+      "shortPressDamage": 10,
+      "lowModeSimulationTicks": 66,
+      "lowModeRenderedFPS": 30.001875117194828,
+      "offscreenTicks": 18,
+      "offscreenDraws": 0,
+      "pausedDraws": 0,
+      "hiddenTicks": 0,
+      "resumeTicks": 18,
+      "sizes": [
+        [
+          960,
+          540
+        ],
+        [
+          720,
+          405
+        ],
+        [
+          576,
+          324
+        ]
+      ],
+      "settingsPersisted": true,
+      "instrumentationOffByDefault": true,
+      "autoStress": {
+        "samples": 92,
+        "renderedFrames": 90,
+        "fps": 8.449714703452988,
+        "slowFrameRate": 1,
+        "frameAverageMs": 118.34719101123598,
+        "frameP95Ms": 183.30000000000018,
+        "renderAverageMs": 96.40222222175863,
+        "renderP50Ms": 94.40000000596046,
+        "renderP95Ms": 150.30000001192093,
+        "simulationAverageMs": 7.538043479070716,
+        "simulationP95Ms": 14.299999997019768,
+        "simulationTickMs": 1.1185483872169448,
+        "ticks": 620,
+        "drawCalls": 49410,
+        "readbacks": 0,
+        "readbackPixels": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "activeSprites": 150,
+          "sprites": 2,
+          "paletteVariants": 10,
+          "graphicsMode": "auto",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0.9759999999999618,
+          "cacheBytes": 2452232,
+          "impacts": 0,
+          "explods": 64,
+          "orphanExplods": 0,
+          "projectiles": 12,
+          "helpers": 8,
+          "trails": 64
+        }
+      },
+      "errors": []
+    },
+    "limits": "Headless mobile viewport/SwiftShader; uncontrolled host, not a physical Android FPS or speedup claim."
+  },
+  "references": {
+    "primary": "Supplied MUGEN 1.1 beta 1 docs and examples",
+    "secondary": "https://github.com/ikemen-engine/Ikemen-GO/blob/develop/src/char.go",
+    "secondaryFileSha256": "49bb2ef28aa1ccb1a264c2b9a60b118391a436364748de2be93f927dce4305ba"
+  },
+  "build": {
+    "assets": {
+      "archive-worker-DsB7QbR4.js": "f8a0df700ce217e36f727cda19ef5f2f7e2d3ba6da072de0ef4d4e7340255b0d",
+      "main-BFlaak-h.js": "b461016516853a7b538c99048a94dbe11e1e6e4f9b28bcb46d2a29c71d1ed16e",
+      "main-DWAF97kg.css": "43cc5133252d6e34b2aa0d2e18ceb12f0df2f4be1f6c0e17980d290c05f6ac42"
+    }
+  },
+  "remaining": "Native frame/version capture comparisons, multi-body coincidence/corner ties, cancellation chains and expiry/pause-spawn quirks; foreign sprite/palette ownership, reflections, deprecated player-type helpers and team modes."
+}

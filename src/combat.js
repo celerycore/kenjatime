@@ -1,3 +1,4 @@
+import {inGuardDistance} from './guard-distance.js';
 import {FighterRuntime} from './runtime.js';
 import {ProjectileRuntime} from './projectiles.js';
 import {StageRuntime} from './stages.js';
@@ -197,14 +198,14 @@ export class TrainingMatch {
     const pause = this.superPause?.remaining > 0 ? this.superPause : this.pause?.remaining > 0 ? this.pause : null;
     if (!pause) return false;
     const allowance = actor === pause.owner ? pause.movetime : pause.type === 'superpause' ? actor.superMoveTime || 0 : actor.pauseMoveTime || 0;
-    return (pause.moved.get(actor)||0) >= allowance;
+    return actor.isProjectile?allowance<=0:(pause.moved.get(actor)||0)>=allowance;
   }
   isSuperUnhittable(actor) { return !!(this.superPause?.remaining > 0 && this.superPause.owner === actor && this.superPause.unhittable !== 0); }
   advancePause() {
     const active = this.superPause?.remaining > 0 ? this.superPause : this.pause?.remaining > 0 ? this.pause : null;
     const restore=pause=>{for(const [target,{before,applied}]of pause?.defence||[])if(target.defenceMultiplier===applied)target.defenceMultiplier=before;};
     if (active) {
-      for(const actor of [...this.entities,...this.projectiles])if(!this.isFrozen(actor))active.moved.set(actor,(active.moved.get(actor)||0)+1);
+      for(const actor of [...this.entities,...this.projectiles])if(!this.isFrozen(actor)&&!actor._hitPausedThisTick)active.moved.set(actor,(active.moved.get(actor)||0)+1);
       active.remaining--; active.elapsed++;if(!active.remaining)restore(active);
     }
     for (const pause of this.pendingPauses) {
@@ -241,7 +242,8 @@ export class TrainingMatch {
       if(fighter.parent&&fighter.keyCtrl&&physical!==null)input=this.helperCommands.get(fighter).update(physical,fighter.facing);
       if (!fighter.keyCtrl||this.roundFlow&&this.roundFlow.roundState!==2) input = new Set();
       const other = fighter.teamSide === this.player.teamSide ? this.opponent : this.player;
-      const stopped = this.isFrozen(fighter);
+      const stopped = this.isFrozen(fighter);fighter._hitPausedThisTick=fighter.hitPauseTime>0;
+      if(!stopped&&!fighter._hitPausedThisTick)fighter._projectileContactShield=false;
       if (stopped) {
         frozen.add(fighter);
         const pause = this.superPause?.remaining > 0 ? this.superPause : this.pause;
@@ -252,18 +254,32 @@ export class TrainingMatch {
       } else if (this.commandBuffers.has(fighter)) { input = new Set([...input,...this.commandBuffers.get(fighter)]); this.commandBuffers.delete(fighter); }
       fighter.tick({commands:input,opponent:other,paused:stopped,input:fighter.keyCtrl?(fighter.root===this.player?playerInput:opponentInput):new Set()});
     }
-    for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile.tick({paused:stopped}); }
+    for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile._hitPausedThisTick=projectile.hitPauseTime>0;projectile.tick({paused:stopped}); }
     if(this.stage){for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));this.stage.updateCamera(this.entities);this.syncEnvironment();this.stage.tick({paused:backgroundPaused});}
-    this.constrainPositions();
+    const pushed=this.constrainPositions();
+    if(pushed&&this.stage){this.stage.updateCamera(this.entities);this.syncEnvironment();this.constrainPositions({push:false});}
     const fighters = this.entities;
     for(const defender of fighters)if(defender.moveType!=='H'&&defender.stateType!=='L')for(const records of this.juggles.values())records.delete(defender.id);
     const projectiles = this.projectiles.filter(p=>!p.removed && !p.removing);
-    // Projectile cancellation uses Clsn2, independently of attack hitboxes.
-    for (let i=0;i<projectiles.length;i++) for (let j=i+1;j<projectiles.length;j++) {
-      const a = projectiles[i], b = projectiles[j];
-      if (a.teamSide === b.teamSide || a.removing || b.removing || frozen.has(a) && frozen.has(b) || !contactArea(transformedBoxes(a,'clsn2'),transformedBoxes(b,'clsn2'))) continue;
-      a.clash(b);b.clash(a);
+    // Cache projectile hurt boxes for this collision pass. Resolve overlapping
+    // cancellation candidates by distance, then stable creation ID.
+    const clashBoxes=projectiles.map(p=>transformedBoxes(p,'clsn2'));
+    for(let i=0;i<projectiles.length;i++){
+      const a=projectiles[i];if(a.removing||!clashBoxes[i].length)continue;
+      const candidates=[];
+      for(let j=i+1;j<projectiles.length;j++){
+        const b=projectiles[j];
+        if(a.teamSide===b.teamSide||b.removing||frozen.has(a)&&frozen.has(b)||!contactArea(clashBoxes[i],clashBoxes[j]))continue;
+        candidates.push(b);
+      }
+      const distance=p=>(p.pos.x-a.pos.x)**2+(p.pos.y-a.pos.y)**2;
+      candidates.sort((b,c)=>distance(b)-distance(c)||b.id-c.id);
+      for(const b of candidates){if(a.removing)break;if(!b.removing){a.clash(b);b.clash(a);}}
     }
+    // The proximity flag belongs to collision detection. CNS reads the preceding
+    // collision pass, so creation/destruction order cannot change another CNS pass.
+    const threats=[...fighters,...projectiles];
+    for(const fighter of fighters)fighter.inGuardDistance=inGuardDistance(fighter,threats);
     const contacts = [];
     const reversed = new Set();
     for (const defender of fighters) for (const attacker of fighters) {
@@ -281,6 +297,7 @@ export class TrainingMatch {
     for (const attacker of [...fighters,...projectiles]) for (const defender of [...fighters].sort((a,b)=>Math.abs(a.pos.x-attacker.pos.x)-Math.abs(b.pos.x-attacker.pos.x))) {
       if (attacker === defender || this.winner ||this.roundFlow&&this.roundFlow.roundState!==2|| attacker.destroyed || frozen.has(attacker) || reversed.has(attacker)) continue;
       const hit = attacker.hitDef;
+      if (attacker.isProjectile&&attacker.owner===defender)continue;
       if (!hit || attacker.life <= 0 || defender.life <= 0 || paused.has(attacker) || paused.has(defender) || attacker.moveType !== 'A') continue;
       if (!/^[SCA]\s*,\s*[NSH][ATP]$/i.test(String(hit.attr ?? '').trim()) || !allowsState(hit, defender)) continue;
       const team = flagText(hit.affectteam ?? 'E'), friend = attacker.teamSide === defender.teamSide;
@@ -299,17 +316,20 @@ export class TrainingMatch {
       const reverse = contacts.find(c=>c.attacker === contact.defender && c.defender === contact.attacker);
       return !reverse || chooseContacts([contact,reverse]).includes(contact);
     });
+    const contactedProjectiles=new Set();
     for (const contact of accepted) {
-      if (contact.attacker instanceof ProjectileRuntime && !contact.attacker.canHit(contact.defender,this.ticks)) continue;
+      if (contact.attacker instanceof ProjectileRuntime && (contact.defender._projectileContactShield||!contact.attacker.canHit())) continue;
       const result = contact.defender.receiveHit(contact.hit, contact.attacker, {guarded: contact.guarded});
       if (result?.rejected) continue;
       this.applyCornerPush(contact.attacker,contact.defender,result.cornerPush,contact.hit.coordinateScale);
       if(!contact.guarded&&!result.typeNone)this.recordJuggle(contact.attacker,contact.defender,contact.hit,{wasFalling:contact.wasFalling});
       if (!this.usedHits.has(contact.attacker)) this.usedHits.set(contact.attacker,new Map());
       this.usedHits.get(contact.attacker).set(contact.defender.id,contact.activation);
-      if (contact.attacker instanceof ProjectileRuntime) contact.attacker.onContact({guarded:contact.guarded,defender:contact.defender,tick:this.ticks});
+      if (contact.attacker instanceof ProjectileRuntime) {contact.defender._projectileContactShield=true;contact.attacker.onContact({guarded:contact.guarded,defer:true});contactedProjectiles.add(contact.attacker);}
       this.events.push({type: contact.guarded ? 'guard' : 'hit', attacker: contact.attacker, defender: contact.defender, hitDef: contact.hit, damage: result?.damage ?? 0, guarded: contact.guarded,typeNone:!!result.typeNone, x: (contact.overlap[0] + contact.overlap[2]) / 2, y: (contact.overlap[1] + contact.overlap[3]) / 2, tick: this.ticks});
     }
+    for(const projectile of contactedProjectiles)projectile.finishContacts();
+    for(const projectile of this.projectiles)projectile.finishMovementAllowance({paused:frozen.has(projectile)});
     for(const fighter of this.entities)fighter.updateExplods({hitPaused:paused.has(fighter),pause:effectPause,superPause:effectSuperPause});
     for(const actor of this._entities)if(actor.destroyed&&!actor._effectsDetached)this.retireEffects(actor);
     for(const owner of this.orphanEffectOwners)owner.updateExplods({pause:effectPause,superPause:effectSuperPause});
@@ -384,25 +404,28 @@ export class TrainingMatch {
     if(direction>0?defender.pos.x<max-.01:defender.pos.x>min+.01)return;
     attacker.cornerPush=velocity*scale*direction;
   }
-  constrainPositions() {
-    const fighters = [this.player, this.opponent],width=(fighter,direction)=>this.bodyWidth(fighter,direction);
-    const limits=new Map(fighters.map(fighter=>[fighter,this.horizontalLimits(fighter)]));
-    const clamp = fighter => {
-      const {min, max} = limits.get(fighter);
-      if (fighter.screenBound !== false) fighter.pos.x = Math.max(min, Math.min(max, fighter.pos.x));
-    };
+  constrainPositions({push=true}={}) {
+    const fighters=this.entities,limits=new Map(fighters.map(p=>[p,this.horizontalLimits(p)]));
+    const clamp=p=>{if(p.screenBound!==false){const {min,max}=limits.get(p);p.pos.x=Math.max(min,Math.min(max,p.pos.x));}};
     fighters.forEach(clamp);
-    for(const helper of this.entities)if(helper.parent&&helper.screenBound!==false){const {min,max}=this.horizontalLimits(helper);helper.pos.x=Math.max(min,Math.min(max,helper.pos.x));}
-    if (!this.pushboxes || fighters.some(fighter => fighter.playerPush === false || fighter.stateType === 'A' || fighter.stateType === 'L' || fighter.pos.y < 0)) return;
-    const [left, right] = this.player.pos.x <= this.opponent.pos.x ? fighters : [...fighters].reverse();
-    const overlap = left.pos.x + width(left, 1) - (right.pos.x - width(right, -1));
-    if (overlap <= 0) return;
-    const leftAvailable = left.screenBound === false ? Infinity : Math.max(0, left.pos.x - limits.get(left).min);
-    const rightAvailable = right.screenBound === false ? Infinity : Math.max(0, limits.get(right).max - right.pos.x);
-    const leftTravel = Math.min(overlap / 2, leftAvailable);
-    const rightTravel = Math.min(overlap - leftTravel, rightAvailable);
-    left.pos.x -= Math.min(overlap - rightTravel, leftAvailable);
-    right.pos.x += rightTravel;
-    fighters.forEach(clamp);
+    if(!this.pushboxes||!push)return false;
+    let pushed=false;
+    // Helpers opt in with PlayerPush. Native pushing requires both size-box and
+    // Clsn2 overlap; being airborne or lying down alone does not disable it.
+    const pushers=fighters.filter(p=>p.playerPush!==false).sort((a,b)=>a.id-b.id);
+    for(let i=0;i<pushers.length;i++)for(let j=i+1;j<pushers.length;j++){
+      const a=pushers[i],b=pushers[j];if(a.teamSide===b.teamSide)continue;
+      const aTop=a.pos.y-constant(a,'size.height',60)*baseScale(a),bTop=b.pos.y-constant(b,'size.height',60)*baseScale(b);
+      if(aTop>=b.pos.y||bTop>=a.pos.y||!contactArea(transformedBoxes(a,'clsn2'),transformedBoxes(b,'clsn2')))continue;
+      const [left,right]=a.pos.x<=b.pos.x?[a,b]:[b,a];
+      const overlap=left.pos.x+this.bodyWidth(left,1)-right.pos.x+this.bodyWidth(right,-1);
+      if(overlap<=0)continue;
+      const leftAvailable=left.screenBound===false?Infinity:Math.max(0,left.pos.x-limits.get(left).min);
+      const rightAvailable=right.screenBound===false?Infinity:Math.max(0,limits.get(right).max-right.pos.x);
+      const leftTravel=Math.min(overlap/2,leftAvailable),rightTravel=Math.min(overlap-leftTravel,rightAvailable);
+      left.pos.x-=Math.min(overlap-rightTravel,leftAvailable);right.pos.x+=rightTravel;
+      clamp(left);clamp(right);pushed=true;
+    }
+    return pushed;
   }
 }

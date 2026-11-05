@@ -74,8 +74,8 @@ test('projectile chains use their owner identity while projectile hits follow pr
   // Projhits limits damage; projremove=0 keeps the exhausted projectile alive.
   // Hitonce does not drop the owner's other targets.
   w.player.targets.push(w.opponent);w.player.targetHitIds.set(w.opponent.id,10);
-  assert.equal(w.tick().length,1);assert.equal(near.life,900);assert.equal(w.opponent.life,1000);
+  assert.equal(w.tick().length,2);assert.equal(near.life,900);assert.equal(w.opponent.life,900);assert.equal(projectile.remainingHits,1);
   assert.equal(near.receiveHit(hit(w.player,'nochainID=41'),w.player).rejected,true);
   assert.ok(w.player.targets.includes(w.opponent));
-  near.pos.x=180;assert.equal(w.tick().length,1);assert.equal(w.opponent.life,900);
+  near.pos.x=180;assert.equal(w.tick().length,1);assert.equal(w.opponent.life,800);assert.equal(projectile.remainingHits,0);
 });

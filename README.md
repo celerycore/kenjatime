@@ -98,6 +98,8 @@ Web Edition 14 adds the [combat rules pass](docs/combat-rules.md): continued gua
 
 Web Edition 16 fixes [helper/projectile edge cases](docs/helper-projectile-edges.md): DestroySelf/orphan Explods and bindings, helper-relative inputs, multi-hit/persistent projectile quotas, paused hit spacing, Clsn2 cancellation, finite removal frames, IDs and stage shadows. Reports expose helper relationships, orphan effects and projectile state. The new cases have unit/browser coverage; native timing/version comparisons remain pending.
 
+Web Edition 17 adds [helper/projectile interactions](docs/helper-projectile-interactions.md): complete root/helper/projectile guard-proximity scanning, helper body pushing and camera axes, simultaneous contacts, projectile contact immunity, preserved hitpause flags and deferred removal, movement-allowance clocks and boundary handling. The 381-test suite and browser fixtures cover these paths; exact native frame/version parity still needs captured comparisons.
+
 Full compatibility still requires substantial engine work, including:
 
 - Every option and edge case of the implemented controllers. Common resources are available only when imported, and browser gamepad capabilities limit physical feedback.

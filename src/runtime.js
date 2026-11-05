@@ -1,3 +1,4 @@
+import {inGuardDistance} from './guard-distance.js';
 import { evaluateExpression, evaluateTypedExpression, splitArguments,BottomError,UnsupportedExpressionError } from './expressions.js';
 import { decodeText } from './formats.js';
 import { spawnPosition } from './entities.js';
@@ -244,7 +245,7 @@ export class FighterRuntime {
     this.collisionFrame = null;this.collisionAnimationOwner=null;
     this.collisionAnimation=null;this.collisionFrameIndex=0;this.collisionFrameTime=0;
     this.hitDef = null; this.reversalDef = null; this.moveReversed = 0; this._hitSerial = 0; this.hitPauseTime = 0; this.hitTime = -1;
-    this.hitId=-1;this.hitSourceId=undefined;this._spentHitDefs=new WeakSet();
+    this.hitId=-1;this.hitSourceId=undefined;this._spentHitDefs=new WeakSet();this.inGuardDistance=false;this._projectileContactShield=false;
     this.moveContact = 0; this.moveHit = 0; this.moveGuarded = 0; this.hitCount = 0;this.uniqHitCount=0;this.comboHits=0;this._lastHitCountTick=null;
     this.getHitVars = initialHitVariables(this);this._fallXVelocityDefined=false;this._fallDefenceMultiplier=1;this._previousInput=new Set();this.rawInput=new Set();this._fallEntry=-1; this.targets = [];this.targetHitIds=new Map(); this.helpers = []; this.explods = [];this.drawExplods=[];
     this.events = []; this.commands = new Set(); this.asserted = new Set(); this.opponent = null;
@@ -353,6 +354,7 @@ export class FighterRuntime {
       if (index < 0 || index >= array.length) throw new BottomError(`${name} index out of range: ${index}`);
       return array[index];
     }
+    if(name==='inguarddist')return +(this.world?this.inGuardDistance||false:inGuardDistance(this,this.opponent?[this.opponent]:[]));
     const other = this.opponent;
     const flow=this.world?.roundFlow,side=this.root===this.world?.player?'player':'opponent',won=!!flow?.roundWinner&&flow.roundWinner===side,lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
     const values = {
@@ -379,7 +381,6 @@ export class FighterRuntime {
       screenwidth:320/scale,screenheight:(this.world?.view.displayHeight??240)/scale,
       leftedge:(this.world?.view.left??-160)/scale,rightedge:(this.world?.view.right??160)/scale,topedge:(this.world?.view.top??-240)/scale,bottomedge:(this.world?.view.bottom??0)/scale,
       frontedge:(this.facing===1?this.world?.view.right??160:this.world?.view.left??-160)/scale,backedge:(this.facing===1?this.world?.view.left??-160:this.world?.view.right??160)/scale,
-      inguarddist: +(!!other?.hitDef && Math.abs(other.pos.x - this.pos.x) <= (other.hitDef['guard.dist']!==undefined?other.hitDef['guard.dist']*(other.hitDef.coordinateScale??other.coordinateScale):(other.attackDist??other.constant('size.attack.dist'))*other.coordinateScale)),
       canrecover: +(!!this.getHitVars.fall&&this.getHitVars['fall.recover']!==0&&(this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4)), hitfall: this.getHitVars.fall || 0,
       'hitvel x': (this.getHitVars.xvel||0)*this.coordinateScale/scale,'hitvel y':(this.getHitVars.yvel||0)*this.coordinateScale/scale,
       'pos x': (this.pos.x-(this.cameraPos?.x||0)) / scale, 'pos y': this.pos.y / scale, 'vel x': this.vel.x / scale, 'vel y': this.vel.y / scale,
@@ -627,9 +628,12 @@ export class FighterRuntime {
     sampleRecoveryInput(this,input,commands);
     if (worldPaused || this.destroyed) {if(!this.world)this.updateExplods({forceFrozen:true});this.gameTime++; return this.events; }
     this._changeCount = 0; this._executing = null;
-    this.asserted = new Set(); this.posFrozen = false; this.playerPush = !this.parent; this.screenBound = !this.parent;this.moveCamera={x:!this.parent,y:!this.parent};
-    this.width = null; this.drawOffset = { x: 0, y: 0 }; this.drawScale = { x: 1, y: 1 }; this.trans = null; this.angleDraw = false;
     const paused = this.hitPauseTime > 0;
+    this.asserted = new Set();this.posFrozen=false;
+    if(!paused){
+      this.playerPush=!this.parent;this.screenBound=!this.parent;this.moveCamera={x:!this.parent,y:!this.parent};this.width=null;
+    }
+    this.drawOffset = { x: 0, y: 0 }; this.drawScale = { x: 1, y: 1 }; this.trans = null; this.angleDraw = false;
     if (this.moveContact > 0 && !paused) this.moveContact++;
     if (this.moveHit > 0 && !paused) this.moveHit++;
     if (this.moveGuarded > 0 && !paused) this.moveGuarded++;

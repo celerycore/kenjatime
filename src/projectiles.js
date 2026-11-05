@@ -10,6 +10,7 @@ export class ProjectileRuntime {
     this.world = creator.world; this.id = id; this.projId = Math.max(0,Math.trunc(spec.projid ?? 0));
     this.teamSide = creator.teamSide; this.character = creator.character; this.coordinateScale = creator.coordinateScale;
     this.baseCoordinateScale=this.coordinateScale;
+    this.guardDistance=creator.constant('size.proj.attack.dist')*creator.coordinateScale;
     this.animations = creator.animations; this.program = {...creator.program,constants:new Map(creator.program.constants)};
     this.spec = spec; this.events = []; this.diagnostics = []; this.asserted = new Set();
     if(Number(spec.projid)<0)this.diagnostic('projectile-id','Negative ProjID was clamped to 0.');
@@ -51,18 +52,33 @@ export class ProjectileRuntime {
     if (history.length > 4096) { history.shift(); this.diagnostic('resource-limit','Projectile history exceeded 4096 distinct ID/event pairs.'); }
   }
   canHit() { return !this.removed && !this.removing && !!this.hitDef && this.activeTicks >= this.nextHitAge && this.remainingHits > 0; }
-  onContact({guarded = false,tick = this.world?.ticks ?? this.time} = {}) {
-    this.record(guarded ? 'guarded' : 'hit'); this.remainingHits--; this.nextHitAge = this.activeTicks + this.missTime + 1;
-    if (this.spec.projremove !== 0 && this.remainingHits <= 0) this.remove('hit');
+  onContact({guarded = false,defer = false} = {}) {
+    this.record(guarded ? 'guarded' : 'hit');this._contactPending=true;
+    if(this.hitPauseTime>0)this._holdCollisionFrame=true;
+    if(!defer)this.finishContacts();
   }
-  cancel() { if (!this.removing && !this.removed) { this.record('cancel'); this.remove('cancel'); } }
+  finishContacts(){
+    if(!this._contactPending)return;this._contactPending=false;
+    // A single collision pass can touch a root and several helpers. MUGEN
+    // consumes one projectile hit and starts miss-time once for that pass.
+    this.remainingHits--;this.nextHitAge=this.activeTicks+this.missTime+1;
+    if(this.spec.projremove!==0&&this.remainingHits<=0)this.remove('hit');
+  }
+  cancel() { if (!this.removing && !this.removed) { this.record('cancel');this.hitPauseTime=0;this.remove('cancel'); } }
   clash(other){
     if(this.priority>other.priority)this.priority--;else this.remainingHits--;
     if(this.remainingHits<=0)this.cancel();else this.hitPauseTime=Math.max(this.hitPauseTime,this.hitDef?.pauseTime?.[0]||0);
   }
   remove(reason = 'expire') {
     if (this.removing || this.removed) return;
-    this.removing = true; this.hitDef = null; this.hitPauseTime = 0;
+    this.removing = true;this.hitDef=null;this.removalReason=reason;this._removeAtLoopEnd=this._loopedThisTick;
+    // Hit removal is pending while attacker hitpause is running. It must not
+    // erase the pause, advance remvelocity, or display the hit action early.
+    if(this.hitPauseTime>0){this._holdCollisionFrame=true;return;}
+    this.beginRemoval();
+  }
+  beginRemoval(){
+    this.removalStarted=true;const reason=this.removalReason;
     const hitAnim = this.spec.projhitanim ?? -1, remAnim = this.spec.projremanim ?? hitAnim;
     const anim = reason === 'hit' ? hitAnim : reason === 'cancel' ? this.spec.projcancelanim ?? remAnim : remAnim;
     const velocity = vector(this.spec.remvelocity); this.vel = {x:velocity[0]*this.coordinateScale,y:velocity[1]*this.coordinateScale};
@@ -76,6 +92,9 @@ export class ProjectileRuntime {
     this.collisionFrame = this.currentFrame;
     this.collisionAnimation=this.animations.get(this.anim);this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime;
     }
+    if(!changed&&this._removeAtLoopEnd&&this._inTick){this.removed=true;this.drawVisible=false;return;}
+    const frames=this.animations.get(this.anim)?.frames||[];
+    if(frames.some(frame=>frame.ticks<0)||frames.reduce((sum,frame)=>sum+frame.ticks,0)<=0){this.removed=true;this.drawVisible=false;return;}
     // Contacts/cancellation happen after tick(). Consume the first removal
     // frame now so a one-tick action is displayed once, including its last frame.
     this.drawVisible=!!this.collisionFrame;if(changed&&!this._inTick)this.advanceFrame();else if(!changed&&!this._inTick&&this._loopedThisTick)this.removed=true;
@@ -83,27 +102,49 @@ export class ProjectileRuntime {
   advanceFrame(){
     const frame=this.currentFrame,animation=this.animations.get(this.anim);
     if(frame&&frame.ticks>=0&&++this.frameTime>=Math.max(1,frame.ticks)){
-      this.frameTime=0;this.frameIndex++;if(this.frameIndex>=animation.frames.length){this._loopedThisTick=true;if(this.removing)this.removed=true;this.frameIndex=animation.loopStart||0;}
+      this.frameTime=0;this.frameIndex++;if(this.frameIndex>=animation.frames.length){this._loopedThisTick=true;this.animationLooped=true;if(this.removing)this.removed=true;this.frameIndex=animation.loopStart||0;}
     }
   }
   tick({paused = false} = {}) {
-    this.events = [];
+    this.events = [];this._activeThisTick=false;
     if(this.removed){this.drawVisible=false;return;}
-    if (paused) return;
+    if(paused)return;
     this.drawVisible=true;
-    this.collisionFrame = this.currentFrame;
-    this.collisionAnimation=this.animations.get(this.anim);this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime;
-    if (this.hitPauseTime > 0) { this.hitPauseTime--; return; }
-    this._inTick=true;this._loopedThisTick=false;this.activeTicks++;
-    this.pos.x += this.vel.x * this.facing; this.pos.y += this.vel.y;
-    if (!this.removing) {
-      this.vel.x = (this.vel.x + this.accel[0]) * this.velmul[0]; this.vel.y = (this.vel.y + this.accel[1]) * this.velmul[1];
-      const height = vector(this.spec.projheightbound,[-240/this.coordinateScale,1/this.coordinateScale]).map(v=>v*this.coordinateScale);
-      const edge = (this.spec.projedgebound ?? 40/this.coordinateScale)*this.coordinateScale;
-      const stage = (this.spec.projstagebound ?? 40/this.coordinateScale)*this.coordinateScale;
-      const left = this.world?.leftBound ?? -160, right = this.world?.rightBound ?? 160,screenLeft=this.world?.view.left??left,screenRight=this.world?.view.right??right;
-      if ((this.spec.projremovetime ?? -1) >= 0 && this.time >= this.spec.projremovetime || this.pos.x < Math.max(left-stage,screenLeft-edge) || this.pos.x > Math.min(right+stage,screenRight+edge) || this.pos.y < height[0] || this.pos.y > height[1]) this.remove();
+    if(!this._holdCollisionFrame)this.captureFrame();
+    if(this.hitPauseTime>0){this.hitPauseTime--;return;}
+    this._holdCollisionFrame=false;
+    this._inTick=true;this._loopedThisTick=false;
+    if(this.removing&&!this.removalStarted)this.beginRemoval();
+    if(!this.removing){
+      const height=vector(this.spec.projheightbound,[-240/this.coordinateScale,1/this.coordinateScale]).map(v=>v*this.coordinateScale);
+      const edge=(this.spec.projedgebound??40/this.coordinateScale)*this.coordinateScale;
+      const stage=(this.spec.projstagebound??40/this.coordinateScale)*this.coordinateScale;
+      const left=this.world?.leftBound??-160,right=this.world?.rightBound??160,screenLeft=this.world?.view.left??left,screenRight=this.world?.view.right??right;
+      const lifetime=this.spec.projremovetime??-1,vx=this.vel.x*this.facing;
+      // Test the current position before moving. Stage/height bounds only
+      // retire shots travelling outwards; an offstage returning shot can enter.
+      if(lifetime>=0&&this.time>=lifetime||lifetime<=-2&&this.animationLooped||
+        this.pos.x<screenLeft-edge||this.pos.x>screenRight+edge||
+        vx<0&&this.pos.x<left-stage||vx>0&&this.pos.x>right+stage||
+        this.vel.y<0&&this.pos.y<height[0]||this.vel.y>0&&this.pos.y>height[1])this.remove();
     }
-    if(!this.removed)this.advanceFrame();this._inTick=false;this.time++;
+    if(!this.removed){
+      this.captureFrame();this._activeThisTick=true;this.activeTicks++;
+      this.pos.x+=this.vel.x*this.facing;this.pos.y+=this.vel.y;
+      if(!this.removing){this.vel.x=(this.vel.x+this.accel[0])*this.velmul[0];this.vel.y=(this.vel.y+this.accel[1])*this.velmul[1];}
+      this.advanceFrame();this.time++;
+    }
+    this._inTick=false;
+  }
+  finishMovementAllowance({paused=false}={}){
+    // Projectile allowances are advancing-life counters, including time before
+    // a pause starts. Hitpause/global freeze hold both counters; a new Pause
+    // does not replenish a projectile that already used its allowance.
+    if(paused||!this._activeThisTick||this._hitPausedThisTick||this.hitPauseTime>0)return;
+    this.pauseMoveTime=Math.max(0,this.pauseMoveTime-1);this.superMoveTime=Math.max(0,this.superMoveTime-1);
+  }
+  captureFrame(){
+    this.collisionFrame=this.currentFrame;this.collisionAnimation=this.animations.get(this.anim);
+    this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime;
   }
 }

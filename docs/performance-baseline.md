@@ -111,7 +111,7 @@ python scripts/verify-renderer.py
 
 ## Deployment
 
-Keep source and distribution branches separate. **Do not merge the source checkout directly into `gh-pages`**; its HTML references source modules and needs the Vite build. Build/test on `source/mobile-performance`, fetch a clean `gh-pages` checkout, fast-forward it, and copy the tested contents of `dist/` into that checkout. Preserve existing attribution files and old hashed assets. Review `git diff --check`/the staged file list, commit, then push normally without force. Confirm the Pages workflow succeeds for that exact commit.
+Keep source and distribution branches separate. **Do not merge the source checkout directly into `gh-pages`**; its HTML references source modules and needs the Vite build. Build/test on the current `source/mugen-compatibility` branch (`source/mobile-performance` preserves Edition 15), fetch a clean `gh-pages` checkout, fast-forward it, and copy the tested contents of `dist/` into that checkout. Preserve existing attribution files and old hashed assets. Review `git diff --check`/the staged file list, commit, then push normally without force. Confirm the Pages workflow succeeds for that exact commit.
 
 Vite builds both `/` and `/arena/` with relative assets. The existing `/arena-classic/` is copied from public assets. Release URLs remain `https://celerycore.github.io/kenjatime/` and `/arena/`. Use a version query or reload if an old page is cached.
 

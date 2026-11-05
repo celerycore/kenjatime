@@ -88,6 +88,7 @@ export class StageRuntime{
     if(backgrounds||!this.elements){this.time=0;this.elements=d.elements.map(base=>({...base,start:[...base.start],motion:[0,0],velocity:[...base.velocity],sinX:[...base.sinX],sinY:[...base.sinY],sinStartX:0,sinStartY:0,anim:base.anim,frameIndex:0,frameTime:0,visible:true,enabled:true}));}
   }
   updateCamera(players){
+    players=players.filter(p=>!p.destroyed&&!p.isProjectile);
     const d=this.definition,c=d.camera,xPlayers=players.filter(p=>p.moveCamera?.x!==false),yPlayers=players.filter(p=>p.moveCamera?.y!==false);
     if(xPlayers.length){
       const low=Math.min(...xPlayers.map(p=>p.pos.x)),high=Math.max(...xPlayers.map(p=>p.pos.x));

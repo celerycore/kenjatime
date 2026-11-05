@@ -35,8 +35,8 @@ test('launch hits use air hit time while a downed slide uses down hit time',()=>
 });
 
 test('AttackDist overrides an explicit current guard distance in the HitDef creation units',()=>{
-  const w=world();arm(w.player,'guard.dist=1');execute(w.player,'AttackDist','value=100');assert.equal(w.player.hitDef['guard.dist'],100);assert.equal(w.opponent.evaluate('InGuardDist'),1);
-  w.player.coordinateScale=.25;execute(w.player,'AttackDist','value=40');assert.equal(w.player.hitDef['guard.dist'],10);assert.equal(w.opponent.evaluate('InGuardDist'),0);
+  const w=world();arm(w.player,'guard.dist=1');execute(w.player,'AttackDist','value=100');assert.equal(w.player.hitDef['guard.dist'],100);w.tick();assert.equal(w.opponent.evaluate('InGuardDist'),1);
+  w.player.coordinateScale=.25;execute(w.player,'AttackDist','value=40');assert.equal(w.player.hitDef['guard.dist'],10);w.tick();assert.equal(w.opponent.evaluate('InGuardDist'),0);
 });
 
 test('HitDef inherits air type, down vectors, forced standing and guard clock defaults',()=>{

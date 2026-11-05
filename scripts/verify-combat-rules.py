@@ -96,7 +96,7 @@ with sync_playwright() as p:
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.on('requestfailed', lambda request: failures.append(request.url))
     page.goto(os.environ.get('MUGEN_TEST_URL', 'http://127.0.0.1:5186/kenjatime/'), wait_until='networkidle')
-    assert page.locator('.tag i').inner_text() == '16'
+    assert page.locator('.tag i').inner_text() == '17'
     page.locator('#file').set_input_files('work/combat-rules-fixture.zip')
     page.wait_for_function("document.querySelector('#name').textContent==='Combat Rules Fixture'")
     page.locator('#training').click()
