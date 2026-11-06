@@ -1,6 +1,6 @@
 # Kenjatime browser-runtime Android app
 
-Version 0.2.0 (version code 6) packages the same Kenjatime interface and Go/WASM engine as the website in Capacitor 8. It starts at `https://localhost/mobile/index.html`, uses bundled assets, WebGL2 and Web Audio, and does not depend on Brave or the hosted site. Stock IKEMEN menus, screenpacks and logos are excluded. The separate [native app](native-android.md) runs the ARM64 engine directly and is the preferred build for native gameplay.
+Version 0.2.1 (version code 7) packages the same Kenjatime interface and Go/WASM engine as the website in Capacitor 8. It starts at `https://localhost/mobile/index.html`, uses bundled assets, WebGL2 and Web Audio, and does not depend on Brave or the hosted site. Stock IKEMEN menus, screenpacks and logos are excluded. The separate [native app](native-android.md) runs the ARM64 engine directly and is the preferred build for native gameplay.
 
 ## Included
 
@@ -10,7 +10,7 @@ Version 0.2.0 (version code 6) packages the same Kenjatime interface and Go/WASM
 - The shared Kenjatime setup, HUD, touch controls, Menu and Pause. Landscape/immersive fight mode, background suspension and return to setup on Android Back.
 - Browser-standard gamepad input. Physical Bluetooth/USB controller behavior needs device testing.
 
-The 0.2.0 installer retains the existing app ID and signing certificate. Install over the previous browser-runtime app to preserve its library. Uninstalling or clearing storage removes saved copies.
+The 0.2.1 installer retains the existing app ID and signing certificate. Install over the previous browser-runtime app to preserve its library. Uninstalling or clearing storage removes saved copies.
 
 ## Build and verify
 
@@ -40,4 +40,4 @@ npm run android:sync
 cd android && ./gradlew :app:testDebugUnitTest assembleDebug lintDebug
 ```
 
-The APK verifier also rejects relative/directory startup paths. The replacement has a higher version code and the same signing certificate as the originally published APK. Install it over the current app; uninstalling would clear the saved app library. The download page now points to version 0.2.0.
+The APK verifier also rejects relative/directory startup paths. The replacement has a higher version code and the same signing certificate as the originally published APK. Install it over the current app; uninstalling would clear the saved app library. The download page now points to version 0.2.1.

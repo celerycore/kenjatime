@@ -7,7 +7,7 @@ export function mountSetup(engineHost){
 document.querySelector('#app').innerHTML=appShell;document.title='Kenjatime';
 document.body.classList.add('mobile-app','arena-page');
 const $=s=>document.querySelector(s),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let catalog={characters:[],stages:[],packages:[]},selected=null,busy=false,previewBank=null,previewResource=null,previewEpoch=0;
+let catalog={characters:[],stages:[],packages:[]},selected=null,busy=false,previewEpoch=0;
 window.__kenjatimeNativeProgress=message=>{$('#status').textContent=message;};
 const native=(action,data={})=>engineHost.request(action,data);
 function status(message){$('#status').textContent=message;}
@@ -28,10 +28,12 @@ $('.roster').insertAdjacentHTML('beforebegin','<section class="mobile-library"><
 $('#drop').innerHTML='<div class="upload-icon">↥</div><div><b>Bring a new challenger.</b><p>Import a character or stage archive, or <button type="button" id="browse">browse files</button></p><small>ZIP / RAR / 7z / TAR and compressed TAR · installed on this device</small><details class="archive-options"><summary>Archive password (optional)</summary><input id="archive-password" type="password" autocomplete="off" aria-label="Archive password"></details></div>';
 $('.notice').textContent='Character scripts and matches run in the game engine. Package checks describe installed resources.';
 $('#hint').textContent='Select your fighter, opponent and stage, then start a match.';$('.coordinates').innerHTML='X <span id="pos">0</span> &nbsp; Y <span>0</span>';
-$('#play').hidden=$('#step').hidden=$('#actions').hidden=$('#speed').hidden=true;$('.frame').textContent='CHARACTER PREVIEW';
+$('#play').hidden=$('#step').hidden=$('#actions').hidden=$('#speed').hidden=true;$('.frame').textContent='P1 / P2 PREVIEW';
+for(const selector of ['.stage-label','.coordinates','.stage-badge'])$(selector).hidden=true;
 $('footer').innerHTML='<span>KENJATIME <b>/</b> LOCAL SESSION</span><button class="secondary" id="credits">Credits and source</button>';
 $('#credits').onclick=()=>void native('credits').catch(e=>status(e.message));
 for(const id of ['palette-select','opponent-palette-select'])$('#'+id).innerHTML=Array.from({length:12},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+$('#opponent-palette-select').value='2';
 
 const canvas=$('canvas'),ctx=canvas.getContext('2d');
 function grid(){
@@ -41,28 +43,36 @@ function grid(){
  ctx.strokeStyle='#466055';ctx.beginPath();ctx.moveTo(0,440);ctx.lineTo(960,440);ctx.stroke();
 }
 const resource=path=>engineHost.resource(path);
-function disposePreview(){previewEpoch++;previewBank?.clearDecodedCache();previewBank=previewResource=null;grid();}
-async function preview(entry){
- disposePreview();const epoch=previewEpoch;$('#empty').hidden=false;
- if(!entry.sprite||entry.spriteBytes>24*1024*1024){$('#empty').innerHTML='Your fighter is ready<small>Start a match to see it in the arena.</small>';return;}
- try{
-  const bytes=new Uint8Array(await (await resource(entry.sprite)).arrayBuffer());if(epoch!==previewEpoch)return;
-  const bank=sff(bytes);let frame;
-  if(entry.anim){const actions=animations(await (await resource(entry.anim)).text());frame=actions.find(a=>a.id===0)?.frames[0];}
-  if(epoch!==previewEpoch)return;
-  const index=frame?bank.sprites.findIndex(s=>s.group===frame.group&&s.number===frame.number):bank.sprites.findIndex(s=>s.group===0&&s.number===0);
-  if(index<0)throw Error('No idle preview');
-  const sprite=bank.decode(index),image=document.createElement('canvas');image.width=sprite.w;image.height=sprite.h;image.getContext('2d').putImageData(new ImageData(sprite.rgba,sprite.w,sprite.h),0,0);
-  grid();ctx.imageSmoothingEnabled=false;ctx.drawImage(image,480-sprite.x*2.2,440-sprite.y*2.2,sprite.w*2.2,sprite.h*2.2);previewBank=bank;previewResource=bytes;$('#empty').hidden=true;
- }catch{if(epoch===previewEpoch)$('#empty').innerHTML='Your fighter is ready<small>Start a match to see it in the arena.</small>';}
+function disposePreview(){previewEpoch++;canvas.dataset.previewCount='0';grid();}
+async function preview(){
+ disposePreview();const epoch=previewEpoch;if(!selected)return;$('#empty').hidden=true;
+ const rival=catalog.characters.find(c=>c.id===$('#opponent-select').value)||selected,entries=[selected,rival],banks=new Map();
+ const images=await Promise.all(entries.map(async(entry,side)=>{
+  try{
+   if(!entry.sprite||entry.spriteBytes>64*1024*1024)throw Error('Preview unavailable');
+   if(!banks.has(entry.sprite))banks.set(entry.sprite,resource(entry.sprite).then(r=>r.arrayBuffer()).then(b=>sff(new Uint8Array(b))));
+   const bank=await banks.get(entry.sprite);if(epoch!==previewEpoch)return null;let frame;
+   if(entry.anim)frame=animations(await (await resource(entry.anim)).text()).find(a=>a.id===0)?.frames[0];
+   if(epoch!==previewEpoch)return null;
+   const index=frame?bank.sprites.findIndex(s=>s.group===frame.group&&s.number===frame.number):bank.sprites.findIndex(s=>s.group===0&&s.number===0);if(index<0)throw Error('No idle preview');
+   let sprite=bank.decode(index);try{sprite=bank.decodeWithPalette(index,1,+$(side?'#opponent-palette-select':'#palette-select').value);}catch{}
+   const image=document.createElement('canvas');image.width=sprite.w;image.height=sprite.h;image.getContext('2d').putImageData(new ImageData(sprite.rgba,sprite.w,sprite.h),0,0);return image;
+  }catch{return null;}
+ }));
+ for(const promise of banks.values())promise.then(bank=>bank.clearDecodedCache()).catch(()=>{});
+ if(epoch!==previewEpoch)return;grid();ctx.imageSmoothingEnabled=false;
+ entries.forEach((entry,side)=>{const center=side?690:270,image=images[side];ctx.fillStyle=side?'#8fcfff':'#d3fb8d';ctx.font='28px system-ui';ctx.textAlign='center';ctx.fillText(`P${side+1} · ${entry.name}`,center,68,360);
+  if(image){const scale=Math.min(2.2,340/image.width,320/image.height);ctx.save();ctx.translate(center,440);ctx.scale(side?-scale:scale,scale);ctx.drawImage(image,-image.width/2,-image.height);ctx.restore();}
+  else{ctx.font='15px system-ui';ctx.fillText('Preview unavailable',center,280);ctx.fillText('Ready to use in a match',center,305);}
+ });canvas.dataset.previewCount=String(images.filter(Boolean).length);canvas.setAttribute('aria-label',`Match preview: Player 1 ${selected.name}, Player 2 ${rival.name}`);
 }
 function remember(){try{localStorage.setItem('kenjatime.native.selection',JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,mode:$('#arena-mode').value}));}catch{}}
 function choose(id){
  selected=catalog.characters.find(c=>c.id===id)||catalog.characters[0];if(!selected)return;
- $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent='SFF / AIR';$('#viewtitle').textContent='CHARACTER PREVIEW';
+ $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent='SFF / AIR';$('#viewtitle').textContent='MATCH PREVIEW · P1 / P2';
  $('#metadata').innerHTML=`<div class="meta"><span>Definition</span><b>${escape(selected.fileName)}</b></div><div class="meta"><span>Package</span><b>${escape(selected.packageName)}</b></div>`;
  $('#checks').innerHTML=['sprite','anim'].map(key=>`<div><span class="${selected[key]?'ok':'bad'}">${selected[key]?'✓':'!'}</span><b>${key.toUpperCase()}</b><span>${escape(selected[key]||'Not found')}</span></div>`).join('');$('#score').textContent=selected.sprite&&selected.anim?'INSTALLED':'CHECK FILES';
- $('#cards').querySelectorAll('.card').forEach(card=>card.classList.toggle('selected',card.dataset.id===selected.id));remember();void preview(selected);
+ $('#cards').querySelectorAll('.card').forEach(card=>card.classList.toggle('selected',card.dataset.id===selected.id));remember();void preview();
 }
 function drawCatalog(data){
  catalog=data;const old=selected?.id;let saved={};try{saved=JSON.parse(localStorage.getItem('kenjatime.native.selection')||'{}');}catch{}
@@ -94,12 +104,12 @@ if(engineHost.importFile){
  $('#drop').addEventListener('drop',event=>{event.preventDefault();const file=event.dataTransfer.files[0];if(file)void run('Reading archive…',async()=>{applyInstalled(await engineHost.importFile(file,{password:$('#archive-password').value}));$('#archive-password').value='';status('Archive installed. Your fighters and stages are ready to select.');});});
 }
 $('#sample').onclick=()=>choose(catalog.characters.find(c=>!c.packageId)?.id);$('#lab').onclick=()=>{$('.viewer').scrollIntoView({block:'start'});};$('#training').onclick=()=>{$('.arena-launch').scrollIntoView({block:'start'});};
-for(const id of ['stage-select','opponent-select','arena-mode'])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';};
+for(const id of ['stage-select','opponent-select','arena-mode','palette-select','opponent-palette-select'])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
 $('#fight-now').onclick=()=>void run('Preparing your match…',async()=>{
  if(!selected)throw Error('Import a character before starting a match.');
  const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value};remember();disposePreview();await native('launch',match);
 });
-window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview(selected);status('Ready when you are.');}});
+window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview();status('Ready when you are.');}});
 grid();void run('Opening your library…',async()=>{drawCatalog(await native('catalog'));status('Ready when you are.');});
 
 }

@@ -26,7 +26,7 @@ with sync_playwright() as p:
  def ready():page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'")
  def state():return page.evaluate('window.__kenjatimeGoState')
  def start(mode='training'):
-  page.locator('#arena-mode').select_option(mode);page.locator('#fight-now').click();page.wait_for_function("window.__kenjatimeGoState?.players.length===2",timeout=90000);page.wait_for_function("window.__kenjatimeGoState.players.every(p=>p.state===0)",timeout=30000)
+  page.locator('#arena-mode').select_option(mode);page.locator('#fight-now').click();page.locator('.kenjatime-battle iframe').wait_for(state='visible');page.wait_for_function("window.__kenjatimeGoState?.players.length===2",timeout=90000);page.wait_for_function("window.__kenjatimeGoState.players.every(p=>p.state===0)",timeout=30000)
  def stop():page.locator('[data-menu]').click();assert page.locator('.kenjatime-battle').count()==0
  page.goto(base+'arena-classic/index.html');ready();assert page.locator('#name').inner_text()=='Kung Fu Man';assert page.evaluate('typeof window.__kenjatimePerformance')=='undefined'
  # Versus keeps damage persistent; training automatically restores dummy life.
@@ -69,7 +69,10 @@ with sync_playwright() as p:
   if not path:continue
   with page.expect_file_chooser() as chosen:page.locator('#add-stage' if 'FOREST' in envkey else '#browse').click()
   chosen.value.set_files(path);page.wait_for_function("!document.querySelector('#browse').disabled && document.querySelector('#status').textContent.startsWith('Archive installed')",timeout=90000)
-  print('IMPORTED',envkey,flush=True);start();out['cases'][envkey]={'started':True,'state':state()};page.wait_for_timeout(1000);page.screenshot(path='work/ikemen-web/'+('tomoka' if 'TOMOKA' in envkey else 'forest')+'.png');stop()
+  print('IMPORTED',envkey,flush=True);start()
+  if envkey=='MUGEN_FOREST_RAR':
+   page.wait_for_function("window.__kenjatimeGoState?.music.streaming && window.__kenjatimeGoState.music.file.endsWith('/blood heat!.mp3')",timeout=30000)
+  out['cases'][envkey]={'started':True,'state':state()};page.wait_for_timeout(1000);page.screenshot(path='work/ikemen-web/'+('tomoka' if 'TOMOKA' in envkey else 'forest')+'.png');stop()
  assert not errors,errors;assert not bad,bad;out['errors']=errors;out['failedRequests']=bad;browser.close()
 if server:server.shutdown()
 Path('work/go-engine-browser-evidence.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

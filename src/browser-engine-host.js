@@ -4,6 +4,7 @@ import {stageDefinitions} from './stages.js';
 import {readArchiveFile,unpackArchive} from './uploads.js';
 import {ArchiveLibrary} from './mobile-library.js';
 import {openGoBattle} from './go-battle.js';
+import {stageWithResolvedMusic} from './engine-stage.js';
 
 const legacy=new ArchiveLibrary();
 const base=new URL('../',import.meta.url);let corePromise,dbPromise;
@@ -46,6 +47,7 @@ export function createBrowserEngineHost(){return{
    if(!p1||!p2||!stage)throw Error('Select installed fighters and a stage.');if(!['solo','versus','cpu','training'].includes(data.mode))throw Error('Unknown play mode.');
    const files=Object.fromEntries(Object.entries(await core()).map(([p,b])=>[p,b.slice()])),ids=[...new Set([p1.packageId,p2.packageId,stage.packageId].filter(Boolean))],db=await open();
    for(const id of ids){const rows=await request(db.transaction('files').objectStore('files').index('packageId').getAll(id));for(const row of rows)files[row.path]=new Uint8Array(await row.blob.arrayBuffer());}
+   files[stage.id]=stageWithResolvedMusic(stage.id,files);
    const level=Math.max(1,Math.min(8,data.level||4)),pal=n=>String(Math.max(1,Math.min(12,n||1)));
    const args=['-config','data/kenjatime/config.ini','-p1',p1.id,'-p2',p2.id,'-s',stage.id,'-p1.ai',data.mode==='cpu'?String(level):'0','-p2.ai',['solo','cpu'].includes(data.mode)?String(level):'0','-p1.color',pal(data.palette),'-p2.color',pal(data.opponentPalette),'-kenjatime-mode',data.mode,'-rounds',data.mode==='training'?'9999':'2','-time',data.mode==='training'?'-1':'99'];
    // Go gets its own transferable copy of package bytes; the preview/library stays intact.

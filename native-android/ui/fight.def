@@ -12,82 +12,124 @@ fightfx.air = ../fightfx.air
 common.snd = ../common.snd
 
 [FightFx]
-scale = 1
+; Common sparks are authored at 320px; the Kenjatime HUD is 960px.
+scale = 3
 
 [Lifebar]
-p1.pos = 48,94
+p1.pos = 48,112
 p1.bg0.spr = 0,0
-p1.mid.spr = 0,1
+p1.bg0.layerno = 2
+p1.mid.spr = 0,6
+p1.mid.layerno = 2
+p1.mid.offset = 0,2
 p1.front.spr = 0,1
-p1.range.x = 0,300
-p2.pos = 912,94
+p1.front.layerno = 2
+p1.front.offset = 0,2
+p1.range.x = 0,359
+p1.value.font = 1,0,1,232,234,231
+p1.value.layerno = 2
+p1.value.text = "%d"
+p1.value.offset = 0,64
+p2.pos = 912,112
 p2.bg0.spr = 0,0
+p2.bg0.layerno = 2
 p2.bg0.facing = -1
-p2.mid.spr = 0,1
+p2.mid.spr = 0,6
+p2.mid.layerno = 2
 p2.mid.facing = -1
-p2.front.spr = 0,1
+p2.mid.offset = 0,2
+p2.front.spr = 0,7
+p2.front.layerno = 2
 p2.front.facing = -1
-p2.range.x = 0,-300
+p2.front.offset = 0,2
+p2.range.x = -1,-360
+p2.value.font = 1,0,-1,232,234,231
+p2.value.layerno = 2
+p2.value.text = "%d"
+p2.value.offset = 0,64
 
 [Name]
-p1.pos = 48,84
+p1.pos = 48,102
 p1.name.font = 1,0,1,211,251,141
-p2.pos = 912,84
-p2.name.font = 1,0,-1,211,251,141
+p1.name.layerno = 2
+p2.pos = 912,102
+p2.name.font = 1,0,-1,143,207,255
+p2.name.layerno = 2
 
 [Powerbar]
-p1.pos = 48,110
+p1.pos = 48,138
 p1.bg0.spr = 0,4
+p1.bg0.layerno = 2
 p1.front.spr = 0,5
-p1.range.x = 0,150
-p2.pos = 912,110
+p1.front.layerno = 2
+p1.front.offset = 0,1
+p1.range.x = 0,179
+p2.pos = 912,138
 p2.bg0.spr = 0,4
+p2.bg0.layerno = 2
 p2.bg0.facing = -1
-p2.front.spr = 0,5
+p2.front.spr = 0,8
+p2.front.layerno = 2
 p2.front.facing = -1
-p2.range.x = 0,-150
+p2.front.offset = 0,1
+p2.range.x = -1,-180
 
 [Time]
-pos = 480,90
-bg0.spr = 0,2
-counter.font = 1,0,0,211,251,141
+pos = 480,130
+counter.font = 2,0,0,232,234,231
+counter.layerno = 2
 framespercount = 60
 
 [Combo]
 team1.pos = 48,170
 team1.counter.font = 1,0,1,211,251,141
+team1.counter.layerno = 2
 team1.text.font = 1,0,1,211,251,141
+team1.text.layerno = 2
 team1.text.text = "%i HITS"
 team2.pos = 912,170
 team2.counter.font = 1,0,-1,211,251,141
+team2.counter.layerno = 2
 team2.text.font = 1,0,-1,211,251,141
+team2.text.layerno = 2
 team2.text.text = "%i HITS"
 
 [Round]
 pos = 480,180
 round.default.font = 2,0,0,211,251,141
+round.default.layerno = 2
 round.default.text = "ROUND %i"
 fight.font = 2,0,0,211,251,141
+fight.layerno = 2
 fight.text = "FIGHT"
 ko.font = 2,0,0,211,251,141
+ko.layerno = 2
 ko.text = "KO"
 dko.font = 2,0,0,211,251,141
+dko.layerno = 2
 dko.text = "DOUBLE KO"
 to.font = 2,0,0,211,251,141
+to.layerno = 2
 to.text = "TIME OVER"
 win.font = 2,0,0,211,251,141
+win.layerno = 2
 win.text = "%s WINS"
 draw.font = 2,0,0,211,251,141
+draw.layerno = 2
 draw.text = "DRAW"
 
 [WinIcon]
-p1.pos = 48,125
-p2.pos = 912,125
+p1.pos = 224,150
+p2.pos = 736,150
 p1.iconoffset = 8,0
 p2.iconoffset = -8,0
 p1.n.spr = 0,3
+p1.n.layerno = 2
 p2.n.spr = 0,3
+p2.n.layerno = 2
 
 [Face]
 p1.spr = -1,0
+p1.layerno = 2
 p2.spr = -1,0
+p2.layerno = 2

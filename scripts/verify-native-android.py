@@ -12,7 +12,7 @@ signature=subprocess.check_output([sdk/'apksigner','verify','--print-certs',apk]
 signer=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]+)',signature).group(1)
 badging=subprocess.check_output([sdk/'aapt','dump','badging',apk],text=True)
 assert "name='io.github.celerycore.kenjatime.nativeprototype'" in badging
-assert "versionName='0.3.0'" in badging and "versionCode='3'" in badging
+assert "versionName='0.3.1'" in badging and "versionCode='4'" in badging
 assert "sdkVersion:'34'" in badging and "targetSdkVersion:'36'" in badging
 assert "native-code: 'arm64-v8a'" in badging
 assert 'maxSdkVersion:' not in badging
@@ -72,8 +72,8 @@ assert not [i.get('id') for i in lint if i.get('severity') in ['Error','Fatal']]
 tests=[]
 for file in Path('native-android/app/build/test-results/testDebugUnitTest').glob('TEST-*.xml'):
     root=ET.parse(file).getroot();tests.append({k:root.get(k) for k in ['name','tests','failures','errors','skipped']})
-assert tests and sum(int(t['tests']) for t in tests)==24
+assert tests and sum(int(t['tests']) for t in tests)==25
 assert all(int(t[k])==0 for t in tests for k in ['failures','errors','skipped'])
-record={'applicationId':'io.github.celerycore.kenjatime.nativeprototype','version':'0.3.0','versionCode':3,'apkBytes':apk.stat().st_size,'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signerSha256':signer,'signatureVerified':True,'minSdk':34,'targetSdk':36,'abi':'arm64-v8a','nativeLibrariesMatchOfficialRelease':10,'exportedJniSignaturesMatch':len(before),'bundledAssetsMatchPreparedFiles':count,'nativeGameProcess':':engine','webViewBattleView':False,'webViewSetupUi':True,'archiveReader':'libarchive-android 1.1.6','tests':tests,'lint':{'errors':0,'warningCounts':dict(Counter(i.get('id') for i in lint)),'scopedVendorSuppressions':'native-android/lint.xml'},'engine':provenance,'phoneExecution':False,'phoneFpsMeasured':False,'scope':'Native ARM64 execution requires an Android phone. Robolectric verifies launcher, assets, imports, rollback, limits, locking and audio permission handling; it does not execute the game engine.'}
+record={'applicationId':'io.github.celerycore.kenjatime.nativeprototype','version':'0.3.1','versionCode':4,'apkBytes':apk.stat().st_size,'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signerSha256':signer,'signatureVerified':True,'minSdk':34,'targetSdk':36,'abi':'arm64-v8a','nativeLibrariesMatchOfficialRelease':10,'exportedJniSignaturesMatch':len(before),'bundledAssetsMatchPreparedFiles':count,'nativeGameProcess':':engine','webViewBattleView':False,'webViewSetupUi':True,'archiveReader':'libarchive-android 1.1.6','tests':tests,'lint':{'errors':0,'warningCounts':dict(Counter(i.get('id') for i in lint)),'scopedVendorSuppressions':'native-android/lint.xml'},'engine':provenance,'phoneExecution':False,'phoneFpsMeasured':False,'scope':'Native ARM64 execution requires an Android phone. Robolectric verifies launcher, assets, imports, rollback, limits, locking and audio permission handling; it does not execute the game engine.'}
 Path('work/native-android-evidence.json').write_text(json.dumps(record,indent=2)+'\n')
 print(json.dumps({k:v for k,v in record.items() if k not in ['engine','tests']}))

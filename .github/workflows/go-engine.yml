@@ -9,6 +9,7 @@ on:
       - 'public/engine/**'
       - 'native-android/ui/**'
       - 'scripts/verify-go-engine.py'
+      - 'scripts/verify-go-presentation.py'
       - 'scripts/prepare-kenjatime-ui.py'
       - 'scripts/build-go-engine.py'
       - '.github/workflows/go-engine.yml'
@@ -39,7 +40,9 @@ jobs:
           cmp /tmp/shipped-engine.wasm.bin public/engine/ikemen.wasm.bin
       - run: npm test
       - run: npm run build
-      - run: pip install playwright
+      - run: pip install playwright pillow
       - run: python -m playwright install --with-deps chromium
       - name: Execute Go matches and verify no stock UI
         run: python scripts/verify-go-engine.py
+      - name: Check fighter framing, HUD pixels, sparks and stage PCM output
+        run: python scripts/verify-go-presentation.py

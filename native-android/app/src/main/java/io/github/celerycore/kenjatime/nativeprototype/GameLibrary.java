@@ -76,6 +76,14 @@ public final class GameLibrary {
     // The engine reads this private JSON selection and the default config instead.
     String[] prepareMatch(org.json.JSONObject request,AssetManager assets) throws IOException,org.json.JSONException {
         String[] args=new GameCatalog(root).matchArguments(request);
+        // A hidden DEF beside the source keeps all non-music stage references relative.
+        for(int i=0;i<args.length;i+=2)if(args[i].equals("-s")) {
+            File stage=new File(root,args[i+1]),copy=new File(stage.getParentFile(),".kenjatime-stage.def");
+            String prepared=StageResources.music(root,stage);if(prepared!=null){
+                atomicWrite(copy,prepared.getBytes(StandardCharsets.UTF_8));
+                args[i+1]=copy.getCanonicalPath().substring(root.getCanonicalPath().length()+1).replace(File.separatorChar,'/');
+            }
+        }
         org.json.JSONObject flags=new org.json.JSONObject();for(int i=0;i<args.length;i+=2)flags.put(args[i],args[i+1]);
         atomicWrite(new File(root,"save/kenjatime-match.json"),flags.toString().getBytes(StandardCharsets.UTF_8));
         ensureEngineConfig(assets);return args;
@@ -172,7 +180,7 @@ public final class GameLibrary {
         Arrays.sort(files,Comparator.comparing(File::getName));
         for(File file:files) {
             if(file.isDirectory()) { discover(base,file,characters,stages);continue; }
-            if(!file.getName().toLowerCase(Locale.ROOT).endsWith(".def"))continue;
+            if(!file.getName().toLowerCase(Locale.ROOT).endsWith(".def")||file.getName().endsWith(".kenjatime-stage.def"))continue;
             String text=GameCatalog.text(file);
             String section="";boolean stage=false,info=false,sprite=false,anim=false;
             for(String line:text.replace("\ufeff","").split("\\r?\\n")) {

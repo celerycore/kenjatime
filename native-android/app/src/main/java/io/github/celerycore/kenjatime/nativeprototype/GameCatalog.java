@@ -22,7 +22,7 @@ final class GameCatalog {
     }
     private void scan(File dir,String packageId,String packageName,JSONArray chars,JSONArray stages) throws IOException,JSONException {
         File[] files=dir.listFiles();if(files==null)return;Arrays.sort(files,Comparator.comparing(File::getName));
-        for(File file:files)if(file.isDirectory())scan(file,packageId,packageName,chars,stages);else if(file.getName().toLowerCase(Locale.ROOT).endsWith(".def"))add(file,packageId,packageName,chars,stages);
+        for(File file:files)if(file.isDirectory())scan(file,packageId,packageName,chars,stages);else if(file.getName().toLowerCase(Locale.ROOT).endsWith(".def")&&!file.getName().endsWith(".kenjatime-stage.def"))add(file,packageId,packageName,chars,stages);
     }
     private void add(File file,String pkg,String pkgName,JSONArray chars,JSONArray stages) throws IOException,JSONException {
         if(!file.isFile())return;Map<String,Map<String,String>> ini=ini(text(file));Map<String,String> info=ini.get("info"),files=ini.get("files");boolean stage=ini.containsKey("bgdef");if(!stage&&(info==null||files==null||!files.containsKey("sprite")))return;

@@ -20,8 +20,8 @@ Pause and app backgrounding clear held inputs and pause fighters. Menu disposes 
 
 ## Validation and limits
 
-- 499 repository tests pass with the available supplied corpus, without skips. Most pre-existing combat tests describe the historical JS implementation; these alone are not evidence of the Go backend.
-- 24 native host tests cover private match/config handoff without relying on argv, invalid-selection rollback, actual asset preparation, removal of obsolete UI on upgrade, archive policy/registration, library persistence, picker and native launch, WebView lifecycle and audio permission handling.
+- 501 repository tests pass with the available supplied corpus, without skips. Most pre-existing combat tests describe the historical JS implementation; these alone are not evidence of the Go backend.
+- 25 native host tests cover private match/config handoff without relying on argv, invalid-selection rollback, actual asset preparation, removal of obsolete UI on upgrade, archive policy/registration, library persistence, picker and native launch, WebView lifecycle and audio permission handling.
 - The browser smoke suite executes real Go/WASM matches, records a 23-point touch punch, verifies paused fighter state, Menu return, 24 archive imports across the four routes, invalid-import preservation, restart persistence and old-library migration. It launches the ordinary CNS Kung Fu Man ZIP, Tomoka RAR and Forest RAR with the Go VM.
 - The APK verifier checks the original ten native libraries and 53 JNI signatures, versions, signatures, prepared files and absent stock UI paths. Both Android builds have lint checks. The Go build job reproduces the shipped WASM from pinned source.
 
@@ -30,3 +30,13 @@ These are host/browser checks, including software WebGL. No physical Infinix X67
 Build provenance is shipped at `engine/provenance.json`; source and dependency licenses are provided alongside it. Native library license notices and the matching FFmpeg source link remain available from the download page.
 
 The compressed WASM payload uses `.wasm.bin` with a gzip header, decoded by the engine frame. Android AAPT automatically expands `.gz` asset files and strips that suffix, so `.bin` preserves the exact browser payload and URL inside the WebView APK. The APK verifier checks those bytes.
+
+## Fighter view, stage audio and HUD correction (0.3.1 / web wrapper 0.2.1)
+
+Setup previews both selected fighters, facing inward, with separate player labels and palettes. The static canvases release decoded sprite banks after drawing. Matches explicitly use the output aspect ratio, keeping stage camera rules and the full canvas visible; the Kenjatime grid has a wider camera margin and explicit edge insets so cornered fighters retain room for their sprites.
+
+The HUD has larger health/power bars and names, separate P1/P2 colours, numeric health and a distinct delayed-damage trail. Controls sit above the bars. HUD graphics and text use the foreground UI layer so fighters and stage foregrounds cannot cover health values. Common fight effects are authored at 320 pixels; the 960-pixel HUD now sets FightFx scale to 3, restoring their normal gameplay size rather than shrinking them to one third.
+
+The supplied Forest RAR stores `blood heat!.mp3` beside its DEF while requesting `sound/Blood heat!.mp3`. Music references resolve to exact package paths first, then an adjacent relocated file; lookup never borrows a basename from another import. Web matches patch only their in-memory DEF. Native matches create a private hidden DEF beside the original, retaining relative sprite references and the original catalog/library entry. Both handle case and Windows separators.
+
+The browser resumes its actual audio contexts from fight input and provides an Enable sound / Sound on / Sound off control. Pause and mute remain separate. The presentation regression uses Chromium's user-activation autoplay policy, captures real nonzero PCM output from an imported WAV stage, checks both fighters' screen coordinates, and compares lifebar/damage and spark pixels. It complements the supplied Tomoka/Forest match checks and the native host tests; physical Android audio remains a device check.

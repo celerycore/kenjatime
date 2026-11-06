@@ -39,22 +39,23 @@ def main():
         for mode in ['Simul','Simul_3P','Simul_4P','Tag','Tag_3P','Tag_4P','Turns']:extras+='\n['+mode+' '+name+']'+body
     for name in ['Action','WinCount','Timer','Score','Match','AILevel','Mode']:extras+='\n['+name+']\n'
     write('assets/data/kenjatime/fight.def',(fight+extras).encode())
-    for name,height in [('label',13),('banner',28)]:
+    for name,height in [('label',18),('banner',30)]:
         write('assets/data/kenjatime/'+name+'.def',f'[FNT v2]\nfntversion=2,00\nname=Kenjatime {name}\n[Def]\nType=truetype\nSize=8,{height}\nSpacing=1,1\nFile=../../font/Open_Sans/OpenSans-Regular.ttf\nColors=256\n'.encode())
     vs=bytearray(20*12)
     for row,bits in enumerate(['100010111','100010100','100010100','010100111','010100001','001000001','001000111']):
         for col,bit in enumerate(bits):
             if bit=='1':
                 vs[(row+2)*20+col*2]=2;vs[(row+2)*20+col*2+1]=2
-    sprites=[(300,8,0,0,bytes([1])*(300*8)),(300,8,0,0,bytes([2])*(300*8)),(20,12,10,0,bytes(vs)),(4,4,0,0,bytes([2])*16),(150,4,0,0,bytes([1])*600),(150,4,0,0,bytes([2])*600)]
-    write('assets/data/kenjatime/fight.sff',sff(sprites,[(0,0,0,0),(42,47,52,255),(211,251,141,255)]))
+    def rect(w,h,color):return (w,h,0,0,bytes([color])*(w*h))
+    sprites=[rect(360,18,1),rect(360,14,2),(20,12,10,0,bytes(vs)),rect(6,6,2),rect(180,8,1),rect(180,6,2),rect(360,14,3),rect(360,14,4),rect(180,6,4)]
+    write('assets/data/kenjatime/fight.sff',sff(sprites,[(0,0,0,0),(42,47,52,255),(211,251,141,255),(231,128,116,255),(143,207,255,255)]))
     w,h=854,480;grid=bytearray(w*h)
     for x in range(-620,1480,72):line(grid,w,h,round(w/2+(x-w/2)*.3),284,x,h-1,1)
     y=293
     while y<h:line(grid,w,h,0,round(y),w-1,round(y),1);y+=(y-266)*.3
     line(grid,w,h,0,392,w-1,392,2)
     write('assets/stages/kenjatime-grid.sff',sff([(w,h,w//2,0,bytes(grid))],[(12,17,27,255),(27,39,55,255),(70,96,85,255)]))
-    write('assets/stages/kenjatime-grid.def',b'[Info]\nname=Training grid\nauthor=Kenjatime\n[Camera]\nstartx=0\nstarty=0\nboundleft=-160\nboundright=160\nboundhigh=0\nboundlow=0\ntension=50\n[PlayerInfo]\np1startx=-180\np1starty=0\np1facing=1\np2startx=180\np2starty=0\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[StageInfo]\nzoffset=392\nautoturn=1\nresetbg=1\nlocalcoord=854,480\nxscale=1\nyscale=1\n[BGDef]\nspr=kenjatime-grid.sff\n[BG 0]\ntype=normal\nspriteno=0,0\nstart=0,0\ndelta=0,0\nmask=0\n')
+    write('assets/stages/kenjatime-grid.def',b'[Info]\nname=Training grid\nauthor=Kenjatime\n[Camera]\nstartx=0\nstarty=0\nboundleft=-160\nboundright=160\nboundhigh=0\nboundlow=0\ntension=128\n[Bound]\nscreenleft=96\nscreenright=96\n[PlayerInfo]\np1startx=-180\np1starty=0\np1facing=1\np2startx=180\np2starty=0\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[StageInfo]\nzoffset=392\nautoturn=1\nresetbg=1\nlocalcoord=854,480\nxscale=1\nyscale=1\n[BGDef]\nspr=kenjatime-grid.sff\n[BG 0]\ntype=normal\nspriteno=0,0\nstart=0,0\ndelta=0,0\nmask=0\n')
     write('assets/data/kenjatime/engine.lua',(ROOT/'engine/kenjatime.lua').read_bytes())
     write('assets/data/kenjatime/config.ini',(ROOT/'engine/config.ini').read_bytes())
     write('assets/data/select.def',b'[Characters]\nkfm_zss, stages/kenjatime-grid.def\n[ExtraStages]\nstages/kenjatime-grid.def\n')

@@ -1,10 +1,13 @@
 import {createEngineFS} from './engine-fs.js';
 import {gunzipSync} from 'fflate';
 const send=(type,data={})=>parent.postMessage({kenjatimeEngine:true,type,...data},location.origin);
-let started=false,stopped=false,contexts=[];
-for(const name of ['AudioContext','webkitAudioContext'])if(window[name]){const Original=window[name];window[name]=class extends Original{constructor(...args){super(...args);contexts.push(this);}};}
+let started=false,stopped=false,contexts=[],audioEnabled=true,paused=false;
+const audioStatus=()=>({enabled:audioEnabled,paused,running:contexts.some(c=>c.state==='running'),contexts:contexts.map(c=>c.state)});
+function syncAudio(){for(const c of contexts)if(c.state!=='closed')(audioEnabled&&!paused?c.resume():c.suspend()).catch(()=>{});send('audio',audioStatus());}
+for(const name of ['AudioContext','webkitAudioContext'])if(window[name]){const Original=window[name];window[name]=class extends Original{constructor(...args){super(...args);contexts.push(this);this.addEventListener('statechange',()=>send('audio',audioStatus()));queueMicrotask(syncAudio);}};}
 window.alert=message=>send('error',{message:String(message).replace(/^I\.K\.E\.M\.E\.N Error\s*/,'')});
-window.__kenjatimeFrame={snapshot:()=>stopped?null:window.kenjatimeEngineSnapshot?.(),pause:value=>{if(!stopped)window.kenjatimeEnginePause?.(value);for(const c of contexts)(value?c.suspend():c.resume()).catch(()=>{});},key:(code,down)=>{if(!stopped)window.kenjatimeEngineKey?.(code,down);},dispose:()=>{for(const c of contexts)c.close().catch(()=>{});}};
+window.__kenjatimeFrame={snapshot:()=>stopped?null:window.kenjatimeEngineSnapshot?.(),audioStatus,audio:value=>{audioEnabled=value;syncAudio();},pause:value=>{paused=value;if(!stopped)window.kenjatimeEnginePause?.(value);syncAudio();},key:(code,down)=>{if(down)syncAudio();if(!stopped)window.kenjatimeEngineKey?.(code,down);},dispose:()=>{for(const c of contexts)c.close().catch(()=>{});}};
+for(const event of ['pointerdown','keydown'])window.addEventListener(event,syncAudio);
 async function start({files,args}){
  files['save/config.ini']=files['data/kenjatime/config.ini'].slice();
  files['save/kenjatime-match.json']=new TextEncoder().encode(JSON.stringify(Object.fromEntries(Array.from({length:args.length/2},(_,i)=>[args[i*2],args[i*2+1]]))));

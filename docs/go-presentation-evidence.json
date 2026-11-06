@@ -1,0 +1,86 @@
+{
+  "phoneExecution": false,
+  "checks": {
+    "twoPreviewFighters": true,
+    "stageAudio": {
+      "music": {
+        "streaming": true,
+        "format": "wav",
+        "file": "imports/734e9cee-1a4d-4de4-99c0-2db010df7118/stage/stages/tone.wav"
+      },
+      "pcm": {
+        "buffers": 87,
+        "peak": 0.06938400119543076
+      },
+      "audio": {
+        "enabled": true,
+        "paused": false,
+        "running": true,
+        "contexts": [
+          "running"
+        ]
+      }
+    },
+    "hudBefore": {
+      "p1": 2864,
+      "p2": 2849,
+      "damage": 0
+    },
+    "defenderHealthTextPixels": 41,
+    "fightersVisibleAtContact": true,
+    "normalCommonSparkScale": 1,
+    "visibleSparkPixels": 301,
+    "hudAfterHit": {
+      "p1": 2868,
+      "p2": 2831,
+      "damage": 22
+    },
+    "hitState": {
+      "camera": {
+        "zoom": 1,
+        "width": 427,
+        "height": 240,
+        "x": 80
+      },
+      "effects": {
+        "commonScale": 1,
+        "commonAnimations": 19,
+        "activeCommon": 1
+      },
+      "music": {
+        "file": "imports/734e9cee-1a4d-4de4-99c0-2db010df7118/stage/stages/tone.wav",
+        "streaming": true,
+        "format": "wav"
+      },
+      "players": [
+        {
+          "x": 151.98204040527344,
+          "state": 200,
+          "screenY": 0.8166666626930237,
+          "time": 4,
+          "life": 1000,
+          "lifeMax": 1000,
+          "power": 26,
+          "powerMax": 3000,
+          "y": 0,
+          "screenX": 0.7875902056694031
+        },
+        {
+          "y": 0,
+          "lifeMax": 1000,
+          "power": 13,
+          "x": 183.98126220703125,
+          "screenY": 0.8166666626930237,
+          "state": 5000,
+          "time": 1,
+          "life": 977,
+          "powerMax": 3000,
+          "screenX": 0.88758784532547
+        }
+      ],
+      "ticks": 1121,
+      "paused": false
+    }
+  },
+  "errors": []
+}
