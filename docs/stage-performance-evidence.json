@@ -1,0 +1,1204 @@
+{
+  "archiveSha256": "a0f05f933abf8c6506eedf58acfdfa37bb4d36a0717e75d0025334d109fbb6c0",
+  "environment": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+    "physicalAndroid": false,
+    "framesPerScene": 120,
+    "warmTicks": 90,
+    "simulationTicks": 210,
+    "scope": "Sequential desktop Chromium SwiftShader, mobile viewport. CPU submission timings and fenced costs are not physical phone FPS. The pan label alternates movement/jump/attack inputs and finishes at camera x=0; separate stage QA scrolls to x=136."
+  },
+  "prepared": {
+    "frames": 20,
+    "indexedBytes": 7113650,
+    "indexBudgetBytes": 8388608,
+    "canvasBudgetBytes": 8388608,
+    "gpuBudgetBytes": 16777216
+  },
+  "scenes": {
+    "high-canvas-idle": {
+      "before": {
+        "cpuP50": 1.199999988079071,
+        "cpuP95": 24.599999994039536,
+        "cpuMax": 39.599999994039536,
+        "fencedP50": 57.900000005960464,
+        "fencedP95": 84.80000001192093,
+        "tickP50": 0.6000000238418579,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 67,
+          "paletteVariants": 6,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "cacheBytes": 27574779,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 245.77271498856135,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1.0999999940395355,
+        "cpuP95": 5.199999988079071,
+        "cpuMax": 36.5,
+        "fencedP50": 28.900000005960464,
+        "fencedP95": 59.5,
+        "tickP50": 0.5,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 70,
+          "paletteVariants": 6,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 6303456,
+          "cacheBytes": 16644107,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 320.83331400644965,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 30,
+        "meanChannelDelta": 0.0010556520061728396,
+        "changedPixels": 125,
+        "totalPixels": 518400
+      }
+    },
+    "high-canvas-pan": {
+      "before": {
+        "cpuP50": 1.199999988079071,
+        "cpuP95": 17.69999998807907,
+        "cpuMax": 44.30000001192093,
+        "fencedP50": 53.80000001192093,
+        "fencedP95": 78,
+        "tickP50": 0.5999999940395355,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 68,
+          "paletteVariants": 11,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "cacheBytes": 27843570,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 239.27681398345158,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1,
+        "cpuP95": 4.699999988079071,
+        "cpuMax": 27.700000017881393,
+        "fencedP50": 28.099999994039536,
+        "fencedP95": 58.400000005960464,
+        "tickP50": 0.5,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 75,
+          "paletteVariants": 11,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 6303456,
+          "cacheBytes": 17001698,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 301.0397049947642,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 30,
+        "meanChannelDelta": 0.0013855131172839507,
+        "changedPixels": 157,
+        "totalPixels": 518400
+      }
+    },
+    "high-pixi-idle": {
+      "before": {
+        "cpuP50": 6.5,
+        "cpuP95": 248.30000001192093,
+        "cpuMax": 346.30000001192093,
+        "fencedP50": 8.599999994039536,
+        "fencedP95": 260.30000001192093,
+        "tickP50": 0.5,
+        "gpuUploads": 89,
+        "gpuUploadBytes": 320657288,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 35,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 16030572,
+          "activeSprites": 2,
+          "sprites": 67,
+          "paletteVariants": 1,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "cacheBytes": 27470199,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 279.3963940057438,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1.5999999940395355,
+        "cpuP95": 9.599999994039536,
+        "cpuMax": 37.400000005960464,
+        "fencedP50": 2.300000011920929,
+        "fencedP95": 28.599999994039536,
+        "tickP50": 0.30000001192092896,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 35,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 11370958,
+          "activeSprites": 2,
+          "sprites": 70,
+          "paletteVariants": 1,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 0,
+          "cacheBytes": 10236071,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 370.91937600052916,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 30,
+        "meanChannelDelta": 0.0021759259259259258,
+        "changedPixels": 279,
+        "totalPixels": 518400
+      }
+    },
+    "high-pixi-pan": {
+      "before": {
+        "cpuP50": 6.200000017881393,
+        "cpuP95": 271.39999997615814,
+        "cpuMax": 374.2000000178814,
+        "fencedP50": 11.699999988079071,
+        "fencedP95": 272.10000002384186,
+        "tickP50": 0.5,
+        "gpuUploads": 89,
+        "gpuUploadBytes": 320657288,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 37,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 16051800,
+          "activeSprites": 2,
+          "sprites": 68,
+          "paletteVariants": 1,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "cacheBytes": 27628962,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 267.2723620198667,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1.5,
+        "cpuP95": 6.799999982118607,
+        "cpuMax": 38.29999998211861,
+        "fencedP50": 2.199999988079071,
+        "fencedP95": 35.30000001192093,
+        "tickP50": 0.30000001192092896,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 37,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 11480986,
+          "activeSprites": 2,
+          "sprites": 75,
+          "paletteVariants": 1,
+          "graphicsMode": "high",
+          "graphicsPreset": "high",
+          "renderScale": 1,
+          "targetFPS": 60,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 0,
+          "cacheBytes": 10483634,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 370.31676998594776,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 30,
+        "meanChannelDelta": 0.002505787037037037,
+        "changedPixels": 311,
+        "totalPixels": 518400
+      }
+    },
+    "low-canvas-idle": {
+      "before": {
+        "cpuP50": 1.199999988079071,
+        "cpuP95": 18.5,
+        "cpuMax": 31.599999994039536,
+        "fencedP50": 20,
+        "fencedP95": 59.79999998211861,
+        "tickP50": 0.5,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 67,
+          "paletteVariants": 6,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "cacheBytes": 27574779,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 217.70633501000702,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1,
+        "cpuP95": 3.5,
+        "cpuMax": 5.799999982118607,
+        "fencedP50": 13.300000011920929,
+        "fencedP95": 34.39999997615814,
+        "tickP50": 0.5,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 70,
+          "paletteVariants": 6,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 6303456,
+          "cacheBytes": 16644107,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 326.3957750168629,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 39,
+        "meanChannelDelta": 0.010936428326474623,
+        "changedPixels": 489,
+        "totalPixels": 186624
+      }
+    },
+    "low-canvas-pan": {
+      "before": {
+        "cpuP50": 1.0999999940395355,
+        "cpuP95": 16.900000005960464,
+        "cpuMax": 26,
+        "fencedP50": 17.400000005960464,
+        "fencedP95": 58.29999998211861,
+        "tickP50": 0.5999999940395355,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 68,
+          "paletteVariants": 11,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "cacheBytes": 27843570,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 230.12152497540228,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1,
+        "cpuP95": 4,
+        "cpuMax": 8.800000011920929,
+        "fencedP50": 11.400000005960464,
+        "fencedP95": 39.30000001192093,
+        "tickP50": 0.5,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "canvas",
+          "rendererRequested": "canvas",
+          "rendererFallback": "",
+          "gpuSprites": 0,
+          "gpuBatches": 0,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 0,
+          "activeSprites": 2,
+          "sprites": 75,
+          "paletteVariants": 11,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 6303456,
+          "cacheBytes": 17001698,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 364.27544700563885,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 39,
+        "meanChannelDelta": 0.012160815329218108,
+        "changedPixels": 537,
+        "totalPixels": 186624
+      }
+    },
+    "low-pixi-idle": {
+      "before": {
+        "cpuP50": 5.800000011920929,
+        "cpuP95": 114.90000000596046,
+        "cpuMax": 147.09999999403954,
+        "fencedP50": 7.700000017881393,
+        "fencedP95": 115.2000000178814,
+        "tickP50": 0.5,
+        "gpuUploads": 89,
+        "gpuUploadBytes": 320657288,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 35,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 14703468,
+          "activeSprites": 2,
+          "sprites": 67,
+          "paletteVariants": 1,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "cacheBytes": 27470199,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 213.80164701258764,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1.0999999940395355,
+        "cpuP95": 7.699999988079071,
+        "cpuMax": 39.19999998807907,
+        "fencedP50": 1.4000000059604645,
+        "fencedP95": 12.699999988079071,
+        "tickP50": 0.20000001788139343,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 35,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 10043854,
+          "activeSprites": 2,
+          "sprites": 70,
+          "paletteVariants": 1,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 0,
+          "cacheBytes": 10236071,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 311.0959390178323,
+        "behaviorSha256": "e8d7b911d28470a8434aa827837c4829f24a5b36fe71713e0c8545a8078b0cd0",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 39,
+        "meanChannelDelta": 0.009779020919067216,
+        "changedPixels": 446,
+        "totalPixels": 186624
+      }
+    },
+    "low-pixi-pan": {
+      "before": {
+        "cpuP50": 5.5,
+        "cpuP95": 113.2000000178814,
+        "cpuMax": 163.10000002384186,
+        "fencedP50": 11.199999988079071,
+        "fencedP95": 114,
+        "tickP50": 0.5999999940395355,
+        "gpuUploads": 89,
+        "gpuUploadBytes": 320657288,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 37,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 14724696,
+          "activeSprites": 2,
+          "sprites": 68,
+          "paletteVariants": 1,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "cacheBytes": 27628962,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 210.95292398240417,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "after": {
+        "cpuP50": 1.4000000059604645,
+        "cpuP95": 5.5,
+        "cpuMax": 36.5,
+        "fencedP50": 1.7999999821186066,
+        "fencedP95": 9.299999982118607,
+        "tickP50": 0.30000001192092896,
+        "gpuUploads": 0,
+        "gpuUploadBytes": 0,
+        "pixelWrites": 0,
+        "counts": {
+          "renderer": "pixi",
+          "rendererRequested": "pixi",
+          "rendererFallback": "",
+          "gpuSprites": 37,
+          "gpuBatches": 37,
+          "gpuUploads": 0,
+          "gpuUploadBytes": 0,
+          "gpuTextureBytes": 10153882,
+          "activeSprites": 2,
+          "sprites": 75,
+          "paletteVariants": 1,
+          "graphicsMode": "low",
+          "graphicsPreset": "low",
+          "renderScale": 0.6,
+          "targetFPS": 30,
+          "simulationDebt": 0,
+          "stagePreparedFrames": 20,
+          "stagePreparedBytes": 7113650,
+          "stageCanvasBytes": 0,
+          "cacheBytes": 10483634,
+          "impacts": 0,
+          "explods": 0,
+          "orphanExplods": 0,
+          "projectiles": 0,
+          "helpers": 0,
+          "trails": 0
+        },
+        "importMs": 329.85373699921183,
+        "behaviorSha256": "ffaaf8d484b707a3b9e8aeb7d1f539a565ecf87a55d1e97e7c85ccdc78f8fce1",
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "errors": []
+      },
+      "gameplayHashMatches": true,
+      "pixelComparison": {
+        "maximum": 39,
+        "meanChannelDelta": 0.011003407921810699,
+        "changedPixels": 494,
+        "totalPixels": 186624
+      }
+    }
+  },
+  "animationAndCameraChecks": {
+    "physicalAndroid": false,
+    "comparisons": [
+      {
+        "mode": "high",
+        "renderer": "canvas",
+        "gameplayHashMatches": true,
+        "cameraX": 136.00000953674316,
+        "frames": [
+          {
+            "tick": 0,
+            "maximum": 28,
+            "meanChannelDelta": 0.0010927854938271606,
+            "changedPixelFraction": 0.0002488425925925926
+          },
+          {
+            "tick": 3,
+            "maximum": 28,
+            "meanChannelDelta": 0.0010435956790123457,
+            "changedPixelFraction": 0.00024305555555555555
+          },
+          {
+            "tick": 6,
+            "maximum": 31,
+            "meanChannelDelta": 0.0016102430555555555,
+            "changedPixelFraction": 0.00044367283950617285
+          },
+          {
+            "tick": 9,
+            "maximum": 27,
+            "meanChannelDelta": 0.0012731481481481483,
+            "changedPixelFraction": 0.0003993055555555556
+          },
+          {
+            "tick": 12,
+            "maximum": 28,
+            "meanChannelDelta": 0.001115451388888889,
+            "changedPixelFraction": 0.00037037037037037035
+          },
+          {
+            "tick": 15,
+            "maximum": 52,
+            "meanChannelDelta": 0.0024445408950617285,
+            "changedPixelFraction": 0.00048225308641975306
+          },
+          {
+            "tick": 18,
+            "maximum": 51,
+            "meanChannelDelta": 0.0018721064814814815,
+            "changedPixelFraction": 0.00036844135802469133
+          },
+          {
+            "tick": 21,
+            "maximum": 46,
+            "meanChannelDelta": 0.002468653549382716,
+            "changedPixelFraction": 0.000462962962962963
+          },
+          {
+            "tick": 24,
+            "maximum": 40,
+            "meanChannelDelta": 0.004347993827160493,
+            "changedPixelFraction": 0.0011226851851851851
+          },
+          {
+            "tick": 27,
+            "maximum": 24,
+            "meanChannelDelta": 0.0010595100308641975,
+            "changedPixelFraction": 0.00034915123456790125
+          },
+          {
+            "tick": 200,
+            "maximum": 30,
+            "meanChannelDelta": 0.0010595100308641975,
+            "changedPixelFraction": 0.00027391975308641974
+          }
+        ],
+        "importUiPulses": 16,
+        "preparedFrames": 20,
+        "preparedBytes": 7113650,
+        "errors": []
+      },
+      {
+        "mode": "high",
+        "renderer": "pixi",
+        "gameplayHashMatches": true,
+        "cameraX": 136.00000953674316,
+        "frames": [
+          {
+            "tick": 0,
+            "maximum": 28,
+            "meanChannelDelta": 0.0025303819444444445,
+            "changedPixelFraction": 0.0006230709876543209
+          },
+          {
+            "tick": 3,
+            "maximum": 28,
+            "meanChannelDelta": 0.0024811921296296296,
+            "changedPixelFraction": 0.0006172839506172839
+          },
+          {
+            "tick": 6,
+            "maximum": 36,
+            "meanChannelDelta": 0.005881076388888889,
+            "changedPixelFraction": 0.0014660493827160495
+          },
+          {
+            "tick": 9,
+            "maximum": 27,
+            "meanChannelDelta": 0.0025043402777777776,
+            "changedPixelFraction": 0.0007310956790123457
+          },
+          {
+            "tick": 12,
+            "maximum": 29,
+            "meanChannelDelta": 0.0023032407407407407,
+            "changedPixelFraction": 0.0006809413580246914
+          },
+          {
+            "tick": 15,
+            "maximum": 52,
+            "meanChannelDelta": 0.0029128086419753087,
+            "changedPixelFraction": 0.0007060185185185185
+          },
+          {
+            "tick": 18,
+            "maximum": 33,
+            "meanChannelDelta": 0.0027059220679012345,
+            "changedPixelFraction": 0.0006423611111111111
+          },
+          {
+            "tick": 21,
+            "maximum": 40,
+            "meanChannelDelta": 0.003224826388888889,
+            "changedPixelFraction": 0.0006828703703703704
+          },
+          {
+            "tick": 24,
+            "maximum": 40,
+            "meanChannelDelta": 0.004900173611111111,
+            "changedPixelFraction": 0.0012075617283950617
+          },
+          {
+            "tick": 27,
+            "maximum": 32,
+            "meanChannelDelta": 0.0019719328703703704,
+            "changedPixelFraction": 0.000621141975308642
+          },
+          {
+            "tick": 200,
+            "maximum": 32,
+            "meanChannelDelta": 0.0011477623456790124,
+            "changedPixelFraction": 0.000314429012345679
+          }
+        ],
+        "importUiPulses": 15,
+        "preparedFrames": 20,
+        "preparedBytes": 7113650,
+        "errors": []
+      },
+      {
+        "mode": "low",
+        "renderer": "canvas",
+        "gameplayHashMatches": true,
+        "cameraX": 136.00000953674316,
+        "frames": [
+          {
+            "tick": 0,
+            "maximum": 52,
+            "meanChannelDelta": 0.03376575360082305,
+            "changedPixelFraction": 0.008096493484224965
+          },
+          {
+            "tick": 3,
+            "maximum": 52,
+            "meanChannelDelta": 0.03378584747942387,
+            "changedPixelFraction": 0.008101851851851851
+          },
+          {
+            "tick": 6,
+            "maximum": 54,
+            "meanChannelDelta": 0.019177597736625515,
+            "changedPixelFraction": 0.004297410836762688
+          },
+          {
+            "tick": 9,
+            "maximum": 61,
+            "meanChannelDelta": 0.0336572466563786,
+            "changedPixelFraction": 0.007919667352537723
+          },
+          {
+            "tick": 12,
+            "maximum": 50,
+            "meanChannelDelta": 0.028932506001371743,
+            "changedPixelFraction": 0.006601508916323731
+          },
+          {
+            "tick": 15,
+            "maximum": 38,
+            "meanChannelDelta": 0.0242586698388203,
+            "changedPixelFraction": 0.006601508916323731
+          },
+          {
+            "tick": 18,
+            "maximum": 51,
+            "meanChannelDelta": 0.016397944530178326,
+            "changedPixelFraction": 0.0038151577503429354
+          },
+          {
+            "tick": 21,
+            "maximum": 59,
+            "meanChannelDelta": 0.03222924168381344,
+            "changedPixelFraction": 0.007207004458161866
+          },
+          {
+            "tick": 24,
+            "maximum": 53,
+            "meanChannelDelta": 0.028837394975994513,
+            "changedPixelFraction": 0.006965877914951989
+          },
+          {
+            "tick": 27,
+            "maximum": 57,
+            "meanChannelDelta": 0.026285472393689988,
+            "changedPixelFraction": 0.006092463991769547
+          },
+          {
+            "tick": 200,
+            "maximum": 49,
+            "meanChannelDelta": 0.028436856995884774,
+            "changedPixelFraction": 0.006740826474622771
+          }
+        ],
+        "importUiPulses": 17,
+        "preparedFrames": 20,
+        "preparedBytes": 7113650,
+        "errors": []
+      },
+      {
+        "mode": "low",
+        "renderer": "pixi",
+        "gameplayHashMatches": true,
+        "cameraX": 136.00000953674316,
+        "frames": [
+          {
+            "tick": 0,
+            "maximum": 52,
+            "meanChannelDelta": 0.034675336505486966,
+            "changedPixelFraction": 0.008375128600823045
+          },
+          {
+            "tick": 3,
+            "maximum": 52,
+            "meanChannelDelta": 0.03469543038408779,
+            "changedPixelFraction": 0.00838048696844993
+          },
+          {
+            "tick": 6,
+            "maximum": 54,
+            "meanChannelDelta": 0.01815414951989026,
+            "changedPixelFraction": 0.004029492455418381
+          },
+          {
+            "tick": 9,
+            "maximum": 61,
+            "meanChannelDelta": 0.034473058127572016,
+            "changedPixelFraction": 0.008235811042524006
+          },
+          {
+            "tick": 12,
+            "maximum": 50,
+            "meanChannelDelta": 0.029583547668038408,
+            "changedPixelFraction": 0.006869427297668039
+          },
+          {
+            "tick": 15,
+            "maximum": 38,
+            "meanChannelDelta": 0.02296730324074074,
+            "changedPixelFraction": 0.006253215020576131
+          },
+          {
+            "tick": 18,
+            "maximum": 46,
+            "meanChannelDelta": 0.014085808899176955,
+            "changedPixelFraction": 0.0035525977366255143
+          },
+          {
+            "tick": 21,
+            "maximum": 59,
+            "meanChannelDelta": 0.0293839484739369,
+            "changedPixelFraction": 0.00678369341563786
+          },
+          {
+            "tick": 24,
+            "maximum": 53,
+            "meanChannelDelta": 0.0268400634430727,
+            "changedPixelFraction": 0.006606867283950617
+          },
+          {
+            "tick": 27,
+            "maximum": 57,
+            "meanChannelDelta": 0.027181659379286693,
+            "changedPixelFraction": 0.006328232167352538
+          },
+          {
+            "tick": 200,
+            "maximum": 49,
+            "meanChannelDelta": 0.02839934842249657,
+            "changedPixelFraction": 0.006735468106995885
+          }
+        ],
+        "importUiPulses": 22,
+        "preparedFrames": 20,
+        "preparedBytes": 7113650,
+        "errors": []
+      }
+    ]
+  },
+  "compatibilityTests": {
+    "pass": 482,
+    "fail": 0,
+    "skip": 0
+  },
+  "gpuIndexedComparisons": {
+    "cases": 36,
+    "maximumChannelDifference": 0,
+    "oddWidthRows": true,
+    "partialPaletteAlpha": true,
+    "sharedIndicesDifferentPalettes": true
+  },
+  "stageRoutes": [
+    {
+      "route": "/",
+      "stageOnlyImport": true,
+      "wrongArchiveRejected": true,
+      "fileReaderFallback": false,
+      "music": {
+        "duration": 88,
+        "loop": true,
+        "sampleRate": 44100
+      },
+      "cameraX": 136.00000953674316,
+      "backgroundTicks": 6,
+      "additionalDiagnostics": [],
+      "baselineCharacterWarnings": 3,
+      "errors": [],
+      "failedRequests": [],
+      "hiresPixelEquivalent": true,
+      "equivalenceCameraX": 80
+    },
+    {
+      "route": "arena/",
+      "stageOnlyImport": true,
+      "wrongArchiveRejected": true,
+      "fileReaderFallback": false,
+      "music": {
+        "duration": 88,
+        "loop": true,
+        "sampleRate": 44100
+      },
+      "cameraX": 136.00000953674316,
+      "backgroundTicks": 6,
+      "additionalDiagnostics": [],
+      "baselineCharacterWarnings": 3,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena-classic/",
+      "stageOnlyImport": true,
+      "wrongArchiveRejected": true,
+      "fileReaderFallback": true,
+      "music": {
+        "duration": 88,
+        "loop": true,
+        "sampleRate": 44100
+      },
+      "cameraX": 136.00000953674316,
+      "backgroundTicks": 6,
+      "additionalDiagnostics": [],
+      "baselineCharacterWarnings": 3,
+      "errors": [],
+      "failedRequests": []
+    }
+  ]
+}

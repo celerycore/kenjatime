@@ -2,7 +2,7 @@
 
 Android test app 0.1.2 adds an optional PixiJS 8.22 WebGL2 renderer. In the arena setup, choose **Renderer → PixiJS · WebGL prototype**. Canvas remains the default. The same selector is present in the lab, Arena and Classic Arena. `?renderer=pixi&perf=1` enables the prototype and measurement display for a browser session; selecting it in the UI persists the preference locally.
 
-The renderer changes drawing only. CNS/CMD execution, command buffers, collision handling, input sampling, hit clocks and the fixed 60 Hz simulation remain shared. Switching while paused does not execute a gameplay tick. Android 0.1.2 keeps the app ID and original download's signing certificate, with version code 3 for an in-place update.
+The renderer changes drawing only. CNS/CMD execution, command buffers, collision handling, input sampling, hit clocks and the fixed 60 Hz simulation remain shared. Switching while paused does not execute a gameplay tick. Android 0.1.3 retains the app ID and original download's signing certificate, with version code 4 for an in-place update.
 
 ## Implemented path
 
@@ -17,8 +17,9 @@ The fractional-clip fallback is intentional: Canvas applies its antialiased dest
 
 ## Validation
 
-The existing supplied corpus passes **477 tests, zero failures and zero skips**. The existing native startup regression still verifies the corrected local entry URL. GPU-specific browser checks add:
+The existing supplied corpus passes **482 tests, zero failures and zero skips**. The existing native startup regression still verifies the corrected local entry URL. GPU-specific browser checks add:
 
+- 36 indexed-versus-RGBA GPU comparisons are pixel-identical, covering odd-width R8 rows, partial palette alpha, shared indices with different palettes, blend modes and PalFX.
 - 324 aligned blend, alpha, palette and rectangular-clip comparisons against Canvas: maximum channel difference 2/255.
 - Mixed normal/add/alpha coefficients inside a shared batch, geometry-buffer reuse, nested clips with interleaved Canvas primitives, three projected rotation fixtures, texture-budget rejection and visible-set pinning.
 - A 100-sprite repeated-texture scene becomes one GPU batch.
@@ -40,7 +41,7 @@ The following is one sequential, 30-frame pass in **software Chromium/SwiftShade
 | Combined stress | 5.9 | 3.7 | 12.9 | 36.7 |
 | Forest stage | 1.1 | 6.7 | 16.0 | 195.6 |
 
-The seven small scenes need no new texture-source uploads during the measured warm interval. Forest still uploads large animated frames within the bounded cache and has much worse CPU tail latency. This is why the renderer remains opt-in. Indexed textures, atlas/streaming work, palette batching and CPU allocation reduction are still necessary before considering a default change.
+These are the original 0.1.2 measurements. The seven small scenes need no new texture-source uploads during the measured warm interval. Android 0.1.3 and the browser update address Forest’s upload churn with trimmed indexed stage textures: High idle p95 drops from 248.3 ms to 9.6 ms in the longer paired reproduction, and warm animation uploads drop to zero. See [stage performance measurements](stage-performance.md). Helper-heavy tails, palette batching and CPU allocation reduction still need work before considering a default change.
 
 The benchmark also records fenced frame costs: `gl.finish()` for WebGL and a separate one-pixel Canvas readback surface for Canvas. Reading the game Canvas every frame was rejected as a measurement method because Chromium can switch it to software rasterization and change both timing and pixels. These barriers are not identical implementations; fenced results must not be advertised as a phone FPS multiplier. Use the CPU timings, frame-pacing telemetry and real-device recordings together.
 

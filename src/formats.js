@@ -288,7 +288,19 @@ export function sff(bytes,options={}) {
   const rgba=expandIndexedRgba(original.indices,palette(target.index),'Palette depth does not match indexed sprite');
   return{...original,rgba};
  }
- return {sprites,decode,decodeWithPalette,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
+ // Stage preparation can retain indexed pixels without allocating four RGBA
+ // bytes per pixel or filling the character decoder's RGBA cache.
+ function decodeIndexed(index,seen=new Set()){
+  if(!Number.isInteger(index)||index<0||index>=sprites.length||seen.has(index))throw Error('Invalid sprite link');
+  seen.add(index);const sp=sprites[index];
+  if(!sp.length){const linked=decodeIndexed(sp.link,seen);return linked?{...linked,...sp,w:linked.w,h:linked.h,colors:palette(sp.palette)}:null;}
+  if(!sp.w||!sp.h||sp.w*sp.h>4e6)throw Error('Invalid SFF sprite dimensions');
+  if(sp.format>=10||![5,8].includes(sp.depth))return null;
+  const start=(sp.flags&1?tdata:ldata)+sp.offset;
+  if(start+sp.length>bytes.length||sp.length<(sp.format?4:0))throw Error('Truncated SFF sprite data');
+  return{...sp,indices:decodePixels(bytes.subarray(start+(sp.format?4:0),start+sp.length),sp.w*sp.h,sp.format),colors:palette(sp.palette)};
+ }
+ return {sprites,decode,decodeIndexed,decodeWithPalette,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
 function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){

@@ -29,6 +29,17 @@ with sync_playwright() as p:
         const actual=gpu.readPixels(),reference=ctx.getImageData(0,0,128,96).data;let max=0,sum=0,bad=0,worst=null;for(let i=0;i<actual.length;i++){const d=Math.abs(actual[i]-reference[i]);if(d>max){max=d;const p=i-i%4;worst={x:p/4%128,y:Math.floor(p/4/128),actual:[...actual.slice(p,p+4)],reference:[...reference.slice(p,p+4)]};}sum+=d;if(d>3)bad++;}
         cases.push({blend,angle,alpha,clip,pal,max,worst,mean:sum/actual.length,over3:bad});
       }
+      // Odd-width R8 rows, partial palette alpha and shared indices with two palettes.
+      const indexPixels=new Uint8Array(7*5),indexColors=new Uint8Array(1024),otherColors=new Uint8Array(1024),indexedCases=[];
+      for(let i=0;i<35;i++)indexPixels[i]=i%5;
+      for(let i=0;i<256;i++){indexColors.set([(i*71)%256,(i*113)%256,(i*19)%256,[0,64,128,200,255][i%5]],i*4);otherColors.set([(i*19)%256,(i*71)%256,(i*113)%256,[0,64,128,200,255][i%5]],i*4);}
+      const indexedSurface={width:7,height:5},indexMatrix=new DOMMatrix().translate(25,25).scale(3,3);
+      for(const blend of ['', 'A','A1','S','AS64D32','AS0D256'])for(const palette of palettes)for(const alpha of [1,.47]){
+        const rgba=new Uint8Array(35*4);for(let i=0;i<35;i++)rgba.set(indexColors.subarray(indexPixels[i]*4,indexPixels[i]*4+4),i*4);
+        gpu.beginFrame(128,96);gpu.draw({surface:bg,matrix:new DOMMatrix()});gpu.draw({surface:indexedSurface,key:'rgba-control',pixels:rgba,mutable:true,matrix:indexMatrix,blend,palette,alpha});gpu.endFrame();const reference=gpu.readPixels();
+        gpu.beginFrame(128,96);gpu.draw({surface:bg,matrix:new DOMMatrix()});gpu.draw({surface:indexedSurface,pixels:indexPixels,indexPalette:indexColors,matrix:indexMatrix,blend,palette,alpha});gpu.endFrame();const actual=gpu.readPixels();let max=0;for(let i=0;i<actual.length;i++)max=Math.max(max,Math.abs(actual[i]-reference[i]));indexedCases.push(max);
+      }
+      gpu.beginFrame(128,96);gpu.draw({surface:indexedSurface,pixels:indexPixels,indexPalette:indexColors,matrix:indexMatrix});gpu.draw({surface:indexedSurface,pixels:indexPixels,indexPalette:otherColors,matrix:indexMatrix.translate(10,0)});gpu.endFrame();const paletteBatches=gpu.stats.batches,indexedBytes=gpu.textures.get(indexedSurface).bytes;
       // Contiguous sprites share one draw; order changes must keep distinct batches.
       gpu.beginFrame(128,96);for(let i=0;i<100;i++)gpu.draw({surface:source,pixels:()=>data.data,matrix:new DOMMatrix().translate(i%10*10,Math.floor(i/10)*8)});gpu.endFrame();const batched={...gpu.stats};
       const mixed=create(),mc=mixed.getContext('2d');mc.drawImage(bg,0,0);gpu.beginFrame(128,96);gpu.draw({surface:bg,matrix:new DOMMatrix()});
@@ -56,10 +67,10 @@ with sync_playwright() as p:
       let rejectsFractionalClip=false;try{gpu.draw({surface:source,matrix:new DOMMatrix(),clip:[1.3,1,20,20]})}catch(error){rejectsFractionalClip=error.message.includes('Fractional clipping')}
       gpu.clearTextures();gpu.limit=2048;const stable=create(16,16),oldAnimation=create(16,8),newAnimation=create(16,8),smallLayer=create(8,8);gpu.beginFrame(128,96);for(const surface of [stable,oldAnimation,smallLayer])gpu.draw({surface,matrix:new DOMMatrix()});gpu.endFrame();gpu.beginFrame(128,96);for(const surface of [newAnimation,stable,smallLayer])gpu.draw({surface,matrix:new DOMMatrix()});gpu.endFrame();const pinnedUploads=gpu.stats.uploads;
       gpu.clearTextures();gpu.limit=32;let rejectsTextureBudget=false;try{gpu.draw({surface:source,matrix:new DOMMatrix()})}catch(error){rejectsTextureBudget=error.message.includes('texture limit')}
-      gpu.destroy();return{cases:cases.length,maximum:Math.max(...cases.map(c=>c.max)),failures:cases.filter(c=>c.max>3),batched,mixedBatchMax,mixedBatches,reuseMax,projected,hybridMax,pinnedUploads,rejectsFractionalClip,rejectsTextureBudget,details:cases};
+      gpu.destroy();return{indexedCases:indexedCases.length,indexedMax:Math.max(...indexedCases),paletteBatches,indexedBytes,cases:cases.length,maximum:Math.max(...cases.map(c=>c.max)),failures:cases.filter(c=>c.max>3),batched,mixedBatchMax,mixedBatches,reuseMax,projected,hybridMax,pinnedUploads,rejectsFractionalClip,rejectsTextureBudget,details:cases};
     }''')
     result['errors']=errors;Path('work/pixi-pixel-evidence.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps({k:(v[:5] if k=='failures' else v) for k,v in result.items() if k!='details'}))
-    assert not errors;assert not result['failures'],result['failures'][:5];assert result['batched']['batches']==1;assert result['mixedBatchMax']<=3 and result['mixedBatches']==2;assert result['reuseMax']<=3;assert result['hybridMax']<=3
+    assert not errors;assert result['indexedMax']==0 and result['indexedCases']==36 and result['paletteBatches']==2 and result['indexedBytes']==35;assert not result['failures'],result['failures'][:5];assert result['batched']['batches']==1;assert result['mixedBatchMax']<=3 and result['mixedBatches']==2;assert result['reuseMax']<=3;assert result['hybridMax']<=3
     assert all(r['pixelsWithoutReferenceWithinOnePixel']<30 for r in result['projected']),result['projected']
     assert result['pinnedUploads']==1;assert result['rejectsFractionalClip'] and result['rejectsTextureBudget'];browser.close()

@@ -76,7 +76,7 @@ export class RenderBackend{
   this.gpu.draw({surface,key:surface,matrix:{a:1,b:0,c:0,d:1,e:0,f:0},mutable:changed});this.clearStaging();
  }
  drawSprite(sp,x,y,blend,palette){
-  this.flushCanvas();this.gpu.draw({surface:sp.canvas,key:'sprite:'+sp.key,pixels:()=>sp.rgba,matrix:this.raw.getTransform(),x,y,clip:this.clip,alpha:this.raw.globalAlpha,blend,palette});
+  this.flushCanvas();this.gpu.draw({surface:sp.stageIndexed?sp:sp.canvas,key:'sprite:'+sp.key,pixels:()=>sp.stageIndexed?sp.indices:sp.rgba,indexPalette:sp.stageIndexed?sp.colors:null,matrix:this.raw.getTransform(),x,y,clip:this.clip,alpha:this.raw.globalAlpha,blend,palette});
  }
  markMutable(surface){this.mutable.add(surface);}
  draw(surface,x,y,plan,bounds,width=surface.width,height=surface.height){

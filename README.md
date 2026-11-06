@@ -18,7 +18,7 @@ Web Edition 22 fixes [CPU recovery after combo gaps](docs/cpu-recovery.md). CPU 
 
 An Android app now packages the same runtime with an offline arena, local ZIP/RAR library and landscape fight controls. See [Android build/install instructions and performance scope](docs/android-app.md). Build a test APK with `npm run android:debug`; packaging alone does not guarantee an FPS gain.
 
-Android 0.1.2 and all browser arenas also offer an optional [PixiJS/WebGL sprite renderer prototype](docs/pixi-renderer.md). Choose it under **Renderer** in setup. Canvas remains the default: additive effects improve in the desktop reproduction, while heavy-stage/helper tail latency and transformed-edge differences still need work.
+Android 0.1.3 and all browser arenas also offer an optional [PixiJS/WebGL sprite renderer prototype](docs/pixi-renderer.md). Choose it under **Renderer** in setup. Canvas remains the default: additive effects improve in the desktop reproduction, and Forest stage animations now use compact indexed textures. Forest High WebGL p95 drops from 248.3 to 9.6 ms and Canvas from 24.6 to 5.2 ms in the [paired software-browser stage reproduction](docs/stage-performance.md); warm GPU uploads drop to zero. The supplied corpus passes 482 tests. Helper tail latency and transformed-edge differences still need work.
 
 Node 22+ recommended. In this directory:
 

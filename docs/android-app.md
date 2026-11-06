@@ -4,7 +4,7 @@ The Android app packages the existing engine with Capacitor 8 and local assets. 
 
 ## Included
 
-Version 0.1.2 adds the [optional PixiJS/WebGL renderer prototype](pixi-renderer.md). Select it under **Renderer** in arena setup. Canvas remains the default; use it when the prototype falls back or performs worse on your device. Version code 3 and the same app ID/signing certificate support updating the existing download in place.
+Version 0.1.3 reduces Forest stage animation uploads and trims transparent fire frames. It includes the [optional PixiJS/WebGL renderer prototype](pixi-renderer.md). Select it under **Renderer** in arena setup. Canvas remains the default; use it when the prototype falls back or performs worse on your device. Version code 4 and the same app ID/signing certificate support updating the existing download in place.
 
 - An installable Android debug APK, targeting SDK 36 and Android 7.0/API 24 or later with a sufficiently recent Android System WebView.
 - Offline bundled arena, Kung Fu Man sample and RAR decoder. Imported archives stay on the device.
@@ -70,4 +70,4 @@ npm run android:sync
 cd android && ./gradlew :app:testDebugUnitTest assembleDebug lintDebug
 ```
 
-The APK verifier also rejects relative/directory startup paths. The replacement has a higher version code and the same signing certificate as the originally published APK. Install it over the current app; uninstalling would clear the saved app library. The Android download page points to version 0.1.1, and the previous APK URL serves the corrected build as well.
+The APK verifier also rejects relative/directory startup paths. The replacement has a higher version code and the same signing certificate as the originally published APK. Install it over the current app; uninstalling would clear the saved app library. The Android download page points to version 0.1.3, and the previous APK URL serves the corrected build as well.

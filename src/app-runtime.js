@@ -4,6 +4,7 @@ import {mountControllerSetup} from './gamepads.js';
 import {GraphicsQuality} from './graphics.js';
 import {compositePlan,spriteBounds} from './canvas-renderer.js';
 import {RenderBackend} from './render-backend.js';
+import {StageSpriteSurfaces} from './stage-sprites.js';
 import {MemoryLRU} from './memory-cache.js';
 import {createSpriteSurface,spritePalette} from './sprite-surfaces.js';
 import {PerformanceMonitor} from './performance.js';
@@ -39,6 +40,7 @@ export function mountApp({arena=false}={}) {
   let effects = new EffectsState(),commonResource=null,impactEffects=[],packs=new WeakMap(),resourceIds=new WeakMap(),nextResourceId=1;
   const paletteCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:128,sizeOf:surface=>surface.width*surface.height*4});
   const decodedBanks=new Set(),parallaxCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:4,sizeOf:surface=>surface.width*surface.height*4}),parallaxKeys=new Map();
+  const stageSurfaces=new StageSpriteSurfaces(),stageOptimization=new URLSearchParams(location.search).get('stageopt')!=='0';
   const playerPalettes=new WeakMap(),opponentPalettes=new WeakMap();
 
   $('#upload').textContent = '＋ Import character / stage / engine';
@@ -75,7 +77,7 @@ export function mountApp({arena=false}={}) {
   $('#training-tools').insertAdjacentHTML('beforeend','<label>Graphics <select id=graphics-mode aria-label="Graphics quality"><option value=auto>Auto</option><option value=high>High</option><option value=balanced>Balanced</option><option value=low>Low · 30 FPS</option></select></label><label><input id=performance-toggle type=checkbox> Performance</label>');
   $('#graphics-mode').value=graphics.mode;$('#performance-toggle').checked=performanceMonitor.enabled;
   $('#training-tools').insertAdjacentHTML('beforeend','<label>Renderer <select id="renderer-mode"><option value="canvas">Canvas</option><option value="pixi">PixiJS · WebGL prototype</option></select></label><span id="renderer-note" role="status"></span>');
-  async function selectRenderer(value){$('#renderer-mode').disabled=true;try{await renderer.select(value);$('#renderer-note').textContent=renderer.reason?`Using Canvas: ${renderer.reason}`:renderer.active==='pixi'?'WebGL prototype active':'Canvas active';}finally{$('#renderer-mode').disabled=false;dirty=true;}}
+  async function selectRenderer(value){$('#renderer-mode').disabled=true;try{await renderer.select(value);if(renderer.active==='pixi')stageSurfaces.cache.clear();$('#renderer-note').textContent=renderer.reason?`Using Canvas: ${renderer.reason}`:renderer.active==='pixi'?'WebGL prototype active':'Canvas active';}finally{$('#renderer-mode').disabled=false;dirty=true;}}
   $('#renderer-mode').onchange=()=>{const value=$('#renderer-mode').value;try{localStorage.setItem('kenjatime.renderer',value);}catch{}void selectRenderer(value);};
   let requestedRenderer=new URLSearchParams(location.search).get('renderer');if(!requestedRenderer)try{requestedRenderer=localStorage.getItem('kenjatime.renderer');}catch{}
   if(requestedRenderer==='pixi'){$('#renderer-mode').value='pixi';void selectRenderer('pixi');}
@@ -206,7 +208,7 @@ export function mountApp({arena=false}={}) {
   }
   function configureMatch(){
     dirty=true;if(!selected)return;
-    renderer.clear();parallaxCache.clear();parallaxKeys.clear();drawPool.length=drawLayers.length=drawActors.length=0;paletteCache.clear();spriteCache.clear();for(const bank of decodedBanks)bank.clearDecodedCache?.();decodedBanks.clear();
+    renderer.clear();stageSurfaces.clear();parallaxCache.clear();parallaxKeys.clear();drawPool.length=drawLayers.length=drawActors.length=0;paletteCache.clear();spriteCache.clear();for(const bank of decodedBanks)bank.clearDecodedCache?.();decodedBanks.clear();
     touch.panel.hidden=mode!=='training'||$('#player-control').value==='cpu';
     $('#cpu-level').disabled=$('#player-control').value!=='cpu'&&$('#dummy-mode').value!=='cpu';
     try{
@@ -322,8 +324,8 @@ export function mountApp({arena=false}={}) {
     paletteCache.set(key,surface);
     return surface;
   }
-  function drawFrame(frame, x, y, facing = 1, scaleX = 1, scaleY = 1, angle = 0, resource=selected,palette=null,trans=null,remaps=null,opaque=false,xangle=0,yangle=0) {
-    if (!frame) return; const sp = sprite(frame.group, frame.number,resource,remaps,opaque); if (!sp) return;
+  function drawFrame(frame, x, y, facing = 1, scaleX = 1, scaleY = 1, angle = 0, resource=selected,palette=null,trans=null,remaps=null,opaque=false,xangle=0,yangle=0,source=null) {
+    if (!frame) return; const sp = source||sprite(frame.group, frame.number,resource,remaps,opaque); if (!sp||sp.empty) return;
     const flip = (frame.flip || '').toUpperCase(); ctx.save(); ctx.translate(x, y); ctx.scale(facing * scaleX, scaleY);
     ctx.translate(frame.x, frame.y); ctx.scale((flip.includes('H') ? -1 : 1) * (frame.scaleX ?? 1), (flip.includes('V') ? -1 : 1) * (frame.scaleY ?? 1));
     if(frame.angle||angle||xangle||yangle){
@@ -381,7 +383,10 @@ export function mountApp({arena=false}={}) {
     for(const [index,e]of stage.elements.entries()){
       if(e.layer!==layer||!e.enabled||!e.visible||e.type==='dummy'||!d.sprite)continue;
       const frame=e.animated?sampleAnimation(stage.animations.get(e.anim),e.drawFrameIndex??e.frameIndex,e.drawFrameTime??e.frameTime):stage.frame(e);if(!frame)continue;
-      const sp=sprite(frame.group,frame.number,d,null,!e.mask);if(!sp)continue;
+      let sp;
+      const prepared=stageOptimization&&e.animated&&e.mask&&e.type!=='parallax'&&!e.tile.some(Boolean)&&d.preparedSprites?.frames[`${frame.group},${frame.number}`];
+      if(prepared){if(!resourceIds.has(d))resourceIds.set(d,nextResourceId++);sp=stageSurfaces.get(prepared,`${resourceIds.get(d)}:${frame.group},${frame.number}:trim-index`);}
+      else sp=sprite(frame.group,frame.number,d,null,!e.mask);if(!sp)continue;
       const pos=stage.position(index),zoom=1+(stage.camera.zoom-1)*e.zoomDelta;
       const x=480+(pos.x*factor-cameraX*pos.delta[0])*layout.px*stage.camera.zoom;
       const y=layout.ground+(pos.y*factor-layout.view.zoffset-cameraY*pos.delta[1])*layout.px*stage.camera.zoom;
@@ -407,10 +412,11 @@ export function mountApp({arena=false}={}) {
         if(parallaxKeys.get(index)===cacheKey){const copy=document.createElement('canvas');copy.width=960;copy.height=540;copy.getContext('2d').drawImage(parallaxSurface,0,0);parallaxCache.set(cacheKey,copy);}parallaxKeys.set(index,cacheKey);
         renderer.draw(parallaxSurface,0,0,plan,{left:0,top:0,width:canvas.width,height:canvas.height},960,540);
       }else{
-        const stepX=backgroundTileStep(e,sp.w)*Math.abs(scaleX),stepY=backgroundTileStep(e,sp.h,1)*Math.abs(scaleY);
-        const xs=tileOffsets(x-sp.x*scaleX,sp.w*Math.abs(scaleX),stepX,e.tile[0],layout.left,layout.left+layout.width);
-        const ys=tileOffsets(y-sp.y*scaleY,sp.h*Math.abs(scaleY),stepY,e.tile[1],layout.top,layout.top+layout.height);
-        let count=0;for(const iy of ys)for(const ix of xs){if(++count>4096){issue(`Stage background at line ${e.line} exceeds 4096 visible tiles.`,'resource-limit');break;}drawFrame(frame,x+ix*stepX,y+iy*stepY,1,scaleX,scaleY,0,d,palette,trans,null,!e.mask);}
+        const fullW=sp.sourceW??sp.w,fullH=sp.sourceH??sp.h,fullX=sp.sourceX??sp.x,fullY=sp.sourceY??sp.y;
+        const stepX=backgroundTileStep(e,fullW)*Math.abs(scaleX),stepY=backgroundTileStep(e,fullH,1)*Math.abs(scaleY);
+        const xs=tileOffsets(x-fullX*scaleX,fullW*Math.abs(scaleX),stepX,e.tile[0],layout.left,layout.left+layout.width);
+        const ys=tileOffsets(y-fullY*scaleY,fullH*Math.abs(scaleY),stepY,e.tile[1],layout.top,layout.top+layout.height);
+        let count=0;for(const iy of ys)for(const ix of xs){if(++count>4096){issue(`Stage background at line ${e.line} exceeds 4096 visible tiles.`,'resource-limit');break;}drawFrame(frame,x+ix*stepX,y+iy*stepY,1,scaleX,scaleY,0,d,palette,trans,null,!e.mask,0,0,sp);}
       }
       ctx.restore();
     }
@@ -488,7 +494,7 @@ export function mountApp({arena=false}={}) {
   function drawLayer(row,layout){const fighter=row.actor,item=row.item;if(row.kind==='fighter')drawFighter(fighter);else if(row.kind==='explod')drawExplod(fighter,item,layout);else if(row.kind==='trail')drawFrame(item.frame,480+(item.pos.x+(item.drawOffset?.x||0))*2.2,440+(item.pos.y+(item.drawOffset?.y||0))*2.2,item.facing,2.2*item.coordinateScale*item.sizeX*(item.drawScale?.x??1),2.2*item.coordinateScale*item.sizeY*(item.drawScale?.y??1),item.angle,item.character,item.palette,item.trans,item.paletteRemaps);else drawFrame(sampleAnimation(item.animation,item.frameIndex,item.frameTime),480+item.pos.x*2.2,440+item.pos.y*2.2,item.facing,2.2*item.coordinateScale,2.2*item.coordinateScale,0,item.resource,effects.paletteFor(null),null,item.paletteRemaps);}
   let lastReport = 0,lastUi=0;
   function measureSimulation(sampleTime){const start=performanceMonitor.enabled?performance.now():0;simulate(sampleTime);if(performanceMonitor.enabled)performanceMonitor.simulation(performance.now()-start);}
-  function performanceCounts(){return {...renderer.stats,activeSprites:drawCount,sprites:spriteCache.size,paletteVariants:paletteCache.size,graphicsMode:graphics.mode,graphicsPreset:graphics.preset,renderScale,targetFPS:graphics.settings.fps,simulationDebt:clock.debt,cacheBytes:paletteCache.bytes+spriteCache.bytes+parallaxCache.bytes+[...decodedBanks].reduce((sum,bank)=>sum+(bank.cacheStats?.().bytes||0),0),impacts:impactEffects.length,explods:match?[...match.entities,...match.orphanEffectOwners].reduce((n,a)=>n+a.explods.length,0):0,orphanExplods:match?.orphanEffectOwners.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
+  function performanceCounts(){return {...renderer.stats,activeSprites:drawCount,sprites:spriteCache.size,paletteVariants:paletteCache.size,graphicsMode:graphics.mode,graphicsPreset:graphics.preset,renderScale,targetFPS:graphics.settings.fps,simulationDebt:clock.debt,stagePreparedFrames:Object.keys(match?.stage?.definition.preparedSprites?.frames||{}).length,stagePreparedBytes:match?.stage?.definition.preparedSprites?.bytes||0,stageCanvasBytes:stageSurfaces.cache.bytes,cacheBytes:stageSurfaces.cache.bytes+paletteCache.bytes+spriteCache.bytes+parallaxCache.bytes+[...decodedBanks].reduce((sum,bank)=>sum+(bank.cacheStats?.().bytes||0),0),impacts:impactEffects.length,explods:match?[...match.entities,...match.orphanEffectOwners].reduce((n,a)=>n+a.explods.length,0):0,orphanExplods:match?.orphanEffectOwners.reduce((n,a)=>n+a.explods.length,0)||0,projectiles:match?.projectiles.length||0,helpers:Math.max(0,(match?.entities.length||2)-2),trails:match?.entities.reduce((n,a)=>n+effects.trailsFor(a).length,0)||0};}
   function pollGamepads(time){
     const manager=controllers.poll(),editing=document.activeElement?.matches('.controller-setup input,.controller-setup select'),active=controllerFocus&&!document.hidden&&mode==='training'&&!editing;
     p1Input.record('gamepad',active?manager.keys(0):[],time);p2Input.record('gamepad',active?manager.keys(1):[],time);
