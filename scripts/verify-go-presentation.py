@@ -30,7 +30,7 @@ try:
  with sync_playwright() as p:
   browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path,headless=True,args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--autoplay-policy=document-user-activation-required'])
   context=browser.new_context(viewport={'width':844,'height':390},is_mobile=True,has_touch=True);context.add_init_script(probe)
-  page=context.new_page();page.set_default_timeout(60000);errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+  page=context.new_page();page.set_default_timeout(60000);errors=[];requests=[];page.on('pageerror',lambda e:errors.append(str(e)));page.on('request',lambda r:requests.append(r.url))
   page.goto(base+'arena-classic/');page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'");page.wait_for_function("document.querySelector('canvas').dataset.previewCount==='2'")
   page.locator('.viewer').screenshot(path=str(OUT/'two-fighter-preview.png'));evidence['checks']['twoPreviewFighters']=True;print('PASS two-fighter preview',flush=True)
   with page.expect_file_chooser() as chosen:page.locator('#add-stage').click()
@@ -38,6 +38,10 @@ try:
   page.locator('#arena-mode').select_option('versus');page.locator('#fight-now').click();page.wait_for_function("window.__kenjatimeGoState?.players.length===2 && window.__kenjatimeGoState.players.every(p=>p.state===0)",timeout=90000)
   frame=page.frames[1];frame.wait_for_function("window.__kenjatimeFrame.snapshot().music.streaming",timeout=30000)
   state=frame.evaluate('window.__kenjatimeFrame.snapshot()');assert state['music']['file'].endswith('/tone.wav'),state
+  from urllib.parse import urlparse,parse_qs
+  assets=[u for u in requests if urlparse(u).path.split('/')[-1] in ['core.zip','wasm_exec.js','ikemen.wasm.bin'] or '/engine/index.html' in u]
+  versions=[parse_qs(urlparse(u).query).get('v') for u in assets];assert len(assets)==4 and all(versions) and all(v==versions[0] for v in versions),(assets,versions)
+  evidence['checks']['engineCacheRevision']=versions[0][0]
   assert all(.04<p['screenX']<.96 and .4<p['screenY']<1 for p in state['players']),state
   assert abs(state['effects']['commonScale']-1)<.001,state
   # Explicitly test mute and user-gesture resume, rather than disabling autoplay policy.

@@ -26,5 +26,5 @@ export async function openGoBattle({files,args,onProgress=()=>{}}){
  }
  window.addEventListener('message',message);window.addEventListener('kenjatime:app-state',appState);document.addEventListener('visibilitychange',visibility);
  host.querySelector('[data-menu]').onclick=()=>close();host.querySelector('[data-pause]').onclick=pause;host.querySelector('[data-sound]').onclick=()=>api()?.audio(!audioRunning);document.body.append(host);document.body.classList.add('kenjatime-playing');active={host,close};window.dispatchEvent(new CustomEvent('kenjatime:battle',{detail:{active:true,paused:false}}));if(navigator.userActivation?.isActive&&matchMedia('(pointer:coarse)').matches&&host.requestFullscreen)host.requestFullscreen().then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{});
- frame.src=new URL('engine/index.html',new URL('../',import.meta.url)).href;return ready;
+ frame.src=new URL('engine/index.html?v='+__KENJATIME_ENGINE_REVISION__,new URL('../',import.meta.url)).href;return ready;
 }

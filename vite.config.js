@@ -1,4 +1,10 @@
 import {defineConfig} from 'vite';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+
+// Public engine payloads need the same cache revision as their frame/runtime.
+const engineRevision=createHash('sha256');
+for(const path of ['public/engine/core.zip','public/engine/ikemen.wasm.bin','public/engine/wasm_exec.js','engine/index.html','src/engine-frame.js','src/engine-fs.js','package-lock.json'])engineRevision.update(readFileSync(new URL(path,import.meta.url)));
 
 // The pinned LZMA decoder ships as a classic-worker/CJS script. Expose its
 // decoder as an ES module without replacing our archive worker's message handler.
@@ -9,4 +15,4 @@ const lzmaModule=()=>({name:'lzma-module',enforce:'pre',transform(code,id){
 }});
 
 // Keep assets and the sample archive usable on GitHub Pages project URLs.
-export default defineConfig({base:'./',plugins:[lzmaModule()],build:{manifest:true,rollupOptions:{input:{lab:'index.html',arena:'arena/index.html',classic:'arena-classic/index.html',mobile:'mobile/index.html',native:'native-ui/index.html',engine:'engine/index.html'}}},worker:{format:'es',plugins:()=>[lzmaModule()]}});
+export default defineConfig({base:'./',define:{__KENJATIME_ENGINE_REVISION__:JSON.stringify(engineRevision.digest('hex').slice(0,16))},plugins:[lzmaModule()],build:{manifest:true,rollupOptions:{input:{lab:'index.html',arena:'arena/index.html',classic:'arena-classic/index.html',mobile:'mobile/index.html',native:'native-ui/index.html',engine:'engine/index.html'}}},worker:{format:'es',plugins:()=>[lzmaModule()]}});
