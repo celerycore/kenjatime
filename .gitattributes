@@ -1,0 +1,2 @@
+# Preserve generated shader/vendor bundles exactly as built and tested.
+assets/*.js -whitespace

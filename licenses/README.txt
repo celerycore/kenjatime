@@ -9,3 +9,5 @@ License text mirror: https://github.com/pmachapman/unrar/blob/master/license.txt
 This application only extracts archives and does not implement RAR compression.
 
 Android app: capacitor-MIT.txt contains the bundled Capacitor core, Android, App, Filesystem and Share notices.
+
+Optional WebGL prototype: pixi-and-dependencies.txt contains PixiJS and bundled runtime dependency notices.
