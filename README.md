@@ -12,6 +12,8 @@ Current source development is on `source/mugen-compatibility`; `source/mobile-pe
 
 Web Edition 21 fixes [texture-cache churn and palette processing](docs/fps-performance.md). Forest High p95 render time drops from 130.2 to 18.1 ms in the software-browser reproduction; all seven existing benchmark scenes retain identical pixels/gameplay. Layered PalFX CPU processing is 14.5× faster. The full supplied corpus passes 466 tests. Desktop Brave users should enable graphics acceleration; Balanced targets 60 FPS and Low targets 30 FPS, both with 60 Hz combat simulation.
 
+Web Edition 22 fixes [CPU recovery after combo gaps](docs/cpu-recovery.md). CPU fighters now request authored recovery commands during recoverable falling hit states, including foreign states, while preserving character timing gates and human controls. The supplied Es script/report reproduction air-techs instead of waiting to land. The full supplied corpus passes 477 tests; 18 recovery cases pass in the lab and both arenas.
+
 ## Run
 
 Node 22+ recommended. In this directory:

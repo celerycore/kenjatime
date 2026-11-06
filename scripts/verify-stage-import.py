@@ -55,9 +55,9 @@ with sync_playwright() as p:
         if route=='arena-classic/':context.add_init_script('File.prototype.arrayBuffer=undefined')
         page=context.new_page();errors=[];failures=[]
         page.on('pageerror',lambda e:errors.append(str(e)));page.on('requestfailed',lambda req:failures.append(req.url))
-        page.goto(base+route+'?perf=1&graphics=high&v=21',wait_until='networkidle')
+        page.goto(base+route+'?perf=1&graphics=high&v=22',wait_until='networkidle')
         page.wait_for_function('!document.querySelector("#file").disabled')
-        assert page.locator('.tag i').inner_text()=='21'
+        assert page.locator('.tag i').inner_text()=='22'
         # The explicit stage chooser rejects a character without changing the roster.
         count=page.locator('#count').inner_text()
         with page.expect_file_chooser() as pending:page.locator('#add-stage').tap()

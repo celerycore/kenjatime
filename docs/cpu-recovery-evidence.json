@@ -1,0 +1,388 @@
+{
+  "edition": 22,
+  "baselineSource": "01b1de5eccccad76590d462c812def3b745fcd52",
+  "scope": "Reduced supplied Es snapshot with idle opponent; not the complete original Taiga combo or native executable comparison. No uploaded character scripts/media are included.",
+  "snapshot": {
+    "character": "Es",
+    "opponent": "Maid Taiga",
+    "aiLevels": [
+      7,
+      7
+    ],
+    "state": 5030,
+    "stateOwner": "self",
+    "fallTime": 11,
+    "fallRecover": 1,
+    "fallRecoveryTime": 33
+  },
+  "before": [
+    {
+      "mode": "none",
+      "techTick": null,
+      "canRecoverTick": 22,
+      "tech": null,
+      "landingTick": 69,
+      "diagnosticCount": 2
+    },
+    {
+      "mode": "manual",
+      "techTick": 31,
+      "canRecoverTick": 22,
+      "tech": {
+        "tick": 31,
+        "state": 5210,
+        "time": 1,
+        "y": -251.01000365376473,
+        "vy": 0.9999997615814209,
+        "canRecover": 0,
+        "fallTime": 0,
+        "raw": [
+          "a"
+        ],
+        "commands": [
+          "recovery",
+          "a",
+          "holda"
+        ]
+      },
+      "landingTick": null,
+      "diagnosticCount": 0
+    },
+    {
+      "mode": "cpu",
+      "techTick": null,
+      "canRecoverTick": 22,
+      "tech": null,
+      "landingTick": 69,
+      "diagnosticCount": 2
+    }
+  ],
+  "after": [
+    {
+      "mode": "none",
+      "techTick": null,
+      "canRecoverTick": 22,
+      "tech": null,
+      "landingTick": 69,
+      "diagnosticCount": 2
+    },
+    {
+      "mode": "manual",
+      "techTick": 31,
+      "canRecoverTick": 22,
+      "tech": {
+        "tick": 31,
+        "state": 5210,
+        "time": 1,
+        "y": -251.01000365376473,
+        "vy": 0.9999997615814209,
+        "canRecover": 0,
+        "fallTime": 0,
+        "raw": [
+          "a"
+        ],
+        "commands": [
+          "recovery",
+          "a",
+          "holda"
+        ]
+      },
+      "landingTick": null,
+      "diagnosticCount": 0
+    },
+    {
+      "mode": "cpu",
+      "techTick": 26,
+      "canRecoverTick": 22,
+      "tech": {
+        "tick": 26,
+        "state": 5210,
+        "time": 1,
+        "y": -250.7600025510788,
+        "vy": -0.7500002086162567,
+        "canRecover": 0,
+        "fallTime": 0,
+        "raw": [
+          "a"
+        ],
+        "commands": [
+          "recovery",
+          "a",
+          "holda"
+        ]
+      },
+      "landingTick": null,
+      "diagnosticCount": 0
+    }
+  ],
+  "tests": {
+    "total": 477,
+    "pass": 477,
+    "fail": 0,
+    "skip": 0,
+    "newRecoveryTests": 11
+  },
+  "browser": [
+    {
+      "route": "/",
+      "kind": "normal",
+      "role": "p1cpu",
+      "techTick": 38,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "/",
+      "kind": "foreign",
+      "role": "p1cpu",
+      "techTick": 48,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "/",
+      "kind": "unrecoverable",
+      "role": "p1cpu",
+      "techTick": null,
+      "state": 5101,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "/",
+      "kind": "normal",
+      "role": "p2cpu",
+      "techTick": 38,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "/",
+      "kind": "foreign",
+      "role": "p2cpu",
+      "techTick": 48,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "/",
+      "kind": "normal",
+      "role": "human",
+      "techTick": 52,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 0,
+      "errors": []
+    },
+    {
+      "route": "arena/",
+      "kind": "normal",
+      "role": "p1cpu",
+      "techTick": 38,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena/",
+      "kind": "foreign",
+      "role": "p1cpu",
+      "techTick": 48,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena/",
+      "kind": "unrecoverable",
+      "role": "p1cpu",
+      "techTick": null,
+      "state": 5101,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena/",
+      "kind": "normal",
+      "role": "p2cpu",
+      "techTick": 38,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena/",
+      "kind": "foreign",
+      "role": "p2cpu",
+      "techTick": 48,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena/",
+      "kind": "normal",
+      "role": "human",
+      "techTick": 52,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 0,
+      "errors": []
+    },
+    {
+      "route": "arena-classic/",
+      "kind": "normal",
+      "role": "p1cpu",
+      "techTick": 38,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena-classic/",
+      "kind": "foreign",
+      "role": "p1cpu",
+      "techTick": 48,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena-classic/",
+      "kind": "unrecoverable",
+      "role": "p1cpu",
+      "techTick": null,
+      "state": 5101,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena-classic/",
+      "kind": "normal",
+      "role": "p2cpu",
+      "techTick": 38,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena-classic/",
+      "kind": "foreign",
+      "role": "p2cpu",
+      "techTick": 48,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 7,
+      "errors": []
+    },
+    {
+      "route": "arena-classic/",
+      "kind": "normal",
+      "role": "human",
+      "techTick": 52,
+      "state": 5210,
+      "ownerRestored": true,
+      "cpuLevel": 0,
+      "errors": []
+    }
+  ],
+  "controllerBrowser": [
+    {
+      "route": "/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena-classic/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "schedulingBrowser": {
+    "shortPressDamage": 10,
+    "lowModeSimulationTicks": 67,
+    "lowModeRenderedFPS": 30.002727520683695,
+    "offscreenTicks": 18,
+    "offscreenDraws": 0,
+    "pausedDraws": 0,
+    "hiddenTicks": 0,
+    "resumeTicks": 18,
+    "sizes": [
+      [
+        960,
+        540
+      ],
+      [
+        720,
+        405
+      ],
+      [
+        576,
+        324
+      ]
+    ],
+    "settingsPersisted": true,
+    "instrumentationOffByDefault": true,
+    "autoStress": null,
+    "errors": []
+  },
+  "compatibilityAudit": {
+    "scenario": "kfm-walk-punch",
+    "samples": 10,
+    "diagnostics": 0,
+    "nativeComparison": false
+  }
+}

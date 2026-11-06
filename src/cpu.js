@@ -48,8 +48,10 @@ export class CpuController{
   constructor(parsed,{level=4,seed=0x6d2b79f5}={}){
     this.level=normalizeAILevel(level);this.seed=(seed>>>0)||1;this.buffer=new CommandBuffer(parsed);
     this.inverse=new Map();for(const physical of buttons){const logical=parsed.remap?.[physical]??physical;if(logical&&!this.inverse.has(logical))this.inverse.set(logical,physical);}
-    this.attacks=parsed.commands.filter(command=>!command.holdOnly&&command.sequence.some(symbol=>symbol.kind==='button'&&symbol.keys.some(key=>key!=='s'))
-      &&command.sequence.every(symbol=>symbol.kind!=='button'||symbol.keys.every(key=>this.inverse.has(key)))).slice(0,512);
+    const reachable=parsed.commands.filter(command=>command.sequence.every(symbol=>symbol.kind!=='button'||symbol.keys.every(key=>this.inverse.has(key))));
+    this.attacks=reachable.filter(command=>!command.holdOnly&&command.sequence.some(symbol=>symbol.kind==='button'&&symbol.keys.some(key=>key!=='s'))).slice(0,512);
+    this.byName=new Map();for(const command of reachable){if(!this.byName.has(command.name))this.byName.set(command.name,[]);this.byName.get(command.name).push(command);}
+    this.recoveries=reachable.filter(command=>command.name.toLowerCase()==='recovery');this.recoveryNames=new WeakMap();this.recoveryButton=0;this.recovering=false;
     this.normal=this.attacks.filter(command=>command.sequence.length===1&&!command.sequence[0].release);
     this.special=this.attacks.filter(command=>!this.normal.includes(command));
     this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.lastCommand=null;
@@ -57,6 +59,27 @@ export class CpuController{
   random(){let value=this.seed;value^=value<<13;value^=value>>>17;value^=value<<5;this.seed=value>>>0;return this.seed/4294967296;}
   physical(relative,facing){return new Set([...relative].map(key=>key==='F'?(facing<0?'L':'R'):key==='B'?(facing<0?'R':'L'):this.inverse.get(key)||key));}
   queue(keys,duration){this.plan=[{keys:new Set(keys),duration}];this.index=0;this.remaining=0;}
+  chooseRecovery(fighter){
+    const state=fighter.stateOwner?.program.states.get(fighter.stateNo);let names=state&&this.recoveryNames.get(state);
+    if(state&&!names){
+      names=new Set();
+      for(const controller of state.controllers){
+        if(!['changestate','selfstate'].includes(controller.type))continue;
+        const triggers=controller.entries.filter(entry=>/^trigger(?:all|[1-9]\d*)$/.test(entry.key)).map(entry=>entry.value).join('\n');
+        if(/\bcanrecover\b/i.test(triggers))for(const match of triggers.matchAll(/\bcommand\s*=\s*"([^"\\]*)"/gi))names.add(match[1]);
+      }
+      this.recoveryNames.set(state,names);
+    }
+    const authored=[...(names||[])].flatMap(name=>this.byName.get(name)||[]),choices=authored.length?authored:this.recoveries;
+    if(choices.length){
+      const command=choices[Math.floor(this.random()*choices.length)];this.lastCommand=command.name;this.plan=commandInputPlan(command);this.index=0;this.remaining=0;
+    }else{
+      // A single-button fallback still passes through the character's CMD.
+      // It cannot manufacture an absent command or force a recovery state.
+      const available=buttons.filter(key=>key!=='s'&&this.inverse.has(key));
+      if(available.length)this.queue([available[this.recoveryButton++%available.length]],1);
+    }
+  }
   choose(fighter,opponent){
     if(!fighter.ctrl||fighter.moveType==='H')return;
     const distance=Math.abs(opponent.pos.x-fighter.pos.x),scale=fighter.coordinateScale||1;
@@ -70,10 +93,15 @@ export class CpuController{
     }else this.queue([],2);
   }
   tick(fighter,opponent,{paused=false,enabled=true}={}){
-    if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();}
+    if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;}
     else if(!paused){
+      const recovering=fighter.moveType==='H'&&!!fighter.getHitVars?.fall;
+      if(recovering!==this.recovering){this.plan=[];this.index=0;this.remaining=0;this.cooldown=recovering?10-this.level:0;this.raw=new Set();this.recovering=recovering;}
+      const eligible=recovering&&['A','L'].includes(fighter.stateType)&&!!fighter.resolveTrigger?.('canrecover');
+      if(recovering&&!eligible){this.plan=[];this.index=0;this.remaining=0;this.cooldown=10-this.level;this.raw=new Set();}
       if(this.index>=this.plan.length){
         if(this.cooldown>0)this.cooldown--;
+        else if(recovering){if(eligible)this.chooseRecovery(fighter);this.cooldown=14-this.level;}
         else{this.choose(fighter,opponent);this.cooldown=Math.max(1,15-this.level*1.5);}
       }
       const segment=this.plan[this.index];

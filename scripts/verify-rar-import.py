@@ -28,7 +28,7 @@ with sync_playwright() as p:
         if route=='arena-classic/':context.add_init_script("Object.defineProperty(File.prototype,'arrayBuffer',{value:undefined})")
         page=context.new_page();errors=[];failures=[];requests=[]
         page.on('pageerror',lambda e:errors.append(str(e)));page.on('requestfailed',lambda r:failures.append(r.url));page.on('request',lambda r:requests.append(r.url))
-        page.goto(base+route+'?perf=1&graphics=low&v=21',wait_until='networkidle');assert page.locator('.tag i').inner_text()=='21'
+        page.goto(base+route+'?perf=1&graphics=low&v=22',wait_until='networkidle');assert page.locator('.tag i').inner_text()=='22'
         if not route:page.locator('#sample').click()
         page.wait_for_function("document.querySelector('#name').textContent==='Kung Fu Man' && !document.querySelector('#file').disabled")
         assert not any('.wasm' in r or 'rar-reader-' in r for r in requests),requests

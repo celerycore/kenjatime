@@ -41,7 +41,7 @@ export function mountApp({arena=false}={}) {
 
   $('#upload').textContent = '＋ Import character / stage / engine';
   $('.heading p').textContent = 'Import fighters and stages. Test them in a local match.';
-  $('.tag i').textContent = '21';
+  $('.tag i').textContent = '22';
   $('#drop small').textContent=`ZIP / RAR up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
   $('#file').accept=archiveAccept;
   $('#stage-file').accept=archiveAccept;

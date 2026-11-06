@@ -234,7 +234,7 @@ with sync_playwright() as p:
     browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox'])
     page=browser.new_page(viewport={'width':1440,'height':1000},accept_downloads=True);errors=[];failures=[]
     page.on('pageerror',lambda e:errors.append(str(e)));page.on('requestfailed',lambda r:failures.append(r.url))
-    page.goto(os.environ.get('MUGEN_TEST_URL','http://127.0.0.1:5186/next/')+'?perf=1&graphics=high',wait_until='networkidle');assert page.locator('.tag i').inner_text()=='21'
+    page.goto(os.environ.get('MUGEN_TEST_URL','http://127.0.0.1:5186/next/')+'?perf=1&graphics=high',wait_until='networkidle');assert page.locator('.tag i').inner_text()=='22'
     page.wait_for_function('!document.querySelector("#file").disabled')
     page.locator('#file').set_input_files('work/custom-palette-browser-fixture.zip');page.wait_for_function("document.querySelector('#name').textContent==='Accuracy Attacker'")
     if page.locator('#arena-mode').count():page.locator('#arena-mode').select_option('training')
