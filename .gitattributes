@@ -1,3 +1,4 @@
 # Preserve generated shader/vendor bundles exactly as built and tested.
 assets/*.js -whitespace
 third-party-archives.txt -whitespace
+engine/*LICENSE*.txt -whitespace
