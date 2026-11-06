@@ -16,6 +16,8 @@ Web Edition 22 fixes [CPU recovery after combo gaps](docs/cpu-recovery.md). CPU 
 
 ## Run
 
+An Android app now packages the same runtime with an offline arena, local ZIP/RAR library and landscape fight controls. See [Android build/install instructions and performance scope](docs/android-app.md). Build a test APK with `npm run android:debug`; packaging alone does not guarantee an FPS gain.
+
 Node 22+ recommended. In this directory:
 
 ```sh

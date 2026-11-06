@@ -1,0 +1,127 @@
+{
+  "package": "io.github.celerycore.kenjatime",
+  "version": "0.1.0",
+  "apkBytes": 4880828,
+  "apkSha256": "0407989216725573fd87ccace63abd3d05874b6e60d0bfe7b548ce0436dbc8d3",
+  "signatureVerified": true,
+  "minSdk": 24,
+  "targetSdk": 36,
+  "minimumWebView": 107,
+  "bundledWebFilesMatchDist": 27,
+  "onlyBundledCharacterArchive": "kfm.zip",
+  "lint": {
+    "errors": 0,
+    "warnings": [
+      {
+        "id": "UnusedAttribute",
+        "severity": "Warning",
+        "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+      },
+      {
+        "id": "UnusedResources",
+        "severity": "Warning",
+        "message": "The resource `R.xml.config` appears to be unused"
+      }
+    ]
+  },
+  "deviceTesting": "Packaging checks do not execute Android or measure phone FPS.",
+  "signing": "Android debug test build, not a store release",
+  "compatibilityTests": {
+    "pass": 477,
+    "fail": 0,
+    "skip": 0
+  },
+  "mobileBrowser": {
+    "defaultGraphics": "low",
+    "librarySavedReopenedAfterReload": true,
+    "libraryDeletePersisted": true,
+    "invalidImportPreservesLibrary": true,
+    "sessionOnlyImport": true,
+    "actualRarImported": true,
+    "landscapeControlsInsideViewport": true,
+    "touchPunchDamage": 23,
+    "backgroundTicks": 0,
+    "backgroundDraws": 0,
+    "foregroundRemainsPaused": true,
+    "reportAndScriptBrowserExports": true,
+    "externalRequests": [],
+    "errors": [],
+    "scope": "Chromium mobile UI and real IndexedDB; not a physical Android/WebView or native share-sheet test."
+  },
+  "controllerBrowser": [
+    {
+      "route": "/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    },
+    {
+      "route": "arena-classic/",
+      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
+      "p1PunchDamage": 23,
+      "p2PunchDamage": 23,
+      "shortPressRetainedAt30Fps": true,
+      "remapping": true,
+      "exclusiveAssignment": true,
+      "disconnectReleased": true,
+      "blurSuspended": true,
+      "vibrationTarget": 5,
+      "settingsPersisted": true,
+      "errors": [],
+      "failedRequests": []
+    }
+  ],
+  "schedulerBrowser": {
+    "shortPressDamage": 10,
+    "lowModeSimulationTicks": 66,
+    "lowModeRenderedFPS": 30.001875117194828,
+    "offscreenTicks": 19,
+    "offscreenDraws": 0,
+    "pausedDraws": 0,
+    "hiddenTicks": 0,
+    "resumeTicks": 18,
+    "sizes": [
+      [
+        960,
+        540
+      ],
+      [
+        720,
+        405
+      ],
+      [
+        576,
+        324
+      ]
+    ],
+    "settingsPersisted": true,
+    "instrumentationOffByDefault": true,
+    "autoStress": null,
+    "errors": []
+  },
+  "physicalPhoneTest": "Native Android picker/share/rotation/back/controller behavior and sustained FPS remain unverified."
+}

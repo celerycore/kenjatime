@@ -1,0 +1,7 @@
+{
+  "appId": "io.github.celerycore.kenjatime",
+  "appName": "Kenjatime",
+  "webDir": "dist",
+  "server": {"appStartPath": "mobile/", "androidScheme": "https"},
+  "android": {"allowMixedContent": false, "minWebViewVersion": 107}
+}

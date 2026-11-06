@@ -22,6 +22,7 @@ import {combatRules as readCombatRules} from './combat-rules.js';
 import {musicLoopPoints} from './audio.js';
 import {ForceFeedbackState} from './haptics.js';
 import {characterSpriteBank} from './palettes.js';
+import {exportFile} from './export-file.js';
 
 export function mountApp({arena=false}={}) {
   const dom=new Map();const $=selector=>{let element=dom.get(selector);if(!element?.isConnected){element=document.querySelector(selector);if(element)dom.set(selector,element);}return element;};
@@ -31,8 +32,8 @@ export function mountApp({arena=false}={}) {
   let playing = true, mode = 'preview', match, commandBuffer, dummyBuffer;
   let stages=[],selectedStage=null,player2Keys=new Set(),systemFiles=null;
   let spriteCache = new MemoryLRU({maxBytes:12*1024*1024,sizeOf:sp=>sp?sp.w*sp.h*4:0}), keys = new Set(), importDiagnostics = [];
-  const clock=new FrameClock(),p1Input=new TickInputBuffer(),p2Input=new TickInputBuffer();let reportVersion='',dirty=true,renderScale=1,raf=0,renderVisible=true,lastPresentationTime=null;
-  let savedGraphics='auto';try{savedGraphics=localStorage.getItem('kenjatime.graphics')||'auto';}catch{}
+  const clock=new FrameClock(),p1Input=new TickInputBuffer(),p2Input=new TickInputBuffer();let reportVersion='',dirty=true,renderScale=1,raf=0,renderVisible=true,lastPresentationTime=null,hostActive=true;
+  let savedGraphics=document.body.dataset.mobileApp==='true'?'low':'auto';try{savedGraphics=localStorage.getItem('kenjatime.graphics')||savedGraphics;}catch{}
   const graphics=new GraphicsQuality({mode:new URLSearchParams(location.search).get('graphics')||savedGraphics,mobile:matchMedia('(pointer:coarse)').matches});
   let effects = new EffectsState(),commonResource=null,impactEffects=[],packs=new WeakMap(),resourceIds=new WeakMap(),nextResourceId=1;
   const paletteCache=new MemoryLRU({maxBytes:8*1024*1024,maxEntries:128,sizeOf:surface=>surface.width*surface.height*4});
@@ -275,7 +276,7 @@ export function mountApp({arena=false}={}) {
     $('#runtime-summary').textContent = `${states} state definitions loaded · ${list.length} reported issue${list.length === 1 ? '' : 's'} · runtime coverage is incomplete.`;
     $('#diagnostics').innerHTML = list.length ? list.map(d => `<div class="diagnostic"><b>${escape(d.type || d.kind || 'runtime')}</b><code>${escape(d.source || selected.path)}${d.line ? ':' + d.line : ''}</code><p>${escape(d.message)}</p></div>`).join('') : '<p>No issues detected yet. Play different moves to exercise additional controllers and triggers.</p>';
   }
-  $('#export-report').onclick = () => {
+  $('#export-report').onclick = async () => {
     const explod=e=>({id:e.id,anim:e.anim,space:e.space,pos:{...e.pos},time:e.time,frameIndex:e.frameIndex,bindtime:e.bindtime,ownpal:e.ownpal,coordinateScale:e.coordinateScale,angle:e.angle,xangle:e.xangle,yangle:e.yangle,facing:e.facing,vfacing:e.vfacing,scale:e.scale});
     const snapshot=actor=>actor?{id:actor.id,teamSide:actor.teamSide,name:actor.name,stateNo:actor.stateNo,stateOwner:actor.stateOwner.id,animationOwner:actor.animationOwner.id,coordinateScale:actor.coordinateScale,baseCoordinateScale:actor.baseCoordinateScale,time:actor.time,anim:actor.anim,ctrl:actor.ctrl,stateType:actor.stateType,moveType:actor.moveType,physics:actor.physics,variables:{int:[...actor.vars],float:[...actor.fvars],systemInt:[...actor.sysvars],systemFloat:[...actor.sysfvars]},pos:{...actor.pos},vel:{...actor.vel},getHitVars:{...actor.getHitVars},hitCount:actor.hitCount,uniqHitCount:actor.uniqHitCount,comboHits:actor.comboHits,moveContact:actor.moveContact,moveHit:actor.moveHit,moveGuarded:actor.moveGuarded,moveReversed:actor.moveReversed||0,hitTime:actor.hitTime,hitPauseTime:actor.hitPauseTime,damageMultipliers:{attack:actor.attackMultiplier,defence:actor.defenceMultiplier,fallDefence:actor._fallDefenceMultiplier},hitId:actor.hitId,hitSourceId:actor.hitSourceId,targets:actor.targets.map(target=>target.id),rawInput:[...actor.rawInput],life:actor.life,power:actor.power,aiLevel:actor.aiLevel,commands:[...actor.commands],clipboard:actor.clipboard,victoryQuoteIndex:actor.victoryQuoteIndex,victoryQuote:actor.victoryQuote,paletteNo:actor.paletteNo,paletteRemaps:[...actor.paletteRemaps],explods:actor.explods.map(explod),renderedExplods:actor.drawExplods.map(explod)}:null;
     const data = {graphics:{mode:graphics.mode,preset:graphics.preset,...graphics.settings},performance:performanceMonitor.enabled?performanceMonitor.snapshot():undefined,character: selected?.def.info.name, definition: selected?.path, engine: 'MUGEN Web Lab', completeCompatibility: false, combatRules:match?.combatRules, generatedAt: new Date().toISOString(), issues: diagnostics(), player:snapshot(match?.player),opponent:snapshot(match?.opponent),entities:match?.entities.map(snapshot),helperRelationships:match?.entities.filter(actor=>actor.parent).map(actor=>({id:actor.id,helperId:actor.helperId,parentId:actor.parent.id,parentExists:!actor.parent.destroyed,rootId:actor.root.id,keyctrl:actor.keyCtrl,ownpal:actor.ownPal})),orphanExplods:match?.orphanEffectOwners.flatMap(owner=>owner.drawExplods.map(effect=>({...explod(effect),creatorId:owner.id}))),projectiles:match?.drawProjectiles.map(p=>({id:p.id,projId:p.projId,ownerId:p.owner.id,creatorId:p.creator.id,coordinateScale:p.coordinateScale,baseCoordinateScale:p.baseCoordinateScale,facing:p.facing,time:p.time,pos:{...p.pos},vel:{...p.vel},anim:p.anim,frameIndex:p.collisionFrameIndex,frameTime:p.collisionFrameTime,removing:p.removing,removed:p.removed,remainingHits:p.remainingHits,hitPauseTime:p.hitPauseTime,activeTicks:p.activeTicks,pauseMoveTimeRemaining:p.pauseMoveTime,superMoveTimeRemaining:p.superMoveTime,removalReason:p.removalReason,removalStarted:!!p.removalStarted,misstimeRemaining:Math.max(0,p.nextHitAge-p.activeTicks-1),shadow:!!p.spec.projshadow})),
@@ -283,10 +284,9 @@ export function mountApp({arena=false}={}) {
       interactionState:match?.entities.map(p=>({id:p.id,playerPush:p.playerPush,screenBound:p.screenBound,moveCamera:{...p.moveCamera},inGuardDist:!!p.inGuardDistance,projectileContactShield:!!p._projectileContactShield})),
       stage:match?.stage?{path:match.stage.definition.path,name:match.stage.definition.name,camera:{...match.stage.camera},backgroundTime:match.stage.time}:null,
       match:match?.roundFlow?{roundNo:match.roundFlow.roundNo,phase:match.roundFlow.roundState,timeLeft:match.roundFlow.timeLeft,wins:match.roundFlow.wins,matchOver:match.roundFlow.matchOver}:null};
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}));
-    const link = document.createElement('a'); link.href = url; link.download = 'mugen-compatibility-report.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try{await exportFile(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'mugen-compatibility-report.json');}catch(error){status(`Report export failed: ${error.message}`);}
   };
-  $('#export-scripts').onclick=()=>{if(!selected)return;try{const bytes=characterScriptArchive(selected),url=URL.createObjectURL(new Blob([bytes],{type:'application/zip'})),link=document.createElement('a');link.href=url;link.download='mugen-character-scripts.zip';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){status(`Script export failed: ${error.message}`);}};
+  $('#export-scripts').onclick=async()=>{if(!selected)return;try{await exportFile(new Blob([characterScriptArchive(selected)],{type:'application/zip'}),'mugen-character-scripts.zip');}catch(error){status(`Script export failed: ${error.message}`);}};
   function spriteBank(resource){
     if(!packs.has(resource)){
       const bank=resource.def?.files?.sprite?characterSpriteBank(resource):sff(resource.files[resource.sprite.path]);packs.set(resource,bank);
@@ -541,7 +541,9 @@ export function mountApp({arena=false}={}) {
   $('.viewer').addEventListener('change',()=>{dirty=true;});
   window.addEventListener('resize',()=>{dirty=true;});
   if(typeof IntersectionObserver!=='undefined')new IntersectionObserver(entries=>{renderVisible=entries[0].isIntersecting;if(renderVisible){dirty=true;lastPresentationTime=null;}},{rootMargin:'200px'}).observe($('.viewer'));
-  document.addEventListener('visibilitychange',()=>{clock.suspend();keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset();touch.reset();p1Input.reset();p2Input.reset();commandBuffer?.reset();dummyBuffer?.reset();audio.stop();haptics.stop();cancelAnimationFrame(raf);if(document.hidden){void audio.context?.suspend().catch(()=>{});}else{if(playing&&$('#sound').checked)void audio.context?.resume().catch(()=>{});dirty=true;raf=requestAnimationFrame(draw);}});
+  function updateVisibility(){clock.suspend();keys.clear();p1Input.reset();player2Keys.clear();p2Input.reset();touch.reset();commandBuffer?.reset();dummyBuffer?.reset();audio.stop();haptics.stop();cancelAnimationFrame(raf);if(document.hidden||!hostActive){void audio.context?.suspend().catch(()=>{});}else{if(playing&&$('#sound').checked)void audio.context?.resume().catch(()=>{});dirty=true;lastPresentationTime=null;raf=requestAnimationFrame(draw);}}
+  document.addEventListener('visibilitychange',updateVisibility);
+  window.addEventListener('kenjatime:app-state',event=>{hostActive=!!event.detail.active;if(!hostActive)setPlaying(false);updateVisibility();});
   raf=requestAnimationFrame(draw);
   function setPlaying(value) {lastPresentationTime=null;dirty=true;playing = value; clock.suspend(); $('#play').textContent = playing ? 'Ⅱ' : '▶'; $('#play').setAttribute('aria-label', playing ? 'Pause' : 'Play'); if (!playing){audio.stop();haptics.stop();} }
   function setMode(value) {
@@ -577,8 +579,9 @@ export function mountApp({arena=false}={}) {
   $('#player-control').onchange=$('#cpu-level').onchange=()=>{configureMatch();canvas.focus();};
   canvas.onclick = () => { canvas.focus(); void audio.unlock(); };
   for(const label of [$('#upload'),$('#browse'),$('#add-stage')])label.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();document.getElementById(label.htmlFor).click();}};
-  async function importSource(read,options){if(importing){status('An archive is already being imported. Please wait for it to finish.');return;}importing=true;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=true;$('#drop').setAttribute('aria-busy','true');try{await load(await read(),options);}catch(error){status(`Import failed: ${error.message}`);}finally{importing=false;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=false;$('#drop').setAttribute('aria-busy','false');}}
-  async function readFile(file,options) {if(!file)return;await importSource(async()=>{status(`Reading ${file.name||'ZIP / RAR archive'}…`);return readArchiveFile(file);},options);}
+  async function importSource(read,options){if(importing){status('An archive is already being imported. Please wait for it to finish.');return false;}importing=true;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=true;$('#drop').setAttribute('aria-busy','true');try{await load(await read(),options);return true;}catch(error){status(`Import failed: ${error.message}`);return false;}finally{importing=false;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=false;$('#drop').setAttribute('aria-busy','false');}}
+  async function readFile(file,options) {if(!file)return;const imported=await importSource(async()=>{status(`Reading ${file.name||'ZIP / RAR archive'}…`);return readArchiveFile(file);},options);if(imported&&document.body.dataset.mobileApp==='true')window.dispatchEvent(new CustomEvent('kenjatime:archive-imported',{detail:{file,...options}}));}
+  window.addEventListener('kenjatime:open-archive',event=>{void readFile(event.detail.file,event.detail);});
   for(const input of [$('#file'),$('#stage-file')])input.onchange = async event => {try{await readFile(event.target.files[0],{stageOnly:input.id==='stage-file'});}finally{event.target.value='';} };
   $('#sample').onclick = () => importSource(async()=>{status('Loading Kung Fu Man…');const response=await fetch(new URL(arena?'../kfm.zip':'kfm.zip',document.baseURI));if(!response.ok)throw Error('Sample unavailable');return new Uint8Array(await response.arrayBuffer());});
   for (const eventName of ['dragover','drop']) $('#drop').addEventListener(eventName, async event => { event.preventDefault(); if (eventName === 'drop') await readFile(event.dataTransfer.files[0]); });
