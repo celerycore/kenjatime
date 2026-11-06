@@ -32,14 +32,14 @@ public class NativeLibraryTest {
     String select() throws Exception { return new String(Files.readAllBytes(new File(library.root(),"data/select.def").toPath()),StandardCharsets.UTF_8); }
     GameLibrary.Source character() { return folder("Shiki R by Hakura",file("Hero.DEF","[Info]\nname=Hero\n[Files]\nsprite=hero.sff\nanim=hero.air"),file("hero.sff","sprite"),file("hero.air","[Begin Action 0]\n0,0,0,0,1")); }
     @Test public void nativeAssetsInstallAndSubsequentLaunchPreservesChanges() throws Exception {
-        assertTrue(new File(library.root(),"chars/kfm_zss/kfm_zss.def").isFile());assertTrue(new File(library.root(),"stages/kfm.sff").isFile());
+        assertTrue(new File(library.root(),"chars/kfm_zss/kfm_zss.def").isFile());assertTrue(new File(library.root(),"stages/kenjatime-grid.sff").isFile());
         File config=new File(library.root(),"save/user-setting.txt");config.getParentFile().mkdirs();Files.write(config.toPath(),new byte[]{42});
         library.prepare(assets);assertArrayEquals(new byte[]{42},Files.readAllBytes(config.toPath()));assertTrue(new File(library.root(),".native-assets.json").isFile());
     }
     @Test public void characterAndStageFoldersRegisterAlongsideStockAssets() throws Exception {
         GameLibrary.Result c=library.importFolder(character(),assets);assertEquals(1,c.characters);assertEquals(0,c.stages);
         GameLibrary.Result s=library.importFolder(folder("Forest of King Cruel",file("forest.def","[Info]\nname=Forest\n[BGDef]\nspr=forest.sff"),file("forest.sff","stage")),assets);assertEquals(1,s.stages);
-        String roster=select();assertTrue(roster.contains("kfm_zss, stages/kfm.def"));assertTrue(roster.contains("/Hero.DEF, stages/kfm.def"));assertTrue(roster.contains("/forest.def"));assertTrue(new File(library.root(),"stages/kfm.sff").isFile());
+        String roster=select();assertTrue(roster.contains("kfm_zss, stages/kenjatime-grid.def"));assertTrue(roster.contains("/Hero.DEF, stages/kenjatime-grid.def"));assertTrue(roster.contains("/forest.def"));assertTrue(new File(library.root(),"stages/kenjatime-grid.sff").isFile());
     }
     @Test public void engineAssetUpdateKeepsImportedRoster() throws Exception {
         library.importFolder(character(),assets);String before=select();assertTrue(new File(library.root(),".native-assets.json").delete());library.prepare(assets);assertEquals(before,select());
@@ -84,5 +84,11 @@ public class NativeLibraryTest {
             try{GameLibrary.lock(dir);fail();}catch(IOException expected){assertTrue(expected.getMessage().contains("running"));}
         }
         try(Closeable next=GameLibrary.lock(dir)){assertNotNull(next);}
+    }
+    @Test public void upgradeRemovesStockMenusAndPreservesInstalledFighters() throws Exception {
+        library.importFolder(character(),assets);
+        for(String path:new String[]{"external/script/main.lua","data/ikemen1/system.sff","data/system.def"}){File file=new File(library.root(),path);file.getParentFile().mkdirs();Files.write(file.toPath(),"old UI".getBytes(StandardCharsets.UTF_8));}
+        Files.write(new File(library.root(),".native-assets.json").toPath(),"old version".getBytes(StandardCharsets.UTF_8));library.prepare(assets);
+        assertFalse(new File(library.root(),"external/script/main.lua").exists());assertFalse(new File(library.root(),"data/ikemen1/system.sff").exists());assertTrue(new File(library.root(),"data/kenjatime/engine.lua").isFile());assertEquals(2,new GameCatalog(library.root()).read().getJSONArray("characters").length());
     }
 }

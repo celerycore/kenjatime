@@ -12,7 +12,7 @@ signature=subprocess.check_output([sdk/'apksigner','verify','--print-certs',apk]
 signer=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]+)',signature).group(1)
 badging=subprocess.check_output([sdk/'aapt','dump','badging',apk],text=True)
 assert "name='io.github.celerycore.kenjatime.nativeprototype'" in badging
-assert "versionName='0.2.0'" in badging and "versionCode='2'" in badging
+assert "versionName='0.3.0'" in badging and "versionCode='3'" in badging
 assert "sdkVersion:'34'" in badging and "targetSdkVersion:'36'" in badging
 assert "native-code: 'arm64-v8a'" in badging
 assert 'maxSdkVersion:' not in badging
@@ -54,7 +54,10 @@ with ZipFile(apk) as candidate,ZipFile(io.BytesIO(original_bytes)) as original,t
     assert any(n.endswith('/libarchive-jni.so') for n in candidate.namelist())
     for name,digest in provenance['uiOverrides'].items():
         if name.startswith('assets/'):assert hashlib.sha256(candidate.read(name)).hexdigest()==digest,name
-    assert b"loadFightScreen('data/kenjatime/fight.def')" in candidate.read('assets/external/script/main.lua')
+    assert b"loadFightScreen('data/kenjatime/fight.def')" in candidate.read('assets/data/kenjatime/engine.lua')
+    assert not any(n.startswith(('assets/external/script/','assets/external/icons/','assets/data/ikemen1/','assets/data/motif1/')) for n in candidate.namelist())
+    assert 'assets/data/system.sff' not in candidate.namelist()
+    assert b'System = data/kenjatime/engine.lua' in candidate.read('assets/data/kenjatime/config.ini')
     assert b'p1facing=1' in candidate.read('assets/stages/kenjatime-grid.def')
     a=Path(temp)/'upstream';b=Path(temp)/'candidate';a.mkdir();b.mkdir()
     before=native_methods(original,a);after=native_methods(candidate,b)
@@ -69,8 +72,8 @@ assert not [i.get('id') for i in lint if i.get('severity') in ['Error','Fatal']]
 tests=[]
 for file in Path('native-android/app/build/test-results/testDebugUnitTest').glob('TEST-*.xml'):
     root=ET.parse(file).getroot();tests.append({k:root.get(k) for k in ['name','tests','failures','errors','skipped']})
-assert tests and sum(int(t['tests']) for t in tests)==21
+assert tests and sum(int(t['tests']) for t in tests)==24
 assert all(int(t[k])==0 for t in tests for k in ['failures','errors','skipped'])
-record={'applicationId':'io.github.celerycore.kenjatime.nativeprototype','version':'0.2.0','versionCode':2,'apkBytes':apk.stat().st_size,'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signerSha256':signer,'signatureVerified':True,'minSdk':34,'targetSdk':36,'abi':'arm64-v8a','nativeLibrariesMatchOfficialRelease':10,'exportedJniSignaturesMatch':len(before),'bundledAssetsMatchPreparedFiles':count,'nativeGameProcess':':engine','webViewBattleView':False,'webViewSetupUi':True,'archiveReader':'libarchive-android 1.1.6','tests':tests,'lint':{'errors':0,'warningCounts':dict(Counter(i.get('id') for i in lint)),'scopedVendorSuppressions':'native-android/lint.xml'},'engine':provenance,'phoneExecution':False,'phoneFpsMeasured':False,'scope':'Native ARM64 execution requires an Android phone. Robolectric verifies launcher, assets, imports, rollback, limits, locking and audio permission handling; it does not execute the game engine.'}
+record={'applicationId':'io.github.celerycore.kenjatime.nativeprototype','version':'0.3.0','versionCode':3,'apkBytes':apk.stat().st_size,'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signerSha256':signer,'signatureVerified':True,'minSdk':34,'targetSdk':36,'abi':'arm64-v8a','nativeLibrariesMatchOfficialRelease':10,'exportedJniSignaturesMatch':len(before),'bundledAssetsMatchPreparedFiles':count,'nativeGameProcess':':engine','webViewBattleView':False,'webViewSetupUi':True,'archiveReader':'libarchive-android 1.1.6','tests':tests,'lint':{'errors':0,'warningCounts':dict(Counter(i.get('id') for i in lint)),'scopedVendorSuppressions':'native-android/lint.xml'},'engine':provenance,'phoneExecution':False,'phoneFpsMeasured':False,'scope':'Native ARM64 execution requires an Android phone. Robolectric verifies launcher, assets, imports, rollback, limits, locking and audio permission handling; it does not execute the game engine.'}
 Path('work/native-android-evidence.json').write_text(json.dumps(record,indent=2)+'\n')
 print(json.dumps({k:v for k,v in record.items() if k not in ['engine','tests']}))

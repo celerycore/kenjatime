@@ -1,0 +1,57 @@
+{
+  "engine": "IKEMEN GO",
+  "version": "1.0.0",
+  "portRepository": "https://github.com/energyjp/ikemen-go-web",
+  "portCommit": "96324a1c8aaaa5c0cb7756aebeb4b572588523ee",
+  "sourceArchiveSha256": "38bc19e95c0e5df1c515d81fbfa2146a641e8452d294520cd3b58aa563080bea",
+  "go": "go version go1.23.12 linux/amd64",
+  "flags": [
+    "build",
+    "-trimpath",
+    "-buildvcs=false",
+    "-ldflags=-X main.Version=1.0.0"
+  ],
+  "patches": [
+    "Kenjatime match status, pause and touch input bridge",
+    "Release touch inputs after at least one simulation poll",
+    "Kenjatime error title"
+  ],
+  "stockMenuAssets": false,
+  "stockMenuScripts": false,
+  "wasmBytes": 24414053,
+  "wasmSha256": "7deaaff6605ac045412504707aec23c1f138aef9302fc5f2428720480a4597ff",
+  "files": {
+    "wasm_exec.js": {
+      "bytes": 16687,
+      "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229"
+    },
+    "core.zip": {
+      "bytes": 1368770,
+      "sha256": "f005822bd651d301de819871481d4859f347f24a75fac3ca651e1e550018eb20"
+    },
+    "THIRD-PARTY-LICENSES.txt": {
+      "bytes": 84936,
+      "sha256": "4b79a3f637f72df7ed244971af9c4e6430b39f39589e8d260fc1e5a9dc1d2197"
+    },
+    "GO-LICENSE.txt": {
+      "bytes": 1479,
+      "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+    },
+    "LICENSE.txt": {
+      "bytes": 3772,
+      "sha256": "30dd549c8be7fedd0ec076cd32febf13ad34a9b4a8de7079de3fbe910f57420f"
+    },
+    "ikemen.wasm.bin": {
+      "bytes": 5658160,
+      "sha256": "8f6eec84ab39237657387e4699d40e4dc5fe057b8ee9c3c8881da4c4dd3045d9"
+    }
+  },
+  "goEnvironment": {
+    "GOEXPERIMENT": "arenas",
+    "GOWASM": "satconv,signext",
+    "GOOS": "js",
+    "GOARCH": "wasm",
+    "CGO_ENABLED": "0"
+  },
+  "hostBridgeSha256": "e4f0936a72f94831a9cc8569fa616457f88fef183163347f75e4d595c14d8471"
+}

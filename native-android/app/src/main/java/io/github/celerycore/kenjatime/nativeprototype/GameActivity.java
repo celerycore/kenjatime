@@ -11,9 +11,12 @@ public final class GameActivity extends SDLActivity {
     private android.widget.Button pause;
     @Override protected String[] getArguments() {
         String[] args=getIntent().getStringArrayExtra("matchArgs");
-        return args!=null?args:new String[]{"-p1","chars/kfm_zss/kfm_zss.def","-p2","chars/kfm_zss/kfm_zss.def","-s","stages/kenjatime-grid.def","-kenjatime-mode","training","-time","-1"};
+        return args!=null?args:new String[]{"-config","data/kenjatime/config.ini","-p1","chars/kfm_zss/kfm_zss.def","-p2","chars/kfm_zss/kfm_zss.def","-s","stages/kenjatime-grid.def","-kenjatime-mode","training","-time","-1"};
     }
     @Override protected void onCreate(android.os.Bundle saved) {
+        try(Closeable lock=GameLibrary.lock(getFilesDir())) {
+            GameLibrary library=new GameLibrary(getFilesDir());library.prepare(getAssets());library.ensureMatch(getAssets());
+        }catch(IOException e){throw new IllegalStateException("The match could not be prepared.",e);}
         super.onCreate(saved);
         if(android.os.Build.VERSION.SDK_INT>=33&&!SDLActivity.mBrokenLibraries) {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,()->{

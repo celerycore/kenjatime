@@ -9,4 +9,4 @@ const lzmaModule=()=>({name:'lzma-module',enforce:'pre',transform(code,id){
 }});
 
 // Keep assets and the sample archive usable on GitHub Pages project URLs.
-export default defineConfig({base:'./',plugins:[lzmaModule()],build:{manifest:true,rollupOptions:{input:{lab:'index.html',arena:'arena/index.html',classic:'arena-classic/index.html',mobile:'mobile/index.html',native:'native-ui/index.html'}}},worker:{format:'es',plugins:()=>[lzmaModule()]}});
+export default defineConfig({base:'./',plugins:[lzmaModule()],build:{manifest:true,rollupOptions:{input:{lab:'index.html',arena:'arena/index.html',classic:'arena-classic/index.html',mobile:'mobile/index.html',native:'native-ui/index.html',engine:'engine/index.html'}}},worker:{format:'es',plugins:()=>[lzmaModule()]}});

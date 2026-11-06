@@ -14,6 +14,6 @@ export function mountTouchControls(host,onChange){
   panel.addEventListener('keyup',event=>{if([' ','Enter'].includes(event.key)){event.preventDefault();release(`key:${event.code}`);}});
   panel.addEventListener('focusout',()=>{for(const id of active.keys())if(typeof id==='string')release(id);});
   const reset=()=>{active.clear();update();};
-  window.addEventListener('blur',reset);document.addEventListener('visibilitychange',()=>{if(document.hidden)reset();});
-  return {panel,reset};
+  const visibility=()=>{if(document.hidden)reset();};window.addEventListener('blur',reset);document.addEventListener('visibilitychange',visibility);
+  return {panel,reset,dispose(){reset();window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',visibility);panel.remove();}};
 }

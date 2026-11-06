@@ -1,0 +1,45 @@
+name: Go browser engine
+on:
+  workflow_dispatch:
+  push:
+    branches: [source/mugen-compatibility]
+    paths:
+      - 'engine/**'
+      - 'src/**'
+      - 'public/engine/**'
+      - 'native-android/ui/**'
+      - 'scripts/verify-go-engine.py'
+      - 'scripts/prepare-kenjatime-ui.py'
+      - 'scripts/build-go-engine.py'
+      - '.github/workflows/go-engine.yml'
+permissions:
+  contents: read
+jobs:
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.23.12
+          cache: false
+      - run: npm ci && npm run build
+      - run: python scripts/prepare-native-android.py
+      - name: Rebuild pinned Go engine and compare the shipped binary
+        run: |
+          cp public/engine/ikemen.wasm.bin /tmp/shipped-engine.wasm.bin
+          KENJATIME_GO="$(command -v go)" python scripts/build-go-engine.py
+          cmp /tmp/shipped-engine.wasm.bin public/engine/ikemen.wasm.bin
+      - run: npm test
+      - run: npm run build
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - name: Execute Go matches and verify no stock UI
+        run: python scripts/verify-go-engine.py

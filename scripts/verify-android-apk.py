@@ -34,10 +34,10 @@ with ZipFile(apk) as z:
     assert b'data-mobile-app="true"' in z.read('assets/public/mobile/index.html')
     assert any(n.endswith('.wasm') for n in z.namelist())
     archives=[n for n in z.namelist() if n.endswith(('.zip','.rar'))]
-    assert archives==['assets/public/kfm.zip'],archives
+    assert sorted(archives)==['assets/public/engine/core.zip','assets/public/kfm.zip'],archives
 lint=Path('android/app/build/reports/lint-results-debug.xml')
 issues=[{'id':i.get('id'),'severity':i.get('severity'),'message':i.get('message')} for i in ET.parse(lint).getroot().findall('issue')]
 assert all(i['severity'] not in ['Error','Fatal'] for i in issues),issues
-result={'package':'io.github.celerycore.kenjatime','version':version,'versionCode':version_code,'startupUrl':startup_url,'apkBytes':apk.stat().st_size,'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signatureVerified':True,'signerSha256':signer,'minSdk':24,'targetSdk':36,'minimumWebView':107,'bundledWebFilesMatchDist':len(files),'onlyBundledCharacterArchive':'kfm.zip','lint':{'errors':0,'warnings':issues},'deviceTesting':'Packaging checks do not execute Android or measure phone FPS.'}
+result={'package':'io.github.celerycore.kenjatime','version':version,'versionCode':version_code,'startupUrl':startup_url,'apkBytes':apk.stat().st_size,'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signatureVerified':True,'signerSha256':signer,'minSdk':24,'targetSdk':36,'minimumWebView':107,'bundledWebFilesMatchDist':len(files),'onlyBundledCharacterArchive':'kfm.zip','sharedEngineCoreArchive':'engine/core.zip','lint':{'errors':0,'warnings':issues},'deviceTesting':'Packaging checks do not execute Android or measure phone FPS.'}
 Path('work').mkdir(exist_ok=True);Path('work/mobile-apk-evidence.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result))

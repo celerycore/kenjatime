@@ -1,4 +1,4 @@
-"""Generate Kenjatime UI assets only. No engine, character or combat state code changes."""
+"""Generate Kenjatime UI assets only. No character or combat state code changes."""
 from pathlib import Path
 import hashlib,json,struct,shutil
 
@@ -55,21 +55,24 @@ def main():
     line(grid,w,h,0,392,w-1,392,2)
     write('assets/stages/kenjatime-grid.sff',sff([(w,h,w//2,0,bytes(grid))],[(12,17,27,255),(27,39,55,255),(70,96,85,255)]))
     write('assets/stages/kenjatime-grid.def',b'[Info]\nname=Training grid\nauthor=Kenjatime\n[Camera]\nstartx=0\nstarty=0\nboundleft=-160\nboundright=160\nboundhigh=0\nboundlow=0\ntension=50\n[PlayerInfo]\np1startx=-180\np1starty=0\np1facing=1\np2startx=180\np2starty=0\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[StageInfo]\nzoffset=392\nautoturn=1\nresetbg=1\nlocalcoord=854,480\nxscale=1\nyscale=1\n[BGDef]\nspr=kenjatime-grid.sff\n[BG 0]\ntype=normal\nspriteno=0,0\nstart=0,0\ndelta=0,0\nmask=0\n')
-    main_path=OUT/'assets/external/script/main.lua';original=main_path.read_text()
-    # Only command-line UI routing is changed; native game() and all state logic remain upstream.
-    assert original.count("setGameMode('quickvs')")==1
-    patched=original.replace("setGameMode('quickvs')","setGameMode(flags['-kenjatime-mode'] == 'training' and 'training' or 'quickvs')",1)
-    needle="if not loadMotif then\n\t\tloadFightScreen()\n\tend";assert needle in patched
-    patched=patched.replace(needle,"if not loadMotif then\n\t\tloadFightScreen('data/kenjatime/fight.def')\n\tend",1)
-    main_path.write_text(patched)
-    write('assets/upstream/main-ui-original.lua',original.encode())
+    write('assets/data/kenjatime/engine.lua',(ROOT/'engine/kenjatime.lua').read_bytes())
+    write('assets/data/kenjatime/config.ini',(ROOT/'engine/config.ini').read_bytes())
+    write('assets/data/select.def',b'[Characters]\nkfm_zss, stages/kenjatime-grid.def\n[ExtraStages]\nstages/kenjatime-grid.def\n')
+    # Ship gameplay data and Kenjatime assets only. Stock menus, motif graphics,
+    # startup scripts, logos, storyboards, announcers and portraits are absent.
+    exact={'data/fightfx.sff','data/fightfx.air','data/common.snd','data/select.def','font/f-6x9f.fnt','font/Open_Sans/OpenSans-Regular.ttf','font/Open_Sans/LICENSE.txt','external/gamecontrollerdb.txt','upstream/LICENSES.txt','upstream/SDL-wrapper-LICENSE.txt'}
+    for file in (OUT/'assets').rglob('*'):
+        if not file.is_file():continue
+        name=file.relative_to(OUT/'assets').as_posix()
+        common=name.startswith('data/') and '/' not in name[5:] and file.suffix in {'.zss','.cns','.air','.cmd','.const'}
+        if name not in exact and not common and not name.startswith(('data/kenjatime/','data/gofx/','chars/kfm_zss/','stages/kenjatime-grid.')):file.unlink()
     write('res/drawable/kenjatime_control.xml',(ui/'kenjatime_control.xml').read_bytes())
     write('res/color/kenjatime_control_text.xml',(ui/'kenjatime_control_text.xml').read_bytes())
     def cell(view_id,label,left,top,width=44,height=44):
         return f'<TextView android:id="@+id/{view_id}" android:layout_width="{width}dp" android:layout_height="{height}dp" android:layout_marginLeft="{left}dp" android:layout_marginTop="{top}dp" android:background="@drawable/kenjatime_control" android:textColor="@color/kenjatime_control_text" android:gravity="center" android:textSize="16sp" android:text="{label}"/>'
     dpad=''.join(cell(id,label,x*48,y*48) for id,label,x,y in [('dp_upleft','↖',0,0),('dp_up','↑',1,0),('dp_upright','↗',2,0),('dp_left','←',0,1),('dp_right','→',2,1),('dp_downleft','↙',0,2),('dp_down','↓',1,2),('dp_downright','↘',2,2)])
-    attacks=''.join(cell(id,label,x*48,y*48) for id,label,x,y in [('btn_x','X',0,0),('btn_y','Y',1,0),('btn_d','Z',2,0),('btn_a','A',0,1),('btn_b','B',1,1),('btn_z','C',2,1)])+cell('btn_start','START',0,96,140,28)
-    layout=f'''<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"><RelativeLayout android:id="@+id/dpad_container" android:layout_width="140dp" android:layout_height="140dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="18dp" android:layout_marginBottom="18dp">{dpad}</RelativeLayout><RelativeLayout android:layout_width="140dp" android:layout_height="124dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="18dp" android:layout_marginBottom="18dp">{attacks}</RelativeLayout><org.libsdl.app.JoystickOverlay android:id="@+id/left_analog" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><org.libsdl.app.JoystickOverlay android:id="@+id/right_analog" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><View android:id="@+id/btn_w" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><View android:id="@+id/btn_c" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><View android:id="@+id/btn_back" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/></RelativeLayout>'''
+    attacks=''.join(cell(id,label,x*48,y*48) for id,label,x,y in [('btn_x','X',0,0),('btn_y','Y',1,0),('btn_z','Z',2,0),('btn_a','A',0,1),('btn_b','B',1,1),('btn_c','C',2,1)])+cell('btn_start','START',0,96,140,28)
+    layout=f'''<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent"><RelativeLayout android:id="@+id/dpad_container" android:layout_width="140dp" android:layout_height="140dp" android:layout_alignParentBottom="true" android:layout_alignParentLeft="true" android:layout_marginLeft="18dp" android:layout_marginBottom="18dp">{dpad}</RelativeLayout><RelativeLayout android:layout_width="140dp" android:layout_height="124dp" android:layout_alignParentRight="true" android:layout_alignParentBottom="true" android:layout_marginRight="18dp" android:layout_marginBottom="18dp">{attacks}</RelativeLayout><org.libsdl.app.JoystickOverlay android:id="@+id/left_analog" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><org.libsdl.app.JoystickOverlay android:id="@+id/right_analog" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><View android:id="@+id/btn_w" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><View android:id="@+id/btn_d" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/><View android:id="@+id/btn_back" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone"/></RelativeLayout>'''
     write('res/layout/virtual_controller.xml',layout.encode())
     controller=OUT/'java/org/libsdl/app/ControllerOverlay.java';code=controller.read_text();code=code.replace('if (v == null) return;','if (v == null || v.getVisibility() != View.VISIBLE) return;')
     needle='    private int ensureJoystickAlive() {';assert needle in code
@@ -91,8 +94,13 @@ def main():
         if key in seen:continue
         seen.add(key);entry=manifest[key];files.add(entry['file']);files.update(entry.get('css',[]));files.update(entry.get('assets',[]));pending.extend(entry.get('imports',[]));pending.extend(entry.get('dynamicImports',[]))
     for name in sorted(files):write('assets/web/'+name,(dist/name).read_bytes())
+    # Discard the upstream Android launcher/controller artwork as well.
+    for folder in (OUT/'res').glob('mipmap-*'):shutil.rmtree(folder)
+    for file in (OUT/'res').rglob('ic_launcher*'):
+        if file.is_file():file.unlink()
+    for file in (OUT/'res').rglob('round_button.xml'):file.unlink()
     overrides={}
-    for path in [OUT/'assets/data/kenjatime',OUT/'assets/stages/kenjatime-grid.def',OUT/'assets/stages/kenjatime-grid.sff',main_path,OUT/'res/layout/virtual_controller.xml',OUT/'assets/web']:
+    for path in [OUT/'assets/data/kenjatime',OUT/'assets/stages/kenjatime-grid.def',OUT/'assets/stages/kenjatime-grid.sff',OUT/'assets/data/select.def',OUT/'res/layout/virtual_controller.xml',OUT/'assets/web']:
         for file in path.rglob('*') if path.is_dir() else [path]:
             if file.is_file():overrides[file.relative_to(OUT).as_posix()]=hashlib.sha256(file.read_bytes()).hexdigest()
     return overrides

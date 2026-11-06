@@ -1,0 +1,110 @@
+{
+  "engine": "IKEMEN GO 1.0.0 (Go/WASM)",
+  "phoneExecution": false,
+  "cases": {
+    "touchAttackDamage": 23,
+    "pauseFreezesFighters": true,
+    "menuReturnsToKenjatime": true,
+    "archiveImports": [
+      "fighter.zip",
+      "fighter.bzip2.zip",
+      "fighter.lzma.zip",
+      "fighter.7z",
+      "fighter.tar.gz",
+      "fighter-sfx.zip",
+      "arena/fighter.zip",
+      "arena/fighter.bzip2.zip",
+      "arena/fighter.lzma.zip",
+      "arena/fighter.7z",
+      "arena/fighter.tar.gz",
+      "arena/fighter-sfx.zip",
+      "arena-classic/fighter.zip",
+      "arena-classic/fighter.bzip2.zip",
+      "arena-classic/fighter.lzma.zip",
+      "arena-classic/fighter.7z",
+      "arena-classic/fighter.tar.gz",
+      "arena-classic/fighter-sfx.zip",
+      "mobile/fighter.zip",
+      "mobile/fighter.bzip2.zip",
+      "mobile/fighter.lzma.zip",
+      "mobile/fighter.7z",
+      "mobile/fighter.tar.gz",
+      "mobile/fighter-sfx.zip"
+    ],
+    "invalidImportPreservesLibrary": true,
+    "savedImportsSurviveReload": true,
+    "oldLibraryMigration": true,
+    "MUGEN_CNS_KFM_ZIP": {
+      "started": true,
+      "state": {
+        "players": [
+          {
+            "life": 1000,
+            "x": -67.44730377197266,
+            "y": 0,
+            "state": 0,
+            "time": 9
+          },
+          {
+            "life": 1000,
+            "x": 67.44730377197266,
+            "y": 0,
+            "state": 0,
+            "time": 9
+          }
+        ],
+        "ticks": 104,
+        "paused": false
+      }
+    },
+    "MUGEN_TOMOKA_RAR": {
+      "started": true,
+      "state": {
+        "players": [
+          {
+            "life": 1000,
+            "x": -67.44730377197266,
+            "y": 0,
+            "state": 0,
+            "time": 686
+          },
+          {
+            "x": 67.44730377197266,
+            "y": 0,
+            "state": 0,
+            "time": 686,
+            "life": 1000
+          }
+        ],
+        "ticks": 781,
+        "paused": false
+      }
+    },
+    "MUGEN_FOREST_RAR": {
+      "started": true,
+      "state": {
+        "players": [
+          {
+            "x": -67.44730377197266,
+            "y": 0,
+            "state": 0,
+            "time": 143,
+            "life": 990
+          },
+          {
+            "life": 990,
+            "x": 67.44730377197266,
+            "y": 0,
+            "state": 0,
+            "time": 143
+          }
+        ],
+        "ticks": 277,
+        "paused": false
+      }
+    }
+  },
+  "coreContainsStockUi": false,
+  "errors": [],
+  "failedRequests": []
+}

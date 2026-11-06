@@ -18,7 +18,7 @@ self.onmessage=async({data})=>{
     self.postMessage({progress:'Checking character and stage definitions…'});
     const characters=charactersFromFiles(files),stages=stageDefinitions(files);
     if(!characters.length&&!stages.length)throw Error('No character or stage DEF found in the archive.');
-    const prepared=prepareStageSprites(stages,{onProgress:progress=>self.postMessage({progress})});
+    const prepared=data.prepareStageData===false?[]:prepareStageSprites(stages,{onProgress:progress=>self.postMessage({progress})});
     const buffers=[...new Set([...Object.values(files).map(file=>file.buffer),...prepared])];
     self.postMessage({result:{files,characters,stages}},buffers);
   }catch(error){self.postMessage({error:error.message});}

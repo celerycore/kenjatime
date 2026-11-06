@@ -3,18 +3,13 @@ import './mobile.css';
 import {appShell} from './app-shell.js';
 import {sff,animations} from './formats.js';
 
-// This is Kenjatime's shared interface. It never imports the browser combat runtime.
-document.querySelector('#app').innerHTML=appShell;
+export function mountSetup(engineHost){
+document.querySelector('#app').innerHTML=appShell;document.title='Kenjatime';
 document.body.classList.add('mobile-app','arena-page');
 const $=s=>document.querySelector(s),escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let catalog={characters:[],stages:[],packages:[]},selected=null,serial=0,busy=false,previewBank=null,previewResource=null,previewEpoch=0;
-const pending=new Map();
-window.__kenjatimeNativeResult=result=>{const call=pending.get(result.id);if(!call)return;pending.delete(result.id);result.error?call.reject(Error(result.error)):call.resolve(result.data);};
+let catalog={characters:[],stages:[],packages:[]},selected=null,busy=false,previewBank=null,previewResource=null,previewEpoch=0;
 window.__kenjatimeNativeProgress=message=>{$('#status').textContent=message;};
-function native(action,data={}){
- if(!window.KenjatimeNative)return Promise.reject(Error('Open this interface in the Kenjatime Android app.'));
- const id=++serial;return new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});window.KenjatimeNative.request(JSON.stringify({id,action,...data}));});
-}
+const native=(action,data={})=>engineHost.request(action,data);
 function status(message){$('#status').textContent=message;}
 async function run(message,action){
  if(busy)return;busy=true;status(message);document.querySelectorAll('button,.import-actions label').forEach(e=>{e.setAttribute('aria-disabled','true');if(e.tagName==='BUTTON')e.disabled=true;});
@@ -31,7 +26,7 @@ $('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" ari
 $('.transport').insertAdjacentHTML('afterend','<div id="training-tools" class="training-tools"><label>Opponent <select id="opponent-select"></select></label><label>CPU level <select id="cpu-level">'+Array.from({length:8},(_,i)=>`<option value="${i+1}" ${i===3?'selected':''}>${i+1}</option>`).join('')+'</select></label><label>P1 palette <select id="palette-select"></select></label><label>P2 palette <select id="opponent-palette-select"></select></label></div>');
 $('.roster').insertAdjacentHTML('beforebegin','<section class="mobile-library"><details open><summary>Saved on this device <span id="library-count">0</span></summary><p id="library-status">Imported archives are installed here and stay available after restarting the app.</p><div id="library-items"></div></details></section>');
 $('#drop').innerHTML='<div class="upload-icon">↥</div><div><b>Bring a new challenger.</b><p>Import a character or stage archive, or <button type="button" id="browse">browse files</button></p><small>ZIP / RAR / 7z / TAR and compressed TAR · installed on this device</small><details class="archive-options"><summary>Archive password (optional)</summary><input id="archive-password" type="password" autocomplete="off" aria-label="Archive password"></details></div>';
-$('.notice').textContent='Character scripts and matches run in the native engine. Package checks describe installed resources.';
+$('.notice').textContent='Character scripts and matches run in the game engine. Package checks describe installed resources.';
 $('#hint').textContent='Select your fighter, opponent and stage, then start a match.';$('.coordinates').innerHTML='X <span id="pos">0</span> &nbsp; Y <span>0</span>';
 $('#play').hidden=$('#step').hidden=$('#actions').hidden=$('#speed').hidden=true;$('.frame').textContent='CHARACTER PREVIEW';
 $('footer').innerHTML='<span>KENJATIME <b>/</b> LOCAL SESSION</span><button class="secondary" id="credits">Credits and source</button>';
@@ -45,15 +40,15 @@ function grid(){
  for(let y=330;y<540;y+=(y-300)*.3){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(960,y);ctx.stroke();}
  ctx.strokeStyle='#466055';ctx.beginPath();ctx.moveTo(0,440);ctx.lineTo(960,440);ctx.stroke();
 }
-function resource(path){return new URL('/game/'+path.split('/').map(encodeURIComponent).join('/'),location.href).href;}
+const resource=path=>engineHost.resource(path);
 function disposePreview(){previewEpoch++;previewBank?.clearDecodedCache();previewBank=previewResource=null;grid();}
 async function preview(entry){
  disposePreview();const epoch=previewEpoch;$('#empty').hidden=false;
  if(!entry.sprite||entry.spriteBytes>24*1024*1024){$('#empty').innerHTML='Your fighter is ready<small>Start a match to see it in the arena.</small>';return;}
  try{
-  const bytes=new Uint8Array(await (await fetch(resource(entry.sprite))).arrayBuffer());if(epoch!==previewEpoch)return;
+  const bytes=new Uint8Array(await (await resource(entry.sprite)).arrayBuffer());if(epoch!==previewEpoch)return;
   const bank=sff(bytes);let frame;
-  if(entry.anim){const actions=animations(await (await fetch(resource(entry.anim))).text());frame=actions.find(a=>a.id===0)?.frames[0];}
+  if(entry.anim){const actions=animations(await (await resource(entry.anim)).text());frame=actions.find(a=>a.id===0)?.frames[0];}
   if(epoch!==previewEpoch)return;
   const index=frame?bank.sprites.findIndex(s=>s.group===frame.group&&s.number===frame.number):bank.sprites.findIndex(s=>s.group===0&&s.number===0);
   if(index<0)throw Error('No idle preview');
@@ -80,14 +75,23 @@ function drawCatalog(data){
  $('#stage-summary').textContent='Your stage selection is used for the next match.';$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';
  $('#library-count').textContent=catalog.packages.length;$('#library-items').replaceChildren();
  for(const pkg of catalog.packages){const row=document.createElement('div');row.className='library-item';const name=document.createElement('span'),open=document.createElement('button'),remove=document.createElement('button');name.textContent=pkg.name;open.textContent='Open';remove.textContent='Delete';open.className=remove.className='secondary';
-  open.onclick=()=>{const char=catalog.characters.find(c=>c.packageId===pkg.id),stage=catalog.stages.find(s=>s.packageId===pkg.id);if(char)choose(char.id);if(stage){$('#stage-select').value=stage.id;remember();}status('Package is installed and ready.');};
+  open.onclick=()=>{if(pkg.legacy){void run('Installing saved archive…',async()=>{applyInstalled(await native('openLegacy',{id:pkg.id,password:$('#archive-password').value}));$('#archive-password').value='';status('Saved archive installed. Select your fighter to play.');});return;}const char=catalog.characters.find(c=>c.packageId===pkg.id),stage=catalog.stages.find(s=>s.packageId===pkg.id);if(char)choose(char.id);if(stage){$('#stage-select').value=stage.id;remember();}status('Package is installed and ready.');};
   remove.onclick=()=>void run('Removing installed package…',async()=>{drawCatalog(await native('remove',{packageId:pkg.id}));status('Package removed from this app. The source archive is unchanged.');});row.append(name,open,remove);$('#library-items').append(row);
  }
  choose(catalog.characters.some(c=>c.id===old)?old:saved.character);grid();
 }
-async function pick(kind){await run('Choose a character or stage archive…',async()=>{const result=await native('pickArchive',{kind,password:$('#archive-password').value});$('#archive-password').value='';if(result.cancelled){status('Import cancelled.');return;}const previous=new Set(catalog.packages.map(p=>p.id));drawCatalog(result);const added=catalog.packages.find(p=>!previous.has(p.id));if(added){const fighter=catalog.characters.find(c=>c.packageId===added.id),stage=catalog.stages.find(s=>s.packageId===added.id);if(fighter)choose(fighter.id);if(stage){$('#stage-select').value=stage.id;remember();}}status('Archive installed. Your fighters and stages are ready to select.');});}
+function applyInstalled(result){
+ const previous=new Set(catalog.packages.map(p=>p.id));drawCatalog(result);const added=catalog.packages.find(p=>!previous.has(p.id));if(!added)return;
+ const fighter=catalog.characters.find(c=>c.packageId===added.id),stage=catalog.stages.find(s=>s.packageId===added.id);if(fighter)choose(fighter.id);if(stage){$('#stage-select').value=stage.id;$('.stage-label').textContent=stage.name;remember();}
+}
+async function pick(kind){await run('Choose a character or stage archive…',async()=>{const result=await native('pickArchive',{kind,password:$('#archive-password').value});$('#archive-password').value='';if(result.cancelled){status('Import cancelled.');return;}applyInstalled(result);status('Archive installed. Your fighters and stages are ready to select.');});}
+
 for(const [id,kind]of [['upload','any'],['add-stage','stage'],['browse','any']]){
  const element=$('#'+id);element.onclick=event=>{event.preventDefault();void pick(kind);};element.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();void pick(kind);}};
+}
+if(engineHost.importFile){
+ $('#drop').addEventListener('dragover',event=>event.preventDefault());
+ $('#drop').addEventListener('drop',event=>{event.preventDefault();const file=event.dataTransfer.files[0];if(file)void run('Reading archive…',async()=>{applyInstalled(await engineHost.importFile(file,{password:$('#archive-password').value}));$('#archive-password').value='';status('Archive installed. Your fighters and stages are ready to select.');});});
 }
 $('#sample').onclick=()=>choose(catalog.characters.find(c=>!c.packageId)?.id);$('#lab').onclick=()=>{$('.viewer').scrollIntoView({block:'start'});};$('#training').onclick=()=>{$('.arena-launch').scrollIntoView({block:'start'});};
 for(const id of ['stage-select','opponent-select','arena-mode'])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';};
@@ -95,4 +99,7 @@ $('#fight-now').onclick=()=>void run('Preparing your match…',async()=>{
  if(!selected)throw Error('Import a character before starting a match.');
  const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value};remember();disposePreview();await native('launch',match);
 });
+window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview(selected);status('Ready when you are.');}});
 grid();void run('Opening your library…',async()=>{drawCatalog(await native('catalog'));status('Ready when you are.');});
+
+}

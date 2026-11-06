@@ -1,3 +1,4 @@
 android/gradlew.bat -text whitespace=cr-at-eol
 native-android/gradlew.bat -text whitespace=cr-at-eol
 public/third-party-archives.txt -whitespace
+public/engine/*LICENSE*.txt -whitespace

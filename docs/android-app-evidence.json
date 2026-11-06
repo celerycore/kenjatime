@@ -1,17 +1,18 @@
 {
   "package": "io.github.celerycore.kenjatime",
-  "version": "0.1.4",
-  "versionCode": 5,
+  "version": "0.2.0",
+  "versionCode": 6,
   "startupUrl": "https://localhost/mobile/index.html",
-  "apkBytes": 5245571,
-  "apkSha256": "0cd8e4ad147e408d53acf2b7192a82b9c3443c04037ba257cc8072437c8cc91a",
+  "apkBytes": 14477310,
+  "apkSha256": "00e2e87be8b5bcad68eb8c0d56ea652318fe2ea9820a662f830924d6bd085721",
   "signatureVerified": true,
   "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
   "minSdk": 24,
   "targetSdk": 36,
   "minimumWebView": 107,
-  "bundledWebFilesMatchDist": 39,
+  "bundledWebFilesMatchDist": 41,
   "onlyBundledCharacterArchive": "kfm.zip",
+  "sharedEngineCoreArchive": "engine/core.zip",
   "lint": {
     "errors": 0,
     "warnings": [

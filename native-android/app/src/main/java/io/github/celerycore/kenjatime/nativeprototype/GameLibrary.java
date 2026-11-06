@@ -48,6 +48,8 @@ public final class GameLibrary {
         try (InputStream in=assets.open("native-provenance.json")) { provenance=read(in, 64*1024); }
         File marker=new File(root,".native-assets.json");
         if (marker.isFile() && Arrays.equals(readFile(marker,64*1024),provenance)) return;
+        // Remove obsolete bundled screenpacks on upgrade; imported packages live in imports/.
+        for(String path:new String[]{"data/system.def","data/system.sff","data/system.snd","data/fight.def","data/fight.sff","data/fight.snd","data/ikemen1","data/motif1","external/script","external/icons","upstream/main-ui-original.lua","web","font"})remove(new File(root,path));
         installAssets(assets, "");
         // Regenerate from the bundled roster plus existing imports after an engine update.
         rebuildSelect(assets);
@@ -68,6 +70,24 @@ public final class GameLibrary {
                 file.finishWrite(out);
             } catch (IOException | RuntimeException e) { file.failWrite(out);throw e; }
         }
+    }
+
+    // Android's pinned SDL_main does not copy argv into Go's os.Args.
+    // The engine reads this private JSON selection and the default config instead.
+    String[] prepareMatch(org.json.JSONObject request,AssetManager assets) throws IOException,org.json.JSONException {
+        String[] args=new GameCatalog(root).matchArguments(request);
+        org.json.JSONObject flags=new org.json.JSONObject();for(int i=0;i<args.length;i+=2)flags.put(args[i],args[i+1]);
+        atomicWrite(new File(root,"save/kenjatime-match.json"),flags.toString().getBytes(StandardCharsets.UTF_8));
+        ensureEngineConfig(assets);return args;
+    }
+    void ensureEngineConfig(AssetManager assets) throws IOException {
+        try(InputStream in=assets.open("data/kenjatime/config.ini")){atomicWrite(new File(root,"save/config.ini"),read(in,64*1024));}
+    }
+    void ensureMatch(AssetManager assets) throws IOException {
+        if(!new File(root,"save/kenjatime-match.json").isFile())try{
+            prepareMatch(new org.json.JSONObject().put("character","chars/kfm_zss/kfm_zss.def").put("stage","stages/kenjatime-grid.def").put("mode","training"),assets);
+        }catch(org.json.JSONException e){throw new IOException(e);}
+        else ensureEngineConfig(assets);
     }
 
     public Result importFolder(Source source,AssetManager assets) throws IOException {
@@ -142,7 +162,7 @@ public final class GameLibrary {
         }
         // IKEMEN's select parser recognizes repeated section headers in file order.
         StringBuilder select=new StringBuilder(stock).append("\n; Kenjatime native imports\n[Characters]\n");
-        for(String name:characters) select.append(name).append(", stages/kfm.def\n");
+        for(String name:characters) select.append(name).append(", stages/kenjatime-grid.def\n");
         select.append("[ExtraStages]\n");for(String name:stages) select.append(name).append('\n');
         atomicWrite(new File(root,"data/select.def"),select.toString().getBytes(StandardCharsets.UTF_8));
     }

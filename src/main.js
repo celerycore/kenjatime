@@ -1,5 +1,3 @@
-import './style.css';
-import {appShell} from './app-shell.js';
-import {mountApp} from './app-runtime.js';
-document.querySelector('#app').innerHTML=appShell;
-mountApp({arena:document.body.dataset.mode==='arena'});
+import {mountSetup} from './native-setup.js';
+import {createBrowserEngineHost} from './browser-engine-host.js';
+mountSetup(createBrowserEngineHost());

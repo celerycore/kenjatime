@@ -5,7 +5,6 @@ localcoord = 960,540
 
 [Files]
 sff = fight.sff
-snd = ../fight.snd
 font1 = label.def
 font2 = banner.def
 fightfx.sff = ../fightfx.sff
@@ -16,12 +15,12 @@ common.snd = ../common.snd
 scale = 1
 
 [Lifebar]
-p1.pos = 48,74
+p1.pos = 48,94
 p1.bg0.spr = 0,0
 p1.mid.spr = 0,1
 p1.front.spr = 0,1
 p1.range.x = 0,300
-p2.pos = 912,74
+p2.pos = 912,94
 p2.bg0.spr = 0,0
 p2.bg0.facing = -1
 p2.mid.spr = 0,1
@@ -31,17 +30,17 @@ p2.front.facing = -1
 p2.range.x = 0,-300
 
 [Name]
-p1.pos = 48,64
+p1.pos = 48,84
 p1.name.font = 1,0,1,211,251,141
-p2.pos = 912,64
+p2.pos = 912,84
 p2.name.font = 1,0,-1,211,251,141
 
 [Powerbar]
-p1.pos = 48,90
+p1.pos = 48,110
 p1.bg0.spr = 0,4
 p1.front.spr = 0,5
 p1.range.x = 0,150
-p2.pos = 912,90
+p2.pos = 912,110
 p2.bg0.spr = 0,4
 p2.bg0.facing = -1
 p2.front.spr = 0,5
@@ -49,7 +48,7 @@ p2.front.facing = -1
 p2.range.x = 0,-150
 
 [Time]
-pos = 480,70
+pos = 480,90
 bg0.spr = 0,2
 counter.font = 1,0,0,211,251,141
 framespercount = 60
@@ -82,8 +81,8 @@ draw.font = 2,0,0,211,251,141
 draw.text = "DRAW"
 
 [WinIcon]
-p1.pos = 48,105
-p2.pos = 912,105
+p1.pos = 48,125
+p2.pos = 912,125
 p1.iconoffset = 8,0
 p2.iconoffset = -8,0
 p1.n.spr = 0,3
