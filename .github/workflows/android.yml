@@ -37,6 +37,8 @@ jobs:
       - run: npm test
       - name: Build APK
         run: npm run android:debug
+      - name: Native startup regression
+        run: cd android && ./gradlew :app:testDebugUnitTest --console=plain
       - name: Android lint
         run: cd android && ./gradlew lintDebug --console=plain
       - name: Verify signed APK and offline assets

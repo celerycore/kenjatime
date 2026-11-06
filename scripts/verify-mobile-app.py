@@ -5,7 +5,7 @@ import json, os
 
 os.chdir(Path(__file__).resolve().parent.parent)
 Path('work').mkdir(exist_ok=True)
-url=os.environ.get('MUGEN_MOBILE_URL','http://127.0.0.1:5186/next/mobile/?perf=1')
+url=os.environ.get('MUGEN_MOBILE_URL','http://127.0.0.1:5186/next/mobile/index.html?perf=1')
 with sync_playwright() as p:
     browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium'),headless=True,args=['--no-sandbox'])
     context=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,accept_downloads=True)

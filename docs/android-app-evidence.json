@@ -1,8 +1,8 @@
 {
   "package": "io.github.celerycore.kenjatime",
-  "version": "0.1.0",
-  "apkBytes": 4880828,
-  "apkSha256": "1ee7676a6d76d52d4d02154901c8ef8c9dacf2e654134bc09e3a9499fe0dd601",
+  "version": "0.1.1",
+  "apkBytes": 4598922,
+  "apkSha256": "6c5eff60307966954c8bf630f7dc0a20fa467c40fe37e66ab3edeecd032607d0",
   "signatureVerified": true,
   "minSdk": 24,
   "targetSdk": 36,
@@ -16,6 +16,11 @@
         "id": "UnusedAttribute",
         "severity": "Warning",
         "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+      },
+      {
+        "id": "NewerVersionAvailable",
+        "severity": "Warning",
+        "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
       },
       {
         "id": "UnusedResources",
@@ -123,5 +128,30 @@
     "autoStress": null,
     "errors": []
   },
-  "physicalPhoneTest": "Native Android picker/share/rotation/back/controller behavior and sustained FPS remain unverified."
+  "physicalPhoneTest": "Native Android picker/share/rotation/back/controller behavior and sustained FPS remain unverified.",
+  "versionCode": 2,
+  "startupUrl": "https://localhost/mobile/index.html",
+  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "nativeStartup": {
+    "tests": 1,
+    "failures": 0,
+    "androidApi": 35,
+    "runner": "Robolectric with WebView/service-worker platform shadows",
+    "beforeFailure": "org.junit.ComparisonFailure: expected:<https://localhost[/mobile/index.html]> but was:<https://localhost[mobile/]>",
+    "afterUrl": "https://localhost/mobile/index.html",
+    "checks": [
+      "Actual Capacitor bridge URL",
+      "URL passed to WebView",
+      "Local asset server mobile HTML response",
+      "Local sample archive response"
+    ],
+    "physicalDevice": false
+  },
+  "upgrade": {
+    "previousVersionCode": 1,
+    "versionCode": 2,
+    "samePackageId": true,
+    "sameSigningCertificate": true,
+    "installOverExistingApp": true
+  }
 }

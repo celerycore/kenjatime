@@ -1,6 +1,6 @@
 # Kenjatime Android app
 
-The first Android app packages the existing engine with Capacitor 8 and local assets. It opens the mobile arena through Android System WebView; it does not load the GitHub Pages site or depend on Brave. The CNS/CMD interpreter, combat rules, graphics presets, archives, stages, audio, touch input and Gamepad API remain shared with the browser version.
+The Android app packages the existing engine with Capacitor 8 and local assets. It opens the mobile arena through Android System WebView; it does not load the GitHub Pages site or depend on Brave. The CNS/CMD interpreter, combat rules, graphics presets, archives, stages, audio, touch input and Gamepad API remain shared with the browser version.
 
 ## Included
 
@@ -28,7 +28,7 @@ npm run android:debug
 cd android && ./gradlew lintDebug
 ```
 
-Set `ANDROID_HOME` and `JAVA_HOME` when the tools are outside their standard locations. `android/local.properties` can point to the SDK; it is ignored. `npm run android:debug` rebuilds the Vite assets and syncs plugins before assembling the APK. Its output is `android/app/build/outputs/apk/debug/app-debug.apk`. Install that APK with Android's package installer, or `adb install -r <apk>` on an authorized test phone.
+Set `ANDROID_HOME` and `JAVA_HOME` when the tools are outside their standard locations. `android/local.properties` can point to the SDK; it is ignored. `npm run android:debug` rebuilds the Vite assets and syncs plugins before assembling the APK. Its output is `android/app/build/outputs/apk/debug/app-debug.apk`. Version 0.1.1 (version code 2) fixes the startup URL and keeps the original app ID/signing key for an in-place update. Install that APK with Android's package installer, or `adb install -r <apk>` on an authorized test phone.
 
 The [Android APK workflow](../.github/workflows/android.yml) also builds the source branch and uploads a `kenjatime-android-debug` artifact. Debug builds are intended for testing. Different development machines can produce different debug signing keys; keep the same signing key for updates. `npm run android:release` creates a release App Bundle; store distribution still needs a production signing configuration and release review. No store publication or signing keys are included.
 
@@ -56,3 +56,16 @@ Packaging removes the dependency on Brave and supplies native lifecycle/file-sha
 4. Bound decoded media and library loading under real Android memory pressure, and retest controllers, interruptions and cold starts. Choose wider device targets and release signing after those measurements.
 
 The app is the first delivery step. Moving the combat/rendering engine to native code would be a separate, substantial compatibility project.
+
+## Startup correction in 0.1.1
+
+The initial package used `appStartPath: "mobile/"`. Capacitor 8 appends that string directly to its HTTPS origin, producing `https://localhostmobile/` and a DNS failure. A directory path such as `/mobile/` also enters Capacitor's extensionless fallback and can serve the root lab. The corrected configuration targets the exact bundled entry: `/mobile/index.html`.
+
+A native-bridge regression now launches the real `MainActivity` and Capacitor bridge under Robolectric (Android API 35). It checks the resolved URL, the URL sent to WebView, the 200 response containing the mobile page, and the offline sample ZIP through Capacitor's local asset server. The old configuration fails with the same malformed host shown on the phone. Robolectric supplies platform shadows for WebView and its service-worker controller; this is not a physical Android or JavaScript-rendering test. The mobile browser checks exercise JavaScript and the existing UI flows separately.
+
+```sh
+npm run android:sync
+cd android && ./gradlew :app:testDebugUnitTest assembleDebug lintDebug
+```
+
+The APK verifier also rejects relative/directory startup paths. The replacement has a higher version code and the same signing certificate as the originally published APK. Install it over the current app; uninstalling would clear the saved app library. The Android download page points to version 0.1.1, and the previous APK URL serves the corrected build as well.
