@@ -10,7 +10,7 @@ import java.util.*;
 /** Owns app-private game data. Engine execution and library mutations share an OS file lock. */
 public final class GameLibrary {
     public static final long MAX_BYTES = 512L * 1024 * 1024;
-    public static final int MAX_FILES = 10000, MAX_DEPTH = 24;
+    public static final int MAX_FILES = 5000, MAX_DEPTH = 24;
     private final File root;
     private final long byteLimit;
     private final int fileLimit, depthLimit;
@@ -55,6 +55,7 @@ public final class GameLibrary {
     }
 
     private void installAssets(AssetManager assets, String path) throws IOException {
+        if(path.equals("web"))return; // Setup assets are served from the APK, never copied into the gameplay library.
         String[] children=assets.list(path);
         if (children!=null && children.length>0) {
             for (String child:children) installAssets(assets,path.isEmpty()?child:path+"/"+child);
@@ -84,6 +85,33 @@ public final class GameLibrary {
             rebuildSelect(assets);registered=true;
             return new Result(characters.size(),stages.size());
         } finally { if (!registered) { remove(pending);remove(committed); } }
+    }
+
+    public Result importArchive(File file,String name,String kind,String password,AssetManager assets,ArchiveInstaller.Progress progress) throws IOException {
+        if(file.length()>MAX_BYTES)throw new IOException("Archive exceeds 512 MB.");
+        try(ArchiveInstaller.Reader reader=new ArchiveInstaller.NativeReader(file,password)){return installArchive(reader,name,kind,assets,progress);}
+    }
+    Result installArchive(ArchiveInstaller.Reader reader,String name,String kind,AssetManager assets,ArchiveInstaller.Progress progress) throws IOException {
+        File imports=new File(root,"imports");if(!imports.isDirectory()&&!imports.mkdirs())throw new IOException("Cannot create imports directory.");
+        String id=UUID.randomUUID().toString();File pending=new File(imports,".pending-"+id),committed=new File(imports,id);if(!pending.mkdir())throw new IOException("Cannot stage archive.");
+        boolean success=false;
+        try {
+            ArchiveInstaller.extract(reader,pending,byteLimit,fileLimit,progress);
+            List<String> characters=new ArrayList<>(),stages=new ArrayList<>();discover(pending,pending,characters,stages);
+            if(characters.isEmpty()&&stages.isEmpty())throw new IOException("No MUGEN character or stage DEF found in the archive.");
+            if("stage".equals(kind)&&stages.isEmpty())throw new IOException("No stage DEF found. Choose a stage archive.");
+            org.json.JSONObject metadata=new org.json.JSONObject();try{metadata.put("name",name);metadata.put("installedAt",System.currentTimeMillis());}catch(org.json.JSONException e){throw new IOException(e);}
+            atomicWrite(new File(pending,".kenjatime-package.json"),metadata.toString().getBytes(StandardCharsets.UTF_8));
+            if(!pending.renameTo(committed))throw new IOException("Cannot finish installing the archive.");
+            rebuildSelect(assets);success=true;return new Result(characters.size(),stages.size());
+        }finally{if(!success){remove(pending);remove(committed);}}
+    }
+    public void removePackage(String id,AssetManager assets) throws IOException {
+        if(id==null||!id.matches("[0-9a-f-]{36}"))throw new IOException("Unknown installed package.");
+        File dir=new File(root,"imports/"+id),pending=new File(root,"imports/.removing-"+id);
+        if(!dir.isDirectory()||!dir.renameTo(pending))throw new IOException("The package is not installed.");
+        try{rebuildSelect(assets);}catch(IOException e){pending.renameTo(dir);throw e;}
+        remove(pending);
     }
 
     private void copy(Source source,File parent,int depth,long[] budget) throws IOException {
@@ -125,8 +153,7 @@ public final class GameLibrary {
         for(File file:files) {
             if(file.isDirectory()) { discover(base,file,characters,stages);continue; }
             if(!file.getName().toLowerCase(Locale.ROOT).endsWith(".def"))continue;
-            byte[] bytes=readFile(file,2*1024*1024);
-            String text=new String(bytes,StandardCharsets.UTF_8);if(text.indexOf('\ufffd')>=0)text=new String(bytes,StandardCharsets.ISO_8859_1);
+            String text=GameCatalog.text(file);
             String section="";boolean stage=false,info=false,sprite=false,anim=false;
             for(String line:text.replace("\ufeff","").split("\\r?\\n")) {
                 line=stripComment(line).trim().toLowerCase(Locale.ROOT);
@@ -135,7 +162,7 @@ public final class GameLibrary {
                     String key=line.substring(0,line.indexOf('=')).trim();if(key.equals("sprite"))sprite=true;if(key.equals("anim"))anim=true;
                 }
             }
-            if(!stage&&!(info&&sprite&&anim))continue;
+            if(!stage&&!(info&&sprite))continue;
             String prefix=base.getCanonicalPath()+File.separator,full=file.getCanonicalPath();
             if(!full.startsWith(prefix))throw new IOException("The definition path leaves the library.");
             String relative=full.substring(prefix.length()).replace(File.separatorChar,'/');

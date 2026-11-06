@@ -1,7 +1,7 @@
 """Stage pinned upstream native binaries, assets and SDL Java sources; no engine rebuild."""
 from pathlib import Path, PurePosixPath
 from zipfile import ZipFile
-import hashlib,io,json,shutil,struct,urllib.request
+import hashlib,io,json,shutil,struct,urllib.request,importlib.util
 
 ROOT=Path(__file__).resolve().parent.parent
 CACHE=ROOT/'work/ikemen-native'
@@ -88,6 +88,9 @@ def main():
                 if name.endswith('/values/strings.xml'):data=data.replace(b'>I.K.E.M.E.N-Go<',b'>Kenjatime Native<')
                 write('res/'+name.split('res/',1)[1],data)
     record={'engineVersion':VERSION,'engineCommit':ENGINE_COMMIT,'releaseSha256':ENGINE_SHA,'wrapperCommit':WRAPPER_COMMIT,'wrapperArchiveSha256':WRAPPER_SHA,'upstreamApkSha256':hashlib.sha256(apk_bytes).hexdigest(),'libraries':native,'javaFiles':len(patched),'changes':['Kenjatime R namespace and USB broadcast action','Disable upstream shared-folder chooser','Use app-private game directory','Scope USB broadcast receiver on Android 13+','Reject audio capture without microphone permission'],'engineBinaryModified':False,'sources':{'engine':f'https://github.com/ikemen-engine/Ikemen-GO/tree/{ENGINE_COMMIT}','wrapper':f'https://github.com/Jesuszilla/ikemen-droid/tree/{WRAPPER_COMMIT}','ffmpeg':'https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/src_ffmpeg.tar.gz'}}
+    spec=importlib.util.spec_from_file_location('kenjatime_ui',ROOT/'scripts/prepare-kenjatime-ui.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    record['uiOverrides']=module.main();record['ui']='Kenjatime setup, native match HUD and touch controls; direct match launch'
+    record['archiveDecoder']='libarchive-android 1.1.6'
     write('assets/native-provenance.json',(json.dumps(record,indent=2)+'\n').encode())
     print(json.dumps({'engine':VERSION,'nativeLibraries':len(native),'javaFiles':len(patched),'directory':str(OUT)}))
 

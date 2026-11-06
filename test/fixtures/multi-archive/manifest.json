@@ -1,0 +1,26 @@
+{
+  "files": {
+    "fixture/hero.def": "b282a8216d968cfbf84748d2b095594bbd874b2fd0edda418c20dc640ade7303",
+    "fixture/hero.sff": "71c5771b6304e70a7bc9859a30f371ec5635ff602f53f9d6eeaa1705c7505299",
+    "fixture/hero.air": "ae9dfc8bbb55c432fb5d92b35fadc460bf13c4ad83ff938429126886de75c090",
+    "fixture/hero.cmd": "cb310f855fd72a9307aeb01b38bd6f1f82f5c0bf37d90aba93ace7d32a36a168",
+    "fixture/hero.cns": "88558f17fd0d5f76f051ab7395a02c21e6e50b7ac8a0f11b9ef311f0a2848b44"
+  },
+  "archives": [
+    "fighter.7z",
+    "fighter.bzip2.zip",
+    "fighter.cpio",
+    "fighter.lzma.zip",
+    "fighter.tar",
+    "fighter.tar.bz2",
+    "fighter.tar.gz",
+    "fighter.tar.xz",
+    "fighter.tar.zst",
+    "fighter.zip",
+    "fighter-sfx.zip"
+  ],
+  "invalid": [
+    "traversal.tar",
+    "symlink.tar"
+  ]
+}

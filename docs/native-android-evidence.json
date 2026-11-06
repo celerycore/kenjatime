@@ -1,9 +1,9 @@
 {
   "applicationId": "io.github.celerycore.kenjatime.nativeprototype",
-  "version": "0.1.0",
-  "versionCode": 1,
-  "apkBytes": 63960152,
-  "apkSha256": "e4d3c6e4fdf760be6ec06e31a55fb173d578008136486ca6b0bf550301e3853e",
+  "version": "0.2.0",
+  "versionCode": 2,
+  "apkBytes": 66331402,
+  "apkSha256": "885fc49bfea8f4852af8819e058e961e89ffba91b6884c067da0e46839f62baf",
   "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
   "signatureVerified": true,
   "minSdk": 34,
@@ -11,9 +11,11 @@
   "abi": "arm64-v8a",
   "nativeLibrariesMatchOfficialRelease": 10,
   "exportedJniSignaturesMatch": 53,
-  "bundledAssetsMatchPreparedFiles": 218,
+  "bundledAssetsMatchPreparedFiles": 231,
   "nativeGameProcess": ":engine",
   "webViewBattleView": false,
+  "webViewSetupUi": true,
+  "archiveReader": "libarchive-android 1.1.6",
   "tests": [
     {
       "name": "org.libsdl.app.AudioPermissionTest",
@@ -30,8 +32,15 @@
       "skipped": "0"
     },
     {
+      "name": "io.github.celerycore.kenjatime.nativeprototype.ArchiveInstallTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
       "name": "io.github.celerycore.kenjatime.nativeprototype.NativeLauncherTest",
-      "tests": "2",
+      "tests": "3",
       "failures": "0",
       "errors": "0",
       "skipped": "0"
@@ -42,21 +51,19 @@
     "warningCounts": {
       "ApplySharedPref": 2,
       "DefaultLocale": 1,
-      "NewerVersionAvailable": 1,
+      "NewerVersionAvailable": 2,
       "DiscouragedApi": 1,
       "ChromeOsAbiSupport": 1,
       "DataExtractionRules": 2,
       "DrawAllocation": 1,
       "ObsoleteSdkInt": 53,
       "StaticFieldLeak": 5,
-      "UnusedResources": 13,
+      "UnusedResources": 14,
       "RedundantNamespace": 2,
       "IconDuplicates": 5,
-      "ButtonStyle": 2,
       "ClickableViewAccessibility": 1,
-      "SetTextI18n": 5,
-      "HardcodedText": 14,
-      "RtlHardcoded": 24
+      "HardcodedText": 15,
+      "RtlHardcoded": 19
     },
     "scopedVendorSuppressions": "native-android/lint.xml"
   },
@@ -142,7 +149,25 @@
       "engine": "https://github.com/ikemen-engine/Ikemen-GO/tree/81c6da71d689625e20db79586815b695da00dd6d",
       "wrapper": "https://github.com/Jesuszilla/ikemen-droid/tree/dbc5cfb49b1fed1d4a732ff48b439dd684d54145",
       "ffmpeg": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/src_ffmpeg.tar.gz"
-    }
+    },
+    "uiOverrides": {
+      "assets/data/kenjatime/fight.sff": "aca185535ac2855779d6666247800283580e77353e8d7354ff5abe4232c70eb1",
+      "assets/data/kenjatime/fight.def": "6d35b32f1bca5836c0784aca8b62e0c2d04816be2a937cecf133d9f0e529c3e3",
+      "assets/data/kenjatime/label.def": "169e5cbd2fc9afb56b6c379e46338ca09acf9c970f7d38f44dd418f39f4e1eda",
+      "assets/data/kenjatime/banner.def": "9d38162e473d0e11f2daf1601adef0669727859ba5fcfb5d4fdf22c47ff10e24",
+      "assets/stages/kenjatime-grid.def": "f8e6d3d26c06745bf44b262382b56e6f6cafbad4ee6a5ff303f7d53c945e6990",
+      "assets/stages/kenjatime-grid.sff": "0cc00c6a8f647338577670dcadc685bc42c2ecfd90d7413c1febb461bc976c07",
+      "assets/external/script/main.lua": "7655103ef5e6297501afc9b3c8416737d3043b17b563c21bf803f935c2cac938",
+      "res/layout/virtual_controller.xml": "8fed578212cff5561c5744f3859611bc57bd22277e95d8f9c139dac841c9ba32",
+      "assets/web/third-party-archives.txt": "e7ce05229e21e4b90e163b7c2f280237f160708419c0ff8238f1e47c6b18644c",
+      "assets/web/native-ui/index.html": "19414e6a18b9898c431fd3e0d5441109fad34a2a1f42d97e41edd24ca84309b2",
+      "assets/web/assets/formats-BPkbg5dQ.js": "0e659a3a468acd0544bbf05fad73645b9d3607523d22b6c5b29b76cab96917a5",
+      "assets/web/assets/mobile-BzbYBr5G.css": "91bb776bba9e7ea4314b63a50a0d88371e938446f1715dcdcf55dc126fffd30f",
+      "assets/web/assets/native-CEBIvk0a.js": "23ab2dfdd15003fd8199c8227e10e625b933332dc16b00ef27220286f9c4fdb8",
+      "assets/web/assets/formats-Drjlmk9R.css": "337ea187ca9db1b7d2fef5e4788021d3d9e3437c0dcd6d2883b992ac1b281f76"
+    },
+    "ui": "Kenjatime setup, native match HUD and touch controls; direct match launch",
+    "archiveDecoder": "libarchive-android 1.1.6"
   },
   "phoneExecution": false,
   "phoneFpsMeasured": false,

@@ -1,13 +1,16 @@
 {
   "package": "io.github.celerycore.kenjatime",
-  "version": "0.1.3",
-  "apkBytes": 4742543,
-  "apkSha256": "c56202079bf1c2116d6147b81f8f7145312c70114f3d4313eb8c1fcd6029d133",
+  "version": "0.1.4",
+  "versionCode": 5,
+  "startupUrl": "https://localhost/mobile/index.html",
+  "apkBytes": 5245571,
+  "apkSha256": "168370612c562c452d24a30b64248a49fb50bb59f62cf35919cc3e4a9cd94303",
   "signatureVerified": true,
+  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
   "minSdk": 24,
   "targetSdk": 36,
   "minimumWebView": 107,
-  "bundledWebFilesMatchDist": 32,
+  "bundledWebFilesMatchDist": 39,
   "onlyBundledCharacterArchive": "kfm.zip",
   "lint": {
     "errors": 0,
@@ -29,141 +32,5 @@
       }
     ]
   },
-  "deviceTesting": "Packaging checks do not execute Android or measure phone FPS.",
-  "signing": "Android debug test build, not a store release",
-  "compatibilityTests": {
-    "pass": 482,
-    "fail": 0,
-    "skip": 0
-  },
-  "mobileBrowser": {
-    "defaultGraphics": "low",
-    "librarySavedReopenedAfterReload": true,
-    "libraryDeletePersisted": true,
-    "invalidImportPreservesLibrary": true,
-    "sessionOnlyImport": true,
-    "actualRarImported": true,
-    "landscapeControlsInsideViewport": true,
-    "touchPunchDamage": 23,
-    "backgroundTicks": 0,
-    "backgroundDraws": 0,
-    "foregroundRemainsPaused": true,
-    "reportAndScriptBrowserExports": true,
-    "externalRequests": [],
-    "errors": [],
-    "scope": "Chromium mobile UI and real IndexedDB; not a physical Android/WebView or native share-sheet test."
-  },
-  "controllerBrowser": [
-    {
-      "route": "/",
-      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
-      "p1PunchDamage": 23,
-      "p2PunchDamage": 23,
-      "shortPressRetainedAt30Fps": true,
-      "remapping": true,
-      "exclusiveAssignment": true,
-      "disconnectReleased": true,
-      "blurSuspended": true,
-      "vibrationTarget": 5,
-      "settingsPersisted": true,
-      "errors": [],
-      "failedRequests": []
-    },
-    {
-      "route": "arena/",
-      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
-      "p1PunchDamage": 23,
-      "p2PunchDamage": 23,
-      "shortPressRetainedAt30Fps": true,
-      "remapping": true,
-      "exclusiveAssignment": true,
-      "disconnectReleased": true,
-      "blurSuspended": true,
-      "vibrationTarget": 5,
-      "settingsPersisted": true,
-      "errors": [],
-      "failedRequests": []
-    },
-    {
-      "route": "arena-classic/",
-      "hardware": "simulated Gamepad API DualSense devices, slots 2 and 5",
-      "p1PunchDamage": 23,
-      "p2PunchDamage": 23,
-      "shortPressRetainedAt30Fps": true,
-      "remapping": true,
-      "exclusiveAssignment": true,
-      "disconnectReleased": true,
-      "blurSuspended": true,
-      "vibrationTarget": 5,
-      "settingsPersisted": true,
-      "errors": [],
-      "failedRequests": []
-    }
-  ],
-  "schedulerBrowser": {
-    "shortPressDamage": 10,
-    "lowModeSimulationTicks": 66,
-    "lowModeRenderedFPS": 30.001875117194828,
-    "offscreenTicks": 18,
-    "offscreenDraws": 0,
-    "pausedDraws": 0,
-    "hiddenTicks": 0,
-    "resumeTicks": 18,
-    "sizes": [
-      [
-        960,
-        540
-      ],
-      [
-        720,
-        405
-      ],
-      [
-        576,
-        324
-      ]
-    ],
-    "settingsPersisted": true,
-    "instrumentationOffByDefault": true,
-    "autoStress": null,
-    "errors": []
-  },
-  "physicalPhoneTest": "Native Android picker/share/rotation/back/controller behavior and sustained FPS remain unverified.",
-  "versionCode": 4,
-  "startupUrl": "https://localhost/mobile/index.html",
-  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
-  "nativeStartup": {
-    "tests": 1,
-    "failures": 0,
-    "androidApi": 35,
-    "runner": "Robolectric with WebView/service-worker platform shadows",
-    "beforeFailure": "org.junit.ComparisonFailure: expected:<https://localhost[/mobile/index.html]> but was:<https://localhost[mobile/]>",
-    "afterUrl": "https://localhost/mobile/index.html",
-    "checks": [
-      "Actual Capacitor bridge URL",
-      "URL passed to WebView",
-      "Local asset server mobile HTML response",
-      "Local sample archive response"
-    ],
-    "physicalDevice": false
-  },
-  "upgrade": {
-    "previousVersionCode": 3,
-    "versionCode": 4,
-    "samePackageId": true,
-    "sameSigningCertificate": true,
-    "installOverExistingApp": true
-  },
-  "gpuPrototype": {
-    "default": "canvas",
-    "choice": "pixi",
-    "evidence": "pixi-renderer-evidence.json"
-  },
-  "stagePerformance": {
-    "evidence": "stage-performance-evidence.json",
-    "preparedFrames": 20,
-    "preparedBytes": 7113650,
-    "warmWebGlUploadBytes": 0,
-    "physicalAndroid": false
-  }
+  "deviceTesting": "Packaging checks do not execute Android or measure phone FPS."
 }

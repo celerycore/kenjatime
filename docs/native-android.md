@@ -4,13 +4,13 @@ The Infinix X6725 user reports that IKEMEN GO runs smoothly while Kenjatime in B
 
 ## Install and play
 
-Download `kenjatime-native-0.1.0-debug.apk` from the [Android download page](https://celerycore.github.io/kenjatime/android/). It installs as **Kenjatime Native**, package `io.github.celerycore.kenjatime.nativeprototype`, alongside the previous Kenjatime app and official IKEMEN GO. It targets Android 14/API 34 or newer, ARM64, and OpenGL ES 3.2. The original installed apps and their libraries are separate.
+Download `kenjatime-native-0.2.0-debug.apk` from the [Android download page](https://celerycore.github.io/kenjatime/android/). It installs as **Kenjatime Native**, package `io.github.celerycore.kenjatime.nativeprototype`, alongside the previous Kenjatime app and official IKEMEN GO. It targets Android 14/API 34 or newer, ARM64, and OpenGL ES 3.2. The original installed apps and their libraries are separate.
 
-Tap **Start native game**. The first launch copies the included engine assets into the app's private game directory. The IKEMEN GO menu, fighters, stages, touch controls and matches run through SDL and the native ARM64 engine library. There is no WebView battle view. Use the engine menu for training and matches; Back exits the game process and returns to the launcher.
+Kenjatime’s original layout is shared with the web app. Import character or stage archives through Android’s file picker; ZIP, RAR4/5 and 7z are the primary formats. TAR and compressed TAR, CPIO and other formats supported by libarchive are also available. Detection uses contents, so an incorrect/missing extension or provider MIME does not hide a valid file. The optional password field is passed to the decoder; encryption methods and split-volume archives are not universally supported. No archive executable is run.
 
-For this first prototype, extract a character or stage ZIP/RAR using a file manager, then choose **Import extracted character / stage folder**. Select a complete folder containing its DEF and associated resources. The importer preserves its directory structure and registers character/stage DEFs with the native roster. Stock fighters/stages remain available. Normal IKEMEN GO resource/path requirements still apply; imported content has not been certified against every MUGEN version or author-specific quirk. Native ZIP/RAR picking and migration from the old web library are not implemented yet.
+Imports install into the app’s private library and survive restart. Choose a fighter, opponent, palette, stage and play mode, then tap **Fight now**. Matches launch directly with Kenjatime’s HUD and touch controls. The native engine’s menus are bypassed. **Menu** returns to Kenjatime; **Pause** pauses the native thread. The setup WebView is destroyed during gameplay, and no browser combat runtime runs in it. USB/Bluetooth gamepad input remains handled by upstream SDL.
 
-Importing streams files through Android's document picker into a private staging directory; it requests no broad storage permission. It limits each import to 512 MiB, 10,000 entries and 24 nested levels. Traversal names, case-colliding names, provider failures and failed registrations leave the prior library intact. Interrupted staging is cleared at the next preparation. An OS file lock prevents library changes while the engine is running. Definitions whose registered path contains commas/semicolons need selecting their own folder rather than the surrounding collection because of the upstream roster syntax. Uninstalling this prototype clears its private library; keep the original archives.
+Each native archive is limited to 512 MiB compressed/expanded, 5,000 entries and 24 nested levels. Traversal, links, conflicting duplicate paths and incomplete imports are rejected without replacing the existing library. Imports can be deleted from the setup screen. Android’s picker needs no broad storage permission. The existing web app uses a 128 MiB compressed limit. Libraries remain separate between the two apps. Keep original archives when uninstalling.
 
 ## Engine and build provenance
 
@@ -18,16 +18,18 @@ Importing streams files through Android's document picker into a private staging
 - Official Android release ZIP SHA256: `915ee0c8ce96e860e0aab71c505e9ddd2940fe3e1c339e3f30ab4bd69880d47c`.
 - Android/SDL Java wrapper commit `dbc5cfb49b1fed1d4a732ff48b439dd684d54145` from [Jesuszilla/ikemen-droid](https://github.com/Jesuszilla/ikemen-droid).
 - The prototype minimum follows the highest Android API build note in the native libraries (API 34), rather than the upstream APK’s older manifest. The verifier checks this bound.
-- All ten native libraries are copied **byte for byte** from the official Android release. The prototype does not recompile or modify the native engine, SDL or FFmpeg binaries.
+- All ten gameplay native libraries are copied **byte for byte** from the official Android release. The archive reader adds libarchive-android 1.1.6 separately. UI assets, launch routing and wrapper controls are changed; the prototype does not recompile or modify the native engine, SDL or FFmpeg binaries.
 - Wrapper changes select app-private storage, disable the upstream shared-folder chooser, scope USB permission broadcasts, and reject microphone capture without permission. GameActivity adds the modern Android back callback and holds the library lock. Ordinary Android gamepad input remains in SDL; raw Steam Controller Bluetooth HID is not enabled because the app requests no Bluetooth permission.
 
-The preparer verifies pinned downloads before staging source, resources and binary dependencies. Its generated directory is ignored by Git. The source repository contains the custom launcher/library, exact preparation patches, Gradle project and tests. The APK includes upstream license notices, wrapper attribution, and source provenance, also accessible under **Engine credits and source**. IKEMEN GO is MIT; SDL/wrapper, screenpack, fonts and FFmpeg keep their upstream licenses. The matching FFmpeg source is linked from the download page and published beside the APK without modification.
+The preparer verifies pinned downloads before staging source, resources and binary dependencies. Its generated directory is ignored by Git. The source repository contains the custom launcher/library, exact preparation patches, Gradle project and tests. The APK includes upstream license notices, wrapper attribution, and source provenance, also accessible under **Credits and source → License notices**. IKEMEN GO is MIT; SDL/wrapper, screenpack, fonts and FFmpeg keep their upstream licenses. The matching FFmpeg source is linked from the download page and published beside the APK without modification.
 
 ## Build and validation
 
 Use Python 3, JDK 21, Android SDK/build tools 36 and network access for the pinned release/source downloads:
 
 ```sh
+npm ci
+npm run build
 python scripts/prepare-native-android.py
 cd native-android
 ./gradlew :app:testDebugUnitTest assembleDebug lintDebug --console=plain
@@ -37,7 +39,7 @@ python scripts/verify-native-android.py
 
 Set `JAVA_HOME` and `ANDROID_HOME` for local tools. The APK is `native-android/app/build/outputs/apk/debug/app-debug.apk`. The [native Android workflow](../.github/workflows/native-android.yml) repeats preparation, tests, build, lint and packaging checks. CI signing keys can differ; published test updates must keep the existing prototype signing certificate and increment its version code.
 
-The verifier checks the signed APK, separate package/process, ARM64 ABI, all ten official library hashes, 53 exported SDL JNI method signatures against the original APK, and every staged asset byte. Fourteen Robolectric tests check native-launch intent and real asset preparation, character/stage registration, update preservation, rollback, provider failures, path/size/depth/file limits, locking, interrupted-import recovery and denied audio capture. Lint has no errors; scoped exclusions cover guarded/unreachable upstream Bluetooth/audio calls and the legacy SDL Back override beneath GameActivity's modern callback.
+The verifier checks the signed APK, separate package/process, ARM64 ABI, all ten official library hashes, 53 exported SDL JNI method signatures against the original APK, and every staged asset byte. Twenty-one Robolectric tests check the archive picker, native-launch intent, setup WebView disposal, catalog selection and real asset preparation, character/stage registration, update preservation, rollback, provider failures, path/size/depth/file limits, locking, interrupted-import recovery and denied audio capture. Lint has no errors; scoped exclusions cover guarded/unreachable upstream Bluetooth/audio calls and the legacy SDL Back override beneath GameActivity's modern callback.
 
 These are **host-side package/Java checks**. They do not execute ARM64 gameplay, measure FPS, or prove native touch/controller behavior on a phone. [Recorded validation](native-android-evidence.json) states that scope. The previous web tests remain evidence for the web engine, not the native engine.
 

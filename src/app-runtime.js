@@ -46,9 +46,10 @@ export function mountApp({arena=false}={}) {
   $('#upload').textContent = '＋ Import character / stage / engine';
   $('.heading p').textContent = 'Import fighters and stages. Test them in a local match.';
   $('.tag i').textContent = '22';
-  $('#drop small').textContent=`ZIP / RAR up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
-  $('#file').accept=archiveAccept;
-  $('#stage-file').accept=archiveAccept;
+  $('#drop small').textContent=`ZIP / RAR / 7z / TAR up to ${ZIP_LIMIT_MB} MB · nested folders supported · processed locally`;
+  $('#file').accept='*/*';$('#drop').insertAdjacentHTML('beforeend','<details class=archive-options><summary>Archive password (optional)</summary><input id=archive-password type=password autocomplete=off aria-label="Archive password"></details>');
+  $('#stage-file').accept='*/*';
+  $('#file').setAttribute('aria-label','Choose a MUGEN character archive');$('#stage-file').setAttribute('aria-label','Choose a MUGEN stage archive');
   $('.notice').textContent = 'Script execution and collision-based combat are available in training. Character compatibility is incomplete; see the report below.';
   $('#hint').textContent = 'Inspect the character’s SFF sprites and AIR animations. Open training to execute its scripts.';
   $('#hud').innerHTML = '<label>PLAYER 1 <progress id="p1life" max="1000" value="1000"></progress></label><b>VS</b><label>TRAINING DUMMY <progress id="p2life" max="1000" value="1000"></progress></label>';
@@ -186,16 +187,16 @@ export function mountApp({arena=false}={}) {
   haptics=new ForceFeedbackState({getGamepads:()=>controllers.manager.assigned(),onIssue:message=>issue(message,'gamepad')});
   async function load(bytes,{stageOnly=false}={}) {
     try {
-      const {files,characters:importedCharacters,stages:importedStages}=await unpackArchive(bytes,{onProgress:status});
+      const {files,characters:importedCharacters,stages:importedStages}=await unpackArchive(bytes,{onProgress:status,password:$('#archive-password').value});$('#archive-password').value='';
       const characters=stageOnly?[]:importedCharacters;
-      if(stageOnly&&!importedStages.length)throw Error('No stage DEF found. Choose a stage ZIP or RAR containing a DEF and SFF.');
+      if(stageOnly&&!importedStages.length)throw Error('No stage DEF found. Choose a stage archive containing a DEF and SFF.');
       if(!characters.length&&!importedStages.length)throw Error('No character or stage DEF found in the archive.');
       if(!stageOnly&&Object.keys(files).some(path=>/(?:^|\/)data\/(?:fightfx\.sff|common\.snd)$/.test(path))){systemFiles=files;audio.setSystem(files);}
       roster.push(...characters);stages.push(...importedStages);renderStageOptions();renderOpponentOptions();
       if(characters.length){if(!selectedStage&&importedStages.length)selectedStage=importedStages.find(s=>/training/i.test(s.name))||importedStages[0];select(roster.length-characters.length);}
       else if(importedStages.length){selectedStage=importedStages[0];if(selected){configureMatch();setMode('training');}renderStageOptions();}
       status(`Imported ${characters.length} character${characters.length!==1?'s':''} and ${importedStages.length} stage${importedStages.length!==1?'s':''}.${!selected&&importedStages.length?' Load a fighter or the Kung Fu Man sample to play here.':' Files stay on your device.'}`);
-    } catch (error) { status(`Import failed: ${error.message}`); }
+    } catch (error) { status(`Import failed: ${error.message}`); throw error; }
   }
   function renderStageOptions(){
     $('#stage-select').innerHTML='<option value="-1">Training grid</option>'+stages.map((s,i)=>`<option value="${i}" ${s===selectedStage?'selected':''}>${escape(s.name)}</option>`).join('');
@@ -595,7 +596,7 @@ export function mountApp({arena=false}={}) {
   canvas.onclick = () => { canvas.focus(); void audio.unlock(); };
   for(const label of [$('#upload'),$('#browse'),$('#add-stage')])label.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();document.getElementById(label.htmlFor).click();}};
   async function importSource(read,options){if(importing){status('An archive is already being imported. Please wait for it to finish.');return false;}importing=true;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=true;$('#drop').setAttribute('aria-busy','true');try{await load(await read(),options);return true;}catch(error){status(`Import failed: ${error.message}`);return false;}finally{importing=false;$('#file').disabled=$('#stage-file').disabled=$('#sample').disabled=false;$('#drop').setAttribute('aria-busy','false');}}
-  async function readFile(file,options) {if(!file)return;const imported=await importSource(async()=>{status(`Reading ${file.name||'ZIP / RAR archive'}…`);return readArchiveFile(file);},options);if(imported&&document.body.dataset.mobileApp==='true')window.dispatchEvent(new CustomEvent('kenjatime:archive-imported',{detail:{file,...options}}));}
+  async function readFile(file,options) {if(!file)return;const imported=await importSource(async()=>{status(`Reading ${file.name||'MUGEN archive'}…`);return readArchiveFile(file);},options);if(imported&&document.body.dataset.mobileApp==='true')window.dispatchEvent(new CustomEvent('kenjatime:archive-imported',{detail:{file,...options}}));}
   window.addEventListener('kenjatime:open-archive',event=>{void readFile(event.detail.file,event.detail);});
   for(const input of [$('#file'),$('#stage-file')])input.onchange = async event => {try{await readFile(event.target.files[0],{stageOnly:input.id==='stage-file'});}finally{event.target.value='';} };
   $('#sample').onclick = () => importSource(async()=>{status('Loading Kung Fu Man…');const response=await fetch(new URL(arena?'../kfm.zip':'kfm.zip',document.baseURI));if(!response.ok)throw Error('Sample unavailable');return new Uint8Array(await response.arrayBuffer());});

@@ -28,7 +28,7 @@ with ZipFile(apk) as z:
     startup_url=f"{server.get('androidScheme','https')}://{server.get('hostname','localhost')}{server['appStartPath']}"
     assert startup_url=='https://localhost/mobile/index.html'
     # AAPT intentionally excludes the GitHub Pages marker; it is not a runtime asset.
-    files=[p for p in Path('dist').rglob('*') if p.is_file() and p.relative_to('dist').as_posix()!='.nojekyll']
+    files=[p for p in Path('dist').rglob('*') if p.is_file() and not any(part.startswith('.') for part in p.relative_to('dist').parts)]
     for p in files:assert z.read('assets/public/'+p.relative_to('dist').as_posix())==p.read_bytes(),p
     assert 'assets/public/mobile/index.html' in z.namelist()
     assert b'data-mobile-app="true"' in z.read('assets/public/mobile/index.html')

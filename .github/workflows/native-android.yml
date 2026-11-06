@@ -5,7 +5,12 @@ on:
     branches: [source/mugen-compatibility]
     paths:
       - 'native-android/**'
-      - 'scripts/prepare-native-android.py'
+      - 'scripts/*.py'
+      - 'src/**'
+      - 'native-ui/**'
+      - 'public/**'
+      - 'package*.json'
+      - 'vite.config.js'
       - 'scripts/verify-native-android.py'
       - '.github/workflows/native-android.yml'
 permissions:
@@ -22,6 +27,11 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci && npm run build
       - name: Prepare pinned upstream engine and wrapper
         run: python scripts/prepare-native-android.py
       - name: Test launcher/imports and build native APK

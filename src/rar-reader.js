@@ -10,7 +10,7 @@ export function unpackRar(bytes,options={}){
 }
 
 function rarError(error){
-  if(['ERAR_MISSING_PASSWORD','ERAR_BAD_PASSWORD'].includes(error.reason))return Error('Password-protected RAR files are not supported. Extract the character and create an unencrypted ZIP or RAR.');
+  if(['ERAR_MISSING_PASSWORD','ERAR_BAD_PASSWORD'].includes(error.reason))return Error('Password-protected RAR: enter the correct password. Use the archive password field and import it again.');
   if(error.reason==='ERAR_NO_MEMORY')return Error('The RAR decoder ran out of memory. Close other tabs or use a smaller character archive.');
   if(error.reason)return Error(`The RAR archive is damaged, incomplete or unsupported (${error.reason})${error.file?`: ${error.file}`:'.'}`);
   return error;
@@ -30,20 +30,20 @@ function checkInitialHeader(bytes){
   if(end>bytes.length)throw Error('The RAR archive has a damaged or incomplete header.');
 }
 
-async function extractRar(bytes,{wasmBinary,onProgress=()=>{}}){
+async function extractRar(bytes,{wasmBinary,password='',onProgress=()=>{}}){
   if(bytes.byteLength>MAX_ARCHIVE_BYTES)throw Error(`Archive exceeds the ${ARCHIVE_LIMIT_MB} MB limit.`);
   checkInitialHeader(bytes);
   let extractor;
   try{
     const data=bytes.byteOffset===0&&bytes.byteLength===bytes.buffer.byteLength?bytes.buffer:bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);
-    extractor=await createExtractorFromData({data,wasmBinary});
+    extractor=await createExtractorFromData({data,wasmBinary,password});
     const listing=extractor.getFileList();
     if(listing.arcHeader.flags.volume)throw Error('Multi-part RAR archives are not supported. Combine/extract the parts and create one ZIP or RAR file.');
-    if(listing.arcHeader.flags.headerEncrypted)throw Object.assign(Error('Encrypted RAR.'),{reason:'ERAR_MISSING_PASSWORD'});
+    if(listing.arcHeader.flags.headerEncrypted&&!password)throw Object.assign(Error('Encrypted RAR.'),{reason:'ERAR_MISSING_PASSWORD'});
     let count=0,total=0;const names=new Set();
     for(const file of listing.fileHeaders){
       if(++count>MAX_ARCHIVE_FILES||!Number.isSafeInteger(file.unpSize)||file.unpSize<0||(total+=file.unpSize)>MAX_EXPANDED_BYTES)throw Error('Archive exceeds 512 MB expanded or 5,000 files.');
-      if(file.flags.encrypted)throw Object.assign(Error('Encrypted RAR.'),{reason:'ERAR_MISSING_PASSWORD'});
+      if(file.flags.encrypted&&!password)throw Object.assign(Error('Encrypted RAR.'),{reason:'ERAR_MISSING_PASSWORD'});
       if(!file.flags.directory&&packageEntryPath(file.name))names.add(file.name);
     }
     onProgress(`Extracting RAR (${count} entries)…`);

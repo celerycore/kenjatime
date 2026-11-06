@@ -14,3 +14,5 @@ native-android/.gradle/
 native-android/local.properties
 native-android/generated/
 native-android/**/build/
+
+__pycache__/

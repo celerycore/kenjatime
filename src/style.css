@@ -28,3 +28,5 @@ label.primary{display:inline-flex;align-items:center;cursor:pointer}
 @media(max-width:800px){.stage-library select{font-size:16px}.controller-devices label{flex-basis:100%}.controller-bindings label{flex-basis:calc(50% - 7px)}.controller-setup summary span{display:block;margin:7px 0 0}}
 @media(pointer:coarse),(max-width:800px){.touch-controls:not([hidden]){display:flex}.arena-launch{gap:10px}.arena-launch select{font-size:16px}.report-actions .secondary{font-size:10px;padding:7px}.arena-page aside{flex-wrap:wrap;height:auto}.arena-page aside .nav{width:auto;font-size:10px;padding:8px}.arena-page aside .brand{font-size:28px;letter-spacing:-3px}}
 @media(max-width:800px){.coordinates{max-width:calc(100% - 40px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stage-badge{display:none}}
+
+.archive-options{font-size:11px;color:#a6b2bb;flex-basis:100%;margin-top:10px}.archive-options input{background:#191e24;border:1px solid #323943;border-radius:4px;padding:9px;color:#e8eae7;max-width:100%}.drop{flex-wrap:wrap}
