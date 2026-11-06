@@ -4,7 +4,7 @@
   "versionCode": 5,
   "startupUrl": "https://localhost/mobile/index.html",
   "apkBytes": 5245571,
-  "apkSha256": "168370612c562c452d24a30b64248a49fb50bb59f62cf35919cc3e4a9cd94303",
+  "apkSha256": "0cd8e4ad147e408d53acf2b7192a82b9c3443c04037ba257cc8072437c8cc91a",
   "signatureVerified": true,
   "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
   "minSdk": 24,
