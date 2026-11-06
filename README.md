@@ -18,6 +18,8 @@ Web Edition 22 fixes [CPU recovery after combo gaps](docs/cpu-recovery.md). CPU 
 
 An Android app now packages the same runtime with an offline arena, local ZIP/RAR library and landscape fight controls. See [Android build/install instructions and performance scope](docs/android-app.md). Build a test APK with `npm run android:debug`; packaging alone does not guarantee an FPS gain.
 
+Android 0.1.2 and all browser arenas also offer an optional [PixiJS/WebGL sprite renderer prototype](docs/pixi-renderer.md). Choose it under **Renderer** in setup. Canvas remains the default: additive effects improve in the desktop reproduction, while heavy-stage/helper tail latency and transformed-edge differences still need work.
+
 Node 22+ recommended. In this directory:
 
 ```sh

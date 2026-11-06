@@ -4,6 +4,8 @@ The Android app packages the existing engine with Capacitor 8 and local assets. 
 
 ## Included
 
+Version 0.1.2 adds the [optional PixiJS/WebGL renderer prototype](pixi-renderer.md). Select it under **Renderer** in arena setup. Canvas remains the default; use it when the prototype falls back or performs worse on your device. Version code 3 and the same app ID/signing certificate support updating the existing download in place.
+
 - An installable Android debug APK, targeting SDK 36 and Android 7.0/API 24 or later with a sufficiently recent Android System WebView.
 - Offline bundled arena, Kung Fu Man sample and RAR decoder. Imported archives stay on the device.
 - ZIP/RAR selection through the Android document picker, using the existing validated worker importer and limits.
