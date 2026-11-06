@@ -20,7 +20,7 @@ body.mobile-battle{overflow:hidden;padding:0;overscroll-behavior:none}
 .mobile-battle .touch-controls button{pointer-events:auto;background:#141b24bc;min-height:42px;min-width:42px}
 .mobile-battle .touch-dpad{grid-template-columns:repeat(3,42px);grid-template-rows:repeat(3,42px);gap:3px}
 .mobile-battle .touch-buttons{grid-template-columns:repeat(3,42px);gap:5px}
-.mobile-battle-bar{display:flex;position:absolute;top:max(8px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));gap:8px;z-index:5}
+.mobile-battle .mobile-battle-bar{display:flex;position:absolute;top:max(8px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));gap:8px;z-index:5}
 .mobile-battle #hud{top:max(62px,env(safe-area-inset-top));font-size:8px}
 .mobile-battle .stage-label,.mobile-battle .coordinates,.mobile-battle .stage-badge{display:none}
 @media(min-height:500px) and (orientation:landscape){.mobile-battle .touch-dpad{grid-template-columns:repeat(3,54px);grid-template-rows:repeat(3,54px)}.mobile-battle .touch-buttons{grid-template-columns:repeat(3,54px)}.mobile-battle .touch-controls button{min-height:54px}}

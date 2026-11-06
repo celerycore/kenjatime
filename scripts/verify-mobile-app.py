@@ -14,6 +14,7 @@ with sync_playwright() as p:
     page.on('request',lambda r:external.append(r.url) if not r.url.startswith(('http://127.0.0.1:5186/','blob:','data:')) else None)
     page.goto(url,wait_until='networkidle');page.wait_for_function("document.querySelector('#name').textContent==='Kung Fu Man'")
     assert page.locator('#graphics-mode').input_value()=='low'
+    assert not page.locator('.mobile-battle-bar').is_visible()
     page.locator('.mobile-library summary').click()
     assert page.locator('#library-count').inner_text()=='0'
     def import_file(name,data):
@@ -73,6 +74,7 @@ with sync_playwright() as p:
     steps(1);assert not report()['player']['rawInput']
     page.screenshot(path='work/android-ui-landscape.png')
     page.locator('#mobile-menu').tap();assert not page.locator('body').evaluate("e=>e.classList.contains('mobile-battle')")
+    assert not page.locator('.mobile-battle-bar').is_visible()
     page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth')<=390
     page.locator('.mobile-library summary').click() if not page.locator('.mobile-library').evaluate('e=>e.open') else None
     page.screenshot(path='work/android-ui-portrait.png',full_page=True)
