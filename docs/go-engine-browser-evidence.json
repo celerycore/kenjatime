@@ -37,69 +37,147 @@
     "MUGEN_CNS_KFM_ZIP": {
       "started": true,
       "state": {
+        "effects": {
+          "activeCommon": 0,
+          "commonScale": 1,
+          "commonAnimations": 19
+        },
+        "music": {
+          "format": "",
+          "file": "",
+          "streaming": false
+        },
         "players": [
           {
-            "life": 1000,
-            "x": -67.44730377197266,
+            "lifeMax": 1000,
             "y": 0,
+            "screenX": 0.289227157831192,
+            "screenY": 0.8166666626930237,
             "state": 0,
-            "time": 9
+            "time": 23,
+            "life": 1000,
+            "power": 3000,
+            "powerMax": 3000,
+            "x": -67.44730377197266
           },
           {
+            "screenY": 0.8166666626930237,
             "life": 1000,
-            "x": 67.44730377197266,
+            "lifeMax": 1000,
+            "powerMax": 3000,
             "y": 0,
-            "state": 0,
-            "time": 9
+            "time": 23,
+            "power": 3000,
+            "x": 67.44730377197266,
+            "screenX": 0.7107728123664856,
+            "state": 0
           }
         ],
-        "ticks": 104,
-        "paused": false
+        "ticks": 118,
+        "paused": false,
+        "camera": {
+          "zoom": 1,
+          "width": 427,
+          "height": 240,
+          "x": 0
+        }
       }
     },
     "MUGEN_TOMOKA_RAR": {
       "started": true,
       "state": {
+        "effects": {
+          "commonAnimations": 19,
+          "activeCommon": 0,
+          "commonScale": 1
+        },
+        "music": {
+          "file": "",
+          "streaming": false,
+          "format": ""
+        },
         "players": [
           {
-            "life": 1000,
-            "x": -67.44730377197266,
+            "powerMax": 2000,
             "y": 0,
-            "state": 0,
-            "time": 686
+            "screenX": 0.289227157831192,
+            "time": 82,
+            "life": 990,
+            "lifeMax": 990,
+            "power": 2000,
+            "x": -67.44730377197266,
+            "screenY": 0.8166666626930237,
+            "state": 0
           },
           {
+            "life": 990,
+            "lifeMax": 990,
+            "power": 2000,
+            "powerMax": 2000,
             "x": 67.44730377197266,
             "y": 0,
+            "screenX": 0.7107728123664856,
+            "screenY": 0.8166666626930237,
             "state": 0,
-            "time": 686,
-            "life": 1000
+            "time": 82
           }
         ],
-        "ticks": 781,
-        "paused": false
+        "ticks": 216,
+        "paused": false,
+        "camera": {
+          "x": 0,
+          "zoom": 1,
+          "width": 427,
+          "height": 240
+        }
       }
     },
     "MUGEN_FOREST_RAR": {
       "started": true,
       "state": {
+        "camera": {
+          "height": 240,
+          "x": 0,
+          "zoom": 1,
+          "width": 427
+        },
+        "effects": {
+          "commonScale": 1,
+          "commonAnimations": 19,
+          "activeCommon": 0
+        },
+        "music": {
+          "file": "imports/1331e6d4-ff77-47e3-a703-99423d579b18/blood heat!.mp3",
+          "streaming": true,
+          "format": "mp3"
+        },
         "players": [
           {
-            "x": -67.44730377197266,
-            "y": 0,
+            "lifeMax": 990,
+            "x": -80,
+            "screenY": 0.9315103888511658,
             "state": 0,
-            "time": 143,
-            "life": 990
+            "life": 990,
+            "power": 0,
+            "powerMax": 2000,
+            "y": 0,
+            "screenX": 0.25,
+            "time": 20
           },
           {
-            "life": 990,
-            "x": 67.44730377197266,
-            "y": 0,
             "state": 0,
-            "time": 143
+            "time": 20,
+            "x": 80,
+            "screenX": 0.75,
+            "screenY": 0.9315103888511658,
+            "powerMax": 2000,
+            "y": 0,
+            "life": 990,
+            "lifeMax": 990,
+            "power": 0
           }
         ],
-        "ticks": 277,
+        "ticks": 154,
         "paused": false
       }
     }
