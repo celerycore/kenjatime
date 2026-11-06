@@ -1,1 +1,2 @@
 android/gradlew.bat -text whitespace=cr-at-eol
+native-android/gradlew.bat -text whitespace=cr-at-eol

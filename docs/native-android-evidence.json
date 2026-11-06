@@ -1,0 +1,150 @@
+{
+  "applicationId": "io.github.celerycore.kenjatime.nativeprototype",
+  "version": "0.1.0",
+  "versionCode": 1,
+  "apkBytes": 63960152,
+  "apkSha256": "e4d3c6e4fdf760be6ec06e31a55fb173d578008136486ca6b0bf550301e3853e",
+  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "signatureVerified": true,
+  "minSdk": 34,
+  "targetSdk": 36,
+  "abi": "arm64-v8a",
+  "nativeLibrariesMatchOfficialRelease": 10,
+  "exportedJniSignaturesMatch": 53,
+  "bundledAssetsMatchPreparedFiles": 218,
+  "nativeGameProcess": ":engine",
+  "webViewBattleView": false,
+  "tests": [
+    {
+      "name": "org.libsdl.app.AudioPermissionTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "io.github.celerycore.kenjatime.nativeprototype.NativeLibraryTest",
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "io.github.celerycore.kenjatime.nativeprototype.NativeLauncherTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "lint": {
+    "errors": 0,
+    "warningCounts": {
+      "ApplySharedPref": 2,
+      "DefaultLocale": 1,
+      "NewerVersionAvailable": 1,
+      "DiscouragedApi": 1,
+      "ChromeOsAbiSupport": 1,
+      "DataExtractionRules": 2,
+      "DrawAllocation": 1,
+      "ObsoleteSdkInt": 53,
+      "StaticFieldLeak": 5,
+      "UnusedResources": 13,
+      "RedundantNamespace": 2,
+      "IconDuplicates": 5,
+      "ButtonStyle": 2,
+      "ClickableViewAccessibility": 1,
+      "SetTextI18n": 5,
+      "HardcodedText": 14,
+      "RtlHardcoded": 24
+    },
+    "scopedVendorSuppressions": "native-android/lint.xml"
+  },
+  "engine": {
+    "engineVersion": "v1.0.0",
+    "engineCommit": "81c6da71d689625e20db79586815b695da00dd6d",
+    "releaseSha256": "915ee0c8ce96e860e0aab71c505e9ddd2940fe3e1c339e3f30ab4bd69880d47c",
+    "wrapperCommit": "dbc5cfb49b1fed1d4a732ff48b439dd684d54145",
+    "wrapperArchiveSha256": "2072b8aef430e6f52496a555659a830dda8a3b9b6ae99997c2700baf11687184",
+    "upstreamApkSha256": "f3b7d07937cfc9ed9452b9138d0a2b3feba09bfa68faa6450f01cc01c72fc7c9",
+    "libraries": [
+      {
+        "name": "arm64-v8a/libSDL2.so",
+        "sha256": "7d4b2e631d584f1ea486cc5bdba0f5e67390d3cc7dd64f76a64914c1c2b79c19",
+        "bytes": 4922216,
+        "androidApiBuildNote": 21
+      },
+      {
+        "name": "arm64-v8a/libavcodec.so",
+        "sha256": "ccbff415ec51b4d9ca61b53a4e95ceaa420997d7495fde8f1d0ce150f749f063",
+        "bytes": 989600,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libavdevice.so",
+        "sha256": "18f52579f367ffbf783aa0a297c193dd0842ce7369d8fb7c979b0e8dbad78b9a",
+        "bytes": 9088,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libavfilter.so",
+        "sha256": "b1e321e11828c46f85b6b243b50205a6acc3ff52ed59607ee0d0883c7ff8ce1f",
+        "bytes": 175560,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libavformat.so",
+        "sha256": "b99a25c23696e3cc1d449169330fb42482fbfc20b6d14ef2b64be44fbe0ff59a",
+        "bytes": 302832,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libavutil.so",
+        "sha256": "778fec254d0a055f03173a8e1219e1a67df062b3f9a3e6408ae188faa4ece76a",
+        "bytes": 717224,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libmain.so",
+        "sha256": "17a410610ab4681530ed4d780db660267f04259fe492f08805a8fb5f2803a257",
+        "bytes": 13494528,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libswresample.so",
+        "sha256": "7172096225ab55234001ac6ece7b7f89fa3ac788ffe99137c797d5bbdf8af2fc",
+        "bytes": 97584,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libswscale.so",
+        "sha256": "244c932713821c3037d1f2417f0824150471992f9be07ecc7d09779ba9d07a90",
+        "bytes": 754280,
+        "androidApiBuildNote": 34
+      },
+      {
+        "name": "arm64-v8a/libxmp.so",
+        "sha256": "c31e904ec6a7303c5bfa80ae048d2da1d644067111c709d5a2d8800de57edc8e",
+        "bytes": 2590120,
+        "androidApiBuildNote": 21
+      }
+    ],
+    "javaFiles": 12,
+    "changes": [
+      "Kenjatime R namespace and USB broadcast action",
+      "Disable upstream shared-folder chooser",
+      "Use app-private game directory",
+      "Scope USB broadcast receiver on Android 13+",
+      "Reject audio capture without microphone permission"
+    ],
+    "engineBinaryModified": false,
+    "sources": {
+      "engine": "https://github.com/ikemen-engine/Ikemen-GO/tree/81c6da71d689625e20db79586815b695da00dd6d",
+      "wrapper": "https://github.com/Jesuszilla/ikemen-droid/tree/dbc5cfb49b1fed1d4a732ff48b439dd684d54145",
+      "ffmpeg": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/src_ffmpeg.tar.gz"
+    }
+  },
+  "phoneExecution": false,
+  "phoneFpsMeasured": false,
+  "scope": "Native ARM64 execution requires an Android phone. Robolectric verifies launcher, assets, imports, rollback, limits, locking and audio permission handling; it does not execute the game engine."
+}

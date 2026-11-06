@@ -10,3 +10,7 @@ android/app/src/main/assets/capacitor.config.json
 android/app/src/main/assets/capacitor.plugins.json
 *.jks
 *.keystore
+native-android/.gradle/
+native-android/local.properties
+native-android/generated/
+native-android/**/build/

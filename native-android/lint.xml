@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- Raw Bluetooth HID is unreachable: this app declares neither BLUETOOTH
+         nor BLUETOOTH_CONNECT, and initializeBluetooth checks that grant before
+         constructing the upstream BLE helper. Android gamepad events still work. -->
+    <issue id="MissingPermission">
+        <ignore path="generated/java/org/libsdl/app/HIDDeviceManager.java" />
+        <ignore path="generated/java/org/libsdl/app/HIDDeviceBLESteamController.java" />
+        <!-- Audio capture returns null unless RECORD_AUDIO is granted; this
+             offline player deliberately does not request microphone access. -->
+        <ignore path="generated/java/org/libsdl/app/SDLAudioManager.java" />
+    </issue>
+    <!-- GameActivity registers an API 33+ OnBackInvokedCallback. The inherited
+         SDL onBackPressed path remains for older Android/hardware Back. -->
+    <issue id="GestureBackNavigation">
+        <ignore path="generated/java/org/libsdl/app/SDLActivity.java" />
+    </issue>
+</lint>

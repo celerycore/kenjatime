@@ -1,0 +1,176 @@
+package io.github.celerycore.kenjatime.nativeprototype;
+
+import android.content.res.AssetManager;
+import android.util.AtomicFile;
+import java.io.*;
+import java.nio.channels.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+/** Owns app-private game data. Engine execution and library mutations share an OS file lock. */
+public final class GameLibrary {
+    public static final long MAX_BYTES = 512L * 1024 * 1024;
+    public static final int MAX_FILES = 10000, MAX_DEPTH = 24;
+    private final File root;
+    private final long byteLimit;
+    private final int fileLimit, depthLimit;
+    public GameLibrary(File filesDir) { this(filesDir,MAX_BYTES,MAX_FILES,MAX_DEPTH); }
+    GameLibrary(File filesDir,long bytes,int files,int depth) { root=new File(filesDir,"game");byteLimit=bytes;fileLimit=files;depthLimit=depth; }
+    public File root() { return root; }
+
+    public interface Source {
+        String name();
+        boolean directory();
+        List<Source> children() throws IOException;
+        InputStream open() throws IOException;
+    }
+    public static final class Result {
+        public final int characters, stages;
+        Result(int characters, int stages) { this.characters=characters; this.stages=stages; }
+    }
+
+    public static Closeable lock(File filesDir) throws IOException {
+        FileChannel channel = new RandomAccessFile(new File(filesDir, ".engine.lock"), "rw").getChannel();
+        try {
+            FileLock lock = channel.tryLock();
+            if (lock == null) throw new IOException("Close the running game before changing the library.");
+            return () -> { try { lock.release(); } finally { channel.close(); } };
+        } catch (IOException | OverlappingFileLockException e) {
+            channel.close(); throw new IOException("The game or another import is running. Close it and try again.", e);
+        }
+    }
+
+    public void prepare(AssetManager assets) throws IOException {
+        if (!root.isDirectory() && !root.mkdirs()) throw new IOException("Cannot create the game library.");
+        File[] abandoned=new File(root,"imports").listFiles();
+        if(abandoned!=null)for(File file:abandoned)if(file.getName().matches("\\.pending-[0-9a-f-]{36}"))remove(file);
+        byte[] provenance;
+        try (InputStream in=assets.open("native-provenance.json")) { provenance=read(in, 64*1024); }
+        File marker=new File(root,".native-assets.json");
+        if (marker.isFile() && Arrays.equals(readFile(marker,64*1024),provenance)) return;
+        installAssets(assets, "");
+        // Regenerate from the bundled roster plus existing imports after an engine update.
+        rebuildSelect(assets);
+        atomicWrite(marker,provenance);
+    }
+
+    private void installAssets(AssetManager assets, String path) throws IOException {
+        String[] children=assets.list(path);
+        if (children!=null && children.length>0) {
+            for (String child:children) installAssets(assets,path.isEmpty()?child:path+"/"+child);
+        } else if (!path.isEmpty()) {
+            File dest=inside(root,path);mkdirParent(dest);
+            AtomicFile file=new AtomicFile(dest);FileOutputStream out=file.startWrite();
+            try (InputStream in=assets.open(path)) {
+                byte[] buffer=new byte[65536];int n;
+                while ((n=in.read(buffer))!=-1) out.write(buffer,0,n);
+                file.finishWrite(out);
+            } catch (IOException | RuntimeException e) { file.failWrite(out);throw e; }
+        }
+    }
+
+    public Result importFolder(Source source,AssetManager assets) throws IOException {
+        if (!source.directory()) throw new IOException("Choose an extracted character or stage folder.");
+        File imports=new File(root,"imports");if (!imports.isDirectory()&&!imports.mkdirs()) throw new IOException("Cannot create imports directory.");
+        String id=UUID.randomUUID().toString();File pending=new File(imports,".pending-"+id),committed=new File(imports,id);
+        if (!pending.mkdir()) throw new IOException("Cannot stage this import.");
+        boolean registered=false;
+        try {
+            long[] budget={0,0};Set<String> names=new HashSet<>();
+            for (Source child:source.children()) { unique(names,child.name());copy(child,pending,0,budget); }
+            List<String> characters=new ArrayList<>(),stages=new ArrayList<>();discover(pending,pending,characters,stages);
+            if (characters.isEmpty()&&stages.isEmpty()) throw new IOException("No character or stage DEF found. Select the folder containing the DEF and its resources.");
+            if (!pending.renameTo(committed)) throw new IOException("Cannot save the imported folder.");
+            rebuildSelect(assets);registered=true;
+            return new Result(characters.size(),stages.size());
+        } finally { if (!registered) { remove(pending);remove(committed); } }
+    }
+
+    private void copy(Source source,File parent,int depth,long[] budget) throws IOException {
+        validateName(source.name());
+        if (depth>depthLimit||++budget[1]>fileLimit) throw new IOException("This folder contains too many files or nested folders.");
+        File dest=inside(parent,source.name());
+        if (source.directory()) {
+            if (!dest.mkdir()) throw new IOException("Cannot create imported folder.");
+            Set<String> names=new HashSet<>();
+            for (Source child:source.children()) { unique(names,child.name());copy(child,dest,depth+1,budget); }
+        } else {
+            try (InputStream in=source.open();OutputStream out=new FileOutputStream(dest)) {
+                byte[] buffer=new byte[65536];int n;
+                while ((n=in.read(buffer))!=-1) {
+                    budget[0]+=n;if (budget[0]>byteLimit) throw new IOException("The extracted folder exceeds 512 MB.");
+                    out.write(buffer,0,n);
+                }
+            }
+        }
+    }
+
+    private void rebuildSelect(AssetManager assets) throws IOException {
+        String stock;try (InputStream in=assets.open("data/select.def")) { stock=new String(read(in,2*1024*1024),StandardCharsets.UTF_8); }
+        List<String> characters=new ArrayList<>(),stages=new ArrayList<>();File imports=new File(root,"imports");
+        File[] folders=imports.listFiles();if (folders!=null) {
+            Arrays.sort(folders,Comparator.comparing(File::getName));
+            for (File folder:folders) if(folder.isDirectory()&&!folder.getName().startsWith(".")) discover(root,folder,characters,stages);
+        }
+        // IKEMEN's select parser recognizes repeated section headers in file order.
+        StringBuilder select=new StringBuilder(stock).append("\n; Kenjatime native imports\n[Characters]\n");
+        for(String name:characters) select.append(name).append(", stages/kfm.def\n");
+        select.append("[ExtraStages]\n");for(String name:stages) select.append(name).append('\n');
+        atomicWrite(new File(root,"data/select.def"),select.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void discover(File base,File folder,List<String> characters,List<String> stages) throws IOException {
+        File[] files=folder.listFiles();if(files==null)throw new IOException("Cannot read imported files.");
+        Arrays.sort(files,Comparator.comparing(File::getName));
+        for(File file:files) {
+            if(file.isDirectory()) { discover(base,file,characters,stages);continue; }
+            if(!file.getName().toLowerCase(Locale.ROOT).endsWith(".def"))continue;
+            byte[] bytes=readFile(file,2*1024*1024);
+            String text=new String(bytes,StandardCharsets.UTF_8);if(text.indexOf('\ufffd')>=0)text=new String(bytes,StandardCharsets.ISO_8859_1);
+            String section="";boolean stage=false,info=false,sprite=false,anim=false;
+            for(String line:text.replace("\ufeff","").split("\\r?\\n")) {
+                line=stripComment(line).trim().toLowerCase(Locale.ROOT);
+                if(line.startsWith("[")&&line.endsWith("]")) { section=line.substring(1,line.length()-1).trim();if(section.equals("bgdef"))stage=true;if(section.equals("info"))info=true; }
+                else if(section.equals("files")&&line.contains("=")) {
+                    String key=line.substring(0,line.indexOf('=')).trim();if(key.equals("sprite"))sprite=true;if(key.equals("anim"))anim=true;
+                }
+            }
+            if(!stage&&!(info&&sprite&&anim))continue;
+            String prefix=base.getCanonicalPath()+File.separator,full=file.getCanonicalPath();
+            if(!full.startsWith(prefix))throw new IOException("The definition path leaves the library.");
+            String relative=full.substring(prefix.length()).replace(File.separatorChar,'/');
+            // The upstream select parser splits commas and comments without quoting.
+            if(relative.matches(".*[,;\\r\\n].*"))throw new IOException("A DEF path contains a comma or semicolon. Choose its own character/stage folder instead of a parent collection.");
+            (stage?stages:characters).add(relative);
+        }
+    }
+
+    static String stripComment(String text) {
+        boolean quoted=false;for(int i=0;i<text.length();i++){char c=text.charAt(i);if(c=='"')quoted=!quoted;else if(c==';'&&!quoted)return text.substring(0,i);}return text;
+    }
+    static void validateName(String name) throws IOException {
+        if(name==null||name.isEmpty()||name.equals(".")||name.equals("..")||name.indexOf('/')>=0||name.indexOf('\\')>=0||name.indexOf(':')>=0||name.chars().anyMatch(c->c<32))throw new IOException("The selected provider returned an invalid filename.");
+    }
+    private static void unique(Set<String> names,String name) throws IOException {
+        validateName(name);if(!names.add(name.toLowerCase(Locale.ROOT)))throw new IOException("Duplicate filenames differ only by case: "+name);
+    }
+    private static File inside(File parent,String path) throws IOException {
+        File file=new File(parent,path);String prefix=parent.getCanonicalPath()+File.separator;
+        if(!file.getCanonicalPath().startsWith(prefix))throw new IOException("The file path leaves the selected folder.");return file;
+    }
+    private static void mkdirParent(File file) throws IOException {
+        File parent=file.getParentFile();if(!parent.isDirectory()&&!parent.mkdirs())throw new IOException("Cannot create game directory.");
+    }
+    static byte[] read(InputStream in,int maximum) throws IOException {
+        ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] b=new byte[8192];int n;
+        while((n=in.read(b))!=-1){if(out.size()+n>maximum)throw new IOException("A definition or metadata file is too large.");out.write(b,0,n);}return out.toByteArray();
+    }
+    private static byte[] readFile(File file,int maximum) throws IOException { try(InputStream in=new FileInputStream(file)){return read(in,maximum);} }
+    private static void atomicWrite(File path,byte[] bytes) throws IOException {
+        mkdirParent(path);AtomicFile file=new AtomicFile(path);FileOutputStream out=file.startWrite();
+        try {out.write(bytes);file.finishWrite(out);}catch(IOException|RuntimeException e){file.failWrite(out);throw e;}
+    }
+    private static void remove(File file) {
+        if(file.isDirectory()&&!java.nio.file.Files.isSymbolicLink(file.toPath())){File[] files=file.listFiles();if(files!=null)for(File child:files)remove(child);}file.delete();
+    }
+}
