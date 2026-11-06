@@ -7,3 +7,5 @@ UnRAR is by Alexander Roshal and distributed under the UnRAR license.
 See node-unrar-js-MIT.txt and unrar-license.txt.
 License text mirror: https://github.com/pmachapman/unrar/blob/master/license.txt
 This application only extracts archives and does not implement RAR compression.
+
+Android app: capacitor-MIT.txt contains the bundled Capacitor core, Android, App, Filesystem and Share notices.
