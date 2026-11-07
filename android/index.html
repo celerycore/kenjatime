@@ -16,25 +16,23 @@
 <body>
   <p class="label">KENJATIME / ANDROID</p>
   <h1>Your arena.<br>On your phone.</h1>
-  <h2>Android app</h2>
-  <p>Kenjatime’s familiar interface, with native IKEMEN GO gameplay and Kenjatime touch controls. The app runs the Go engine natively; the website runs its Go/WebAssembly browser build. Both use Kenjatime’s interface.</p>
-  <a class="download" href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-native-0.3.1-debug.apk" download>Download Kenjatime for Android</a>
-  <small>Native 0.3.1 · Android 14+ · ARM64 · OpenGL ES 3.2 · About 19 MB</small>
-  <p>Installs alongside your existing apps. Import ZIP, RAR or 7z character and stage archives directly in the app, choose your fighters and stage, then tap Fight now. Imported content stays installed for your next session. The previous web library stays separate. This prototype still needs gameplay testing on your phone.</p>
-  <p><a href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-native-0.3.1-debug.apk.sha256">Native APK checksum</a> · <a href="https://github.com/celerycore/kenjatime/blob/source/mugen-compatibility/docs/native-android.md">Native source and build details</a> · <a href="../downloads/kenjatime-native-ffmpeg-v1.0.0-source.tar.gz">FFmpeg source</a></p>
-  <hr>
-  <h2>Browser runtime test app</h2>
-  <p>Import your MUGEN fighters and stages, save them on your device, and play in a landscape arena.</p>
-  <a class="download" href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.2.1-debug.apk" download>Download Android test APK</a>
-  <small>Version 0.2.1 · Android 7.0+ · Android System WebView 107 or newer</small>
+  <h2>Kenjatime 0.4.0</h2>
+  <p>The current Three.js arena, packaged for Android. Your fighters, stages and included sample run offline with Kenjatime’s interface. Matches play in the same view with touch controls and a fixed aspect ratio.</p>
+  <a class="download" href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.4.0-debug.apk" download>Download Kenjatime for Android</a>
+  <small>Version 0.4.0 · Android 7.0+ · Android System WebView 107 or newer · Signed test APK</small>
   <ul>
-    <li>Offline arena and included Kung Fu Man sample.</li>
-    <li>ZIP, RAR and 7z installs and a saved archive library.</li>
-    <li>Touch controls and browser-standard controllers, including PS5 mapping.</li>
-    <li>The Go engine runs through WebAssembly and WebGL2.</li>
+    <li>Import ZIP, RAR4/RAR5, 7z, TAR, TAR.GZ/TGZ, TAR.BZ2/TBZ2, TAR.XZ/TXZ and TAR.ZST/TZST archives.</li>
+    <li>Archives are identified by their contents, including downloads with missing or incorrect file extensions.</li>
+    <li>Save archive keeps an original-byte copy you can save or share again.</li>
+    <li>Adaptive audio buffering helps absorb brief rendering stalls. Audio follows the device’s output sample rate.</li>
+    <li>Kenjatime controls, lifebars, palettes and controller support. No stock IKEMEN menus.</li>
   </ul>
-  <p>Open the downloaded APK with Android's package installer. Install over your existing version to keep your app data. This test build runs the Go/WebAssembly engine through Android System WebView with Kenjatime’s interface. Phone performance still needs device testing.</p>
-  <p>Your original character archives remain separate. Uninstalling the app or clearing its storage removes the copies saved inside the app.</p>
-  <p><a href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.2.1-debug.apk.sha256">APK checksum</a> · <a href="../arena-classic/">Open browser arena</a> · <a href="https://github.com/celerycore/kenjatime/blob/source/mugen-compatibility/docs/android-app.md">Source and build instructions</a></p>
+  <p>Open the downloaded APK with Android’s package installer. Install over the matching Kenjatime browser-runtime app to keep its installed library. Your browser library and the separate native test app have their own storage. New imports retain their original archive; older installed packages remain playable.</p>
+  <p><a href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.4.0-debug.apk.sha256">APK checksum</a> · <a href="../arena-classic/">Open browser arena</a> · <a href="https://github.com/celerycore/kenjatime/blob/source/mugen-compatibility/docs/android-app.md">Source and build instructions</a></p>
+  <p>Uninstalling the app or clearing its storage removes the copies saved inside it. Imports accept up to 128 MB compressed, 512 MB expanded and 5,000 entries. Multi-part volumes need to be combined first. Use the archive password field for supported encrypted archives.</p>
+  <details><summary>Previous native engine test build</summary>
+    <p>The separate ARM64 native engine app remains available for comparison. It requires Android 14+ and OpenGL ES 3.2, and has its own installed library.</p>
+    <p><a href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-native-0.3.1-debug.apk">Native 0.3.1 APK</a> · <a href="https://github.com/celerycore/kenjatime/blob/source/mugen-compatibility/docs/native-android.md">Native build details</a> · <a href="../downloads/kenjatime-native-ffmpeg-v1.0.0-source.tar.gz">FFmpeg source</a></p>
+  </details>
 </body>
 </html>

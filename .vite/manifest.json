@@ -3,12 +3,20 @@
     "file": "assets/browser-BrENwvay.js",
     "name": "browser"
   },
-  "_main-CNWqEsrl.js": {
-    "file": "assets/main-CNWqEsrl.js",
+  "_index-Dl1qKiz5.js": {
+    "file": "assets/index-Dl1qKiz5.js",
+    "name": "index"
+  },
+  "_main-DABcqRtn.js": {
+    "file": "assets/main-DABcqRtn.js",
     "name": "main",
     "imports": [
-      "_native-setup-Ba4ovHmt.js",
-      "_browser-BrENwvay.js"
+      "_native-setup-CHY-MIsy.js",
+      "_browser-BrENwvay.js",
+      "_preload-helper-Dp1pzeXC.js"
+    ],
+    "dynamicImports": [
+      "_native-export-C2PJnu0z.js"
     ],
     "css": [
       "assets/main-UY0ZCfbb.css"
@@ -22,26 +30,39 @@
     "file": "assets/modulepreload-polyfill-B5Qt9EMX.js",
     "name": "modulepreload-polyfill"
   },
-  "_native-setup-Ba4ovHmt.js": {
-    "file": "assets/native-setup-Ba4ovHmt.js",
+  "_native-export-C2PJnu0z.js": {
+    "file": "assets/native-export-C2PJnu0z.js",
+    "name": "native-export",
+    "isDynamicEntry": true,
+    "imports": [
+      "_preload-helper-Dp1pzeXC.js",
+      "_index-Dl1qKiz5.js"
+    ],
+    "dynamicImports": [
+      "node_modules/@capacitor/filesystem/dist/esm/web.js",
+      "node_modules/@capacitor/share/dist/esm/web.js"
+    ]
+  },
+  "_native-setup-BpfTUiB-.css": {
+    "file": "assets/native-setup-BpfTUiB-.css",
+    "src": "_native-setup-BpfTUiB-.css"
+  },
+  "_native-setup-CHY-MIsy.js": {
+    "file": "assets/native-setup-CHY-MIsy.js",
     "name": "native-setup",
     "imports": [
       "_browser-BrENwvay.js"
     ],
     "css": [
-      "assets/native-setup-Bi0SoaCA.css"
+      "assets/native-setup-BpfTUiB-.css"
     ]
-  },
-  "_native-setup-Bi0SoaCA.css": {
-    "file": "assets/native-setup-Bi0SoaCA.css",
-    "src": "_native-setup-Bi0SoaCA.css"
   },
   "_preload-helper-Dp1pzeXC.js": {
     "file": "assets/preload-helper-Dp1pzeXC.js",
     "name": "preload-helper"
   },
   "engine/index.html": {
-    "file": "assets/engine-CD_rimrW.js",
+    "file": "assets/engine-BsPxjR-B.js",
     "name": "engine",
     "src": "engine/index.html",
     "isEntry": true,
@@ -54,14 +75,15 @@
     ]
   },
   "mobile/index.html": {
-    "file": "assets/mobile-kaUUVgF1.js",
+    "file": "assets/mobile-ig4cl0sG.js",
     "name": "mobile",
     "src": "mobile/index.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_main-CNWqEsrl.js",
-      "_native-setup-Ba4ovHmt.js",
+      "_main-DABcqRtn.js",
+      "_native-setup-CHY-MIsy.js",
+      "_index-Dl1qKiz5.js",
       "_preload-helper-Dp1pzeXC.js",
       "_browser-BrENwvay.js"
     ],
@@ -70,32 +92,47 @@
     ]
   },
   "native-ui/index.html": {
-    "file": "assets/native-CgRM8KZg.js",
+    "file": "assets/native-e98dZMPY.js",
     "name": "native",
     "src": "native-ui/index.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_native-setup-Ba4ovHmt.js",
+      "_native-setup-CHY-MIsy.js",
       "_browser-BrENwvay.js"
     ]
   },
   "node_modules/@capacitor/app/dist/esm/web.js": {
-    "file": "assets/web-CsP282QR.js",
+    "file": "assets/web-vjoTVUiq.js",
     "name": "web",
     "src": "node_modules/@capacitor/app/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
-      "mobile/index.html",
-      "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_main-CNWqEsrl.js",
-      "_native-setup-Ba4ovHmt.js",
-      "_browser-BrENwvay.js",
+      "_index-Dl1qKiz5.js"
+    ]
+  },
+  "node_modules/@capacitor/filesystem/dist/esm/web.js": {
+    "file": "assets/web-QYEB8Ab_.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/filesystem/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_index-Dl1qKiz5.js",
+      "_native-export-C2PJnu0z.js",
       "_preload-helper-Dp1pzeXC.js"
     ]
   },
+  "node_modules/@capacitor/share/dist/esm/web.js": {
+    "file": "assets/web-ClIP3JOL.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/share/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_index-Dl1qKiz5.js"
+    ]
+  },
   "src/engine-runtime.js": {
-    "file": "assets/engine-runtime-BVAHBeho.js",
+    "file": "assets/engine-runtime-BRIyhilM.js",
     "name": "engine-runtime",
     "src": "src/engine-runtime.js",
     "isDynamicEntry": true,
