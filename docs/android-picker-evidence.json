@@ -1,0 +1,46 @@
+{
+  "version": "0.4.3",
+  "platform": "Robolectric Android API 35 with real Capacitor bridge and ActivityResult callbacks",
+  "action": "android.intent.action.OPEN_DOCUMENT",
+  "mime": "*/*",
+  "openable": true,
+  "initialLocation": "content://com.android.providers.downloads.documents/root/downloads",
+  "extraMimeTypes": null,
+  "uriReadGrantRequested": true,
+  "requiresMediaPermissions": false,
+  "requiresBroadStoragePermission": false,
+  "nativeTests": [
+    {
+      "class": "io.github.celerycore.kenjatime.StartupTest",
+      "passed": 4,
+      "failed": 0,
+      "cases": [
+        "archiveSaveCopiesOriginalBytesToTheChosenDocument",
+        "exposesNativeStartupAndWebViewDetailsWithoutOpeningTheLibrary",
+        "startsAtBundledMobilePageOnLocalhost",
+        "fightsKeepTheScreenAwakeWithoutChangingTheCurrentViewOrOrientation"
+      ]
+    },
+    {
+      "class": "io.github.celerycore.kenjatime.ArchivePickerTest",
+      "passed": 6,
+      "failed": 0,
+      "cases": [
+        "multipleDocumentResultsReachWebViewTogether",
+        "competingPickerCannotStealAnExistingSelection",
+        "destroyingTheActivityReleasesPendingWebViewSelection",
+        "cancelledAndEmptyResultsReleaseTheCallbackAndAllowAnotherImport",
+        "opensDocumentsInDownloadsWithoutMediaOrMimeFilters",
+        "returnsArchiveAndExtensionlessContentUrisWithoutDependingOnMimeMetadata"
+      ]
+    }
+  ],
+  "returnedContentUrisWithMissingMime": [
+    "fighter.zip",
+    "fighter.rar",
+    "fighter.7z",
+    "download-without-extension"
+  ],
+  "physicalAndroidExecution": false,
+  "limitation": "OEM document picker display and real selected-file reads still require physical phone verification."
+}

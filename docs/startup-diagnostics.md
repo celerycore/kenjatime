@@ -51,5 +51,5 @@ These are host integration tests. Android's real Capacitor bridge and startup
 metadata are also tested under Robolectric, and APK asset/signature checks verify
 packaging. They do not establish physical phone cold-start times, actual Android
 package-update survival, low-memory process death or power-loss durability.
-Install the same-signed 0.4.2 update over the current app to retain its data;
+Install the same-signed 0.4.3 update over the current app to retain its data;
 physical Infinix measurements require the exported device report.

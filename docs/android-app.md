@@ -1,6 +1,6 @@
 # Kenjatime browser-runtime Android app
 
-Version 0.4.2 (version code 10) packages the current Three.js renderer and
+Version 0.4.3 (version code 11) packages the current Three.js renderer and
 Go/WASM combat engine in Capacitor 8. It starts at
 `https://localhost/mobile/index.html` from bundled assets and works offline.
 It retains Kenjatime’s UI, fixed-aspect match view, touch controls, lifebars,
@@ -20,6 +20,13 @@ If necessary, use **Reset library**, which remains available during loading. See
   compressed TAR and common TGZ/TBZ2/TXZ/TZST aliases. CPIO and ZIP
   self-extracting containers are also tested as data.
 - Content detection accepts downloaded files without reliable names or MIME.
+- Android imports use the Storage Access Framework document picker, with all
+  file types visible and Downloads as the initial location on Android 8+.
+  This replaces WebView's generic content chooser, which can show only media
+  providers on OEM phones. ZIP, RAR, 7z and other archive types remain selectable
+  even when their provider supplies a missing or incorrect MIME type. No media
+  or broad storage permission is required. The selected content URI goes
+  directly back to WebView; the existing archive size/content checks still apply.
 - New imports save the original archive separately from catalog metadata.
   **Save archive** downloads it on the web or opens Android’s document save picker.
   The picker accepts every supported archive extension and streams the file to
@@ -62,7 +69,9 @@ python scripts/verify-startup-diagnostics.py
 
 The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. The verifier checks its signature, launch metadata and exact bundled build assets, including the compressed WASM payload and engine core. The browser suite executes Go matches, touch attacks, pause, archive imports and library migration; see [integration details](go-engine-integration.md) and [packaging evidence](android-app-evidence.json).
 
-Native bridge tests verify the local startup URL and asset server under Robolectric. Host browser tests use Chromium/SwiftShader; they do not measure Android phone FPS or execute physical device controllers. Browser video-background support and some music decoders remain port limitations.
+Native bridge tests verify the local startup URL, asset server and actual document-picker intent/callbacks under Robolectric. Picker checks include ZIP/RAR/7z and extensionless content URIs with no MIME metadata, cancellation/retry, missing result data, multiple results, competing requests and activity destruction. Host browser tests use Chromium/SwiftShader; they do not measure Android phone FPS or execute physical device controllers. The OEM picker appearance still requires physical phone verification. Browser video-background support and some music decoders remain port limitations.
+
+See [document-picker evidence](android-picker-evidence.json) for the Android intent and regression cases.
 
 ## Startup correction in 0.1.1
 

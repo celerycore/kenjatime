@@ -3,10 +3,10 @@
   "cases": {
     "cold-1": {
       "status": "ready",
-      "elapsedMs": 2178,
+      "elapsedMs": 396,
       "metrics": {
-        "longTasks": 3,
-        "longestTaskMs": 1345,
+        "longTasks": 2,
+        "longestTaskMs": 191,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -20,10 +20,10 @@
     },
     "cold-2": {
       "status": "ready",
-      "elapsedMs": 601,
+      "elapsedMs": 382,
       "metrics": {
         "longTasks": 2,
-        "longestTaskMs": 285,
+        "longestTaskMs": 190,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -37,10 +37,10 @@
     },
     "cold-3": {
       "status": "ready",
-      "elapsedMs": 793,
+      "elapsedMs": 393,
       "metrics": {
-        "longTasks": 4,
-        "longestTaskMs": 473,
+        "longTasks": 2,
+        "longestTaskMs": 185,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -54,10 +54,10 @@
     },
     "upgrade-v1": {
       "status": "ready",
-      "elapsedMs": 1332,
+      "elapsedMs": 407,
       "metrics": {
-        "longTasks": 3,
-        "longestTaskMs": 509,
+        "longTasks": 2,
+        "longestTaskMs": 198,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -71,10 +71,10 @@
     },
     "warm-1": {
       "status": "ready",
-      "elapsedMs": 283,
+      "elapsedMs": 169,
       "metrics": {
         "longTasks": 1,
-        "longestTaskMs": 187,
+        "longestTaskMs": 104,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -88,10 +88,10 @@
     },
     "warm-2": {
       "status": "ready",
-      "elapsedMs": 286,
+      "elapsedMs": 132,
       "metrics": {
-        "longTasks": 2,
-        "longestTaskMs": 144,
+        "longTasks": 1,
+        "longestTaskMs": 68,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -105,10 +105,10 @@
     },
     "blocked-upgrade": {
       "status": "degraded",
-      "elapsedMs": 692,
+      "elapsedMs": 317,
       "metrics": {
-        "longTasks": 3,
-        "longestTaskMs": 325,
+        "longTasks": 2,
+        "longestTaskMs": 160,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -122,10 +122,10 @@
     },
     "unblocked-upgrade": {
       "status": "ready",
-      "elapsedMs": 298,
+      "elapsedMs": 180,
       "metrics": {
-        "longTasks": 1,
-        "longestTaskMs": 208,
+        "longTasks": 2,
+        "longestTaskMs": 101,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -139,10 +139,10 @@
     },
     "large-library": {
       "status": "ready",
-      "elapsedMs": 645,
+      "elapsedMs": 237,
       "metrics": {
-        "longTasks": 3,
-        "longestTaskMs": 301,
+        "longTasks": 2,
+        "longestTaskMs": 103,
         "packages": 200,
         "characters": 200,
         "stages": 0,
@@ -156,10 +156,10 @@
     },
     "malformed-metadata": {
       "status": "degraded",
-      "elapsedMs": 463,
+      "elapsedMs": 191,
       "metrics": {
         "longTasks": 2,
-        "longestTaskMs": 234,
+        "longestTaskMs": 74,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -173,10 +173,10 @@
     },
     "hung-storage": {
       "status": "degraded",
-      "elapsedMs": 8699,
+      "elapsedMs": 8334,
       "metrics": {
-        "longTasks": 3,
-        "longestTaskMs": 408,
+        "longTasks": 2,
+        "longestTaskMs": 185,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -190,10 +190,10 @@
     },
     "recovered-storage": {
       "status": "ready",
-      "elapsedMs": 320,
+      "elapsedMs": 197,
       "metrics": {
-        "longTasks": 2,
-        "longestTaskMs": 245,
+        "longTasks": 1,
+        "longestTaskMs": 117,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -207,10 +207,10 @@
     },
     "interrupted-startup": {
       "status": "ready",
-      "elapsedMs": 395,
+      "elapsedMs": 213,
       "metrics": {
-        "longTasks": 3,
-        "longestTaskMs": 274,
+        "longTasks": 2,
+        "longestTaskMs": 108,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -224,10 +224,10 @@
     },
     "storage-error": {
       "status": "degraded",
-      "elapsedMs": 758,
+      "elapsedMs": 342,
       "metrics": {
         "longTasks": 2,
-        "longestTaskMs": 382,
+        "longestTaskMs": 197,
         "packages": 0,
         "characters": 0,
         "stages": 0,
@@ -241,10 +241,10 @@
     },
     "storage-error-recovery": {
       "status": "ready",
-      "elapsedMs": 307,
+      "elapsedMs": 137,
       "metrics": {
         "longTasks": 1,
-        "longestTaskMs": 216,
+        "longestTaskMs": 89,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -258,18 +258,18 @@
     },
     "failed-resources": {
       "status": "failed",
-      "elapsedMs": 303,
+      "elapsedMs": 200,
       "metrics": {
         "longTasks": 1,
-        "longestTaskMs": 303
+        "longestTaskMs": 208
       }
     },
     "process-1": {
       "status": "ready",
-      "elapsedMs": 652,
+      "elapsedMs": 449,
       "metrics": {
         "longTasks": 2,
-        "longestTaskMs": 387,
+        "longestTaskMs": 316,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -283,10 +283,10 @@
     },
     "process-2": {
       "status": "ready",
-      "elapsedMs": 231,
+      "elapsedMs": 525,
       "metrics": {
-        "longTasks": 1,
-        "longestTaskMs": 164,
+        "longTasks": 2,
+        "longestTaskMs": 314,
         "packages": 1,
         "characters": 1,
         "stages": 0,
@@ -308,11 +308,11 @@
   },
   "exportDuringHang": true,
   "build": {
-    "version": "0.4.2",
-    "startupRevision": "1a55c3faa5e4b336",
+    "version": "0.4.3",
+    "startupRevision": "da8b42c3695d66cf",
     "engineRevision": "c0b2d105781783e7"
   },
-  "testEnvironment": "Host Chromium/SwiftShader; concurrent host work. Timings are functional observations, not a phone benchmark.",
+  "testEnvironment": "Host Chromium/SwiftShader; functional observations, not a phone benchmark.",
   "bulkFileAndArchiveReadsDuringStartup": 0,
   "repositoryTests": {
     "passed": 522,
@@ -320,7 +320,7 @@
     "skipped": 0
   },
   "nativeBridgeTests": {
-    "tests": 4,
+    "tests": 10,
     "failures": 0,
     "physicalAndroid": false
   }
