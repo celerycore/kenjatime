@@ -3,6 +3,9 @@
 The library belongs to the current browser profile or Android app. Updating the
 site or installer does not silently purge every user's saved imports.
 
+Before resetting, **Startup report → Save startup report** can capture the
+waiting phase and recent launch history. See [startup diagnostics](startup-diagnostics.md).
+
 **Reset library**, under Saved on this device, remains clickable while startup
 is waiting for storage. It reloads the same page with an explicit one-time reset
 request. The request deletes `kenjatime.engine.library` (installed fighters,

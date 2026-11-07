@@ -72,6 +72,25 @@ public class StartupTest {
     }
 
     @Test
+    public void exposesNativeStartupAndWebViewDetailsWithoutOpeningTheLibrary() throws Exception {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            ArenaDevicePlugin plugin = (ArenaDevicePlugin) activity.getBridge().getPlugin("ArenaDevice").getInstance();
+            final JSObject[] report = new JSObject[1];
+            plugin.getStartupInfo(new PluginCall(null, "ArenaDevice", "test", "getStartupInfo", new JSObject()) {
+                @Override public void resolve(JSObject data) { report[0] = data; }
+            });
+            assertNotNull(report[0]);
+            assertEquals("android", report[0].getString("platform"));
+            assertEquals(35, report[0].getInt("androidApi"));
+            assertEquals("140.0.0.0", report[0].getString("webViewVersion"));
+            assertTrue(report[0].getLong("nativeElapsedMs") >= report[0].getLong("nativeCreateToBridgeMs"));
+            assertFalse(report[0].getBoolean("restoredActivity"));
+            assertTrue(report[0].has("availableDiskBytes"));
+        }
+    }
+
+    @Test
     public void archiveSaveCopiesOriginalBytesToTheChosenDocument() throws Exception {
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             MainActivity activity = controller.get();

@@ -1,0 +1,327 @@
+{
+  "physicalPhone": false,
+  "cases": {
+    "cold-1": {
+      "status": "ready",
+      "elapsedMs": 2178,
+      "metrics": {
+        "longTasks": 3,
+        "longestTaskMs": 1345,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "cold-2": {
+      "status": "ready",
+      "elapsedMs": 601,
+      "metrics": {
+        "longTasks": 2,
+        "longestTaskMs": 285,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "cold-3": {
+      "status": "ready",
+      "elapsedMs": 793,
+      "metrics": {
+        "longTasks": 4,
+        "longestTaskMs": 473,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "upgrade-v1": {
+      "status": "ready",
+      "elapsedMs": 1332,
+      "metrics": {
+        "longTasks": 3,
+        "longestTaskMs": 509,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "warm-1": {
+      "status": "ready",
+      "elapsedMs": 283,
+      "metrics": {
+        "longTasks": 1,
+        "longestTaskMs": 187,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "warm-2": {
+      "status": "ready",
+      "elapsedMs": 286,
+      "metrics": {
+        "longTasks": 2,
+        "longestTaskMs": 144,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "blocked-upgrade": {
+      "status": "degraded",
+      "elapsedMs": 692,
+      "metrics": {
+        "longTasks": 3,
+        "longestTaskMs": 325,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "unblocked-upgrade": {
+      "status": "ready",
+      "elapsedMs": 298,
+      "metrics": {
+        "longTasks": 1,
+        "longestTaskMs": 208,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "large-library": {
+      "status": "ready",
+      "elapsedMs": 645,
+      "metrics": {
+        "longTasks": 3,
+        "longestTaskMs": 301,
+        "packages": 200,
+        "characters": 200,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 52428800,
+        "knownExpandedBytes": 250675200,
+        "knownFiles": 20200,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "malformed-metadata": {
+      "status": "degraded",
+      "elapsedMs": 463,
+      "metrics": {
+        "longTasks": 2,
+        "longestTaskMs": 234,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 1,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "hung-storage": {
+      "status": "degraded",
+      "elapsedMs": 8699,
+      "metrics": {
+        "longTasks": 3,
+        "longestTaskMs": 408,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "recovered-storage": {
+      "status": "ready",
+      "elapsedMs": 320,
+      "metrics": {
+        "longTasks": 2,
+        "longestTaskMs": 245,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "interrupted-startup": {
+      "status": "ready",
+      "elapsedMs": 395,
+      "metrics": {
+        "longTasks": 3,
+        "longestTaskMs": 274,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "storage-error": {
+      "status": "degraded",
+      "elapsedMs": 758,
+      "metrics": {
+        "longTasks": 2,
+        "longestTaskMs": 382,
+        "packages": 0,
+        "characters": 0,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 0,
+        "knownExpandedBytes": 0,
+        "knownFiles": 0,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "storage-error-recovery": {
+      "status": "ready",
+      "elapsedMs": 307,
+      "metrics": {
+        "longTasks": 1,
+        "longestTaskMs": 216,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "failed-resources": {
+      "status": "failed",
+      "elapsedMs": 303,
+      "metrics": {
+        "longTasks": 1,
+        "longestTaskMs": 303
+      }
+    },
+    "process-1": {
+      "status": "ready",
+      "elapsedMs": 652,
+      "metrics": {
+        "longTasks": 2,
+        "longestTaskMs": 387,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    },
+    "process-2": {
+      "status": "ready",
+      "elapsedMs": 231,
+      "metrics": {
+        "longTasks": 1,
+        "longestTaskMs": 164,
+        "packages": 1,
+        "characters": 1,
+        "stages": 0,
+        "legacyPackages": 0,
+        "invalidPackages": 0,
+        "knownArchiveBytes": 3,
+        "knownExpandedBytes": 3,
+        "knownFiles": 1,
+        "packagesWithoutSizes": 0
+      }
+    }
+  },
+  "largeLibrary": {
+    "packages": 200,
+    "files": 20200,
+    "logicalBytes": 303104000,
+    "sharedFixtureBlobs": true,
+    "physicalDiskSaturationTest": false
+  },
+  "exportDuringHang": true,
+  "build": {
+    "version": "0.4.2",
+    "startupRevision": "1a55c3faa5e4b336",
+    "engineRevision": "c0b2d105781783e7"
+  },
+  "testEnvironment": "Host Chromium/SwiftShader; concurrent host work. Timings are functional observations, not a phone benchmark.",
+  "bulkFileAndArchiveReadsDuringStartup": 0,
+  "repositoryTests": {
+    "passed": 522,
+    "failed": 0,
+    "skipped": 0
+  },
+  "nativeBridgeTests": {
+    "tests": 4,
+    "failures": 0,
+    "physicalAndroid": false
+  }
+}

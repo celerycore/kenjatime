@@ -2,7 +2,7 @@
 
 Import MUGEN fighters and stages, choose your match, and play through Kenjatime’s interface.
 
-The website executes **IKEMEN GO 1.0.0 compiled from Go to WebAssembly**, with a Three.js WebGL2 renderer and Web Audio. Android **Kenjatime 0.4.1** bundles that current renderer and engine for offline use, with adaptive audio and original-archive saving. The separate **Kenjatime Native 0.3.1** test build executes the ARM64 engine. All use Kenjatime’s setup, HUD and match-only Lua bootstrap. Stock title/select/options menus, screenpacks, startup logos and menu scripts are excluded. The previous JavaScript combat interpreter is retained in source and historical tests, and is not loaded by these application entries.
+The website executes **IKEMEN GO 1.0.0 compiled from Go to WebAssembly**, with a Three.js WebGL2 renderer and Web Audio. Android **Kenjatime 0.4.2** bundles that current renderer and engine for offline use, with adaptive audio, original-archive saving and [exportable startup diagnostics](docs/startup-diagnostics.md). The separate **Kenjatime Native 0.3.1** test build executes the ARM64 engine. All use Kenjatime’s setup, HUD and match-only Lua bootstrap. Stock title/select/options menus, screenpacks, startup logos and menu scripts are excluded. The previous JavaScript combat interpreter is retained in source and historical tests, and is not loaded by these application entries.
 
 - [Play](https://celerycore.github.io/kenjatime/arena-classic/) · [Android download](https://celerycore.github.io/kenjatime/android/)
 - [Three.js browser renderer and verification](docs/three-browser-renderer.md)

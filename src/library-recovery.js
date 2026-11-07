@@ -1,7 +1,7 @@
 const databases=['kenjatime.engine.library','kenjatime.archives'];
 
 export function libraryDeadline(promise,message,timeout=8000,onTimeout=()=>{}){
- return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{onTimeout();reject(Error(message));},timeout);Promise.resolve(promise).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});});
+ return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{onTimeout();reject(Object.assign(Error(message),{name:'TimeoutError',code:'library-timeout'}));},timeout);Promise.resolve(promise).then(value=>{clearTimeout(timer);resolve(value);},error=>{clearTimeout(timer);reject(error);});});
 }
 
 export function libraryResetURL(href=location.href){const url=new URL(href);url.searchParams.set('reset-library','1');return url.href;}

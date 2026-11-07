@@ -7,34 +7,37 @@ import {openGoBattle} from './go-battle.js';
 import {stageWithResolvedMusic} from './engine-stage.js';
 import {exportFile} from './export-file.js';
 import {libraryDeadline,purgeLibraryStorage} from './library-recovery.js';
+import {createStartupDiagnostics,browserStartupEnvironment} from './startup-diagnostics.js';
 
 const legacy=new ArchiveLibrary();
-const base=new URL('../',import.meta.url);let corePromise,dbPromise,libraryUnavailable=false,legacyUnavailable=false,startupReset;
+const base=new URL('../',import.meta.url);let corePromise,builtinCatalog,dbPromise,libraryUnavailable=false,legacyUnavailable=false,startupReset,startup;
+const measured=(code,work,options)=>startup?startup.measure(code,work,options):work({note(){}});
 const request=r=>libraryDeadline(new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);}), 'The saved library did not respond. Use Reset library to start fresh.',8000,()=>{try{r.transaction?.abort();}catch{}});
 function open(){
  if(dbPromise)return dbPromise;
- let expired=false;
+ let expired=false;const step=startup?.begin('library-open');
  const pending=new Promise((resolve,reject)=>{const r=indexedDB.open('kenjatime.engine.library',2);
-  r.onupgradeneeded=()=>{if(expired){r.transaction.abort();return;}const db=r.result;if(!db.objectStoreNames.contains('packages'))db.createObjectStore('packages',{keyPath:'id'});if(!db.objectStoreNames.contains('files'))db.createObjectStore('files',{keyPath:'path'}).createIndex('packageId','packageId');if(!db.objectStoreNames.contains('archives'))db.createObjectStore('archives',{keyPath:'id'});};
-  r.onsuccess=()=>{if(expired){r.result.close();return;}r.result.onversionchange=()=>{r.result.close();dbPromise=null;};resolve(r.result);};r.onerror=()=>reject(r.error);r.onblocked=()=>{expired=true;reject(Error('Close other Kenjatime windows and try again.'));};
+  r.onupgradeneeded=event=>{if(expired){r.transaction.abort();return;}step?.note({fromVersion:event.oldVersion,toVersion:event.newVersion,migrated:event.oldVersion>0});const db=r.result;if(!db.objectStoreNames.contains('packages'))db.createObjectStore('packages',{keyPath:'id'});if(!db.objectStoreNames.contains('files'))db.createObjectStore('files',{keyPath:'path'}).createIndex('packageId','packageId');if(!db.objectStoreNames.contains('archives'))db.createObjectStore('archives',{keyPath:'id'});};
+  r.onsuccess=()=>{if(expired){r.result.close();step?.note({lateConnectionClosed:true});return;}step?.note({databaseVersion:r.result.version});r.result.onversionchange=()=>{r.result.close();dbPromise=null;};resolve(r.result);};r.onerror=()=>reject(r.error);r.onblocked=()=>{expired=true;reject(Object.assign(Error('Close other Kenjatime windows and try again.'),{code:'library-blocked'}));};
  });
- dbPromise=libraryDeadline(pending,'The saved library did not open. Use Reset library to start fresh.',8000,()=>{expired=true;}).catch(error=>{dbPromise=null;throw error;});return dbPromise;
+ dbPromise=libraryDeadline(pending,'The saved library did not open. Use Reset library to start fresh.',8000,()=>{expired=true;}).then(db=>{step?.end();return db;}).catch(error=>{step?.fail(error);dbPromise=null;throw error;});return dbPromise;
 }
 function done(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onabort=tx.onerror=()=>reject(tx.error||Error('The library could not be saved.'));});}
-async function core(){return corePromise??=libraryDeadline(fetch(new URL('engine/core.zip?v='+__KENJATIME_ENGINE_REVISION__,base)).then(async r=>{if(!r.ok)throw Error('The included game resources could not load.');return unzipSync(new Uint8Array(await r.arrayBuffer()));}), 'The included game resources could not load. Reload Kenjatime to try again.',12000).catch(e=>{corePromise=null;throw e;});}
+async function core(){return corePromise??=measured('core-download',step=>libraryDeadline(fetch(new URL('engine/core.zip?v='+__KENJATIME_ENGINE_REVISION__,base)).then(async r=>{step.note({httpStatus:r.status});if(!r.ok)throw Error('The included game resources could not load.');return new Uint8Array(await r.arrayBuffer());}), 'The included game resources could not load. Reload Kenjatime to try again.',12000).then(bytes=>{step.note({compressedBytes:bytes.length});return bytes;})).then(bytes=>measured('core-unpack',step=>{const files=unzipSync(bytes);step.note({files:Object.keys(files).length,expandedBytes:Object.values(files).reduce((n,b)=>n+b.length,0)});return files;})).catch(e=>{corePromise=null;throw e;});}
 function entries(files,prefix='',packageId=null,packageName='Included sample'){
  const characters=charactersFromFiles(files).map(c=>{const anim=c.checks.find(x=>x.key==='anim'&&x.ok)?.path;return{id:prefix+c.path,name:c.def.info?.displayname||c.def.info?.name||c.path,author:c.def.info?.author||'',fileName:c.path.split('/').at(-1),packageName,...(packageId?{packageId}:{}),...(c.sprite?.ok?{sprite:prefix+c.sprite.path,spriteBytes:files[c.sprite.path].length}:{}),...(anim?{anim:prefix+anim}:{})};});
  const stages=stageDefinitions(files).map(s=>({id:prefix+s.path,name:s.name,author:s.author||'',fileName:s.path.split('/').at(-1),packageName,...(packageId?{packageId}:{})}));return{characters,stages};
 }
-async function packages(){const db=await open();return request(db.transaction('packages').objectStore('packages').getAll());}
+async function packages(){const db=await open();return measured('library-read',()=>request(db.transaction('packages').objectStore('packages').getAll()));}
 async function catalog(){
- const builtin=entries(await core());
+ const included=await core(),builtin=builtinCatalog??=measured('core-catalog',()=>entries(included));
  if(libraryUnavailable)return{...builtin,packages:[],warning:'Saved library unavailable. Use Reset library to start fresh. The included fighter is ready.'};
- const results=await Promise.allSettled([packages(),legacyUnavailable?Promise.resolve([]):libraryDeadline(legacy.list(),'The older saved library did not respond.')]);
+ const results=await Promise.allSettled([packages(),legacyUnavailable?Promise.resolve([]):measured('legacy-read',()=>libraryDeadline(legacy.list(),'The older saved library did not respond.'))]);
  if(results[0].status==='rejected')libraryUnavailable=true;
  if(results[1].status==='rejected')legacyUnavailable=true;
  const all=results[0].status==='fulfilled'?results[0].value:[],saved=all.filter(p=>p&&typeof p.id==='string'&&Array.isArray(p.characters)&&Array.isArray(p.stages)&&p.characters.every(c=>c&&typeof c.id==='string')&&p.stages.every(s=>s&&typeof s.id==='string'));
  const old=(results[1].status==='fulfilled'?results[1].value:[]).filter(row=>row&&typeof row.id==='string'&&!saved.some(p=>p.legacyId===row.id));
+ startup?.metrics({packages:saved.length,characters:saved.reduce((n,p)=>n+p.characters.length,0),stages:saved.reduce((n,p)=>n+p.stages.length,0),legacyPackages:old.length,invalidPackages:all.length-saved.length,knownArchiveBytes:saved.reduce((n,p)=>n+(Number.isFinite(p.archiveBytes)?p.archiveBytes:0),0),knownExpandedBytes:saved.reduce((n,p)=>n+(Number.isFinite(p.expandedBytes)?p.expandedBytes:0),0),knownFiles:saved.reduce((n,p)=>n+(Number.isFinite(p.fileCount)?p.fileCount:0),0),packagesWithoutSizes:saved.filter(p=>!Number.isFinite(p.archiveBytes)).length});
  return{characters:[...builtin.characters,...saved.flatMap(p=>p.characters)],stages:[...builtin.stages,...saved.flatMap(p=>p.stages)],packages:[...saved.map(p=>({id:p.id,name:p.name,downloadable:!!p.archiveSaved})),...old.map(p=>({id:'legacy:'+p.id,name:p.name,legacy:true}))],...(libraryUnavailable||legacyUnavailable||saved.length!==all.length?{warning:'Some saved library data could not load. Use Reset library to start fresh. The included fighter is ready.'}:{})};
 }
 async function pickFile(){return new Promise(resolve=>{const input=document.createElement('input');input.type='file';input.accept='*/*';input.hidden=true;input.id='engine-archive-file';input.onchange=()=>{const file=input.files?.[0];input.remove();resolve(file);};input.oncancel=()=>{input.remove();resolve(null);};document.body.append(input);input.click();});}
@@ -43,11 +46,15 @@ async function install(file,data,legacyId){
  window.__kenjatimeNativeProgress?.(`Reading ${file.name}…`);
    const {files,characters,stages}=await unpackArchive(await readArchiveFile(file),{password:data.password,prepareStageData:false,onProgress:m=>window.__kenjatimeNativeProgress?.(m)});
    if(data.kind==='stage'&&!stages.length)throw Error('No stage DEF found. Choose a stage archive.');if(!characters.length&&!stages.length)throw Error('No character or stage DEF found.');
-   const id=crypto.randomUUID(),prefix=`imports/${id}/`,meta={id,name:file.name,archiveSaved:true,...(legacyId?{legacyId}:{}),...entries(files,prefix,id,file.name)};
+   const id=crypto.randomUUID(),prefix=`imports/${id}/`,meta={id,name:file.name,archiveSaved:true,archiveBytes:file.size,expandedBytes:Object.values(files).reduce((n,b)=>n+b.length,0),fileCount:Object.keys(files).length,...(legacyId?{legacyId}:{}),...entries(files,prefix,id,file.name)};
    const db=await open(),tx=db.transaction(['packages','files','archives'],'readwrite'),finished=done(tx);tx.objectStore('packages').put(meta);tx.objectStore('archives').put({id,name:file.name,blob:file});
    for(const [path,bytes]of Object.entries(files))tx.objectStore('files').put({path:prefix+path,packageId:id,blob:new Blob([bytes])});await finished;libraryUnavailable=false;return catalog();
 }
-export function createBrowserEngineHost(){return{
+export function createBrowserEngineHost(){
+ startup=createStartupDiagnostics({environment:browserStartupEnvironment()});window.__kenjatimeStartup=startup;
+ if(navigator.storage?.estimate)measured('storage-estimate',step=>libraryDeadline(navigator.storage.estimate(), 'Storage estimate unavailable.',1500).then(info=>{step.note({usageBytes:info.usage||0,quotaBytes:info.quota||0});}),{critical:false}).catch(()=>{});
+ return{
+ diagnostics:startup,
  resource,canResetLibrary:true,importFile:(file,data={})=>install(file,data),
  async request(action,data={}){
   if(action==='catalog'){
@@ -55,7 +62,7 @@ export function createBrowserEngineHost(){return{
    if(url.searchParams.get('reset-library')==='1'){
     url.searchParams.delete('reset-library');history.replaceState(history.state,'',url);
     window.__kenjatimeNativeProgress?.('Resetting your library…');
-    startupReset=purgeLibraryStorage().then(()=>{libraryUnavailable=false;legacyUnavailable=false;});
+    startupReset=measured('library-reset',()=>purgeLibraryStorage()).then(()=>{libraryUnavailable=false;legacyUnavailable=false;});
    }
    if(startupReset){const reset=startupReset;startupReset=null;await reset;}
    return catalog();

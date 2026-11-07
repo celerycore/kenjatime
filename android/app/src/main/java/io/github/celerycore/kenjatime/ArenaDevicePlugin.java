@@ -1,10 +1,15 @@
 package io.github.celerycore.kenjatime;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.view.WindowManager;
 import androidx.activity.result.ActivityResult;
+import androidx.webkit.WebViewCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -18,6 +23,31 @@ import java.io.OutputStream;
 
 @CapacitorPlugin(name = "ArenaDevice")
 public class ArenaDevicePlugin extends Plugin {
+    @PluginMethod
+    public void getStartupInfo(PluginCall call) {
+        JSObject info = new JSObject().put("platform", "android")
+            .put("manufacturer", Build.MANUFACTURER).put("model", Build.MODEL)
+            .put("androidApi", Build.VERSION.SDK_INT)
+            .put("availableDiskBytes", getContext().getFilesDir().getUsableSpace());
+        try {
+            PackageInfo app = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            info.put("appVersion", app.versionName).put("versionCode", app.versionCode);
+            PackageInfo webView = WebViewCompat.getCurrentWebViewPackage(getContext());
+            if (webView != null) info.put("webViewVersion", webView.versionName);
+            ActivityManager manager = (ActivityManager)getContext().getSystemService(Context.ACTIVITY_SERVICE);
+            if (manager != null) {
+                ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo();
+                manager.getMemoryInfo(memory);
+                info.put("availableMemoryBytes", memory.availMem).put("lowMemory", memory.lowMemory);
+            }
+            MainActivity activity = (MainActivity)getActivity();
+            info.put("nativeCreateToBridgeMs", activity.nativeBridgeReadyMs())
+                .put("nativeElapsedMs", activity.nativeElapsedMs())
+                .put("restoredActivity", activity.wasActivityRestored());
+        } catch (Exception ignored) { /* Optional diagnostics must never block setup. */ }
+        call.resolve(info);
+    }
+
     File exportSource(String value) throws IOException {
         if (value == null) throw new IOException("Missing export");
         Uri uri = Uri.parse(value);

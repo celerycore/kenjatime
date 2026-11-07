@@ -1,6 +1,6 @@
 # Kenjatime browser-runtime Android app
 
-Version 0.4.1 (version code 9) packages the current Three.js renderer and
+Version 0.4.2 (version code 10) packages the current Three.js renderer and
 Go/WASM combat engine in Capacitor 8. It starts at
 `https://localhost/mobile/index.html` from bundled assets and works offline.
 It retains Kenjatime’s UI, fixed-aspect match view, touch controls, lifebars,
@@ -8,8 +8,10 @@ palettes and controller bridge. Stock IKEMEN menus and screenpacks are excluded.
 
 ## Included
 
-If startup is stuck at Opening your library, use **Reset library** under Saved
-on this device. It remains available during loading. See
+Open **Startup report → Save startup report**, under Saved on this device,
+to export phase timings and device details, including while startup is waiting.
+See [startup diagnostics and test coverage](startup-diagnostics.md).
+If necessary, use **Reset library**, which remains available during loading. See
 [library recovery](library-recovery.md) for what the reset removes and preserves.
 
 - Android 7.0/API 24+, Android System WebView 107+, SDK 36 target.
@@ -55,6 +57,7 @@ cd android && ./gradlew :app:testDebugUnitTest assembleDebug lintDebug
 cd ..
 python scripts/verify-android-apk.py
 python scripts/verify-go-engine.py
+python scripts/verify-startup-diagnostics.py
 ```
 
 The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. The verifier checks its signature, launch metadata and exact bundled build assets, including the compressed WASM payload and engine core. The browser suite executes Go matches, touch attacks, pause, archive imports and library migration; see [integration details](go-engine-integration.md) and [packaging evidence](android-app-evidence.json).

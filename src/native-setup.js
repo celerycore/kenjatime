@@ -3,6 +3,7 @@ import './mobile.css';
 import {appShell} from './app-shell.js';
 import {sff,animations} from './formats.js';
 import {libraryResetURL} from './library-recovery.js';
+import {exportFile} from './export-file.js';
 
 export function mountSetup(engineHost){
 document.querySelector('#app').innerHTML=appShell;document.title='Kenjatime';
@@ -11,10 +12,11 @@ const $=s=>document.querySelector(s),escape=s=>String(s??'').replace(/[&<>"']/g,
 let catalog={characters:[],stages:[],packages:[]},selected=null,busy=false,previewEpoch=0;
 window.__kenjatimeNativeProgress=message=>{$('#status').textContent=message;};
 const native=(action,data={})=>engineHost.request(action,data);
+const startup=engineHost.diagnostics;
 function status(message){$('#status').textContent=message;}
 async function run(message,action){
- if(busy)return;busy=true;status(message);document.querySelectorAll('button,.import-actions label').forEach(e=>{e.setAttribute('aria-disabled','true');if(e.tagName==='BUTTON')e.disabled=true;});
- try{await action();}catch(error){status(error.message);}finally{busy=false;document.querySelectorAll('button,.import-actions label').forEach(e=>{e.removeAttribute('aria-disabled');if(e.tagName==='BUTTON')e.disabled=false;});}
+ if(busy)return;busy=true;status(message);document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.setAttribute('aria-disabled','true');if(e.tagName==='BUTTON')e.disabled=true;});
+ try{await action();}catch(error){status(error.message);}finally{busy=false;document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.removeAttribute('aria-disabled');if(e.tagName==='BUTTON')e.disabled=false;});}
 }
 $('.brand small').textContent='KENJATIME';$('header > span').innerHTML='PLAY <b>/</b> YOUR ARENA';$('.tag').textContent='KENJATIME';
 $('.eyebrow').textContent='BRING YOUR FIGHTER';$('h1').innerHTML='Your next match starts here<span>.</span>';
@@ -27,6 +29,13 @@ $('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" ari
 $('.transport').insertAdjacentHTML('afterend','<div id="training-tools" class="training-tools"><label>Opponent <select id="opponent-select"></select></label><label>CPU level <select id="cpu-level">'+Array.from({length:8},(_,i)=>`<option value="${i+1}" ${i===3?'selected':''}>${i+1}</option>`).join('')+'</select></label><label>P1 palette <select id="palette-select"></select></label><label>P2 palette <select id="opponent-palette-select"></select></label></div>');
 $('.roster').insertAdjacentHTML('beforebegin','<section class="mobile-library"><details open><summary>Saved on this device <span id="library-count">0</span></summary><p id="library-status">Imported archives are installed here and stay available after restarting the app.</p><div id="library-items"></div></details></section>');
 if(engineHost.canResetLibrary){const recovery=document.createElement('p');recovery.className='library-recovery';recovery.innerHTML='<a class="secondary" id="reset-library">Reset library</a> <span>Removes installed fighters, stages and saved archive copies. Your original downloaded files stay intact.</span>';recovery.querySelector('a').href=libraryResetURL();$('.mobile-library').append(recovery);}
+if(startup){
+ const panel=document.createElement('details');panel.className='startup-diagnostics';panel.id='startup-diagnostics';panel.innerHTML='<summary>Startup report</summary><p id="startup-progress" role="status"></p><ol id="startup-phases"></ol><button class="secondary" type="button" data-startup-action id="export-startup">Save startup report</button><p>Contains loading timings, device details and library counts. Character files, archive names and passwords are excluded.</p>';
+ $('.mobile-library').append(panel);
+ let refresh;const render=()=>{const r=startup.snapshot().sessions[0],active=r.phases.filter(p=>p.status==='pending'&&p.critical);panel.querySelector('#startup-progress').textContent=r.status==='loading'?(active.map(p=>p.label).join(' · ')||'Starting Kenjatime…'):`Startup ${r.status} in ${(r.elapsedMs/1000).toFixed(2)} s`;if(r.status==='loading'&&active.length)status(active.map(p=>p.label).join(' · '));const list=panel.querySelector('ol');list.replaceChildren(...r.phases.map(p=>{const li=document.createElement('li');li.textContent=`${p.label}: ${p.status} · ${p.durationMs} ms`;return li;}));if(r.status!=='loading'&&!r.phases.some(p=>p.status==='pending'))clearInterval(refresh);};
+ startup.subscribe(render);render();panel.addEventListener('toggle',()=>{clearInterval(refresh);if(panel.open){render();if(startup.snapshot().sessions[0].status==='loading')refresh=setInterval(render,1000);}});
+ panel.querySelector('#export-startup').onclick=async event=>{const button=event.currentTarget;button.disabled=true;try{await exportFile(new Blob([JSON.stringify(startup.snapshot(),null,2)],{type:'application/json'}),'kenjatime-startup-report.json');}catch(error){panel.querySelector('#startup-progress').textContent=error.message;}finally{button.disabled=false;}};
+}
 $('#drop').innerHTML='<div class="upload-icon">↥</div><div><b>Bring a new challenger.</b><p>Import a character or stage archive, or <button type="button" id="browse">browse files</button></p><small>ZIP / RAR / 7z / TAR and compressed TAR · installed on this device</small><details class="archive-options"><summary>Archive password (optional)</summary><input id="archive-password" type="password" autocomplete="off" aria-label="Archive password"></details></div>';
 $('.notice').textContent='Character scripts and matches run in the game engine. Package checks describe installed resources.';
 $('#hint').textContent='Select your fighter, opponent and stage, then start a match.';$('.coordinates').innerHTML='X <span id="pos">0</span> &nbsp; Y <span>0</span>';
@@ -47,6 +56,9 @@ function grid(){
 const resource=path=>engineHost.resource(path);
 function disposePreview(){previewEpoch++;canvas.dataset.previewCount='0';grid();}
 async function preview(){
+ const step=startup?.begin('preview',{critical:false});try{await drawPreview(step);step?.end();}catch(error){step?.fail(error);throw error;}
+}
+async function drawPreview(step){
  disposePreview();const epoch=previewEpoch;if(!selected)return;$('#empty').hidden=true;
  const rival=catalog.characters.find(c=>c.id===$('#opponent-select').value)||selected,entries=[selected,rival],banks=new Map();
  const images=await Promise.all(entries.map(async(entry,side)=>{
@@ -62,6 +74,7 @@ async function preview(){
   }catch{return null;}
  }));
  for(const promise of banks.values())promise.then(bank=>bank.clearDecodedCache()).catch(()=>{});
+ step?.note({decodedPreviews:images.filter(Boolean).length});
  if(epoch!==previewEpoch)return;grid();ctx.imageSmoothingEnabled=false;
  entries.forEach((entry,side)=>{const center=side?690:270,image=images[side];ctx.fillStyle=side?'#8fcfff':'#d3fb8d';ctx.font='28px system-ui';ctx.textAlign='center';ctx.fillText(`P${side+1} · ${entry.name}`,center,68,360);
   if(image){const scale=Math.min(2.2,340/image.width,320/image.height);ctx.save();ctx.translate(center,440);ctx.scale(side?-scale:scale,scale);ctx.drawImage(image,-image.width/2,-image.height);ctx.restore();}
@@ -112,6 +125,6 @@ $('#fight-now').onclick=()=>void run('Preparing your match…',async()=>{
  const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value};remember();disposePreview();await native('launch',match);
 });
 window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview();status('Ready when you are.');}});
-grid();void run('Opening your library…',async()=>{const data=await native('catalog');drawCatalog(data);status(data.warning||'Ready when you are.');});
+grid();void run('Opening your library…',async()=>{try{const data=await native('catalog');if(startup)startup.measure('catalog-render',()=>drawCatalog(data));else drawCatalog(data);startup?.finish(data.warning?'degraded':'ready');status(data.warning||'Ready when you are.');}catch(error){startup?.finish('failed');throw error;}});
 
 }

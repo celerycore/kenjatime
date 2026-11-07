@@ -8,6 +8,7 @@
 .mobile-library .library-item{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
 .library-item span{flex:1;overflow-wrap:anywhere;min-width:0}
 .library-recovery{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}.library-recovery a{display:inline-block;padding:10px 12px;border:1px solid #466055;border-radius:4px;color:#d3fb8d;text-decoration:none;white-space:nowrap}.library-recovery span{flex:1;min-width:160px;font-size:11px}
+.startup-diagnostics{margin-top:16px;border-top:1px solid #2a2f34;padding-top:12px}.startup-diagnostics ol{padding-left:20px;font:12px/1.7 monospace;overflow-wrap:anywhere}.startup-diagnostics p{margin:8px 0}.startup-diagnostics summary{color:#b4c7d0}
 .mobile-battle-bar{display:none}
 body.mobile-battle{overflow:hidden;padding:0;overscroll-behavior:none}
 .mobile-battle aside,.mobile-battle main>:not(.workspace),.mobile-battle .details{display:none}
