@@ -2,6 +2,7 @@ import './style.css';
 import './mobile.css';
 import {appShell} from './app-shell.js';
 import {sff,animations} from './formats.js';
+import {libraryResetURL} from './library-recovery.js';
 
 export function mountSetup(engineHost){
 document.querySelector('#app').innerHTML=appShell;document.title='Kenjatime';
@@ -25,6 +26,7 @@ $('.heading').insertAdjacentHTML('afterend','<section class="stage-library" aria
 $('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" aria-label="Match setup"><label>Play mode <select id="arena-mode"><option value="solo">Player vs CPU</option><option value="versus">Two players</option><option value="cpu">Watch CPU match</option><option value="training">Training</option></select></label><button type="button" class="primary" id="fight-now">Fight now</button><span>Choose your fighter in the roster and your rival under Opponent.</span></section>');
 $('.transport').insertAdjacentHTML('afterend','<div id="training-tools" class="training-tools"><label>Opponent <select id="opponent-select"></select></label><label>CPU level <select id="cpu-level">'+Array.from({length:8},(_,i)=>`<option value="${i+1}" ${i===3?'selected':''}>${i+1}</option>`).join('')+'</select></label><label>P1 palette <select id="palette-select"></select></label><label>P2 palette <select id="opponent-palette-select"></select></label></div>');
 $('.roster').insertAdjacentHTML('beforebegin','<section class="mobile-library"><details open><summary>Saved on this device <span id="library-count">0</span></summary><p id="library-status">Imported archives are installed here and stay available after restarting the app.</p><div id="library-items"></div></details></section>');
+if(engineHost.canResetLibrary){const recovery=document.createElement('p');recovery.className='library-recovery';recovery.innerHTML='<a class="secondary" id="reset-library">Reset library</a> <span>Removes installed fighters, stages and saved archive copies. Your original downloaded files stay intact.</span>';recovery.querySelector('a').href=libraryResetURL();$('.mobile-library').append(recovery);}
 $('#drop').innerHTML='<div class="upload-icon">↥</div><div><b>Bring a new challenger.</b><p>Import a character or stage archive, or <button type="button" id="browse">browse files</button></p><small>ZIP / RAR / 7z / TAR and compressed TAR · installed on this device</small><details class="archive-options"><summary>Archive password (optional)</summary><input id="archive-password" type="password" autocomplete="off" aria-label="Archive password"></details></div>';
 $('.notice').textContent='Character scripts and matches run in the game engine. Package checks describe installed resources.';
 $('#hint').textContent='Select your fighter, opponent and stage, then start a match.';$('.coordinates').innerHTML='X <span id="pos">0</span> &nbsp; Y <span>0</span>';
@@ -110,6 +112,6 @@ $('#fight-now').onclick=()=>void run('Preparing your match…',async()=>{
  const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value};remember();disposePreview();await native('launch',match);
 });
 window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview();status('Ready when you are.');}});
-grid();void run('Opening your library…',async()=>{drawCatalog(await native('catalog'));status('Ready when you are.');});
+grid();void run('Opening your library…',async()=>{const data=await native('catalog');drawCatalog(data);status(data.warning||'Ready when you are.');});
 
 }

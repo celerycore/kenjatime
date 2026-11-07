@@ -15,6 +15,7 @@ on:
       - 'scripts/verify-browser-runtime.py'
       - 'scripts/verify-embedded-battle.py'
       - 'scripts/verify-mobile-archives.py'
+      - 'scripts/verify-library-reset.py'
       - 'test/fixtures/webgl-*'
       - 'scripts/verify-go-engine.py'
       - 'scripts/verify-go-presentation.py'
@@ -62,6 +63,8 @@ jobs:
         run: python scripts/verify-embedded-battle.py
       - name: Check imported archive downloads and library upgrades
         run: python scripts/verify-mobile-archives.py
+      - name: Check library reset and recovery from hung storage
+        run: python scripts/verify-library-reset.py
       - name: Check device-native 48 kHz audio
         run: MUGEN_QA_AUDIO_RATE=48000 python scripts/verify-go-presentation.py
       - name: Check the main-thread and ScriptProcessor compatibility fallback

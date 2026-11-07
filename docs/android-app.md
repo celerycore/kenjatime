@@ -1,12 +1,16 @@
 # Kenjatime browser-runtime Android app
 
-Version 0.4.0 (version code 8) packages the current Three.js renderer and
+Version 0.4.1 (version code 9) packages the current Three.js renderer and
 Go/WASM combat engine in Capacitor 8. It starts at
 `https://localhost/mobile/index.html` from bundled assets and works offline.
 It retains Kenjatime’s UI, fixed-aspect match view, touch controls, lifebars,
 palettes and controller bridge. Stock IKEMEN menus and screenpacks are excluded.
 
 ## Included
+
+If startup is stuck at Opening your library, use **Reset library** under Saved
+on this device. It remains available during loading. See
+[library recovery](library-recovery.md) for what the reset removes and preserves.
 
 - Android 7.0/API 24+, Android System WebView 107+, SDK 36 target.
 - Offline sample and engine core; decoder code and WASM are bundled too.
