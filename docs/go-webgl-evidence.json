@@ -1,0 +1,1144 @@
+{
+  "baselineSource": "20e009340f43b37f5b1d6cb315b7a20ffef6d791",
+  "method": "Chromium SwiftShader, 854x480, isolated real Go/WASM scenes, warmup >=400 ticks; elapsed scene-clear to canvas submission includes catch-up, scheduling and driver work; callback count is a paint opportunity, not a compositor timestamp.",
+  "physicalPhone": false,
+  "repositoryTests": {
+    "passed": 506,
+    "failed": 0,
+    "skipped": 0
+  },
+  "reproducibleWasm": true,
+  "provenance": {
+    "goEnvironment": {
+      "GOEXPERIMENT": "arenas",
+      "GOWASM": "satconv,signext",
+      "GOOS": "js",
+      "GOARCH": "wasm",
+      "CGO_ENABLED": "0"
+    },
+    "hostBridgeSha256": "82eba3b1fc1ebe54c76161d05deccb5185bb026329c6a19a83b191d1bfdd7e59",
+    "rendererSources": {
+      "render_webgl.go": "669c68b3117128d589fcd52cf41365ad7a4506cd5935bb9fff494048a811caee",
+      "render_webgl_cmdbuf.go": "9c946a3e605cd80a73d73f5cab0a2710933846304144ab13a2ecd99542011bc1",
+      "submit.js": "3c993b6aea77d48a0fdcfc465be7185b457c7f057bf127bf4094637c9037f9b4"
+    },
+    "engine": "IKEMEN GO",
+    "version": "1.0.0",
+    "portRepository": "https://github.com/energyjp/ikemen-go-web",
+    "portCommit": "96324a1c8aaaa5c0cb7756aebeb4b572588523ee",
+    "sourceArchiveSha256": "38bc19e95c0e5df1c515d81fbfa2146a641e8452d294520cd3b58aa563080bea",
+    "go": "go version go1.23.12 linux/amd64",
+    "flags": [
+      "build",
+      "-trimpath",
+      "-buildvcs=false",
+      "-ldflags=-X main.Version=1.0.0"
+    ],
+    "patches": [
+      "Kenjatime match status, pause and touch input bridge",
+      "Release touch inputs after at least one simulation poll",
+      "Kenjatime error title",
+      "Kenjatime WebGL2 submission backend: live WASM memory, pooled vertex streams, GPU blit and browser frame pacing"
+    ],
+    "stockMenuAssets": false,
+    "stockMenuScripts": false,
+    "wasmBytes": 24421762,
+    "wasmSha256": "d87253d75549d196098e927525ce1a613609b3cddc97ede6dca6a6b60897613c",
+    "files": {
+      "wasm_exec.js": {
+        "bytes": 16687,
+        "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229"
+      },
+      "core.zip": {
+        "bytes": 1369174,
+        "sha256": "930028ce6955f01254255f8a2d5190228f46abd4a7f49570a41718bc7ca46b02"
+      },
+      "THIRD-PARTY-LICENSES.txt": {
+        "bytes": 84936,
+        "sha256": "4b79a3f637f72df7ed244971af9c4e6430b39f39589e8d260fc1e5a9dc1d2197"
+      },
+      "GO-LICENSE.txt": {
+        "bytes": 1479,
+        "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+      },
+      "LICENSE.txt": {
+        "bytes": 3772,
+        "sha256": "30dd549c8be7fedd0ec076cd32febf13ad34a9b4a8de7079de3fbe910f57420f"
+      },
+      "ikemen.wasm.bin": {
+        "bytes": 5658569,
+        "sha256": "0252aade8a6d56c765296ce26704919b2fc01155ba73bd3191ce31e3b79e47ec"
+      }
+    }
+  },
+  "before": {
+    "label": "before",
+    "gpu": "Chromium SwiftShader",
+    "physicalPhone": false,
+    "scenes": {
+      "grid": {
+        "frames": 205,
+        "displayedFrames": 4,
+        "eventLoopIntervalMs": {
+          "median": 10,
+          "p95": 44.39999997615814,
+          "mean": 40.44449339209674
+        },
+        "rafIntervalMs": {
+          "median": 1433.3999999999978,
+          "p95": 6149.799999999999,
+          "mean": 2611.033333333333
+        },
+        "engineWorkMs": {
+          "median": 1.9000000059604645,
+          "p95": 21.299999982118607,
+          "mean": 31.664878047530244
+        },
+        "presentIntervalMs": {
+          "median": 15.799999982118607,
+          "p95": 46.70000001788139,
+          "mean": 44.92696078428451
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 5,
+          "clear": 4,
+          "useProgram": 7,
+          "bindBuffer": 23,
+          "bufferData": 18,
+          "uniformMatrix4fv": 34,
+          "uniform1i": 32,
+          "uniform4f": 16,
+          "drawArrays": 24,
+          "bindTexture": 31,
+          "uniform1f": 5,
+          "bufferSubData": 5
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "file": "",
+            "streaming": false,
+            "format": ""
+          },
+          "players": [
+            {
+              "x": -67.44730377197266,
+              "y": 0,
+              "screenX": 0.289227157831192,
+              "state": 0,
+              "lifeMax": 1000,
+              "powerMax": 3000,
+              "screenY": 0.8166666626930237,
+              "time": 731,
+              "life": 1000,
+              "power": 3000
+            },
+            {
+              "state": 0,
+              "power": 3000,
+              "powerMax": 3000,
+              "y": 0,
+              "screenY": 0.8166666626930237,
+              "time": 731,
+              "life": 1000,
+              "lifeMax": 1000,
+              "x": 67.44730377197266,
+              "screenX": 0.7107728123664856
+            }
+          ],
+          "ticks": 762,
+          "paused": false,
+          "camera": {
+            "zoom": 1,
+            "width": 427,
+            "height": 240,
+            "x": 0
+          }
+        },
+        "simulationTicks": 216,
+        "gpu": null,
+        "errors": []
+      },
+      "effects": {
+        "frames": 191,
+        "displayedFrames": 17,
+        "eventLoopIntervalMs": {
+          "median": 10.100000023841858,
+          "p95": 616.6000000238419,
+          "mean": 72.3958974358363
+        },
+        "rafIntervalMs": {
+          "median": 733.2999999999956,
+          "p95": 1616.6000000000022,
+          "mean": 820.8
+        },
+        "engineWorkMs": {
+          "median": 2.699999988079071,
+          "p95": 562.5999999940395,
+          "mean": 62.651832459796786
+        },
+        "presentIntervalMs": {
+          "median": 16.30000001192093,
+          "p95": 562.7000000178814,
+          "mean": 74.17684210523178
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 5,
+          "clear": 4,
+          "useProgram": 7,
+          "bindBuffer": 151,
+          "bufferData": 146,
+          "uniformMatrix4fv": 258,
+          "uniform1i": 33,
+          "uniform4f": 112,
+          "drawArrays": 152,
+          "bindTexture": 31,
+          "uniform1f": 100,
+          "bufferSubData": 5
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "camera": {
+            "x": 0,
+            "zoom": 1,
+            "width": 427,
+            "height": 240
+          },
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "file": "",
+            "streaming": false,
+            "format": ""
+          },
+          "players": [
+            {
+              "state": 0,
+              "life": 1000,
+              "power": 3000,
+              "powerMax": 3000,
+              "x": -67.44730377197266,
+              "y": 0,
+              "screenX": 0.289227157831192,
+              "screenY": 0.8166666626930237,
+              "time": 628,
+              "lifeMax": 1000
+            },
+            {
+              "state": 0,
+              "time": 628,
+              "power": 3000,
+              "powerMax": 3000,
+              "x": 67.44730377197266,
+              "y": 0,
+              "screenY": 0.8166666626930237,
+              "life": 1000,
+              "lifeMax": 1000,
+              "screenX": 0.7107728123664856
+            }
+          ],
+          "ticks": 659,
+          "paused": false
+        },
+        "simulationTicks": 227,
+        "gpu": null,
+        "errors": []
+      },
+      "forest": {
+        "frames": 231,
+        "displayedFrames": 15,
+        "eventLoopIntervalMs": {
+          "median": 10.099999994039536,
+          "p95": 53.599999994039536,
+          "mean": 107.56485148511901
+        },
+        "rafIntervalMs": {
+          "median": 583.3000000000029,
+          "p95": 4016.5,
+          "mean": 1320.1857142857148
+        },
+        "engineWorkMs": {
+          "median": 4.299999982118607,
+          "p95": 188.09999999403954,
+          "mean": 79.73593073605976
+        },
+        "presentIntervalMs": {
+          "median": 16.099999994039536,
+          "p95": 188.2000000178814,
+          "mean": 92.66739130434783
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 5,
+          "clear": 4,
+          "useProgram": 7,
+          "bindBuffer": 56,
+          "bufferData": 51,
+          "uniformMatrix4fv": 132,
+          "uniform1i": 162,
+          "uniform4f": 49,
+          "drawArrays": 57,
+          "bindTexture": 161,
+          "uniform1f": 5,
+          "bufferSubData": 5
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "streaming": true,
+            "format": "mp3",
+            "file": "imports/45a6ed87-2c75-45ac-8d68-5a3ac8b68920/blood heat!.mp3"
+          },
+          "players": [
+            {
+              "x": -80,
+              "screenX": 0.25,
+              "state": 0,
+              "life": 1000,
+              "powerMax": 3000,
+              "y": 0,
+              "screenY": 0.9315103888511658,
+              "time": 1884,
+              "lifeMax": 1000,
+              "power": 3000
+            },
+            {
+              "screenX": 0.75,
+              "screenY": 0.9315103888511658,
+              "state": 0,
+              "life": 1000,
+              "lifeMax": 1000,
+              "power": 3000,
+              "powerMax": 3000,
+              "y": 0,
+              "x": 80,
+              "time": 1884
+            }
+          ],
+          "ticks": 1915,
+          "paused": false,
+          "camera": {
+            "x": 0,
+            "zoom": 1,
+            "width": 427,
+            "height": 240
+          }
+        },
+        "simulationTicks": 316,
+        "gpu": null,
+        "errors": []
+      },
+      "fidelity": {
+        "frames": 185,
+        "displayedFrames": 17,
+        "eventLoopIntervalMs": {
+          "median": 10.099999994039536,
+          "p95": 206.59999999403954,
+          "mean": 40.24339622638698
+        },
+        "rafIntervalMs": {
+          "median": 366.6999999999971,
+          "p95": 1100,
+          "mean": 453.90588235294126
+        },
+        "engineWorkMs": {
+          "median": 3,
+          "p95": 218.90000000596046,
+          "mean": 34.337297295235295
+        },
+        "presentIntervalMs": {
+          "median": 16,
+          "p95": 229.09999999403954,
+          "mean": 46.189673912913904
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 5.005405405405406,
+          "clear": 4.005405405405406,
+          "useProgram": 7,
+          "bindBuffer": 143,
+          "bufferData": 138,
+          "uniformMatrix4fv": 250,
+          "uniform1i": 33,
+          "uniform4f": 112,
+          "drawArrays": 144,
+          "bindTexture": 31,
+          "uniform1f": 79,
+          "uniform3f": 4,
+          "bufferSubData": 5
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "players": [
+            {
+              "powerMax": 3000,
+              "x": -67.44730377197266,
+              "y": 0,
+              "state": 0,
+              "time": 617,
+              "life": 1000,
+              "lifeMax": 1000,
+              "power": 3000,
+              "screenX": 0.289227157831192,
+              "screenY": 0.8166666626930237
+            },
+            {
+              "state": 0,
+              "time": 617,
+              "x": 67.44730377197266,
+              "lifeMax": 1000,
+              "power": 3000,
+              "powerMax": 3000,
+              "y": 0,
+              "screenX": 0.7107728123664856,
+              "screenY": 0.8166666626930237,
+              "life": 1000
+            }
+          ],
+          "ticks": 648,
+          "paused": false,
+          "camera": {
+            "zoom": 1,
+            "width": 427,
+            "height": 240,
+            "x": 0
+          },
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "file": "",
+            "streaming": false,
+            "format": ""
+          }
+        },
+        "simulationTicks": 237,
+        "gpu": null,
+        "errors": []
+      }
+    }
+  },
+  "after": {
+    "label": "final",
+    "gpu": "Chromium SwiftShader",
+    "physicalPhone": false,
+    "scenes": {
+      "grid": {
+        "frames": 180,
+        "displayedFrames": 178,
+        "eventLoopIntervalMs": {
+          "median": 10,
+          "p95": 41.29999998211861,
+          "mean": 13.750474898268441
+        },
+        "rafIntervalMs": {
+          "median": 50,
+          "p95": 116.60000000000036,
+          "mean": 56.20166666666666
+        },
+        "engineWorkMs": {
+          "median": 4.9000000059604645,
+          "p95": 37.80000001192093,
+          "mean": 6.5561111097534495
+        },
+        "presentIntervalMs": {
+          "median": 49.099999994039536,
+          "p95": 112.19999998807907,
+          "mean": 56.408379888234855
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 4,
+          "clear": 2,
+          "getParameter": 3,
+          "bindBuffer": 9,
+          "bufferData": 2,
+          "bufferSubData": 2,
+          "useProgram": 6,
+          "uniform1i": 32,
+          "uniform4f": 16,
+          "drawArrays": 23,
+          "bindTexture": 29,
+          "uniform1f": 5,
+          "blitFramebuffer": 1
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "ticks": 1006,
+          "paused": false,
+          "camera": {
+            "x": 0,
+            "zoom": 1,
+            "width": 427,
+            "height": 240
+          },
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "file": "",
+            "streaming": false,
+            "format": ""
+          },
+          "players": [
+            {
+              "x": -67.44730377197266,
+              "y": 0,
+              "screenX": 0.289227157831192,
+              "life": 1000,
+              "lifeMax": 1000,
+              "power": 3000,
+              "time": 975,
+              "powerMax": 3000,
+              "screenY": 0.8166666626930237,
+              "state": 0
+            },
+            {
+              "x": 67.44730377197266,
+              "y": 0,
+              "screenX": 0.7107728123664856,
+              "screenY": 0.8166666626930237,
+              "lifeMax": 1000,
+              "power": 3000,
+              "powerMax": 3000,
+              "state": 0,
+              "time": 975,
+              "life": 1000
+            }
+          ]
+        },
+        "simulationTicks": 592,
+        "gpu": {
+          "backend": "Kenjatime WebGL2",
+          "submissions": 1711,
+          "commandBytes": 1901520,
+          "commandCopies": 0,
+          "vertexUploads": 601,
+          "vertexBytes": 1266720,
+          "presents": 297,
+          "memoryViews": 5
+        },
+        "errors": []
+      },
+      "effects": {
+        "frames": 180,
+        "displayedFrames": 178,
+        "eventLoopIntervalMs": {
+          "median": 10,
+          "p95": 41.5,
+          "mean": 14.184014869888475
+        },
+        "rafIntervalMs": {
+          "median": 83.30000000000291,
+          "p95": 166.79999999999927,
+          "mean": 84.72681564245809
+        },
+        "engineWorkMs": {
+          "median": 8.100000023841858,
+          "p95": 43,
+          "mean": 12.711111109124289
+        },
+        "presentIntervalMs": {
+          "median": 84.5,
+          "p95": 185.40000000596046,
+          "mean": 84.6999999999001
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 4,
+          "clear": 2,
+          "getParameter": 3,
+          "bindBuffer": 9,
+          "bufferData": 2,
+          "bufferSubData": 2,
+          "useProgram": 6,
+          "uniform1i": 33,
+          "uniform4f": 112,
+          "drawArrays": 151,
+          "bindTexture": 29,
+          "uniform1f": 100,
+          "blitFramebuffer": 1
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "players": [
+            {
+              "lifeMax": 1000,
+              "power": 3000,
+              "x": -67.44730377197266,
+              "y": 0,
+              "screenX": 0.289227157831192,
+              "time": 1171,
+              "life": 1000,
+              "powerMax": 3000,
+              "screenY": 0.8166666626930237,
+              "state": 0
+            },
+            {
+              "time": 1171,
+              "life": 1000,
+              "powerMax": 3000,
+              "screenY": 0.8166666626930237,
+              "state": 0,
+              "screenX": 0.7107728123664856,
+              "lifeMax": 1000,
+              "power": 3000,
+              "x": 67.44730377197266,
+              "y": 0
+            }
+          ],
+          "ticks": 1202,
+          "paused": false,
+          "camera": {
+            "height": 240,
+            "x": 0,
+            "zoom": 1,
+            "width": 427
+          },
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "file": "",
+            "streaming": false,
+            "format": ""
+          }
+        },
+        "simulationTicks": 794,
+        "gpu": {
+          "backend": "Kenjatime WebGL2",
+          "submissions": 1706,
+          "commandBytes": 6211368,
+          "commandCopies": 0,
+          "vertexUploads": 591,
+          "vertexBytes": 3417760,
+          "presents": 292,
+          "memoryViews": 6
+        },
+        "errors": []
+      },
+      "forest": {
+        "frames": 180,
+        "displayedFrames": 177,
+        "eventLoopIntervalMs": {
+          "median": 10,
+          "p95": 42.599999994039536,
+          "mean": 13.931596925684167
+        },
+        "rafIntervalMs": {
+          "median": 99.90000000000146,
+          "p95": 149.89999999999782,
+          "mean": 90.6854748603352
+        },
+        "engineWorkMs": {
+          "median": 7.299999982118607,
+          "p95": 41.099999994039536,
+          "mean": 9.263333333863152
+        },
+        "presentIntervalMs": {
+          "median": 92.09999999403954,
+          "p95": 148.2999999821186,
+          "mean": 90.63240223457028
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 4,
+          "clear": 2,
+          "getParameter": 3,
+          "bindBuffer": 9,
+          "bufferData": 2,
+          "bufferSubData": 2,
+          "useProgram": 6,
+          "uniform1i": 162,
+          "uniform4f": 49,
+          "drawArrays": 56,
+          "bindTexture": 159,
+          "uniform1f": 5,
+          "blitFramebuffer": 1
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "effects": {
+            "activeCommon": 0,
+            "commonScale": 1,
+            "commonAnimations": 19
+          },
+          "music": {
+            "file": "imports/5294cbf1-1a6f-477e-a606-1126301add16/blood heat!.mp3",
+            "streaming": true,
+            "format": "mp3"
+          },
+          "players": [
+            {
+              "life": 1000,
+              "powerMax": 3000,
+              "y": 0,
+              "screenY": 0.9315103888511658,
+              "time": 1293,
+              "lifeMax": 1000,
+              "power": 3000,
+              "x": -80,
+              "screenX": 0.25,
+              "state": 0
+            },
+            {
+              "power": 3000,
+              "x": 80,
+              "y": 0,
+              "screenY": 0.9315103888511658,
+              "time": 1293,
+              "lifeMax": 1000,
+              "powerMax": 3000,
+              "screenX": 0.75,
+              "state": 0,
+              "life": 1000
+            }
+          ],
+          "ticks": 1324,
+          "paused": false,
+          "camera": {
+            "zoom": 1,
+            "width": 427,
+            "height": 240,
+            "x": 0
+          }
+        },
+        "simulationTicks": 905,
+        "gpu": {
+          "backend": "Kenjatime WebGL2",
+          "submissions": 2054,
+          "commandBytes": 4103928,
+          "commandCopies": 0,
+          "vertexUploads": 674,
+          "vertexBytes": 1963616,
+          "presents": 308,
+          "memoryViews": 6
+        },
+        "errors": []
+      },
+      "fidelity": {
+        "frames": 180,
+        "displayedFrames": 179,
+        "eventLoopIntervalMs": {
+          "median": 10,
+          "p95": 40.10000002384186,
+          "mean": 14.168991097931691
+        },
+        "rafIntervalMs": {
+          "median": 50,
+          "p95": 100,
+          "mean": 53.16368715083799
+        },
+        "engineWorkMs": {
+          "median": 4.0999999940395355,
+          "p95": 12,
+          "mean": 5.841111109654109
+        },
+        "presentIntervalMs": {
+          "median": 51.099999994039536,
+          "p95": 108.59999999403954,
+          "mean": 53.035195530792855
+        },
+        "glCallsPerFrame": {
+          "bindFramebuffer": 4,
+          "clear": 2,
+          "getParameter": 3,
+          "bindBuffer": 9,
+          "bufferData": 2,
+          "bufferSubData": 2,
+          "useProgram": 6,
+          "uniform1i": 33,
+          "uniform4f": 112,
+          "drawArrays": 143,
+          "bindTexture": 29,
+          "uniform1f": 79,
+          "uniform3f": 4,
+          "uniformMatrix4fv": 97,
+          "blitFramebuffer": 1
+        },
+        "renderer": "WebKit WebGL",
+        "state": {
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "file": "",
+            "streaming": false,
+            "format": ""
+          },
+          "players": [
+            {
+              "life": 1000,
+              "lifeMax": 1000,
+              "power": 3000,
+              "powerMax": 3000,
+              "x": -67.44730377197266,
+              "screenX": 0.289227157831192,
+              "y": 0,
+              "screenY": 0.8166666626930237,
+              "state": 0,
+              "time": 955
+            },
+            {
+              "time": 955,
+              "power": 3000,
+              "powerMax": 3000,
+              "x": 67.44730377197266,
+              "y": 0,
+              "screenX": 0.7107728123664856,
+              "state": 0,
+              "life": 1000,
+              "lifeMax": 1000,
+              "screenY": 0.8166666626930237
+            }
+          ],
+          "ticks": 986,
+          "paused": false,
+          "camera": {
+            "x": 0,
+            "zoom": 1,
+            "width": 427,
+            "height": 240
+          }
+        },
+        "simulationTicks": 576,
+        "gpu": {
+          "backend": "Kenjatime WebGL2",
+          "submissions": 1723,
+          "commandBytes": 8984580,
+          "commandCopies": 0,
+          "vertexUploads": 625,
+          "vertexBytes": 3490528,
+          "presents": 308,
+          "memoryViews": 6
+        },
+        "errors": []
+      }
+    }
+  },
+  "staticGoVisualChecks": {
+    "grid": {
+      "width": 854,
+      "height": 480,
+      "pixelChannels": 1639680,
+      "differentChannels": 0,
+      "rgbaSha256": "174769b414859a1b75f944f99450e4d1d1f94bb43b56ca13b8f0337ddc1123b9",
+      "capture": "full-page screenshot"
+    },
+    "effects": {
+      "width": 854,
+      "height": 480,
+      "pixelChannels": 1639680,
+      "differentChannels": 0,
+      "rgbaSha256": "08b56def4bfa09a7dba9279f8a61e6afc6cbb003908c028a7f03495da975fda4",
+      "capture": "full-page screenshot"
+    },
+    "fidelity": {
+      "width": 854,
+      "height": 480,
+      "pixelChannels": 1639680,
+      "differentChannels": 0,
+      "rgbaSha256": "28331b5252fbbb46b7f72e660f3a4e4edb3760fdcbae1fbdb4d1be070855e28b",
+      "capture": "scene framebuffer"
+    }
+  },
+  "gpuPixelCheck": {
+    "pixelChannels": 49152,
+    "differentChannels": 0,
+    "commandCopies": 0,
+    "memoryViews": 2,
+    "vertexUploads": 4,
+    "allOpcodes": true
+  },
+  "browserMatches": {
+    "engine": "IKEMEN GO 1.0.0 (Go/WASM)",
+    "phoneExecution": false,
+    "cases": {
+      "touchAttackDamage": 23,
+      "pauseFreezesFighters": true,
+      "menuReturnsToKenjatime": true,
+      "archiveImports": [
+        "fighter.zip",
+        "fighter.bzip2.zip",
+        "fighter.lzma.zip",
+        "fighter.7z",
+        "fighter.tar.gz",
+        "fighter-sfx.zip",
+        "arena/fighter.zip",
+        "arena/fighter.bzip2.zip",
+        "arena/fighter.lzma.zip",
+        "arena/fighter.7z",
+        "arena/fighter.tar.gz",
+        "arena/fighter-sfx.zip",
+        "arena-classic/fighter.zip",
+        "arena-classic/fighter.bzip2.zip",
+        "arena-classic/fighter.lzma.zip",
+        "arena-classic/fighter.7z",
+        "arena-classic/fighter.tar.gz",
+        "arena-classic/fighter-sfx.zip",
+        "mobile/fighter.zip",
+        "mobile/fighter.bzip2.zip",
+        "mobile/fighter.lzma.zip",
+        "mobile/fighter.7z",
+        "mobile/fighter.tar.gz",
+        "mobile/fighter-sfx.zip"
+      ],
+      "invalidImportPreservesLibrary": true,
+      "savedImportsSurviveReload": true,
+      "oldLibraryMigration": true,
+      "MUGEN_CNS_KFM_ZIP": {
+        "started": true,
+        "state": {
+          "players": [
+            {
+              "power": 3000,
+              "screenX": 0.289227157831192,
+              "state": 0,
+              "time": 5,
+              "life": 1000,
+              "lifeMax": 1000,
+              "powerMax": 3000,
+              "x": -67.44730377197266,
+              "y": 0,
+              "screenY": 0.8166666626930237
+            },
+            {
+              "lifeMax": 1000,
+              "powerMax": 3000,
+              "x": 67.44730377197266,
+              "screenX": 0.7107728123664856,
+              "time": 5,
+              "life": 1000,
+              "power": 3000,
+              "y": 0,
+              "screenY": 0.8166666626930237,
+              "state": 0
+            }
+          ],
+          "ticks": 100,
+          "paused": false,
+          "camera": {
+            "x": 0,
+            "zoom": 1,
+            "width": 427,
+            "height": 240
+          },
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "streaming": false,
+            "format": "",
+            "file": ""
+          }
+        }
+      },
+      "MUGEN_TOMOKA_RAR": {
+        "started": true,
+        "state": {
+          "paused": false,
+          "camera": {
+            "width": 427,
+            "height": 240,
+            "x": 0,
+            "zoom": 1
+          },
+          "effects": {
+            "activeCommon": 0,
+            "commonScale": 1,
+            "commonAnimations": 19
+          },
+          "music": {
+            "file": "",
+            "streaming": false,
+            "format": ""
+          },
+          "players": [
+            {
+              "lifeMax": 990,
+              "power": 0,
+              "powerMax": 2000,
+              "y": 0,
+              "time": 6,
+              "life": 990,
+              "x": -67.44730377197266,
+              "screenX": 0.289227157831192,
+              "screenY": 0.8166666626930237,
+              "state": 0
+            },
+            {
+              "time": 6,
+              "life": 990,
+              "lifeMax": 990,
+              "power": 0,
+              "y": 0,
+              "screenX": 0.7107728123664856,
+              "powerMax": 2000,
+              "x": 67.44730377197266,
+              "screenY": 0.8166666626930237,
+              "state": 0
+            }
+          ],
+          "ticks": 140
+        }
+      },
+      "MUGEN_FOREST_RAR": {
+        "started": true,
+        "state": {
+          "music": {
+            "file": "imports/327c5426-58a4-45a7-b9e2-034d8f8ede4a/blood heat!.mp3",
+            "streaming": true,
+            "format": "mp3"
+          },
+          "players": [
+            {
+              "life": 990,
+              "lifeMax": 990,
+              "screenX": 0.25,
+              "screenY": 0.9315103888511658,
+              "state": 0,
+              "time": 3,
+              "power": 0,
+              "powerMax": 2000,
+              "x": -80,
+              "y": 0
+            },
+            {
+              "life": 990,
+              "x": 80,
+              "y": 0,
+              "screenY": 0.9315103888511658,
+              "state": 0,
+              "time": 3,
+              "lifeMax": 990,
+              "power": 0,
+              "powerMax": 2000,
+              "screenX": 0.75
+            }
+          ],
+          "ticks": 137,
+          "paused": false,
+          "camera": {
+            "x": 0,
+            "zoom": 1,
+            "width": 427,
+            "height": 240
+          },
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          }
+        }
+      }
+    },
+    "coreContainsStockUi": false,
+    "errors": [],
+    "failedRequests": []
+  },
+  "presentation": {
+    "phoneExecution": false,
+    "checks": {
+      "twoPreviewFighters": true,
+      "engineCacheRevision": "681f5f2645adb1b9",
+      "stageAudio": {
+        "music": {
+          "file": "imports/3b03d01e-2bb4-4417-a1eb-6e3c4e55a5d0/stage/stages/tone.wav",
+          "streaming": true,
+          "format": "wav"
+        },
+        "pcm": {
+          "buffers": 4,
+          "peak": 0.06938400119543076
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ]
+        }
+      },
+      "hudBefore": {
+        "p1": 2864,
+        "p2": 2849,
+        "damage": 0
+      },
+      "defenderHealthTextPixels": 23,
+      "fightersVisibleAtContact": true,
+      "normalCommonSparkScale": 1,
+      "visibleSparkPixels": 289,
+      "hudAfterHit": {
+        "p1": 2868,
+        "p2": 2831,
+        "damage": 22
+      },
+      "hitState": {
+        "players": [
+          {
+            "life": 1000,
+            "x": 64.39998626708984,
+            "screenX": 0.701249897480011,
+            "state": 200,
+            "screenY": 0.8166666626930237,
+            "time": 4,
+            "lifeMax": 1000,
+            "power": 26,
+            "powerMax": 3000,
+            "y": 0
+          },
+          {
+            "x": 96.39997863769531,
+            "screenX": 0.8012499213218689,
+            "power": 13,
+            "powerMax": 3000,
+            "y": 0,
+            "screenY": 0.8166666626930237,
+            "state": 5000,
+            "time": 1,
+            "life": 977,
+            "lifeMax": 1000
+          }
+        ],
+        "ticks": 300,
+        "paused": false,
+        "camera": {
+          "width": 427,
+          "height": 240,
+          "x": 0,
+          "zoom": 1
+        },
+        "effects": {
+          "commonScale": 1,
+          "commonAnimations": 19,
+          "activeCommon": 1
+        },
+        "music": {
+          "format": "wav",
+          "file": "imports/3b03d01e-2bb4-4417-a1eb-6e3c4e55a5d0/stage/stages/tone.wav",
+          "streaming": true
+        }
+      }
+    },
+    "errors": []
+  }
+}

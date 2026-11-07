@@ -1,5 +1,7 @@
 import {createEngineFS} from './engine-fs.js';
 import {gunzipSync} from 'fflate';
+import {createWebGLSubmitter} from '../engine/webgl/submit.js';
+window.__kenjatimeCreateGPU=createWebGLSubmitter;
 const send=(type,data={})=>parent.postMessage({kenjatimeEngine:true,type,...data},location.origin);
 const asset=name=>new URL(name+'?v='+__KENJATIME_ENGINE_REVISION__,location.href);
 let started=false,stopped=false,contexts=[],audioEnabled=true,paused=false;
@@ -18,7 +20,7 @@ async function start({files,args}){
  const response=await fetch(asset('ikemen.wasm.bin'));if(!response.ok)throw Error('The game engine could not load.');
  const compressed=new Uint8Array(await response.arrayBuffer()),bytes=compressed[0]===0x1f&&compressed[1]===0x8b?(typeof DecompressionStream==='function'?await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer():gunzipSync(compressed)):compressed;
  const go=new window.Go();go.argv=['kenjatime'];go.env={GOGC:'200'};go.exit=code=>{stopped=true;send(code?'error':'end',{message:code?'The game engine stopped.':''});};
- const {instance}=await WebAssembly.instantiate(bytes,go.importObject);send('progress',{message:'Preparing fighters and stage…'});
+ const {instance}=await WebAssembly.instantiate(bytes,go.importObject);window.__kenjatimeWasmMemory=instance.exports.mem;send('progress',{message:'Preparing fighters and stage…'});
  let ready=false;const timer=setInterval(()=>{const state=window.kenjatimeEngineSnapshot?.();if(!ready&&state?.players.length===2){ready=true;send('ready');}if(ready)send('state',{state});},250);
  go.run(instance).then(()=>{clearInterval(timer);send('end');}).catch(error=>{clearInterval(timer);send('error',{message:error.message});});
 }

@@ -28,7 +28,18 @@ beep=fetch('beep-source.zip','https://codeload.github.com/gopxl/beep/zip/defe796
 extract(beep,CACHE/'source/third_party/beep')
 mod=CACHE/'source/go.mod';mod.write_text(mod.read_text().replace('replace github.com/gopxl/beep/v2 => github.com/gopxl/beep/v2 v2.1.1-0.20240921133731-defe79638e99','replace github.com/gopxl/beep/v2 => ./third_party/beep'))
 shutil.copy2(ROOT/'engine/kenjatime_js.go',CACHE/'source/src/kenjatime_js.go')
-p=CACHE/'source/src/system_js.go';p.write_text(p.read_text().replace('\tpollGamepads()','\tpollGamepads()\n\tkenjatimePollInputs()'))
+for name in ['render_webgl.go','render_webgl_cmdbuf.go']:
+ shutil.copy2(ROOT/'engine/webgl'/name,CACHE/'source/src'/name)
+p=CACHE/'source/src/font_webgl.go';s=p.read_text();needle='fr.vboID = r.regJS(fr.vbo)';assert s.count(needle)==1;p.write_text(s.replace(needle,needle+'\n r.cmd.streamFn.Invoke(fr.vao,fr.vboID)'))
+# rAF timestamps are quantized; tolerate sub-ms jitter without halving 60Hz.
+# Rebase only after a whole missed interval, while preserving the target rate.
+p=CACHE/'source/src/system_js.go';s=p.read_text()
+for before,after in [
+ ('\tpollGamepads()','\tpollGamepads()\n\tkenjatimePollInputs()'),
+ ('if now >= win.nextFrame {','if now+0.5 >= win.nextFrame {'),
+ ('if win.nextFrame <= now {','if win.nextFrame+win.frameIntMs <= now {')]:
+ assert s.count(before)==1,before;s=s.replace(before,after)
+p.write_text(s)
 p=CACHE/'source/src/util_js.go';p.write_text(p.read_text().replace('I.K.E.M.E.N Error','Kenjatime'))
 go=os.environ.get('KENJATIME_GO')
 if not go:
@@ -59,5 +70,5 @@ for folder in [CACHE/'source/third_party',CACHE/'go-path/pkg/mod']:
    except (UnicodeError,OSError):continue
    notices.append(str(file.relative_to(folder))+'\n'+content)
 (OUT/'THIRD-PARTY-LICENSES.txt').write_text('\n\n'.join(notices))
-record={'goEnvironment':{'GOEXPERIMENT':'arenas','GOWASM':'satconv,signext','GOOS':'js','GOARCH':'wasm','CGO_ENABLED':'0'},'hostBridgeSha256':hashlib.sha256((ROOT/'engine/kenjatime_js.go').read_bytes()).hexdigest(),'engine':'IKEMEN GO','version':'1.0.0','portRepository':'https://github.com/energyjp/ikemen-go-web','portCommit':COMMIT,'sourceArchiveSha256':hashlib.sha256(source.read_bytes()).hexdigest(),'go':version,'flags':args[1:-3],'patches':['Kenjatime match status, pause and touch input bridge','Release touch inputs after at least one simulation poll','Kenjatime error title'],'stockMenuAssets':False,'stockMenuScripts':False,'wasmBytes':len(wasm),'wasmSha256':hashlib.sha256(wasm).hexdigest(),'files':{p.name:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in OUT.iterdir() if p.is_file() and p.name!='provenance.json'}}
+record={'goEnvironment':{'GOEXPERIMENT':'arenas','GOWASM':'satconv,signext','GOOS':'js','GOARCH':'wasm','CGO_ENABLED':'0'},'hostBridgeSha256':hashlib.sha256((ROOT/'engine/kenjatime_js.go').read_bytes()).hexdigest(),'rendererSources':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted((ROOT/'engine/webgl').iterdir()) if p.is_file() and p.suffix in {'.go','.js'}},'engine':'IKEMEN GO','version':'1.0.0','portRepository':'https://github.com/energyjp/ikemen-go-web','portCommit':COMMIT,'sourceArchiveSha256':hashlib.sha256(source.read_bytes()).hexdigest(),'go':version,'flags':args[1:-3],'patches':['Kenjatime match status, pause and touch input bridge','Release touch inputs after at least one simulation poll','Kenjatime error title','Kenjatime WebGL2 submission backend: live WASM memory, pooled vertex streams, GPU blit and browser frame pacing'],'stockMenuAssets':False,'stockMenuScripts':False,'wasmBytes':len(wasm),'wasmSha256':hashlib.sha256(wasm).hexdigest(),'files':{p.name:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in OUT.iterdir() if p.is_file() and p.name!='provenance.json'}}
 (OUT/'provenance.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps({'wasmBytes':len(wasm),'compressedBytes':(OUT/'ikemen.wasm.bin').stat().st_size,'sha256':record['wasmSha256']}))

@@ -7,6 +7,11 @@
     "CGO_ENABLED": "0"
   },
   "hostBridgeSha256": "82eba3b1fc1ebe54c76161d05deccb5185bb026329c6a19a83b191d1bfdd7e59",
+  "rendererSources": {
+    "render_webgl.go": "669c68b3117128d589fcd52cf41365ad7a4506cd5935bb9fff494048a811caee",
+    "render_webgl_cmdbuf.go": "9c946a3e605cd80a73d73f5cab0a2710933846304144ab13a2ecd99542011bc1",
+    "submit.js": "3c993b6aea77d48a0fdcfc465be7185b457c7f057bf127bf4094637c9037f9b4"
+  },
   "engine": "IKEMEN GO",
   "version": "1.0.0",
   "portRepository": "https://github.com/energyjp/ikemen-go-web",
@@ -22,12 +27,13 @@
   "patches": [
     "Kenjatime match status, pause and touch input bridge",
     "Release touch inputs after at least one simulation poll",
-    "Kenjatime error title"
+    "Kenjatime error title",
+    "Kenjatime WebGL2 submission backend: live WASM memory, pooled vertex streams, GPU blit and browser frame pacing"
   ],
   "stockMenuAssets": false,
   "stockMenuScripts": false,
-  "wasmBytes": 24420916,
-  "wasmSha256": "434d775110017f3d20d0e24a61129494769b606f2ff8eb274a6abda38be4a5e2",
+  "wasmBytes": 24421762,
+  "wasmSha256": "d87253d75549d196098e927525ce1a613609b3cddc97ede6dca6a6b60897613c",
   "files": {
     "wasm_exec.js": {
       "bytes": 16687,
@@ -50,8 +56,8 @@
       "sha256": "30dd549c8be7fedd0ec076cd32febf13ad34a9b4a8de7079de3fbe910f57420f"
     },
     "ikemen.wasm.bin": {
-      "bytes": 5659104,
-      "sha256": "9671558bedab6b879e7e8f3f2afa36598799610d354ec0e11156269c5d980547"
+      "bytes": 5658569,
+      "sha256": "0252aade8a6d56c765296ce26704919b2fc01155ba73bd3191ce31e3b79e47ec"
     }
   }
 }

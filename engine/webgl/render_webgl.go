@@ -1,0 +1,1342 @@
+//go:build js
+
+package main
+
+import (
+	"fmt"
+	"math"
+	"strings"
+	"syscall/js"
+
+	mgl "github.com/go-gl/mathgl/mgl32"
+)
+
+// WebGL2 renderer for the browser build: a port of render_gl33.go's 2D
+// sprite/postprocess pipeline onto WebGL2 via syscall/js.
+//
+// Deliberate differences from the GL33 renderer:
+//   - The 3D model pipeline lives in render_webgl_model.go: glTF stages draw
+//     their models, with environment lighting where the browser can render
+//     into float targets. Model SHADOWS are not available (IsShadowEnabled is
+//     false): they need geometry shaders and cube map arrays, which WebGL2
+//     lacks. If the model pipeline cannot be set up, IsModelEnabled is false
+//     and the engine skips the models, keeping the stages' 2D layers.
+//   - No MSAA (WebGL2 multisampled renderbuffers exist but the ping-pong
+//     postprocess path doesn't need them; sys.msaa is forced to 0).
+//   - Uniform locations are JS objects, not ints, so programs index them
+//     through per-program tables.
+//
+// Commands are consumed directly from live WASM memory. Cold texture/resource
+// uploads use scratch arrays; dynamic sprite/font vertices use pooled streams.
+
+const webglDebugName = "Kenjatime WebGL2"
+
+// ---------------------------------------------------------------------------
+// scratch typed-array marshalling
+
+type wglScratch struct {
+	buf js.Value // ArrayBuffer
+	u8  js.Value // Uint8Array view
+	f32 js.Value // Float32Array view
+	cap int      // bytes
+}
+
+func (s *wglScratch) ensure(nBytes int) {
+	if s.cap >= nBytes {
+		return
+	}
+	n := s.cap * 2
+	if n < nBytes {
+		n = nBytes
+	}
+	if n < 1<<16 {
+		n = 1 << 16
+	}
+	s.buf = js.Global().Get("ArrayBuffer").New(n)
+	s.u8 = js.Global().Get("Uint8Array").New(s.buf)
+	s.f32 = js.Global().Get("Float32Array").New(s.buf)
+	s.cap = n
+}
+
+// bytes returns a Uint8Array view holding data.
+func (s *wglScratch) bytes(data []byte) js.Value {
+	s.ensure(len(data))
+	dst := s.u8.Call("subarray", 0, len(data))
+	js.CopyBytesToJS(dst, data)
+	return dst
+}
+
+// floats returns a Float32Array view holding values.
+func (s *wglScratch) floats(values []float32) js.Value {
+	s.ensure(len(values) * 4)
+	b := f32SliceAsByteSlice(values)
+	js.CopyBytesToJS(s.u8.Call("subarray", 0, len(b)), b)
+	return s.f32.Call("subarray", 0, len(values))
+}
+
+// f32SliceAsByteSlice encodes []float32 as little-endian bytes into a
+// reusable Go-side buffer (wasm is little-endian).
+func f32SliceAsByteSlice(values []float32) []byte {
+	n := len(values) * 4
+	if cap(wglGoScratch) < n {
+		wglGoScratch = make([]byte, n*2)
+	}
+	b := wglGoScratch[:n]
+	for i, v := range values {
+		bits := math.Float32bits(v)
+		b[i*4] = byte(bits)
+		b[i*4+1] = byte(bits >> 8)
+		b[i*4+2] = byte(bits >> 16)
+		b[i*4+3] = byte(bits >> 24)
+	}
+	return b
+}
+
+var wglGoScratch []byte
+
+// ---------------------------------------------------------------------------
+// shader programs
+
+type ShaderProgram_WebGL struct {
+	program       js.Value
+	name          string
+	attributes    map[string]int
+	uniformIdx    map[string]int
+	uniformLocs   []js.Value
+	textures      map[string]int
+	needsGrabPass bool
+	id            uint32
+	// Command-buffer handles (see render_webgl_cmdbuf.go): the program object
+	// and each uniform location registered in the JS-side table. -1 = location
+	// not valid (mirrors !loc.Truthy()).
+	cmdID            int32
+	uniformCmdIDs    []int32
+	customUniformIdx []int
+}
+
+func (s *ShaderProgram_WebGL) uniformIndex(name string) int {
+	if idx, ok := s.uniformIdx[name]; ok {
+		return idx
+	}
+	return -1
+}
+
+// ---------------------------------------------------------------------------
+// textures
+
+type Texture_WebGL struct {
+	width  int32
+	height int32
+	depth  int32
+	filter bool
+	handle js.Value
+	serial uint64
+	cmdID  int32 // handle in the command-buffer object table
+	// Model pipeline textures (render_webgl_model.go): a cube map, an RGBA16F
+	// image uploaded from float data (the environment panorama), and an
+	// environment map whose render pass has run.
+	cube        bool
+	halfFloat   bool
+	envRendered bool
+}
+
+func (t *Texture_WebGL) mapFormat(i int32) (internal, format js.Value, ok bool) {
+	r := gfx.(*Renderer_WebGL)
+	switch i {
+	case 8:
+		return r.c("R8"), r.c("RED"), true
+	case 24:
+		return r.c("RGB"), r.c("RGB"), true
+	case 32:
+		return r.c("RGBA"), r.c("RGBA"), true
+	case 96:
+		return r.c("RGB32F"), r.c("RGB"), true
+	case 128:
+		return r.c("RGBA32F"), r.c("RGBA"), true
+	}
+	return js.Undefined(), js.Undefined(), false
+}
+
+func (t *Texture_WebGL) samplingParam(i TextureSamplingParam) js.Value {
+	r := gfx.(*Renderer_WebGL)
+	switch i {
+	case TextureSamplingFilterNearest:
+		return r.c("NEAREST")
+	case TextureSamplingFilterLinear:
+		return r.c("LINEAR")
+	case TextureSamplingFilterNearestMipMapNearest:
+		return r.c("NEAREST_MIPMAP_NEAREST")
+	case TextureSamplingFilterLinearMipMapNearest:
+		return r.c("LINEAR_MIPMAP_NEAREST")
+	case TextureSamplingFilterNearestMipMapLinear:
+		return r.c("NEAREST_MIPMAP_LINEAR")
+	case TextureSamplingFilterLinearMipMapLinear:
+		return r.c("LINEAR_MIPMAP_LINEAR")
+	case TextureSamplingWrapClampToEdge:
+		return r.c("CLAMP_TO_EDGE")
+	case TextureSamplingWrapMirroredRepeat:
+		return r.c("MIRRORED_REPEAT")
+	case TextureSamplingWrapRepeat:
+		return r.c("REPEAT")
+	}
+	return r.c("NEAREST")
+}
+
+func (t *Texture_WebGL) bindAndPrepare() js.Value {
+	r := gfx.(*Renderer_WebGL)
+	r.SetActiveTexture0()
+	r.glc("bindTexture", r.c("TEXTURE_2D"), t.handle)
+	r.glc("pixelStorei", r.c("UNPACK_ALIGNMENT"), 1)
+	r.glc("pixelStorei", r.c("UNPACK_ROW_LENGTH"), 0)
+	return r.gl
+}
+
+func (t *Texture_WebGL) SetData(data []byte) {
+	r := gfx.(*Renderer_WebGL)
+	gl := t.bindAndPrepare()
+	internal, format, _ := t.mapFormat(Max(t.depth, 8))
+	if data != nil {
+		gl.Call("texImage2D", r.c("TEXTURE_2D"), 0, internal, t.width, t.height, 0,
+			format, r.c("UNSIGNED_BYTE"), r.scratch.bytes(data))
+	} else {
+		gl.Call("texImage2D", r.c("TEXTURE_2D"), 0, internal, t.width, t.height, 0,
+			format, r.c("UNSIGNED_BYTE"), js.Null())
+	}
+	interp := r.c("NEAREST")
+	if t.filter {
+		interp = r.c("LINEAR")
+	}
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), interp)
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), interp)
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_S"), r.c("CLAMP_TO_EDGE"))
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_T"), r.c("CLAMP_TO_EDGE"))
+}
+
+func (t *Texture_WebGL) SetSubData(data []byte, x, y, width, height, stride int32) {
+	r := gfx.(*Renderer_WebGL)
+	gl := t.bindAndPrepare()
+	_, format, _ := t.mapFormat(Max(t.depth, 8))
+	bytesPerPixel := t.depth / 8
+	if bytesPerPixel < 1 {
+		bytesPerPixel = 1
+	}
+	if stride > 0 && stride != width*bytesPerPixel {
+		gl.Call("pixelStorei", r.c("UNPACK_ROW_LENGTH"), stride/bytesPerPixel)
+	}
+	if data != nil {
+		gl.Call("texSubImage2D", r.c("TEXTURE_2D"), 0, x, y, width, height,
+			format, r.c("UNSIGNED_BYTE"), r.scratch.bytes(data))
+	}
+	gl.Call("pixelStorei", r.c("UNPACK_ROW_LENGTH"), 0)
+	interp := r.c("NEAREST")
+	if t.filter {
+		interp = r.c("LINEAR")
+	}
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), interp)
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), interp)
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_S"), r.c("CLAMP_TO_EDGE"))
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_T"), r.c("CLAMP_TO_EDGE"))
+}
+
+// SetDataG uploads a model texture (RGBA8) and builds its mipmaps.
+//   - An image larger than this GPU's MAX_TEXTURE_SIZE is halved (2x2 box)
+//     until it fits. At its full size texImage2D fails with INVALID_VALUE and
+//     the material samples black. Desktop GPUs allow 16384; phones and older
+//     integrated GPUs often 4096 or 8192. One console warning per size.
+//   - Level 0 is allocated empty and filled in row bands through the
+//     long-lived scratch buffer, never from one Uint8Array the size of the
+//     image: a js.Value lives until the next Go GC runs its finalizer, which
+//     after a stage reload can be a long time, and CVS-P's 8000x4934 texture
+//     kept ~150 MB of ArrayBuffer alive that way.
+func (t *Texture_WebGL) SetDataG(data []byte, mag, min, ws, wt TextureSamplingParam) {
+	r := gfx.(*Renderer_WebGL)
+	bpp := int(Max(t.depth, 8) / 8)
+	if limit := r.maxTextureSize(); bpp == 4 && limit > 0 && (t.width > limit || t.height > limit) &&
+		len(data) >= int(t.width)*int(t.height)*4 {
+		w0, h0 := t.width, t.height
+		for t.width > limit || t.height > limit {
+			data, t.width, t.height = halveRGBA8(data, t.width, t.height)
+		}
+		r.wglWarn(fmt.Sprintf("WebGL: a %dx%d model texture is over this GPU's limit (%d); drawn at %dx%d",
+			w0, h0, limit, t.width, t.height))
+	}
+	gl := t.bindAndPrepare()
+	internal, format, _ := t.mapFormat(Max(t.depth, 8))
+	gl.Call("texImage2D", r.c("TEXTURE_2D"), 0, internal, t.width, t.height, 0,
+		format, r.c("UNSIGNED_BYTE"), js.Null())
+	if row := int(t.width) * bpp; row > 0 {
+		band := (1 << 20) / row
+		if band < 1 {
+			band = 1
+		}
+		for y := 0; y < int(t.height); y += band {
+			n := int(t.height) - y
+			if n > band {
+				n = band
+			}
+			if (y+n)*row > len(data) {
+				break
+			}
+			gl.Call("texSubImage2D", r.c("TEXTURE_2D"), 0, 0, y, t.width, n,
+				format, r.c("UNSIGNED_BYTE"), r.scratch.bytes(data[y*row:(y+n)*row]))
+		}
+	}
+	gl.Call("generateMipmap", r.c("TEXTURE_2D"))
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), t.samplingParam(mag))
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), t.samplingParam(min))
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_S"), t.samplingParam(ws))
+	gl.Call("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_T"), t.samplingParam(wt))
+}
+
+// SetPixelData uploads float texels: the model pipeline's joint matrices and
+// morph targets (RGBA32F, sampled NEAREST) and the environment panorama
+// (RGBA16F, see newHDRTexture).
+func (t *Texture_WebGL) SetPixelData(data []float32) {
+	r := gfx.(*Renderer_WebGL)
+	if t.halfFloat && !r.model.envOK {
+		return // the environment is never rendered; skip the upload
+	}
+	internal, _, _ := t.mapFormat(Max(t.depth, 8))
+	_, format, _ := t.mapFormat(Max(t.depth/4, 8))
+	if t.halfFloat {
+		internal = r.c("RGBA16F")
+	}
+	channels := int(Max(t.depth, 8) / 32)
+	if channels < 1 {
+		channels = 1
+	}
+	src := r.uploadFloats(data, int(t.width)*int(t.height)*channels)
+	gl := t.bindAndPrepare()
+	gl.Call("texImage2D", r.c("TEXTURE_2D"), 0, internal, t.width, t.height, 0,
+		format, r.c("FLOAT"), src)
+}
+
+func (t *Texture_WebGL) CopyData(src *Texture) {}
+
+func (t *Texture_WebGL) IsValid() bool {
+	return t.width != 0 && t.height != 0 && t.handle.Truthy()
+}
+
+func (t *Texture_WebGL) GetWidth() int32  { return t.width }
+func (t *Texture_WebGL) GetHeight() int32 { return t.height }
+
+// ---------------------------------------------------------------------------
+// renderer
+
+type Renderer_WebGL struct {
+	gl      js.Value // WebGL2RenderingContext
+	consts  map[string]js.Value
+	scratch wglScratch
+
+	fbo          js.Value
+	fboTexture   js.Value
+	rboDepth     js.Value
+	fboPP        []js.Value
+	fboPPTexture []js.Value
+
+	postVertBuffer   js.Value
+	postShaderSelect []*ShaderProgram_WebGL
+
+	spriteShader *ShaderProgram_WebGL
+	vertexBuffer js.Value
+
+	customShaders   map[uint32]*ShaderProgram_WebGL
+	customShaderMap map[string]uint32
+	nextShaderID    uint32
+	currentProgram  *ShaderProgram_WebGL
+
+	spriteVAO js.Value
+	postVAO   js.Value
+
+	grabTexture *Texture_WebGL
+
+	// state cache
+	programID     uint32
+	blendEnabled  bool
+	blendEquation BlendEquation
+	blendSrc      BlendFunc
+	blendDst      BlendFunc
+	depthTest     bool
+	// MUST start true: this mirrors GL state, and WebGL's own default for
+	// DEPTH_WRITEMASK is true. Left at Go's zero value it claimed the mask was
+	// already false, so the single SetDepthMask(false) call took the "no
+	// change" early-out and never emitted anything - the real depth write mask
+	// stayed enabled for the whole session.
+	//
+	// That is not merely a wasted call. ANGLE enables the
+	// forceDepthAttachmentInitOnClear workaround on AMD ONLY, and it triggers
+	// for any clear including DEPTH_BUFFER_BIT unless depth is masked out -
+	// so an AMD machine paid an extra depth-attachment init on every clear
+	// while NVIDIA paid nothing. See newRenderer_WebGL for the init that keeps
+	// this honest.
+	depthMask      bool
+	scissorEnabled bool
+	// A disable that has been REQUESTED but not emitted. RenderSprite calls
+	// DisableScissor after every single sprite, which cost a rasterizer-state
+	// change per sprite AND made EnableScissor's rect dedup unreachable - that
+	// early-out requires scissorEnabled to still be true, and the disable had
+	// just cleared it. Deferring means consecutive sprites sharing a window
+	// emit nothing at all. Anything that must actually see scissor off calls
+	// flushScissorDisable.
+	scissorPending bool
+	scissorRect    [4]int32
+
+	// uniform dedup caches (keyed by programID<<16 | uniformIdx)
+	uniformM4Cache map[uint32][16]float32
+	uniformICache  map[uint32]int32
+	uniformF1Cache map[uint32]float32
+	uniformF2Cache map[uint32][2]float32
+	uniformF3Cache map[uint32][3]float32
+	uniformF4Cache map[uint32][4]float32
+
+	// sprite texture unit cache
+	texCacheTexSerial []uint64
+	texCacheLastUsed  []uint64
+	texCacheTimer     uint64
+
+	// GL command buffer (render_webgl_cmdbuf.go) + table handles for the
+	// hot-path buffer objects
+	cmd         wglCmdBuf
+	vertexBufID int32
+	spriteVAOID int32
+
+	// 3D model pipeline (render_webgl_model.go)
+	model wglModel
+}
+
+// c resolves a WebGL enum constant by name, cached.
+func (r *Renderer_WebGL) c(name string) js.Value {
+	if v, ok := r.consts[name]; ok {
+		return v
+	}
+	v := r.gl.Get(name)
+	r.consts[name] = v
+	return v
+}
+
+func (r *Renderer_WebGL) ci(name string) int {
+	return r.c(name).Int()
+}
+
+func (r *Renderer_WebGL) GetName() string { return webglDebugName }
+
+func (r *Renderer_WebGL) DebugInfo() string {
+	if !r.gl.Truthy() {
+		return webglDebugName
+	}
+	return fmt.Sprintf("%v (%v)",
+		r.glc("getParameter", r.c("VERSION")).String(),
+		r.glc("getParameter", r.c("RENDERER")).String())
+}
+
+const webglESHeader = "#version 300 es\nprecision highp float;\nprecision highp int;\n"
+
+func (r *Renderer_WebGL) compileShader(shaderType js.Value, src string) (js.Value, error) {
+	src = strings.TrimRight(src, "\x00")
+	if !strings.HasPrefix(strings.TrimSpace(src), "#version") {
+		src = webglESHeader + src
+	}
+	shader := r.glc("createShader", shaderType)
+	r.glc("shaderSource", shader, src)
+	r.glc("compileShader", shader)
+	if !r.glc("getShaderParameter", shader, r.c("COMPILE_STATUS")).Bool() {
+		log := r.glc("getShaderInfoLog", shader).String()
+		r.glc("deleteShader", shader)
+		return js.Null(), Error("shader compile error: " + log)
+	}
+	return shader, nil
+}
+
+func (r *Renderer_WebGL) newShaderProgram(vert, frag, geo, name string, crashWhenFail bool) (*ShaderProgram_WebGL, error) {
+	if len(geo) > 0 {
+		err := Error("geometry shaders are not supported on WebGL")
+		chkEX(err, "Shader compilation error on "+name+"\n", crashWhenFail)
+		return nil, err
+	}
+	s, what, err := r.buildProgram(vert, frag, name)
+	if err != nil {
+		chkEX(err, what+name+"\n", crashWhenFail)
+		return nil, err
+	}
+	return s, nil
+}
+
+// buildProgram compiles and links without reporting the failure: the caller
+// decides between the error dialog (newShaderProgram, the 2D shaders) and a
+// feature that turns itself off (the 3D model pipeline). `what` names the
+// failed step in the dialog's wording.
+func (r *Renderer_WebGL) buildProgram(vert, frag, name string) (s *ShaderProgram_WebGL, what string, err error) {
+	vertObj, err := r.compileShader(r.c("VERTEX_SHADER"), vert)
+	if err != nil {
+		return nil, "Shader compilation error on ", err
+	}
+	fragObj, err := r.compileShader(r.c("FRAGMENT_SHADER"), frag)
+	if err != nil {
+		r.glc("deleteShader", vertObj)
+		return nil, "Shader compilation error on ", err
+	}
+	prog := r.glc("createProgram")
+	r.glc("attachShader", prog, vertObj)
+	r.glc("attachShader", prog, fragObj)
+	r.glc("linkProgram", prog)
+	r.glc("deleteShader", vertObj)
+	r.glc("deleteShader", fragObj)
+	if !r.glc("getProgramParameter", prog, r.c("LINK_STATUS")).Bool() {
+		log := r.glc("getProgramInfoLog", prog).String()
+		r.glc("deleteProgram", prog)
+		return nil, "Link program error on ", Error("program link error: " + log)
+	}
+	r.nextShaderID++
+	return &ShaderProgram_WebGL{
+		program:    prog,
+		name:       name,
+		attributes: make(map[string]int),
+		uniformIdx: make(map[string]int),
+		textures:   make(map[string]int),
+		id:         r.nextShaderID,
+		cmdID:      r.regJS(prog),
+	}, "", nil
+}
+
+func (s *ShaderProgram_WebGL) RegisterAttributes(names ...string) {
+	r := gfx.(*Renderer_WebGL)
+	for _, name := range names {
+		s.attributes[name] = r.glc("getAttribLocation", s.program, name).Int()
+	}
+}
+
+func (s *ShaderProgram_WebGL) RegisterUniforms(names ...string) {
+	r := gfx.(*Renderer_WebGL)
+	for _, name := range names {
+		loc := r.glc("getUniformLocation", s.program, name)
+		s.uniformIdx[name] = len(s.uniformLocs)
+		s.uniformLocs = append(s.uniformLocs, loc)
+		s.uniformCmdIDs = append(s.uniformCmdIDs, r.regLoc(loc))
+	}
+}
+
+func (s *ShaderProgram_WebGL) RegisterTextures(names ...string) {
+	r := gfx.(*Renderer_WebGL)
+	for _, name := range names {
+		loc := r.glc("getUniformLocation", s.program, name)
+		s.uniformIdx[name] = len(s.uniformLocs)
+		s.uniformLocs = append(s.uniformLocs, loc)
+		s.uniformCmdIDs = append(s.uniformCmdIDs, r.regLoc(loc))
+		s.textures[name] = len(s.textures)
+	}
+}
+
+func (r *Renderer_WebGL) generateTexture(width, height, depth int32, filter bool) *Texture_WebGL {
+	h := r.glc("createTexture")
+	textureSerialNumber++
+	return &Texture_WebGL{
+		width: width, height: height, depth: depth, filter: filter,
+		handle: h, serial: textureSerialNumber,
+		cmdID: r.regJS(h),
+	}
+}
+
+func (r *Renderer_WebGL) newTexture(width, height, depth int32, filter bool) Texture {
+	r.SetActiveTexture0()
+	t := r.generateTexture(width, height, depth, filter)
+	internal, format, _ := t.mapFormat(Max(depth, 8))
+	r.glc("bindTexture", r.c("TEXTURE_2D"), t.handle)
+	r.glc("texImage2D", r.c("TEXTURE_2D"), 0, internal, width, height, 0,
+		format, r.c("UNSIGNED_BYTE"), js.Null())
+	// WebGL2 defaults MIN_FILTER to mipmapping; set safe params up front.
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), r.c("NEAREST"))
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), r.c("NEAREST"))
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_S"), r.c("CLAMP_TO_EDGE"))
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_T"), r.c("CLAMP_TO_EDGE"))
+	r.glc("bindTexture", r.c("TEXTURE_2D"), js.Null())
+	return t
+}
+
+func (r *Renderer_WebGL) newPaletteTexture() Texture {
+	return r.newTexture(256, 1, 32, false)
+}
+
+func (r *Renderer_WebGL) Init() {
+	doc := js.Global().Get("document")
+	canvas := doc.Call("getElementById", "ikemen-canvas")
+	if !canvas.Truthy() {
+		canvas = doc.Call("createElement", "canvas")
+		canvas.Set("id", "ikemen-canvas")
+		doc.Get("body").Call("appendChild", canvas)
+	}
+	attrs := js.Global().Get("Object").New()
+	attrs.Set("alpha", false)
+	attrs.Set("antialias", false)
+	attrs.Set("depth", true)
+	attrs.Set("premultipliedAlpha", false)
+	attrs.Set("preserveDrawingBuffer", false)
+	attrs.Set("powerPreference", "high-performance")
+	r.gl = canvas.Call("getContext", "webgl2", attrs)
+	if !r.gl.Truthy() {
+		panic(Error("WebGL2 is not available in this browser"))
+	}
+	r.consts = make(map[string]js.Value)
+	r.initCmdBuf()
+	LogMessage("Using %v", r.DebugInfo())
+
+	// No MSAA on the WebGL path.
+	if sys.msaa > 0 {
+		sys.msaa = 0
+	}
+
+	r.customShaders = make(map[uint32]*ShaderProgram_WebGL)
+	r.customShaderMap = make(map[string]uint32)
+	r.nextShaderID = 1
+	r.currentProgram = nil
+	// Seed the state-mirror caches to the values GL actually starts with, not
+	// to Go zero values. DEPTH_WRITEMASK defaults to true in WebGL; claiming
+	// false here makes the first SetDepthMask(false) a no-op and leaves depth
+	// writes on for the entire session.
+	r.depthMask = true
+
+	r.uniformM4Cache = make(map[uint32][16]float32)
+	r.uniformICache = make(map[uint32]int32)
+	r.uniformF1Cache = make(map[uint32]float32)
+	r.uniformF2Cache = make(map[uint32][2]float32)
+	r.uniformF3Cache = make(map[uint32][3]float32)
+	r.uniformF4Cache = make(map[uint32][4]float32)
+
+	maxUnits := r.glc("getParameter", r.c("MAX_TEXTURE_IMAGE_UNITS")).Int()
+	if maxUnits > 16 {
+		maxUnits = 16
+	}
+	r.texCacheTexSerial = make([]uint64, maxUnits)
+	r.texCacheLastUsed = make([]uint64, maxUnits)
+	r.texCacheTimer = 1
+
+	// VAOs and buffers
+	r.spriteVAO = r.glc("createVertexArray")
+	r.postVAO = r.glc("createVertexArray")
+	r.vertexBuffer = r.glc("createBuffer")
+	r.postVertBuffer = r.glc("createBuffer")
+	r.spriteVAOID = r.regJS(r.spriteVAO)
+	r.vertexBufID = r.regJS(r.vertexBuffer)
+	r.cmd.streamFn.Invoke(r.spriteVAO, r.vertexBufID)
+
+	// Post-processing quad
+	postVerts := []float32{-1, -1, 1, -1, -1, 1, 1, 1}
+	r.glc("bindBuffer", r.c("ARRAY_BUFFER"), r.postVertBuffer)
+	r.glc("bufferData", r.c("ARRAY_BUFFER"), r.scratch.floats(postVerts), r.c("STATIC_DRAW"))
+	r.glc("bindBuffer", r.c("ARRAY_BUFFER"), js.Null())
+
+	// Sprite shader
+	r.spriteShader, _ = r.newShaderProgram(vertShader, fragShader, "", "Main Shader", true)
+	r.spriteShader.RegisterAttributes("position", "uv")
+	r.spriteShader.RegisterUniforms("modelview", "projection", "x1x2x4x3",
+		"alpha", "tint", "mask", "neg", "gray", "add", "mult", "isFlat", "isRgba", "isTrapez", "hue")
+	r.spriteShader.RegisterTextures("pal", "tex")
+
+	// Sprite VAO layout
+	r.glc("bindVertexArray", r.spriteVAO)
+	r.glc("bindBuffer", r.c("ARRAY_BUFFER"), r.vertexBuffer)
+	locPos := r.spriteShader.attributes["position"]
+	r.glc("enableVertexAttribArray", locPos)
+	r.glc("vertexAttribPointer", locPos, 2, r.c("FLOAT"), false, 16, 0)
+	locUV := r.spriteShader.attributes["uv"]
+	r.glc("enableVertexAttribArray", locUV)
+	r.glc("vertexAttribPointer", locUV, 2, r.c("FLOAT"), false, 16, 8)
+	r.glc("bindVertexArray", js.Null())
+
+	// Post-processing shaders (external ones + trailing identity shader)
+	r.postShaderSelect = make([]*ShaderProgram_WebGL, len(sys.cfg.Video.ExternalShaders)+1)
+	r.glc("bindVertexArray", r.postVAO)
+	r.glc("bindBuffer", r.c("ARRAY_BUFFER"), r.postVertBuffer)
+	for i := 0; i < len(sys.cfg.Video.ExternalShaders); i++ {
+		r.postShaderSelect[i], _ = r.newShaderProgram(string(sys.externalShaders[0][i]),
+			string(sys.externalShaders[1][i]), "", fmt.Sprintf("Postprocess Shader #%v", i), true)
+		r.postShaderSelect[i].RegisterAttributes("VertCoord")
+		r.postShaderSelect[i].RegisterUniforms("Texture_GL33", "TextureSize", "CurrentTime")
+		if loc, ok := r.postShaderSelect[i].attributes["VertCoord"]; ok && loc >= 0 {
+			r.glc("enableVertexAttribArray", loc)
+			r.glc("vertexAttribPointer", loc, 2, r.c("FLOAT"), false, 0, 0)
+		}
+	}
+	identShader, _ := r.newShaderProgram(identVertShader, identFragShader, "", "Identity Postprocess", true)
+	identShader.RegisterAttributes("VertCoord")
+	if loc, ok := identShader.attributes["VertCoord"]; ok && loc >= 0 {
+		r.glc("enableVertexAttribArray", loc)
+		r.glc("vertexAttribPointer", loc, 2, r.c("FLOAT"), false, 0, 0)
+	}
+	r.postShaderSelect[len(r.postShaderSelect)-1] = identShader
+	r.glc("bindVertexArray", js.Null())
+	r.glc("bindBuffer", r.c("ARRAY_BUFFER"), js.Null())
+
+	// Grab-pass texture
+	r.SetActiveTexture0()
+	r.grabTexture = r.newTexture(sys.scrrect[2], sys.scrrect[3], 32, true).(*Texture_WebGL)
+	r.grabTexture.SetData(nil)
+
+	// Main offscreen framebuffer: RGBA color texture + depth renderbuffer
+	r.fboTexture = r.glc("createTexture")
+	textureSerialNumber++
+	r.glc("bindTexture", r.c("TEXTURE_2D"), r.fboTexture)
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), r.c("NEAREST"))
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), r.c("NEAREST"))
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_S"), r.c("CLAMP_TO_EDGE"))
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_T"), r.c("CLAMP_TO_EDGE"))
+	r.glc("texImage2D", r.c("TEXTURE_2D"), 0, r.c("RGBA"), sys.scrrect[2], sys.scrrect[3], 0,
+		r.c("RGBA"), r.c("UNSIGNED_BYTE"), js.Null())
+
+	r.rboDepth = r.glc("createRenderbuffer")
+	r.glc("bindRenderbuffer", r.c("RENDERBUFFER"), r.rboDepth)
+	r.glc("renderbufferStorage", r.c("RENDERBUFFER"), r.c("DEPTH_COMPONENT24"), sys.scrrect[2], sys.scrrect[3])
+
+	r.fbo = r.glc("createFramebuffer")
+	r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fbo)
+	r.glc("framebufferTexture2D", r.c("FRAMEBUFFER"), r.c("COLOR_ATTACHMENT0"), r.c("TEXTURE_2D"), r.fboTexture, 0)
+	r.glc("framebufferRenderbuffer", r.c("FRAMEBUFFER"), r.c("DEPTH_ATTACHMENT"), r.c("RENDERBUFFER"), r.rboDepth)
+
+	// Intermediate targets are only needed for actual post-processing.
+	if len(r.postShaderSelect) > 1 {
+		// Ping-pong post-processing framebuffers
+		r.fboPP = make([]js.Value, 2)
+		r.fboPPTexture = make([]js.Value, 2)
+		for i := 0; i < 2; i++ {
+			r.fboPPTexture[i] = r.glc("createTexture")
+			textureSerialNumber++
+			r.glc("bindTexture", r.c("TEXTURE_2D"), r.fboPPTexture[i])
+			r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), r.c("NEAREST"))
+			r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), r.c("NEAREST"))
+			r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_S"), r.c("CLAMP_TO_EDGE"))
+			r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_T"), r.c("CLAMP_TO_EDGE"))
+			r.glc("texImage2D", r.c("TEXTURE_2D"), 0, r.c("RGBA"), sys.scrrect[2], sys.scrrect[3], 0,
+				r.c("RGBA"), r.c("UNSIGNED_BYTE"), js.Null())
+			r.fboPP[i] = r.glc("createFramebuffer")
+			r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fboPP[i])
+			r.glc("framebufferTexture2D", r.c("FRAMEBUFFER"), r.c("COLOR_ATTACHMENT0"), r.c("TEXTURE_2D"), r.fboPPTexture[i], 0)
+		}
+
+		if r.glc("checkFramebufferStatus", r.c("FRAMEBUFFER")).Int() != r.ci("FRAMEBUFFER_COMPLETE") {
+			LogMessage("WebGL: framebuffer incomplete")
+		}
+		r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), js.Null())
+
+	}
+
+	// 3D model pipeline (render_webgl_model.go); turns itself off on failure.
+	r.initModel()
+}
+
+func (r *Renderer_WebGL) Close() {}
+
+func (r *Renderer_WebGL) BeginFrame(clearColor bool) {
+	// A clear obeys the scissor rect, so a deferred disable must land first or
+	// only the last sprite's window gets cleared.
+	r.flushScissorDisable()
+	r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fbo)
+	r.glc("viewport", 0, 0, sys.scrrect[2], sys.scrrect[3])
+	if clearColor {
+		r.glc("clear", r.ci("COLOR_BUFFER_BIT")|r.ci("DEPTH_BUFFER_BIT"))
+	} else {
+		r.glc("clear", r.ci("DEPTH_BUFFER_BIT"))
+	}
+}
+
+func (r *Renderer_WebGL) EndFrame() {
+	// The default output is an identity copy, not a shader effect. Keep the
+	// scene's palette/blend/rotation semantics and present it with one GPU blit.
+	if len(r.postShaderSelect) == 1 {
+		r.flushScissorDisable()
+		r.DisableBlending()
+		r.SetDepthTest(false)
+		r.SetDepthMask(false)
+		r.flushCmds()
+		x, y, w, h := sys.window.GetScaledViewportSize()
+		r.cmd.presentFn.Invoke(r.fbo, sys.scrrect[2], sys.scrrect[3], x, y, w, h, sys.cfg.Video.WindowScaleMode)
+		return
+	}
+	if len(r.fboPP) == 0 {
+		return
+	}
+	width, height := int32(sys.scrrect[2]), int32(sys.scrrect[3])
+	now := js.Global().Get("performance").Call("now").Float()
+
+	scaleMode := r.c("NEAREST")
+	if sys.cfg.Video.WindowScaleMode {
+		scaleMode = r.c("LINEAR")
+	}
+
+	r.glc("viewport", 0, 0, width, height)
+	for i := 0; i < 2; i++ {
+		r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fboPP[i])
+		r.glc("clear", r.ci("COLOR_BUFFER_BIT"))
+	}
+	r.SetActiveTexture0()
+
+	r.flushScissorDisable()
+	r.DisableBlending()
+	r.SetDepthTest(false)
+	r.SetDepthMask(false)
+
+	for i := 0; i < len(r.postShaderSelect); i++ {
+		postShader := r.postShaderSelect[i]
+		r.ChangeProgram(postShader)
+		r.glc("bindVertexArray", r.postVAO)
+
+		if i%2 == 0 {
+			r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fboPP[0])
+			if i == 0 {
+				r.glc("bindTexture", r.c("TEXTURE_2D"), r.fboTexture)
+			} else {
+				r.glc("bindTexture", r.c("TEXTURE_2D"), r.fboPPTexture[1])
+			}
+		} else {
+			r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fboPP[1])
+			r.glc("bindTexture", r.c("TEXTURE_2D"), r.fboPPTexture[0])
+		}
+
+		if i >= len(r.postShaderSelect)-1 {
+			x, y, w, h := sys.window.GetScaledViewportSize()
+			r.glc("viewport", x, y, w, h)
+			r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), js.Null())
+			r.glc("clear", r.ci("COLOR_BUFFER_BIT")|r.ci("DEPTH_BUFFER_BIT"))
+		}
+
+		if idx := postShader.uniformIndex("Texture_GL33"); idx >= 0 {
+			r.SetUniformISub(postShader, idx, 0)
+		}
+		if idx := postShader.uniformIndex("TextureSize"); idx >= 0 {
+			r.SetUniformFSub(postShader, idx, float32(width), float32(height))
+		}
+		if idx := postShader.uniformIndex("CurrentTime"); idx >= 0 {
+			r.SetUniformFSub(postShader, idx, float32(now))
+		}
+
+		r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), scaleMode)
+		r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), scaleMode)
+
+		r.glc("drawArrays", r.c("TRIANGLE_STRIP"), 0, 4)
+	}
+	// Unbind the post-process texture so it is not still the active sampler
+	// when the NEXT frame renders into the scene FBO - that pairing is what
+	// makes some drivers spam "Feedback loop formed between Framebuffer and
+	// active Texture" every frame (harmless per the spec, but the driver-side
+	// error handling is a real per-frame cost on the machines that report it).
+	r.glc("bindTexture", r.c("TEXTURE_2D"), js.Null())
+}
+
+func (r *Renderer_WebGL) Await() {
+	// Yield to the browser compositor and input loop even after missed deadlines.
+	sys.window.SwapBuffers()
+}
+
+func (r *Renderer_WebGL) mapBlendEquation(i BlendEquation) js.Value {
+	switch i {
+	case BlendReverseSubtract:
+		return r.c("FUNC_REVERSE_SUBTRACT")
+	default:
+		return r.c("FUNC_ADD")
+	}
+}
+
+func (r *Renderer_WebGL) mapBlendFunction(i BlendFunc) js.Value {
+	switch i {
+	case BlendOne:
+		return r.c("ONE")
+	case BlendZero:
+		return r.c("ZERO")
+	case BlendSrcAlpha:
+		return r.c("SRC_ALPHA")
+	case BlendOneMinusSrcAlpha:
+		return r.c("ONE_MINUS_SRC_ALPHA")
+	case BlendOneMinusDstColor:
+		return r.c("ONE_MINUS_DST_COLOR")
+	case BlendDstColor:
+		return r.c("DST_COLOR")
+	}
+	return r.c("ONE")
+}
+
+func (r *Renderer_WebGL) mapPrimitiveMode(i PrimitiveMode) js.Value {
+	switch i {
+	case POINTS:
+		return r.c("POINTS")
+	case LINES:
+		return r.c("LINES")
+	case LINE_LOOP:
+		return r.c("LINE_LOOP")
+	case LINE_STRIP:
+		return r.c("LINE_STRIP")
+	case TRIANGLES:
+		return r.c("TRIANGLES")
+	case TRIANGLE_STRIP:
+		return r.c("TRIANGLE_STRIP")
+	case TRIANGLE_FAN:
+		return r.c("TRIANGLE_FAN")
+	}
+	return r.c("TRIANGLES")
+}
+
+func (r *Renderer_WebGL) SetDepthTest(depthTest bool) {
+	if depthTest == r.depthTest {
+		return
+	}
+	r.depthTest = depthTest
+	if depthTest {
+		r.need(4)
+		r.emitI(wcEnable)
+		r.emitI(int32(r.ci("DEPTH_TEST")))
+		r.emitI(wcDepthFunc)
+		r.emitI(int32(r.ci("LESS")))
+	} else {
+		r.need(2)
+		r.emitI(wcDisable)
+		r.emitI(int32(r.ci("DEPTH_TEST")))
+	}
+}
+
+func (r *Renderer_WebGL) SetDepthMask(depthMask bool) {
+	if depthMask == r.depthMask {
+		return
+	}
+	r.depthMask = depthMask
+	r.need(2)
+	r.emitI(wcDepthMask)
+	r.emitI(int32(Btoi(depthMask)))
+}
+
+func (r *Renderer_WebGL) ChangeProgram(prog *ShaderProgram_WebGL) {
+	if prog == nil || r.programID == prog.id {
+		return
+	}
+	r.need(2)
+	r.emitI(wcUseProgram)
+	r.emitI(prog.cmdID)
+	r.programID = prog.id
+	for i := range r.texCacheTexSerial {
+		r.texCacheTexSerial[i] = 0
+		r.texCacheLastUsed[i] = 0
+	}
+	r.texCacheTimer = 1
+}
+
+func (r *Renderer_WebGL) EnableBlending(eq BlendEquation, src, dst BlendFunc) {
+	if !r.blendEnabled {
+		r.need(2)
+		r.emitI(wcEnable)
+		r.emitI(int32(r.ci("BLEND")))
+		r.blendEnabled = true
+	}
+	if eq != r.blendEquation {
+		r.blendEquation = eq
+		r.need(2)
+		r.emitI(wcBlendEq)
+		r.emitI(int32(r.mapBlendEquation(eq).Int()))
+	}
+	if src != r.blendSrc || dst != r.blendDst {
+		r.blendSrc = src
+		r.blendDst = dst
+		r.need(3)
+		r.emitI(wcBlendFunc)
+		r.emitI(int32(r.mapBlendFunction(src).Int()))
+		r.emitI(int32(r.mapBlendFunction(dst).Int()))
+	}
+}
+
+func (r *Renderer_WebGL) DisableBlending() {
+	if r.blendEnabled {
+		r.need(2)
+		r.emitI(wcDisable)
+		r.emitI(int32(r.ci("BLEND")))
+		r.blendEnabled = false
+	}
+}
+
+func (r *Renderer_WebGL) ReadPixels(data []uint8, width, height int) {
+	r.glc("bindFramebuffer", r.c("READ_FRAMEBUFFER"), js.Null())
+	r.scratch.ensure(len(data))
+	dst := r.scratch.u8.Call("subarray", 0, len(data))
+	r.glc("readPixels", 0, 0, width, height, r.c("RGBA"), r.c("UNSIGNED_BYTE"), dst)
+	js.CopyBytesToGo(data, dst)
+}
+
+func (r *Renderer_WebGL) EnableScissor(x, y, width, height int32) {
+	// We want scissor ON, so cancel any deferred disable outright rather than
+	// emitting a disable/enable pair.
+	r.scissorPending = false
+	realY := sys.scrrect[3] - (y + height)
+	if r.scissorEnabled &&
+		r.scissorRect[0] == x && r.scissorRect[1] == realY &&
+		r.scissorRect[2] == width && r.scissorRect[3] == height {
+		return
+	}
+	if !r.scissorEnabled {
+		r.need(2)
+		r.emitI(wcEnable)
+		r.emitI(int32(r.ci("SCISSOR_TEST")))
+		r.scissorEnabled = true
+	}
+	r.need(5)
+	r.emitI(wcScissor)
+	r.emitI(x)
+	r.emitI(realY)
+	r.emitI(width)
+	r.emitI(height)
+	r.scissorRect = [4]int32{x, realY, width, height}
+}
+
+// DEFERRED. Records the intent without emitting; see scissorPending. The GL
+// state only changes when flushScissorDisable runs, which every operation that
+// genuinely needs an unclipped target does.
+func (r *Renderer_WebGL) DisableScissor() {
+	r.scissorPending = true
+}
+
+// Emit the deferred disable, if one is outstanding. Called before anything that
+// must not be clipped by a leftover sprite window: frame clears, the post-
+// processing passes, and text.
+func (r *Renderer_WebGL) flushScissorDisable() {
+	if !r.scissorPending {
+		return
+	}
+	r.scissorPending = false
+	if r.scissorEnabled {
+		r.need(2)
+		r.emitI(wcDisable)
+		r.emitI(int32(r.ci("SCISSOR_TEST")))
+		r.scissorEnabled = false
+	}
+}
+
+func (r *Renderer_WebGL) SetUniformISub(prog *ShaderProgram_WebGL, idx int, val int32) {
+	if idx < 0 || idx >= len(prog.uniformLocs) {
+		return
+	}
+	loc := prog.uniformLocs[idx]
+	if !loc.Truthy() {
+		return
+	}
+	// Dedup for EVERY program, not just the sprite shader: GL uniform state is
+	// per-program and persists across program switches, and the cache key is
+	// namespaced by program id. Text rendering repeats identical uniform sets
+	// per line per frame (a screen of TrueType text = hundreds of redundant
+	// uniform calls a second, each an allocating js bridge crossing).
+	{
+		key := (prog.id << 16) | uint32(idx)
+		if old, exists := r.uniformICache[key]; exists && old == val {
+			return
+		}
+		r.uniformICache[key] = val
+	}
+	if cid := prog.uniformCmdIDs[idx]; cid >= 0 {
+		r.need(3)
+		r.emitI(wcUniform1i)
+		r.emitI(cid)
+		r.emitI(val)
+		return
+	}
+	r.glc("uniform1i", loc, val)
+}
+
+func (r *Renderer_WebGL) SetUniformFSub(prog *ShaderProgram_WebGL, idx int, values ...float32) {
+	if idx < 0 || idx >= len(prog.uniformLocs) || len(values) == 0 {
+		return
+	}
+	loc := prog.uniformLocs[idx]
+	if !loc.Truthy() {
+		return
+	}
+	// Dedup for every program - see SetUniformISub.
+	{
+		key := (prog.id << 16) | uint32(idx)
+		switch len(values) {
+		case 1:
+			if old, exists := r.uniformF1Cache[key]; exists && old == values[0] {
+				return
+			}
+			r.uniformF1Cache[key] = values[0]
+		case 2:
+			v2 := [2]float32{values[0], values[1]}
+			if old, exists := r.uniformF2Cache[key]; exists && old == v2 {
+				return
+			}
+			r.uniformF2Cache[key] = v2
+		case 3:
+			v3 := [3]float32{values[0], values[1], values[2]}
+			if old, exists := r.uniformF3Cache[key]; exists && old == v3 {
+				return
+			}
+			r.uniformF3Cache[key] = v3
+		case 4:
+			v4 := [4]float32{values[0], values[1], values[2], values[3]}
+			if old, exists := r.uniformF4Cache[key]; exists && old == v4 {
+				return
+			}
+			r.uniformF4Cache[key] = v4
+		}
+	}
+	if cid := prog.uniformCmdIDs[idx]; cid >= 0 && len(values) <= 4 {
+		r.need(2 + len(values))
+		r.emitI(wcUniform1f + int32(len(values)) - 1) // ops 3..6 are 1f..4f
+		r.emitI(cid)
+		for _, v := range values {
+			r.emitF(v)
+		}
+		return
+	}
+	switch len(values) {
+	case 1:
+		r.glc("uniform1f", loc, values[0])
+	case 2:
+		r.glc("uniform2f", loc, values[0], values[1])
+	case 3:
+		r.glc("uniform3f", loc, values[0], values[1], values[2])
+	case 4:
+		r.glc("uniform4f", loc, values[0], values[1], values[2], values[3])
+	}
+}
+
+func (r *Renderer_WebGL) SetUniformFvSub(prog *ShaderProgram_WebGL, idx int, values []float32) {
+	if idx < 0 || idx >= len(prog.uniformLocs) || len(values) == 0 {
+		return
+	}
+	switch len(values) {
+	case 1, 2, 3, 4:
+		r.SetUniformFSub(prog, idx, values...)
+	default:
+		loc := prog.uniformLocs[idx]
+		if !loc.Truthy() {
+			return
+		}
+		if len(values) == 8 {
+			if cid := prog.uniformCmdIDs[idx]; cid >= 0 {
+				r.need(10)
+				r.emitI(wcUniform4fv8)
+				r.emitI(cid)
+				for _, v := range values {
+					r.emitF(v)
+				}
+				return
+			}
+			r.glc("uniform4fv", loc, r.scratch.floats(values))
+		} else {
+			r.glc("uniform1fv", loc, r.scratch.floats(values))
+		}
+	}
+}
+
+func (r *Renderer_WebGL) SetUniformI(name string, val int) {
+	if r.currentProgram == nil {
+		return
+	}
+	r.SetUniformISub(r.currentProgram, r.currentProgram.uniformIndex(name), int32(val))
+}
+
+func (r *Renderer_WebGL) SetUniformF(name string, values ...float32) {
+	if r.currentProgram == nil {
+		return
+	}
+	r.SetUniformFSub(r.currentProgram, r.currentProgram.uniformIndex(name), values...)
+}
+
+func (r *Renderer_WebGL) SetUniformFv(name string, values []float32) {
+	if r.currentProgram == nil {
+		return
+	}
+	r.SetUniformFvSub(r.currentProgram, r.currentProgram.uniformIndex(name), values)
+}
+
+func (r *Renderer_WebGL) SetUniformMatrix(name string, value []float32) {
+	if r.currentProgram == nil {
+		return
+	}
+	idx := r.currentProgram.uniformIndex(name)
+	if idx < 0 || idx >= len(r.currentProgram.uniformLocs) {
+		return
+	}
+	loc := r.currentProgram.uniformLocs[idx]
+	if !loc.Truthy() {
+		return
+	}
+	if len(value) == 16 {
+		var next [16]float32
+		copy(next[:], value)
+		key := r.currentProgram.id<<16 | uint32(idx)
+		if old, ok := r.uniformM4Cache[key]; ok && old == next {
+			return
+		}
+		r.uniformM4Cache[key] = next
+	}
+	if cid := r.currentProgram.uniformCmdIDs[idx]; cid >= 0 && len(value) == 16 {
+		r.need(18)
+		r.emitI(wcUniformMat4)
+		r.emitI(cid)
+		for _, v := range value {
+			r.emitF(v)
+		}
+		return
+	}
+	r.glc("uniformMatrix4fv", loc, false, r.scratch.floats(value))
+}
+
+func (r *Renderer_WebGL) SetActiveTexture0() {
+	r.need(2)
+	r.emitI(wcActiveTex)
+	r.emitI(0)
+	if len(r.texCacheTexSerial) > 0 {
+		r.texCacheTexSerial[0] = 0
+		r.texCacheLastUsed[0] = 0
+	}
+}
+
+func (r *Renderer_WebGL) SetTexture(name string, tex Texture) {
+	if r.currentProgram == nil {
+		return
+	}
+	prog := r.currentProgram
+	t := tex.(*Texture_WebGL)
+	idx := prog.uniformIndex(name)
+
+	// LRU texture-unit cache for the sprite shader
+	if prog == r.spriteShader {
+		r.texCacheTimer++
+		var oldestUnit int32 = 0
+		var minTime uint64 = ^uint64(0)
+		for i := range r.texCacheTexSerial {
+			if r.texCacheTexSerial[i] == t.serial {
+				r.texCacheLastUsed[i] = r.texCacheTimer
+				r.SetUniformISub(prog, idx, int32(i))
+				return
+			}
+			if r.texCacheLastUsed[i] < minTime {
+				minTime = r.texCacheLastUsed[i]
+				oldestUnit = int32(i)
+			}
+		}
+		r.need(3)
+		r.emitI(wcActiveBind)
+		r.emitI(oldestUnit)
+		r.emitI(t.cmdID)
+		r.texCacheTexSerial[oldestUnit] = t.serial
+		r.texCacheLastUsed[oldestUnit] = r.texCacheTimer
+		r.SetUniformISub(prog, idx, oldestUnit)
+		return
+	}
+
+	fixedUnit := prog.textures[name]
+	r.need(3)
+	r.emitI(wcActiveBind)
+	r.emitI(int32(fixedUnit))
+	r.emitI(t.cmdID)
+	r.SetUniformISub(prog, idx, int32(fixedUnit))
+}
+
+func (r *Renderer_WebGL) SetVertexData(values ...float32) {
+	r.need(3 + len(values))
+	r.emitI(wcVertexData)
+	r.emitI(r.vertexBufID)
+	r.emitI(int32(len(values)))
+	for _, v := range values {
+		r.emitF(v)
+	}
+}
+
+func (r *Renderer_WebGL) RenderQuad() {
+	r.need(4)
+	r.emitI(wcDrawArrays)
+	r.emitI(int32(r.ci("TRIANGLE_STRIP")))
+	r.emitI(0)
+	r.emitI(4)
+}
+
+func (r *Renderer_WebGL) LoadCustomSpriteShader(shaderName string, shaderData []byte) uint32 {
+	fragSource := string(shaderData)
+	shader, err := r.newShaderProgram(vertShader, fragSource, "", "Custom: "+shaderName, false)
+	if err != nil {
+		return 0
+	}
+	shader.RegisterAttributes("position", "uv")
+	shader.RegisterUniforms("modelview", "projection", "x1x2x4x3",
+		"alpha", "tint", "mask", "neg", "gray", "add", "mult", "isFlat", "isRgba", "isTrapez", "hue",
+		"iTime", "iResolution", "aspectRatio", "sTime")
+	shader.RegisterTextures("pal", "tex", "tex1", "tex2", "bgl_RenderedTexture")
+	shader.customUniformIdx = make([]int, 16)
+	for i := 0; i < 16; i++ {
+		name := fmt.Sprintf("p%d", i)
+		shader.RegisterUniforms(name)
+		shader.customUniformIdx[i] = shader.uniformIndex(name)
+	}
+	shader.needsGrabPass = strings.Contains(fragSource, "bgl_RenderedTexture")
+
+	id := r.nextShaderID
+	r.nextShaderID++
+	r.customShaders[id] = shader
+	r.customShaderMap[shaderName] = id
+	sys.appendToConsole(fmt.Sprintf("Loaded Custom Shader: %s (ID: %d)", shaderName, id))
+	return id
+}
+
+func (r *Renderer_WebGL) UnloadCustomSpriteShader(shaderName string) {
+	if id, exists := r.customShaderMap[shaderName]; exists {
+		if shader, hasProg := r.customShaders[id]; hasProg {
+			r.glc("deleteProgram", shader.program)
+			delete(r.customShaders, id)
+			if r.currentProgram == shader {
+				r.currentProgram = nil
+			}
+		}
+		delete(r.customShaderMap, shaderName)
+	}
+}
+
+func (r *Renderer_WebGL) SetSpritePipeline(shaderName string) {
+	targetShader := r.spriteShader
+	if shaderName != "" {
+		if id, ok := r.customShaderMap[shaderName]; ok {
+			if shader, ok := r.customShaders[id]; ok {
+				targetShader = shader
+			}
+		}
+	}
+	if r.programID != targetShader.id {
+		r.currentProgram = targetShader
+		r.ChangeProgram(targetShader)
+		r.need(2)
+		r.emitI(wcBindVAO)
+		r.emitI(r.spriteVAOID)
+	}
+}
+
+func (r *Renderer_WebGL) SetCustomUniforms(params [16]float32) {
+	if r.currentProgram == nil {
+		return
+	}
+	for i, idx := range r.currentProgram.customUniformIdx {
+		r.SetUniformFSub(r.currentProgram, idx, params[i])
+	}
+}
+
+func (r *Renderer_WebGL) NeedsGrabPass() bool {
+	if r.currentProgram != nil {
+		return r.currentProgram.needsGrabPass
+	}
+	return false
+}
+
+func (r *Renderer_WebGL) ResolveBackBuffer() Texture {
+	r.SetActiveTexture0()
+	r.glc("bindTexture", r.c("TEXTURE_2D"), r.grabTexture.handle)
+	r.glc("bindFramebuffer", r.c("READ_FRAMEBUFFER"), r.fbo)
+	r.glc("copyTexSubImage2D", r.c("TEXTURE_2D"), 0, 0, 0, 0, 0, r.grabTexture.width, r.grabTexture.height)
+	r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fbo)
+	return r.grabTexture
+}
+
+func (r *Renderer_WebGL) PerspectiveProjectionMatrix(angle, aspect, near, far float32) mgl.Mat4 {
+	return mgl.Perspective(angle, aspect, near, far)
+}
+
+func (r *Renderer_WebGL) OrthographicProjectionMatrix(left, right, bottom, top, near, far float32) mgl.Mat4 {
+	return mgl.Ortho(left, right, bottom, top, near, far)
+}
+
+func (r *Renderer_WebGL) SetVSync(interval int) {
+	// Frame pacing is requestAnimationFrame; nothing to configure.
+}
+
+func (r *Renderer_WebGL) NewWorkerThread() bool { return false }

@@ -8,6 +8,9 @@ on:
       - 'src/**'
       - 'public/engine/**'
       - 'native-android/ui/**'
+      - 'scripts/verify-go-gpu.py'
+      - 'test/go-gpu.test.js'
+      - 'test/fixtures/webgl-*'
       - 'scripts/verify-go-engine.py'
       - 'scripts/verify-go-presentation.py'
       - 'scripts/prepare-kenjatime-ui.py'
@@ -42,6 +45,8 @@ jobs:
       - run: npm run build
       - run: pip install playwright pillow
       - run: python -m playwright install --with-deps chromium
+      - name: Compare ordered GPU commands against the pinned WebGL reference
+        run: python scripts/verify-go-gpu.py
       - name: Execute Go matches and verify no stock UI
         run: python scripts/verify-go-engine.py
       - name: Check fighter framing, HUD pixels, sparks and stage PCM output
