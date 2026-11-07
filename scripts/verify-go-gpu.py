@@ -15,7 +15,7 @@ try:
  with sync_playwright() as p:
   browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path,headless=True,args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
   page=browser.new_page();page.goto(f'http://127.0.0.1:{server.server_port}/gpu-test')
-  result=page.evaluate("async()=>{const {verifyPixels}=await import('/test/fixtures/webgl-pixels.js');return{native:verifyPixels(),three:verifyPixels(true)};}")
+  result=page.evaluate("async()=>{const {verifyPixels}=await import('/test/fixtures/webgl-pixels.js');return{native:verifyPixels(),three:verifyPixels(true),mobileUniformReflection:verifyPixels(true,true)};}")
   browser.close()
 finally:server.shutdown()
 output=ROOT/'work/gpu-rewrite/pixel-evidence.json';output.parent.mkdir(parents=True,exist_ok=True);output.write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))

@@ -1,0 +1,383 @@
+{
+  "recoverySource": "cec3ed0069bd119a9f6cf615bc6dd2a009ee18b3",
+  "recoveryPages": "3fee1b5812619513eefaeac86c06c5bbd2571d9d",
+  "sourceRecoveryTag": "recovery/three-smooth-2026-11-07",
+  "pagesRecoveryTag": "recovery/three-smooth-pages-2026-11-07",
+  "physicalPhone": false,
+  "repositoryTests": {
+    "total": 513,
+    "passed": 513,
+    "failed": 0,
+    "skipped": 0
+  },
+  "originalReproducedError": "Failed to execute 'getUniform' on 'WebGL2RenderingContext': parameter 2 is not of type 'WebGLUniformLocation'.",
+  "gpu": {
+    "native": {
+      "pixelChannels": 49152,
+      "differentChannels": 0,
+      "commandCopies": 0,
+      "memoryViews": 2,
+      "vertexUploads": 5,
+      "allOpcodes": true,
+      "backend": "Kenjatime WebGL2",
+      "threeDraws": 0,
+      "mergedDraws": 0,
+      "inactiveLocations": 0,
+      "invalidUniformReads": 0
+    },
+    "three": {
+      "pixelChannels": 49152,
+      "differentChannels": 0,
+      "commandCopies": 0,
+      "memoryViews": 2,
+      "vertexUploads": 5,
+      "allOpcodes": true,
+      "backend": "Three.js r187",
+      "threeDraws": 8,
+      "mergedDraws": 2,
+      "inactiveLocations": 0,
+      "invalidUniformReads": 0
+    },
+    "mobileUniformReflection": {
+      "pixelChannels": 49152,
+      "differentChannels": 0,
+      "commandCopies": 0,
+      "memoryViews": 2,
+      "vertexUploads": 5,
+      "allOpcodes": true,
+      "backend": "Three.js r187",
+      "threeDraws": 8,
+      "mergedDraws": 2,
+      "inactiveLocations": 2,
+      "invalidUniformReads": 0
+    }
+  },
+  "embeddedFight": {
+    "physicalPhone": false,
+    "cases": {
+      "phone-portrait": {
+        "backend": "worker-three",
+        "samePage": true,
+        "noPopupFullscreenOrRotation": true,
+        "bothFightersPositioned": true,
+        "layout": {
+          "video": {
+            "x": 19,
+            "y": 12.375,
+            "width": 346,
+            "height": 194.46875
+          },
+          "controls": {
+            "x": 19,
+            "y": 206.84375,
+            "width": 346,
+            "height": 164
+          },
+          "bar": {
+            "x": 19,
+            "y": 370.84375,
+            "width": 346,
+            "height": 113
+          },
+          "width": 384,
+          "height": 844
+        },
+        "pause": true,
+        "menuRestoresPreview": true,
+        "errors": []
+      },
+      "phone-landscape": {
+        "backend": "worker-three",
+        "samePage": true,
+        "noPopupFullscreenOrRotation": true,
+        "bothFightersPositioned": true,
+        "layout": {
+          "video": {
+            "x": 230.171875,
+            "y": 12.375,
+            "width": 558.65625,
+            "height": 313.984375
+          },
+          "controls": {
+            "x": 242.171875,
+            "y": 174.359375,
+            "width": 534.65625,
+            "height": 140
+          },
+          "bar": {
+            "x": 199,
+            "y": 326.359375,
+            "width": 621,
+            "height": 61
+          },
+          "width": 844,
+          "height": 390
+        },
+        "pause": true,
+        "menuRestoresPreview": true,
+        "errors": []
+      },
+      "desktop": {
+        "backend": "worker-three",
+        "samePage": true,
+        "noPopupFullscreenOrRotation": true,
+        "bothFightersPositioned": true,
+        "layout": {
+          "video": {
+            "x": 265,
+            "y": 12.1875,
+            "width": 972,
+            "height": 546.3125
+          },
+          "controls": {
+            "x": 265,
+            "y": 558.5,
+            "width": 972,
+            "height": 164
+          },
+          "bar": {
+            "x": 265,
+            "y": 722.5,
+            "width": 972,
+            "height": 61
+          },
+          "width": 1280,
+          "height": 900
+        },
+        "pause": true,
+        "menuRestoresPreview": true,
+        "errors": []
+      }
+    },
+    "frameLoadFailureRestoresSetup": true,
+    "retryAfterFrameLoadFailure": true
+  },
+  "controller": {
+    "workerThree": true,
+    "matchPositionReady": true,
+    "standardGamepadMovement": true,
+    "physicalKeyForwarding": true,
+    "disconnectReleasesInput": true,
+    "rumbleBridge": true,
+    "qualityTogglePreservesLogicalCamera": true,
+    "pauseFreezesFighters": true,
+    "menuTerminatesWorker": true,
+    "errors": [],
+    "physicalController": false
+  },
+  "presentation": {
+    "phoneExecution": false,
+    "checks": {
+      "twoPreviewFighters": true,
+      "backend": "worker-three",
+      "engineCacheRevision": "cc948c9f54d3b751",
+      "stageAudio": {
+        "music": {
+          "file": "imports/316eeda2-7617-4f4e-9785-bcf1249bebfc/stage/stages/tone.wav",
+          "streaming": true,
+          "format": "wav"
+        },
+        "pcm": {
+          "buffers": 5,
+          "peak": 0.06938400119543076
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "audio-worklet",
+          "pcm": {
+            "buffers": 1404,
+            "frames": 179712,
+            "peak": 1.069383978843689,
+            "underruns": 4,
+            "queuedBlocks": 3
+          }
+        }
+      },
+      "hudBefore": {
+        "p1": 2320,
+        "p2": 2322,
+        "damage": 0
+      },
+      "defenderHealthTextPixels": 33,
+      "fightersVisibleAtContact": true,
+      "normalCommonSparkScale": 1,
+      "visibleSparkPixels": 304,
+      "hudAfterHit": {
+        "p1": 2320,
+        "p2": 2278,
+        "damage": 44
+      },
+      "hitState": {
+        "music": {
+          "streaming": true,
+          "format": "wav",
+          "file": "imports/316eeda2-7617-4f4e-9785-bcf1249bebfc/stage/stages/tone.wav"
+        },
+        "players": [
+          {
+            "time": 4,
+            "lifeMax": 1000,
+            "powerMax": 3000,
+            "y": 0,
+            "screenX": 0.637499988079071,
+            "state": 200,
+            "life": 1000,
+            "power": 26,
+            "x": 44,
+            "screenY": 0.8166666626930237
+          },
+          {
+            "x": 76,
+            "y": 0,
+            "screenX": 0.737500011920929,
+            "screenY": 0.8166666626930237,
+            "state": 5000,
+            "time": 1,
+            "life": 977,
+            "power": 13,
+            "powerMax": 3000,
+            "lifeMax": 1000
+          }
+        ],
+        "ticks": 332,
+        "matchTime": 332,
+        "roundState": 2,
+        "paused": false,
+        "camera": {
+          "x": 0,
+          "zoom": 1,
+          "width": 427,
+          "height": 240
+        },
+        "effects": {
+          "activeCommon": 1,
+          "commonScale": 1,
+          "commonAnimations": 19
+        }
+      }
+    },
+    "errors": []
+  },
+  "fallbackPresentation": {
+    "phoneExecution": false,
+    "checks": {
+      "twoPreviewFighters": true,
+      "backend": "main-three",
+      "engineCacheRevision": "cc948c9f54d3b751",
+      "stageAudio": {
+        "music": {
+          "file": "imports/80c91097-c49a-40b2-a986-23e2da34ad7e/stage/stages/tone.wav",
+          "streaming": true,
+          "format": "wav"
+        },
+        "pcm": {
+          "buffers": 7,
+          "peak": 0.06938400119543076
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "script-processor",
+          "pcm": {
+            "buffers": 179,
+            "frames": 183296,
+            "peak": 1.069383978843689,
+            "underruns": 3,
+            "queuedBlocks": 2
+          }
+        }
+      },
+      "hudBefore": {
+        "p1": 2320,
+        "p2": 2322,
+        "damage": 0
+      },
+      "defenderHealthTextPixels": 33,
+      "fightersVisibleAtContact": true,
+      "normalCommonSparkScale": 1,
+      "visibleSparkPixels": 253,
+      "hudAfterHit": {
+        "p1": 2320,
+        "p2": 2289,
+        "damage": 33
+      },
+      "hitState": {
+        "camera": {
+          "height": 240,
+          "x": 0,
+          "zoom": 1,
+          "width": 427
+        },
+        "effects": {
+          "commonScale": 1,
+          "commonAnimations": 19,
+          "activeCommon": 1
+        },
+        "music": {
+          "file": "imports/80c91097-c49a-40b2-a986-23e2da34ad7e/stage/stages/tone.wav",
+          "streaming": true,
+          "format": "wav"
+        },
+        "players": [
+          {
+            "lifeMax": 1000,
+            "power": 26,
+            "y": 0,
+            "screenY": 0.8166666626930237,
+            "state": 200,
+            "life": 1000,
+            "powerMax": 3000,
+            "x": 49.999996185302734,
+            "screenX": 0.65625,
+            "time": 4
+          },
+          {
+            "y": 0,
+            "screenX": 0.7562499642372131,
+            "screenY": 0.8166666626930237,
+            "time": 1,
+            "life": 977,
+            "lifeMax": 1000,
+            "power": 13,
+            "powerMax": 3000,
+            "x": 81.99999237060547,
+            "state": 5000
+          }
+        ],
+        "ticks": 346,
+        "matchTime": 346,
+        "roundState": 2,
+        "paused": false
+      }
+    },
+    "errors": []
+  },
+  "archives": {
+    "coreContainsStockUi": false,
+    "touchAttackDamage": 23,
+    "imports": 24,
+    "invalidImportPreservesLibrary": true,
+    "savedImportsSurviveReload": true,
+    "oldLibraryMigration": true,
+    "suppliedPackages": {
+      "MUGEN_CNS_KFM_ZIP": true,
+      "MUGEN_TOMOKA_RAR": true,
+      "MUGEN_FOREST_RAR": true
+    },
+    "forestMp3Streaming": true,
+    "errors": [],
+    "failedRequests": []
+  },
+  "rawWasmSha256": "c3d789fca51c85d4e70c4af177dd23dba6bfe8fd4a83de379e71652b13503abc",
+  "wasmUnchanged": true,
+  "engineCacheRevision": "cc948c9f54d3b751"
+}

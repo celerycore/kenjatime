@@ -1,1 +1,22 @@
-.kenjatime-playing{overflow:hidden}.kenjatime-battle{position:fixed;inset:0;z-index:1000;background:#0c111b;color:#d3fb8d}.kenjatime-battle iframe{width:100%;height:100%;border:0;display:block}.kenjatime-battle-bar{position:absolute;top:max(8px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));display:flex;gap:8px;max-width:calc(100% - 24px);flex-wrap:wrap;justify-content:flex-end;z-index:5}.kenjatime-battle-bar button{min-width:84px;min-height:40px;background:#141b24bc;color:#d3fb8d;border:1px solid #466055}.kenjatime-battle-status{position:absolute;inset:45% 12% auto;text-align:center;pointer-events:none}.kenjatime-battle .touch-controls{position:absolute;inset:auto max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));display:flex;justify-content:space-between;align-items:end;pointer-events:none;background:none;border:0;padding:0;z-index:4}.kenjatime-battle .touch-controls button{pointer-events:auto;min-width:44px;min-height:44px;background:#141b24bc;color:#d3fb8d;border:1px solid #466055;border-radius:6px}.kenjatime-battle .touch-controls .pressed{background:#d3fb8d;color:#141b24}.kenjatime-battle .touch-dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px}.kenjatime-battle .touch-buttons{display:grid;grid-template-columns:repeat(3,44px);gap:4px}.kenjatime-battle .touch-start{grid-column:1/4}
+.kenjatime-workspace-playing{grid-template-columns:minmax(0,1fr)}
+.kenjatime-workspace-playing>.details{display:none}
+.kenjatime-viewer-playing>.stage>canvas,.kenjatime-viewer-playing>.stage>#empty,.kenjatime-viewer-playing>.transport,.kenjatime-viewer-playing>.hint{display:none}
+.kenjatime-battle{position:relative;min-width:0;background:#0c111b;color:#d3fb8d;scroll-margin-top:12px}
+.kenjatime-battle-screen{position:relative}
+.kenjatime-battle iframe{width:100%;height:auto;aspect-ratio:854/480;border:0;display:block}
+.kenjatime-battle-bar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:8px 12px;border-top:1px solid #2a2f34}
+.kenjatime-battle-bar button{min-width:0;max-width:none;min-height:40px;background:#141b24;color:#d3fb8d;border:1px solid #466055}
+.kenjatime-battle-status{position:absolute;inset:30% 12% auto;text-align:center;pointer-events:none}
+.kenjatime-battle .touch-controls{position:relative;display:flex;justify-content:space-between;align-items:end;gap:12px;background:#0c111b;border:0;padding:12px;z-index:1}
+.kenjatime-battle .touch-controls button{min-width:44px;min-height:44px;background:#141b24;color:#d3fb8d;border:1px solid #466055;border-radius:6px}
+.kenjatime-battle .touch-controls .pressed{background:#d3fb8d;color:#141b24}
+.kenjatime-battle .touch-dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px}
+.kenjatime-battle .touch-buttons{display:grid;grid-template-columns:repeat(3,44px);gap:4px}
+.kenjatime-battle .touch-start{grid-column:1/4}
+@media(max-width:380px){.kenjatime-battle .touch-controls{padding:12px 0;gap:2px}}
+@media(max-width:480px){.kenjatime-battle-bar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-height:500px) and (orientation:landscape){
+ .kenjatime-battle-screen{width:min(100%,calc((100svh - 76px)*854/480));max-width:854px;margin-inline:auto}
+ .kenjatime-battle .touch-controls{position:absolute;inset:auto 12px 12px;pointer-events:none;background:none;padding:0}
+ .kenjatime-battle .touch-controls button{pointer-events:auto;background:#141b24bc}
+}

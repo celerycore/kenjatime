@@ -39,7 +39,7 @@ def main():
         for mode in ['Simul','Simul_3P','Simul_4P','Tag','Tag_3P','Tag_4P','Turns']:extras+='\n['+mode+' '+name+']'+body
     for name in ['Action','WinCount','Timer','Score','Match','AILevel','Mode']:extras+='\n['+name+']\n'
     write('assets/data/kenjatime/fight.def',(fight+extras).encode())
-    for name,height in [('label',18),('banner',30)]:
+    for name,height in [('label',22),('banner',32)]:
         write('assets/data/kenjatime/'+name+'.def',f'[FNT v2]\nfntversion=2,00\nname=Kenjatime {name}\n[Def]\nType=truetype\nSize=8,{height}\nSpacing=1,1\nFile=../../font/Open_Sans/OpenSans-Regular.ttf\nColors=256\n'.encode())
     vs=bytearray(20*12)
     for row,bits in enumerate(['100010111','100010100','100010100','010100111','010100001','001000001','001000111']):
@@ -47,7 +47,7 @@ def main():
             if bit=='1':
                 vs[(row+2)*20+col*2]=2;vs[(row+2)*20+col*2+1]=2
     def rect(w,h,color):return (w,h,0,0,bytes([color])*(w*h))
-    sprites=[rect(360,18,1),rect(360,14,2),(20,12,10,0,bytes(vs)),rect(6,6,2),rect(180,8,1),rect(180,6,2),rect(360,14,3),rect(360,14,4),rect(180,6,4)]
+    sprites=[rect(360,24,1),rect(360,20,2),(20,12,10,0,bytes(vs)),rect(6,6,2),rect(180,10,1),rect(180,8,2),rect(360,20,3),rect(360,20,4),rect(180,8,4)]
     write('assets/data/kenjatime/fight.sff',sff(sprites,[(0,0,0,0),(42,47,52,255),(211,251,141,255),(231,128,116,255),(143,207,255,255)]))
     w,h=854,480;grid=bytearray(w*h)
     for x in range(-620,1480,72):line(grid,w,h,round(w/2+(x-w/2)*.3),284,x,h-1,1)

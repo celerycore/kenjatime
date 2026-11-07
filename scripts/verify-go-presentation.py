@@ -65,7 +65,7 @@ try:
   frame.wait_for_function('window.__pcmProbe.peak>.01 && window.__pcmProbe.buffers>2',timeout=30000)
   evidence['checks']['stageAudio']={'music':state['music'],'pcm':frame.evaluate('window.__pcmProbe'),'audio':frame.evaluate('window.__kenjatimeFrame.audioStatus()')}
   print('PASS stage PCM output and audio unlock',flush=True)
-  page.locator('[data-pause]').click();page.wait_for_function('window.__kenjatimeGoState.paused');page.screenshot(path=str(OUT/'hud-before.png'));before=colors(OUT/'hud-before.png');assert before['p1']>500 and before['p2']>500,before
+  page.locator('[data-pause]').click();page.wait_for_function('window.__kenjatimeGoState.paused');page.locator('.kenjatime-battle iframe').screenshot(path=str(OUT/'hud-before.png'));before=colors(OUT/'hud-before.png');assert before['p1']>500 and before['p2']>500,before
   evidence['checks']['hudBefore']=before;page.locator('[data-pause]').click()
   cdp=context.new_cdp_session(page)
   def point(selector,id=1):
@@ -74,13 +74,13 @@ try:
   page.wait_for_function("Math.abs(window.__kenjatimeGoState.players[1].x-window.__kenjatimeGoState.players[0].x)<=33",timeout=15000)
   frame.evaluate("""()=>{window.__sparkCapture=null;const before=window.__kenjatimeFrame.snapshot().players[1].life;const timer=setInterval(()=>{const s=window.__kenjatimeFrame.snapshot();if(s.effects.activeCommon>0&&s.players[1].life<before){window.__sparkCapture=s;window.__kenjatimeFrame.pause(true);clearInterval(timer);}},10);window.__captureTimer=timer;}""")
   cdp.send('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[point('[data-input="R"]'),point('.touch-buttons [data-input="x"]',2)]});cdp.send('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
-  frame.wait_for_function('window.__sparkCapture!==null',timeout=15000);page.locator('[data-pause]').click();page.wait_for_timeout(400);page.screenshot(path=str(OUT/'hit-spark-and-hud.png'))
+  frame.wait_for_function('window.__sparkCapture!==null',timeout=15000);page.locator('[data-pause]').click();page.wait_for_timeout(400);page.locator('.kenjatime-battle iframe').screenshot(path=str(OUT/'hit-spark-and-hud.png'))
   hit=frame.evaluate('window.__sparkCapture');after=colors(OUT/'hit-spark-and-hud.png');assert after['p2']<before['p2'] and after['damage']>0,(before,after)
   assert all(.08<p['screenX']<.92 for p in hit['players']),hit
   im=Image.open(OUT/'hit-spark-and-hud.png').convert('RGB');pixels=im.crop((0,im.height//3,im.width,im.height)).tobytes();sparks=sum(1 for i in range(0,len(pixels),3) if pixels[i]>225 and pixels[i+1]>120 and pixels[i+2]<125);assert sparks>5,sparks
-  # The defender overlaps this area: health text must draw above the fighter.
-  scale=im.height/540;left=(im.width-im.height*854/480)/2;x=left+912*scale;y=176*scale
-  hp=im.crop((round(x-48*scale),round(y-22*scale),round(x+2*scale),round(y+3*scale))).tobytes();healthPixels=sum(1 for i in range(0,len(hp),3) if min(hp[i:i+3])>185 and max(hp[i:i+3])-min(hp[i:i+3])<10);assert healthPixels>5,healthPixels
+  # Health text must remain visible in the compact HUD beneath the power bar.
+  scale=im.height/540;left=(im.width-im.height*854/480)/2;x=left+912*scale;y=104*scale
+  hp=im.crop((round(x-64*scale),round(y-26*scale),round(x+2*scale),round(y+3*scale))).tobytes();healthPixels=sum(1 for i in range(0,len(hp),3) if min(hp[i:i+3])>185 and max(hp[i:i+3])-min(hp[i:i+3])<10);assert healthPixels>5,healthPixels
   evidence['checks']['defenderHealthTextPixels']=healthPixels
   evidence['checks'].update({'fightersVisibleAtContact':True,'normalCommonSparkScale':hit['effects']['commonScale'],'visibleSparkPixels':sparks,'hudAfterHit':after,'hitState':hit})
   print('PASS corner framing, spark and foreground HUD pixels',flush=True)

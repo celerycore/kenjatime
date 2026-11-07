@@ -6,21 +6,23 @@ let quality;try{quality=localStorage.getItem('kenjatime.visuals')||'auto';}catch
 if(!['auto','sharp'].includes(quality))quality='auto';
 export async function openGoBattle({files,args,onProgress=()=>{}}){
  active?.close();window.__kenjatimeGoState=undefined;
+ const viewer=document.querySelector('.viewer'),stage=viewer?.querySelector('.stage');
+ if(!stage)throw Error('The arena viewer is unavailable. Reload the page and try again.');
  const host=document.createElement('section');host.className='kenjatime-battle';host.setAttribute('aria-label','Kenjatime arena');
- host.innerHTML='<iframe title="Kenjatime fight" allow="autoplay; gamepad"></iframe><div class="kenjatime-battle-bar"><button type="button" class="secondary" data-menu>Menu</button><button type="button" class="secondary" data-pause>Pause</button><button type="button" class="secondary" data-sound aria-pressed="false">Enable sound</button><button type="button" class="secondary" data-quality>Visuals: Auto</button></div><p class="kenjatime-battle-status">Preparing your match…</p>';
+ host.innerHTML='<div class="kenjatime-battle-screen"><iframe title="Kenjatime fight" allow="autoplay; gamepad"></iframe><p class="kenjatime-battle-status" role="status">Preparing your match…</p></div><div class="kenjatime-battle-bar"><button type="button" class="secondary" data-menu>Menu</button><button type="button" class="secondary" data-pause>Pause</button><button type="button" class="secondary" data-sound aria-pressed="false">Enable sound</button><button type="button" class="secondary" data-quality>Visuals: Auto</button></div>';
  const frame=host.querySelector('iframe'),status=host.querySelector('p');let held=new Set(),paused=false,settled=false,audioRunning=false,closing=false;
  const api=()=>frame.contentWindow?.__kenjatimeFrame;
  function keys(inputs){if(closing){held.clear();return;}const next=new Set([...inputs].map(k=>mapping[k]).filter(Boolean));for(const k of held)if(!next.has(k))api()?.key(k,false);for(const k of next)if(!held.has(k))api()?.key(k,true);held=next;}
- const touch=mountTouchControls(host,keys);touch.panel.hidden=false;
+ const touch=mountTouchControls(host.querySelector('.kenjatime-battle-screen'),keys);touch.panel.hidden=false;
  let resolve,reject;const ready=new Promise((a,b)=>{resolve=a;reject=b;});
- const close=(reason)=>{if(closing)return;closing=true;if(document.fullscreenElement===host)document.exitFullscreen().catch(()=>{});touch.dispose();api()?.dispose();window.removeEventListener('message',message);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('kenjatime:app-state',appState);host.remove();document.body.classList.remove('kenjatime-playing');window.__kenjatimeGoState=undefined;window.dispatchEvent(new CustomEvent('kenjatime:battle',{detail:{active:false,paused:true}}));if(!settled){settled=true;reject(Error(typeof reason==='string'?reason:'Match cancelled.'));}if(active?.host===host)active=null;};
+ const close=(reason)=>{if(closing)return;closing=true;touch.dispose();api()?.dispose();window.removeEventListener('message',message);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('kenjatime:app-state',appState);host.remove();viewer.classList.remove('kenjatime-viewer-playing');viewer.closest('.workspace')?.classList.remove('kenjatime-workspace-playing');window.__kenjatimeGoState=undefined;window.dispatchEvent(new CustomEvent('kenjatime:battle',{detail:{active:false,paused:true}}));if(!settled){settled=true;reject(Error(typeof reason==='string'?reason:'Match cancelled.'));}if(active?.host===host)active=null;};
  const pause=()=>{touch.reset();paused=!paused;api()?.pause(paused);host.querySelector('[data-pause]').textContent=paused?'Resume':'Pause';window.dispatchEvent(new CustomEvent('kenjatime:battle',{detail:{active:true,paused}}));};
  const appState=event=>{if(!event.detail.active&&!paused)pause();};
  const visibility=()=>{touch.reset();if(document.hidden&&!paused)pause();};
  function message(event){if(event.source!==frame.contentWindow||event.origin!==location.origin||!event.data?.kenjatimeEngine)return;const data=event.data;
   if(data.type==='frame-ready'){frame.contentWindow.postMessage({type:'kenjatime-start',files,args,quality},location.origin,[...new Set(Object.values(files).map(b=>b.buffer))]);}
   if(data.type==='progress'){status.textContent=data.message;onProgress(data.message);}
-  if(data.type==='ready'){status.hidden=true;frame.focus();if(!settled){settled=true;resolve();}}
+  if(data.type==='ready'){status.hidden=true;frame.focus({preventScroll:true});if(!settled){settled=true;resolve();}}
   if(data.type==='state'){window.__kenjatimeGoState=data.state;}
   if(data.type==='audio'){audioRunning=data.running;const button=host.querySelector('[data-sound]');button.textContent=data.paused&&data.enabled?'Sound paused':data.running?'Sound on':data.enabled?'Enable sound':'Sound off';button.setAttribute('aria-pressed',String(data.enabled&&data.running));}
   if(data.type==='end')close();
@@ -28,6 +30,7 @@ export async function openGoBattle({files,args,onProgress=()=>{}}){
  }
  window.addEventListener('message',message);window.addEventListener('kenjatime:app-state',appState);document.addEventListener('visibilitychange',visibility);
  const qualityButton=host.querySelector('[data-quality]');const qualityLabel=()=>{qualityButton.textContent=quality==='sharp'?'Visuals: Sharp':'Visuals: Auto';qualityButton.setAttribute('aria-pressed',String(quality==='sharp'));};qualityLabel();qualityButton.onclick=()=>{quality=quality==='sharp'?'auto':'sharp';try{localStorage.setItem('kenjatime.visuals',quality);}catch{}api()?.quality(quality);qualityLabel();};
- host.querySelector('[data-menu]').onclick=()=>close();host.querySelector('[data-pause]').onclick=pause;host.querySelector('[data-sound]').onclick=()=>api()?.audio(!audioRunning);document.body.append(host);document.body.classList.add('kenjatime-playing');active={host,close};window.dispatchEvent(new CustomEvent('kenjatime:battle',{detail:{active:true,paused:false}}));if(navigator.userActivation?.isActive&&matchMedia('(pointer:coarse)').matches&&host.requestFullscreen)host.requestFullscreen().then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{});
+ host.querySelector('[data-menu]').onclick=()=>close();host.querySelector('[data-pause]').onclick=pause;host.querySelector('[data-sound]').onclick=()=>api()?.audio(!audioRunning);stage.append(host);viewer.classList.add('kenjatime-viewer-playing');viewer.closest('.workspace')?.classList.add('kenjatime-workspace-playing');active={host,close};window.dispatchEvent(new CustomEvent('kenjatime:battle',{detail:{active:true,paused:false}}));host.scrollIntoView({block:'start',behavior:'instant'});
+ frame.addEventListener('load',()=>{if(!closing&&!api()){const text='The fight view could not load. Reload this page and try again.';close(text);onProgress(text);}});
  frame.src=new URL('engine/index.html?v='+__KENJATIME_ENGINE_REVISION__,new URL('../',import.meta.url)).href;return ready;
 }

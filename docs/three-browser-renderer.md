@@ -5,6 +5,18 @@ IKEMEN GO 1.0.0 remains the combat engine. Character states, triggers, collision
 helpers, projectiles, input rules and stage interpretation stay in Go/WASM.
 Kenjatime owns setup, uploads, controls and its HUD; no stock IKEMEN UI is added.
 
+Fight now replaces the preview inside the existing page. It does not request a
+new browser window, automatic fullscreen or an orientation lock. Portrait touch
+controls sit below the video; short landscape layouts place them over its lower
+corners. Menu restores the preview. The user-confirmed smooth renderer is saved
+in the [recovery point](three-smooth-recovery.md).
+
+The mobile follow-up skips active shader entries without a uniform location,
+which otherwise caused the reported `getUniform` panic. The match keeps its
+854:480 aspect ratio in both orientations. Lifebars now sit near the top, with
+larger fill heights and text; match controls remain outside the HUD. See
+[mobile browser fixes](mobile-browser-fixes.md) for the current regression scope.
+
 ## Rendering and resource ownership
 
 `engine/three/submit.js` translates the Go draw stream into ordered Three scene
@@ -72,7 +84,8 @@ requested logical image size.
 
 ## Verification and measurements
 
-The source evidence is in `three-browser-evidence.json`. Fixed-wall-time
+The initial renderer evidence is in `three-browser-evidence.json`. It predates
+the subsequent compact HUD layout. Fixed-wall-time
 benchmarks compare source `4f9367a0e44e3d8f8ba7fc6e212fe203c0e72a4c` with this
 renderer using Chromium/SwiftShader, no CPU throttling, an 854×480 viewport and
 at least 400 warm-up Go ticks. Each measurement window lasts approximately six
@@ -116,6 +129,7 @@ npm run build
 python scripts/verify-go-gpu.py
 python scripts/verify-go-engine.py
 python scripts/verify-browser-runtime.py
+python scripts/verify-embedded-battle.py
 python scripts/verify-go-presentation.py
 MUGEN_QA_MAIN_FALLBACK=1 MUGEN_QA_SCRIPT_AUDIO=1 python scripts/verify-go-presentation.py
 python scripts/benchmark-browser-runtime.py --label current

@@ -25,7 +25,12 @@ export function createThreeSubmitter(raw,memory,objects){
   const info={id:++serial,vertex:source(shaders.get(vs)||raw.getShaderSource(vs)),fragment:source(shaders.get(fs)||raw.getShaderSource(fs)),revision:0,attributes:[],uniforms:new Map()};
   for(let i=0,n=raw.getProgramParameter(p,raw.ACTIVE_ATTRIBUTES);i<n;i++){const a=raw.getActiveAttrib(p,i);info.attributes.push({name:a.name,location:raw.getAttribLocation(p,a.name)});}
   for(let i=0,n=raw.getProgramParameter(p,raw.ACTIVE_UNIFORMS);i<n;i++){
-   const u=raw.getActiveUniform(p,i),name=u.name.replace(/\[0\]$/,''),loc=raw.getUniformLocation(p,u.name),value=raw.getUniform(p,loc);
+   const u=raw.getActiveUniform(p,i);if(!u)continue;
+   const name=u.name.replace(/\[0\]$/,''),loc=raw.getUniformLocation(p,u.name);
+   // Reflection can list entries without a scalar location, including uniform
+   // block members. Mobile drivers expose these too; getUniform(null) throws.
+   if(loc==null)continue;
+   const value=raw.getUniform(p,loc);
    const count=components.get(u.type)||1,total=count*u.size;let initial=value;if(total>1){initial=new Float32Array(total);if(typeof value==='number'||typeof value==='boolean')initial[0]=Number(value);else if(value)initial.set(value);}
    info.uniforms.set(name,{name,type:u.type,components:count,size:u.size,value:initial,sampler:[raw.SAMPLER_2D,raw.SAMPLER_CUBE,raw.SAMPLER_2D_ARRAY,raw.SAMPLER_3D,raw.SAMPLER_2D_SHADOW].includes(u.type)});
   }

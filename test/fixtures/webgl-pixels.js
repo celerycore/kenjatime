@@ -3,12 +3,23 @@ import {createThreeSubmitter} from '../../engine/three/submit.js';
 import {createWebGLSubmitter} from '../../engine/webgl/submit.js';
 import {referenceSource} from './webgl-reference.js';
 
-export function verifyPixels(three=false){
+export function verifyPixels(three=false,missingLocation=false){
  const F=values=>values.map(x=>[x]),quad=(x,y,w,h)=>F([x,y,0,0,x+w,y,1,0,x,y+h,0,1,x+w,y+h,1,1]);
  const identity=[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],rot=[.87,.5,0,0,-.5,.87,0,0,0,0,1,0,0,0,0,1];
  function render(optimized){
   const canvas=document.createElement('canvas');canvas.width=128;canvas.height=96;
   const raw=canvas.getContext('webgl2',{antialias:false,alpha:false,preserveDrawingBuffer:true});if(!raw)throw Error('WebGL2 unavailable');
+  let inactiveLocations=0,invalidUniformReads=0;
+  if(optimized&&three&&missingLocation){
+   // Reproduce mobile reflection exposing an active entry without a scalar
+   // location (also valid for uniform-block members). Native WebGL throws if
+   // getUniform receives this null location. Actual shader draws stay real.
+   const parameter=raw.getProgramParameter.bind(raw),active=raw.getActiveUniform.bind(raw),location=raw.getUniformLocation.bind(raw),uniform=raw.getUniform.bind(raw);
+   raw.getProgramParameter=(p,key)=>parameter(p,key)+(key===raw.ACTIVE_UNIFORMS?1:0);
+   raw.getActiveUniform=(p,i)=>i===parameter(p,raw.ACTIVE_UNIFORMS)?{name:'kt_mobile_inactive',size:1,type:raw.FLOAT}:active(p,i);
+   raw.getUniformLocation=(p,name)=>{if(name==='kt_mobile_inactive'){inactiveLocations++;return null;}return location(p,name);};
+   raw.getUniform=(p,loc)=>{if(loc==null)invalidUniformReads++;return uniform(p,loc);};
+  }
   const memory=new WebAssembly.Memory({initial:2,maximum:4}),copy=new ArrayBuffer(65536),objects=[];
   const threeRun=optimized&&three?createThreeSubmitter(raw,memory,objects):null,gl=threeRun?.context||raw;
   const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;};
@@ -50,9 +61,10 @@ export function verifyPixels(three=false){
    gl.bindFramebuffer(gl.READ_FRAMEBUFFER,null);gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,fbo);gl.blitFramebuffer(0,0,128,96,0,0,128,96,gl.COLOR_BUFFER_BIT,gl.NEAREST);gl.disable(gl.SCISSOR_TEST);gl.clearColor(0,0,0,1);run.present(fbo,128,96,0,0,128,96,false);
    const presented=new Uint8Array(pixels.length);gl.readPixels(0,0,128,96,gl.RGBA,gl.UNSIGNED_BYTE,presented);if(pixels.some((v,i)=>v!==presented[i]))throw Error('Presentation pixels changed');
   }
-  gl.getExtension('WEBGL_lose_context').loseContext();return{pixels,stats:run.stats};
+  if(optimized&&three&&missingLocation&&(!inactiveLocations||invalidUniformReads))throw Error('Invalid mobile uniform reflection handling');
+  gl.getExtension('WEBGL_lose_context').loseContext();return{pixels,stats:run.stats,inactiveLocations,invalidUniformReads};
  }
  const reference=render(false),current=render(true);let different=0;for(let i=0;i<reference.pixels.length;i++)if(reference.pixels[i]!==current.pixels[i])different++;
  if(different)throw Error(different+' GPU pixel channels changed');
- return{pixelChannels:reference.pixels.length,differentChannels:different,commandCopies:current.stats.commandCopies,memoryViews:current.stats.memoryViews,vertexUploads:current.stats.vertexUploads,allOpcodes:true,backend:current.stats.backend,threeDraws:current.stats.threeDraws||0,mergedDraws:current.stats.mergedDraws||0};
+ return{pixelChannels:reference.pixels.length,differentChannels:different,commandCopies:current.stats.commandCopies,memoryViews:current.stats.memoryViews,vertexUploads:current.stats.vertexUploads,allOpcodes:true,backend:current.stats.backend,threeDraws:current.stats.threeDraws||0,mergedDraws:current.stats.mergedDraws||0,inactiveLocations:current.inactiveLocations,invalidUniformReads:current.invalidUniformReads};
 }
