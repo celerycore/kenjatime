@@ -1,0 +1,65 @@
+{
+  "sourceCommit": "dee3a17cd5ae4100928702df8157ba38685fa090",
+  "apk": {
+    "package": "io.github.celerycore.kenjatime",
+    "version": "0.4.2",
+    "versionCode": 10,
+    "startupUrl": "https://localhost/mobile/index.html",
+    "apkBytes": 12220887,
+    "apkSha256": "5aa0cf4384ab8bca57b0b288913575bc8e1a5a1dbc5a9c8450ea05606771cc5c",
+    "signatureVerified": true,
+    "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "minimumWebView": 107,
+    "bundledWebFilesMatchDist": 49,
+    "onlyBundledCharacterArchive": "kfm.zip",
+    "sharedEngineCoreArchive": "engine/core.zip",
+    "lint": {
+      "errors": 0,
+      "warnings": [
+        {
+          "id": "UnusedAttribute",
+          "severity": "Warning",
+          "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+        },
+        {
+          "id": "NewerVersionAvailable",
+          "severity": "Warning",
+          "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
+        },
+        {
+          "id": "UnusedResources",
+          "severity": "Warning",
+          "message": "The resource `R.xml.config` appears to be unused"
+        },
+        {
+          "id": "UsableSpace",
+          "severity": "Warning",
+          "message": "Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
+        }
+      ]
+    },
+    "deviceTesting": "Packaging checks do not execute Android or measure phone FPS."
+  },
+  "repositoryTests": {
+    "passed": 522,
+    "failed": 0,
+    "skipped": 0
+  },
+  "startupScenarios": 18,
+  "largeLibrary": {
+    "packages": 200,
+    "files": 20200,
+    "logicalBytes": 303104000,
+    "sharedFixtureBlobs": true,
+    "physicalDiskSaturationTest": false
+  },
+  "nativeBridgeTests": {
+    "tests": 4,
+    "failures": 0,
+    "physicalAndroid": false
+  },
+  "physicalAndroidExecution": false,
+  "actualAndroidPackageUpgradeTested": false
+}
