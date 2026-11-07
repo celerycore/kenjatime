@@ -7,12 +7,8 @@
     "file": "assets/index-Dl1qKiz5.js",
     "name": "index"
   },
-  "_main-UY0ZCfbb.css": {
-    "file": "assets/main-UY0ZCfbb.css",
-    "src": "_main-UY0ZCfbb.css"
-  },
-  "_main-jQPxAmtP.js": {
-    "file": "assets/main-jQPxAmtP.js",
+  "_main-BvsAQsnD.js": {
+    "file": "assets/main-BvsAQsnD.js",
     "name": "main",
     "imports": [
       "_native-setup-bXN5XoCS.js",
@@ -21,6 +17,10 @@
     "css": [
       "assets/main-UY0ZCfbb.css"
     ]
+  },
+  "_main-UY0ZCfbb.css": {
+    "file": "assets/main-UY0ZCfbb.css",
+    "src": "_main-UY0ZCfbb.css"
   },
   "_native-export-C3ub1oFk.js": {
     "file": "assets/native-export-C3ub1oFk.js",
@@ -70,13 +70,13 @@
     ]
   },
   "mobile/index.html": {
-    "file": "assets/mobile-CWvQ0Q0p.js",
+    "file": "assets/mobile-dan0fqH9.js",
     "name": "mobile",
     "src": "mobile/index.html",
     "isEntry": true,
     "imports": [
       "_preload-helper-mg6Z-sIv.js",
-      "_main-jQPxAmtP.js",
+      "_main-BvsAQsnD.js",
       "_native-setup-bXN5XoCS.js",
       "_index-Dl1qKiz5.js",
       "_browser-BrENwvay.js"
