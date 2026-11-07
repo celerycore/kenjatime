@@ -328,11 +328,12 @@ type Renderer_WebGL struct {
 	consts  map[string]js.Value
 	scratch wglScratch
 
-	fbo          js.Value
-	fboTexture   js.Value
-	rboDepth     js.Value
-	fboPP        []js.Value
-	fboPPTexture []js.Value
+	fboID, sceneTextureID, postVAOID, nullID int32
+	fbo                                      js.Value
+	fboTexture                               js.Value
+	rboDepth                                 js.Value
+	fboPP                                    []js.Value
+	fboPPTexture                             []js.Value
 
 	postVertBuffer   js.Value
 	postShaderSelect []*ShaderProgram_WebGL
@@ -557,13 +558,7 @@ func (r *Renderer_WebGL) newPaletteTexture() Texture {
 }
 
 func (r *Renderer_WebGL) Init() {
-	doc := js.Global().Get("document")
-	canvas := doc.Call("getElementById", "ikemen-canvas")
-	if !canvas.Truthy() {
-		canvas = doc.Call("createElement", "canvas")
-		canvas.Set("id", "ikemen-canvas")
-		doc.Get("body").Call("appendChild", canvas)
-	}
+	canvas := sys.window.canvas
 	attrs := js.Global().Get("Object").New()
 	attrs.Set("alpha", false)
 	attrs.Set("antialias", false)
@@ -672,11 +667,15 @@ func (r *Renderer_WebGL) Init() {
 	r.grabTexture.SetData(nil)
 
 	// Main offscreen framebuffer: RGBA color texture + depth renderbuffer
+	sceneFilter := r.c("NEAREST")
+	if sys.cfg.Video.WindowScaleMode {
+		sceneFilter = r.c("LINEAR")
+	}
 	r.fboTexture = r.glc("createTexture")
 	textureSerialNumber++
 	r.glc("bindTexture", r.c("TEXTURE_2D"), r.fboTexture)
-	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), r.c("NEAREST"))
-	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), r.c("NEAREST"))
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MAG_FILTER"), sceneFilter)
+	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_MIN_FILTER"), sceneFilter)
 	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_S"), r.c("CLAMP_TO_EDGE"))
 	r.glc("texParameteri", r.c("TEXTURE_2D"), r.c("TEXTURE_WRAP_T"), r.c("CLAMP_TO_EDGE"))
 	r.glc("texImage2D", r.c("TEXTURE_2D"), 0, r.c("RGBA"), sys.scrrect[2], sys.scrrect[3], 0,
@@ -691,6 +690,10 @@ func (r *Renderer_WebGL) Init() {
 	r.glc("framebufferTexture2D", r.c("FRAMEBUFFER"), r.c("COLOR_ATTACHMENT0"), r.c("TEXTURE_2D"), r.fboTexture, 0)
 	r.glc("framebufferRenderbuffer", r.c("FRAMEBUFFER"), r.c("DEPTH_ATTACHMENT"), r.c("RENDERBUFFER"), r.rboDepth)
 
+	r.fboID = r.regJS(r.fbo)
+	r.sceneTextureID = r.regJS(r.fboTexture)
+	r.postVAOID = r.regJS(r.postVAO)
+	r.nullID = r.regJS(js.Null())
 	// Intermediate targets are only needed for actual post-processing.
 	if len(r.postShaderSelect) > 1 {
 		// Ping-pong post-processing framebuffers
@@ -720,6 +723,7 @@ func (r *Renderer_WebGL) Init() {
 
 	// 3D model pipeline (render_webgl_model.go); turns itself off on failure.
 	r.initModel()
+	r.cmd.runFn.Get("targets").Invoke(canvas, r.fbo, r.fboTexture, r.rboDepth, r.grabTexture.handle, sys.scrrect[2], sys.scrrect[3], js.Global().Get("__kenjatimeQuality"))
 }
 
 func (r *Renderer_WebGL) Close() {}
@@ -728,26 +732,65 @@ func (r *Renderer_WebGL) BeginFrame(clearColor bool) {
 	// A clear obeys the scissor rect, so a deferred disable must land first or
 	// only the last sprite's window gets cleared.
 	r.flushScissorDisable()
-	r.glc("bindFramebuffer", r.c("FRAMEBUFFER"), r.fbo)
-	r.glc("viewport", 0, 0, sys.scrrect[2], sys.scrrect[3])
-	if clearColor {
-		r.glc("clear", r.ci("COLOR_BUFFER_BIT")|r.ci("DEPTH_BUFFER_BIT"))
-	} else {
-		r.glc("clear", r.ci("DEPTH_BUFFER_BIT"))
+	r.SetDepthMask(true)
+	r.need(12)
+	r.emitI(wcFrameSize)
+	canScale := int32(0)
+	if len(r.customShaders) == 0 && len(r.postShaderSelect) == 1 && (sys.stage == nil || sys.stage.model == nil) {
+		canScale = 1
 	}
+	r.emitI(canScale)
+	r.emitI(wcBindFramebuffer)
+	r.emitI(int32(r.ci("FRAMEBUFFER")))
+	r.emitI(r.fboID)
+	r.emitI(wcViewport)
+	r.emitI(0)
+	r.emitI(0)
+	r.emitI(sys.scrrect[2])
+	r.emitI(sys.scrrect[3])
+	r.emitI(wcClear)
+	mask := r.ci("DEPTH_BUFFER_BIT")
+	if clearColor {
+		mask |= r.ci("COLOR_BUFFER_BIT")
+	}
+	r.emitI(int32(mask))
 }
 
 func (r *Renderer_WebGL) EndFrame() {
-	// The default output is an identity copy, not a shader effect. Keep the
-	// scene's palette/blend/rotation semantics and present it with one GPU blit.
+	// Match the native GLES output: one identity quad, no framebuffer blit.
 	if len(r.postShaderSelect) == 1 {
+		r.SetActiveTexture0()
 		r.flushScissorDisable()
 		r.DisableBlending()
 		r.SetDepthTest(false)
 		r.SetDepthMask(false)
-		r.flushCmds()
+		r.ChangeProgram(r.postShaderSelect[0])
 		x, y, w, h := sys.window.GetScaledViewportSize()
-		r.cmd.presentFn.Invoke(r.fbo, sys.scrrect[2], sys.scrrect[3], x, y, w, h, sys.cfg.Video.WindowScaleMode)
+		r.need(23)
+		r.emitI(wcBindVAO)
+		r.emitI(r.postVAOID)
+		r.emitI(wcActiveBind)
+		r.emitI(0)
+		r.emitI(r.sceneTextureID)
+		r.emitI(wcBindFramebuffer)
+		r.emitI(int32(r.ci("FRAMEBUFFER")))
+		r.emitI(r.nullID)
+		r.emitI(wcViewport)
+		r.emitI(x)
+		r.emitI(y)
+		r.emitI(w)
+		r.emitI(h)
+		r.emitI(wcClear)
+		r.emitI(int32(r.ci("COLOR_BUFFER_BIT")))
+		r.emitI(wcDrawArrays)
+		r.emitI(int32(r.ci("TRIANGLE_STRIP")))
+		r.emitI(0)
+		r.emitI(4)
+		r.emitI(wcActiveBind)
+		r.emitI(0)
+		r.emitI(r.nullID)
+		r.emitI(wcPresent)
+		r.flushCmds()
 		return
 	}
 	if len(r.fboPP) == 0 {

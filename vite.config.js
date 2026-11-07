@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 
 // Public engine payloads need the same cache revision as their frame/runtime.
 const engineRevision=createHash('sha256');
-for(const path of ['public/engine/core.zip','public/engine/ikemen.wasm.bin','public/engine/wasm_exec.js','engine/index.html','engine/webgl/submit.js','src/engine-frame.js','src/engine-fs.js','package-lock.json'])engineRevision.update(readFileSync(new URL(path,import.meta.url)));
+for(const path of ['public/engine/core.zip','public/engine/ikemen.wasm.bin','public/engine/wasm_exec.js','engine/index.html','engine/webgl/submit.js','engine/three/submit.js','engine/webgl/render-target.js','src/engine-frame.js','src/engine-runtime.js','src/engine-worker.js','src/engine-audio.js','src/pcm-worklet.js','src/engine-fs.js','package-lock.json'])engineRevision.update(readFileSync(new URL(path,import.meta.url)));
 
 // The pinned LZMA decoder ships as a classic-worker/CJS script. Expose its
 // decoder as an ES module without replacing our archive worker's message handler.

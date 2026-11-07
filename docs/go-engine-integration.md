@@ -20,7 +20,7 @@ Pause and app backgrounding clear held inputs and pause fighters. Menu disposes 
 
 ## Validation and limits
 
-- 506 repository tests pass with the available supplied corpus, without skips. Most pre-existing combat tests describe the historical JS implementation; these alone are not evidence of the Go backend.
+- 513 repository tests pass with the available supplied corpus, without skips. Most pre-existing combat tests describe the historical JS implementation; these alone are not evidence of the Go backend.
 - 25 native host tests cover private match/config handoff without relying on argv, invalid-selection rollback, actual asset preparation, removal of obsolete UI on upgrade, archive policy/registration, library persistence, picker and native launch, WebView lifecycle and audio permission handling.
 - The browser smoke suite executes real Go/WASM matches, records a 23-point touch punch, verifies paused fighter state, Menu return, 24 archive imports across the four routes, invalid-import preservation, restart persistence and old-library migration. It launches the ordinary CNS Kung Fu Man ZIP, Tomoka RAR and Forest RAR with the Go VM.
 - The APK verifier checks the original ten native libraries and 53 JNI signatures, versions, signatures, prepared files and absent stock UI paths. Both Android builds have lint checks. The Go build job reproduces the shipped WASM from pinned source.
@@ -44,4 +44,4 @@ The browser resumes its actual audio contexts from fight input and provides an E
 The browser core, WASM payload, Go runtime and engine frame share a content-derived cache revision. Updates load those resources together, including in a previously used Brave tab or Android WebView. The presentation check verifies all four requests carry the same revision.
 
 The maintained browser GPU submission backend and its measured frame-pacing,
-transfer and pixel results are described in [the browser renderer report](go-webgl-renderer.md).
+transfer and pixel results are described in [the Three.js browser renderer report](three-browser-renderer.md).

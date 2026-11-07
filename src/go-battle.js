@@ -2,10 +2,12 @@ import {mountTouchControls} from './touch-controls.js';
 import './go-battle.css';
 const mapping={U:'ArrowUp',D:'ArrowDown',L:'ArrowLeft',R:'ArrowRight',a:'KeyZ',b:'KeyX',c:'KeyC',x:'KeyA',y:'KeyS',z:'KeyD',s:'Enter'};
 let active;
+let quality;try{quality=localStorage.getItem('kenjatime.visuals')||'auto';}catch{quality='auto';}
+if(!['auto','sharp'].includes(quality))quality='auto';
 export async function openGoBattle({files,args,onProgress=()=>{}}){
  active?.close();window.__kenjatimeGoState=undefined;
  const host=document.createElement('section');host.className='kenjatime-battle';host.setAttribute('aria-label','Kenjatime arena');
- host.innerHTML='<iframe title="Kenjatime fight" allow="autoplay; gamepad"></iframe><div class="kenjatime-battle-bar"><button type="button" class="secondary" data-menu>Menu</button><button type="button" class="secondary" data-pause>Pause</button><button type="button" class="secondary" data-sound aria-pressed="false">Enable sound</button></div><p class="kenjatime-battle-status">Preparing your match…</p>';
+ host.innerHTML='<iframe title="Kenjatime fight" allow="autoplay; gamepad"></iframe><div class="kenjatime-battle-bar"><button type="button" class="secondary" data-menu>Menu</button><button type="button" class="secondary" data-pause>Pause</button><button type="button" class="secondary" data-sound aria-pressed="false">Enable sound</button><button type="button" class="secondary" data-quality>Visuals: Auto</button></div><p class="kenjatime-battle-status">Preparing your match…</p>';
  const frame=host.querySelector('iframe'),status=host.querySelector('p');let held=new Set(),paused=false,settled=false,audioRunning=false,closing=false;
  const api=()=>frame.contentWindow?.__kenjatimeFrame;
  function keys(inputs){if(closing){held.clear();return;}const next=new Set([...inputs].map(k=>mapping[k]).filter(Boolean));for(const k of held)if(!next.has(k))api()?.key(k,false);for(const k of next)if(!held.has(k))api()?.key(k,true);held=next;}
@@ -16,7 +18,7 @@ export async function openGoBattle({files,args,onProgress=()=>{}}){
  const appState=event=>{if(!event.detail.active&&!paused)pause();};
  const visibility=()=>{touch.reset();if(document.hidden&&!paused)pause();};
  function message(event){if(event.source!==frame.contentWindow||event.origin!==location.origin||!event.data?.kenjatimeEngine)return;const data=event.data;
-  if(data.type==='frame-ready'){frame.contentWindow.postMessage({type:'kenjatime-start',files,args},location.origin,[...new Set(Object.values(files).map(b=>b.buffer))]);}
+  if(data.type==='frame-ready'){frame.contentWindow.postMessage({type:'kenjatime-start',files,args,quality},location.origin,[...new Set(Object.values(files).map(b=>b.buffer))]);}
   if(data.type==='progress'){status.textContent=data.message;onProgress(data.message);}
   if(data.type==='ready'){status.hidden=true;frame.focus();if(!settled){settled=true;resolve();}}
   if(data.type==='state'){window.__kenjatimeGoState=data.state;}
@@ -25,6 +27,7 @@ export async function openGoBattle({files,args,onProgress=()=>{}}){
   if(data.type==='error'){const text=data.message||'The match could not start.';close(text);onProgress(text);}
  }
  window.addEventListener('message',message);window.addEventListener('kenjatime:app-state',appState);document.addEventListener('visibilitychange',visibility);
+ const qualityButton=host.querySelector('[data-quality]');const qualityLabel=()=>{qualityButton.textContent=quality==='sharp'?'Visuals: Sharp':'Visuals: Auto';qualityButton.setAttribute('aria-pressed',String(quality==='sharp'));};qualityLabel();qualityButton.onclick=()=>{quality=quality==='sharp'?'auto':'sharp';try{localStorage.setItem('kenjatime.visuals',quality);}catch{}api()?.quality(quality);qualityLabel();};
  host.querySelector('[data-menu]').onclick=()=>close();host.querySelector('[data-pause]').onclick=pause;host.querySelector('[data-sound]').onclick=()=>api()?.audio(!audioRunning);document.body.append(host);document.body.classList.add('kenjatime-playing');active={host,close};window.dispatchEvent(new CustomEvent('kenjatime:battle',{detail:{active:true,paused:false}}));if(navigator.userActivation?.isActive&&matchMedia('(pointer:coarse)').matches&&host.requestFullscreen)host.requestFullscreen().then(()=>screen.orientation?.lock?.('landscape')).catch(()=>{});
  frame.src=new URL('engine/index.html?v='+__KENJATIME_ENGINE_REVISION__,new URL('../',import.meta.url)).href;return ready;
 }

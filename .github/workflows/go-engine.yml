@@ -10,6 +10,9 @@ on:
       - 'native-android/ui/**'
       - 'scripts/verify-go-gpu.py'
       - 'test/go-gpu.test.js'
+      - 'test/pcm.test.js'
+      - 'test/render-target.test.js'
+      - 'scripts/verify-browser-runtime.py'
       - 'test/fixtures/webgl-*'
       - 'scripts/verify-go-engine.py'
       - 'scripts/verify-go-presentation.py'
@@ -51,3 +54,7 @@ jobs:
         run: python scripts/verify-go-engine.py
       - name: Check fighter framing, HUD pixels, sparks and stage PCM output
         run: python scripts/verify-go-presentation.py
+      - name: Check worker ownership, standard gamepads, quality mode and teardown
+        run: python scripts/verify-browser-runtime.py
+      - name: Check the main-thread and ScriptProcessor compatibility fallback
+        run: MUGEN_QA_MAIN_FALLBACK=1 MUGEN_QA_SCRIPT_AUDIO=1 python scripts/verify-go-presentation.py

@@ -21,7 +21,9 @@ out['coreContainsStockUi']=False
 with sync_playwright() as p:
  executable=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path
  browser=p.chromium.launch(executable_path=executable,headless=True,args=['--no-sandbox','--use-angle=swiftshader','--enable-webgl','--enable-unsafe-swiftshader','--autoplay-policy=no-user-gesture-required'])
- context=browser.new_context(viewport={'width':844,'height':390},is_mobile=True,has_touch=True);page=context.new_page();errors=[];bad=[]
+ context=browser.new_context(viewport={'width':844,'height':390},is_mobile=True,has_touch=True)
+ if os.environ.get('MUGEN_QA_MAIN_FALLBACK'):context.add_init_script('HTMLCanvasElement.prototype.transferControlToOffscreen=undefined;')
+ page=context.new_page();errors=[];bad=[]
  page.on('pageerror',lambda e:errors.append(str(e)));page.on('response',lambda r:bad.append(r.url) if r.status>=400 and 'favicon' not in r.url else None)
  def ready():page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'")
  def state():return page.evaluate('window.__kenjatimeGoState')

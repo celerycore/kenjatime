@@ -1,4 +1,7 @@
-# Browser rendering backend
+# Browser command/resource bridge
+
+The active renderer is `engine/three/submit.js`. This module decodes the Go ABI
+and owns streamed vertex packing and adaptive targets; Three owns draw calls.
 
 `render_webgl.go` and `render_webgl_cmdbuf.go` derive from the MIT-licensed
 energyjp/ikemen-go-web renderer at commit
@@ -15,7 +18,7 @@ the stream first. The scalar-uniform cache and command encoding originated in
 the upstream renderer; this implementation adds matrix caching and replaces its
 copied JS command buffer and per-sprite vertex uploads.
 
-The default output blits the scene framebuffer directly to the canvas. Actual
+The default output is an ordered Three identity quad. Actual
 postprocessing retains the original shader path. Custom sprite fragment shaders,
 grab passes, font rendering and indexed models keep their existing interfaces.
 Texture/resource uploads still use scratch arrays. This is a rewrite of the
@@ -27,4 +30,4 @@ including memory growth, deferred geometry and model bindings.
 `python scripts/verify-go-gpu.py` compares pixels on real WebGL2 across all 30
 opcodes, mixed blend modes, transforms, clipping, fonts and indexed geometry.
 `python scripts/benchmark-go-webgl.py` measures real Go matches. See
-`docs/go-webgl-renderer.md` for results and measurement limits.
+`docs/three-browser-renderer.md` for results and measurement limits.

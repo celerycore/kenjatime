@@ -41,7 +41,7 @@ test('a flush between upload and draw retains geometry even when the next packet
 });
 test('memory growth refreshes GPU views and bulk upload restores the model attribute buffer',()=>{
  const h=harness();h.packet([18,1,...upload(0,quad(1)),10,5,0,4]);h.mem.grow(1);
- h.old.bindBuffer(0x8892,h.t1[6]);h.gpu.bindBuffer(0x8892,h.t2[6]);
+ h.old.bindBuffer(0x8892,h.t1[6]);h.run.direct('bindBuffer',0x8892,h.t2[6]);
  h.packet([18,7,24,0,3,0x1406,0,12,0,26,4,6,0,18,1,...upload(0,quad(30)),10,5,0,4]);assert.equal(h.run.stats.memoryViews,2);
 });
 test('GPU decoder rejects incomplete commands, invalid ranges and unaligned vertex packets',()=>{
@@ -51,4 +51,10 @@ test('a growing stream keeps hundreds of ordered quads in one vertex transfer',(
  const h=harness(),words=[18,1];
  for(let i=0;i<600;i++)words.push(...upload(0,quad(i)),10,5,0,4);
  h.packet(words);assert.equal(h.gpu.draws.length,600);assert.equal(h.old.calls.bufferData,600);assert.equal(h.gpu.calls.bufferData,1);assert.equal(h.gpu.calls.bufferSubData,1);
+});
+
+test('steady streams rotate storage without new allocations or GL state queries',()=>{
+ const h=harness();h.gpu.getParameter=()=>{throw Error('hot GL query');};
+ for(let i=0;i<12;i++)h.packet([18,1,...upload(0,quad(i)),10,5,0,4]);
+ assert.equal(h.gpu.calls.bufferData,1);assert.equal(h.run.stats.vertexReallocations,1);assert.equal(h.gpu.calls.bufferSubData,12);
 });

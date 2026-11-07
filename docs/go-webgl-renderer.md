@@ -1,4 +1,7 @@
-# Browser GPU renderer rewrite
+# Earlier browser GPU renderer rewrite
+
+This report describes source 4f9367a. The current implementation is documented in
+[the Three.js renderer report](three-browser-renderer.md).
 
 Kenjatime now maintains its Go/WASM WebGL2 submission backend in
 `engine/webgl/`. The pinned IKEMEN GO simulation, MUGEN state/controller rules,

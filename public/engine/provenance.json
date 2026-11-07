@@ -6,11 +6,20 @@
     "GOARCH": "wasm",
     "CGO_ENABLED": "0"
   },
-  "hostBridgeSha256": "82eba3b1fc1ebe54c76161d05deccb5185bb026329c6a19a83b191d1bfdd7e59",
+  "hostBridgeSha256": "b57f8fda4db496a13c1026fda24ffc5accdee9a52b1f6bdf37c7082bb17dbd5b",
+  "browserSources": {
+    "audio_js.go": "f62d6deba4d27e0ba9d62bde755a58ff08cf122c0d116cf4f7d0e968c1ee7cb1",
+    "system_js.go": "d70a5140897ce92ad8a2f3a231626ebcb2d0882abc75e3cb1f6d7c9c84f19eec"
+  },
+  "threeVersion": "0.187.0",
+  "threeSources": {
+    "submit.js": "6cf9d7a7d341cc6edb7ff3d3a87df423b9ffde93f5f045410b15b3b4e591bcc7"
+  },
   "rendererSources": {
-    "render_webgl.go": "669c68b3117128d589fcd52cf41365ad7a4506cd5935bb9fff494048a811caee",
-    "render_webgl_cmdbuf.go": "9c946a3e605cd80a73d73f5cab0a2710933846304144ab13a2ecd99542011bc1",
-    "submit.js": "3c993b6aea77d48a0fdcfc465be7185b457c7f057bf127bf4094637c9037f9b4"
+    "render-target.js": "0b36f649479d7b6440e74c9588347f17a8e4e406cabf0bd5b3732b69a86649e5",
+    "render_webgl.go": "6d67ae95f946b0078835907aa449e8ea9223bf14743fe406db008dfdda7af453",
+    "render_webgl_cmdbuf.go": "73a125d492a88d357890109996ae8f2b02f75aaf3b9ffc1c3d21dfebdb555277",
+    "submit.js": "4007a81c446f78ea700308adfd18d95e6e1c7572a717e34e6d44b30fea674325"
   },
   "engine": "IKEMEN GO",
   "version": "1.0.0",
@@ -28,12 +37,13 @@
     "Kenjatime match status, pause and touch input bridge",
     "Release touch inputs after at least one simulation poll",
     "Kenjatime error title",
-    "Kenjatime WebGL2 submission backend: live WASM memory, pooled vertex streams, GPU blit and browser frame pacing"
+    "Dedicated browser worker, bounded PCM AudioWorklet sink, input and state bridge",
+    "Three.js renderer, external GPU resources, ordered shader materials, persistent vertex streams and adaptive render targets"
   ],
   "stockMenuAssets": false,
   "stockMenuScripts": false,
-  "wasmBytes": 24421762,
-  "wasmSha256": "d87253d75549d196098e927525ce1a613609b3cddc97ede6dca6a6b60897613c",
+  "wasmBytes": 24380644,
+  "wasmSha256": "c3d789fca51c85d4e70c4af177dd23dba6bfe8fd4a83de379e71652b13503abc",
   "files": {
     "wasm_exec.js": {
       "bytes": 16687,
@@ -56,8 +66,8 @@
       "sha256": "30dd549c8be7fedd0ec076cd32febf13ad34a9b4a8de7079de3fbe910f57420f"
     },
     "ikemen.wasm.bin": {
-      "bytes": 5658569,
-      "sha256": "0252aade8a6d56c765296ce26704919b2fc01155ba73bd3191ce31e3b79e47ec"
+      "bytes": 5650007,
+      "sha256": "e8620df9dd8116607c1a1a150e4158532787c8bfa648d066fe473436b7d05424"
     }
   }
 }

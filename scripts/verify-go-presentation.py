@@ -21,7 +21,18 @@ fixture=OUT/'stage-audio.zip'
 with zipfile.ZipFile(fixture,'w',zipfile.ZIP_DEFLATED) as z:
  z.writestr('Stage/stages/Presentation.DEF',stage);z.writestr('Stage/stages/kenjatime-grid.sff',sprite);z.writestr('Stage/stages/Tone.wav',audio.getvalue())
 
-probe="""(()=>{if(!window.AudioContext)return;const original=AudioContext.prototype.createScriptProcessor;window.__pcmProbe={buffers:0,peak:0};AudioContext.prototype.createScriptProcessor=function(...args){const node=original.apply(this,args),add=node.addEventListener.bind(node);node.addEventListener=(type,fn,...rest)=>add(type,type==='audioprocess'?event=>{fn(event);const data=event.outputBuffer.getChannelData(0);let peak=0;for(let i=0;i<data.length;i+=8)peak=Math.max(peak,Math.abs(data[i]));window.__pcmProbe.buffers++;window.__pcmProbe.peak=Math.max(window.__pcmProbe.peak,peak);}:fn,...rest);return node;};})();"""
+probe="""(()=>{
+ const connect=AudioNode.prototype.connect;window.__pcmProbe={buffers:0,peak:0};
+ AudioNode.prototype.connect=function(destination,...rest){
+  if(destination===this.context.destination&&((typeof AudioWorkletNode==='function'&&this instanceof AudioWorkletNode)||this instanceof ScriptProcessorNode)){
+   const analyser=this.context.createAnalyser();analyser.fftSize=512;const samples=new Float32Array(512);
+   connect.call(this,analyser);connect.call(analyser,destination,...rest);
+   setInterval(()=>{analyser.getFloatTimeDomainData(samples);let peak=0;for(let i=0;i<samples.length;i++)peak=Math.max(peak,Math.abs(samples[i]));window.__pcmProbe.buffers++;window.__pcmProbe.peak=Math.max(window.__pcmProbe.peak,peak);},10);return destination;
+  }
+  return connect.call(this,destination,...rest);
+ };
+})();"""
+
 evidence={'phoneExecution':False,'checks':{}}
 def colors(path):
  im=Image.open(path).convert('RGB');upper=im.crop((0,0,im.width,im.height//2));counts=upper.getcolors(upper.width*upper.height) or []
@@ -30,14 +41,16 @@ try:
  with sync_playwright() as p:
   browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium') or p.chromium.executable_path,headless=True,args=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--autoplay-policy=document-user-activation-required'])
   context=browser.new_context(viewport={'width':844,'height':390},is_mobile=True,has_touch=True);context.add_init_script(probe)
-  page=context.new_page();page.set_default_timeout(60000);errors=[];requests=[];page.on('pageerror',lambda e:errors.append(str(e)));page.on('request',lambda r:requests.append(r.url))
+  if os.environ.get('MUGEN_QA_MAIN_FALLBACK'):context.add_init_script('HTMLCanvasElement.prototype.transferControlToOffscreen=undefined;')
+  if os.environ.get('MUGEN_QA_SCRIPT_AUDIO'):context.add_init_script('window.AudioWorkletNode=undefined;')
+  page=context.new_page();page.set_default_timeout(60000);errors=[];requests=[];page.on('pageerror',lambda e:errors.append(str(e)));context.on('request',lambda r:requests.append(r.url))
   page.goto(base+'arena-classic/');page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'");page.wait_for_function("document.querySelector('canvas').dataset.previewCount==='2'")
   page.locator('.viewer').screenshot(path=str(OUT/'two-fighter-preview.png'));evidence['checks']['twoPreviewFighters']=True;print('PASS two-fighter preview',flush=True)
   with page.expect_file_chooser() as chosen:page.locator('#add-stage').click()
   chosen.value.set_files(str(fixture));page.wait_for_function("document.querySelector('#status').textContent.startsWith('Archive installed')")
-  page.locator('#arena-mode').select_option('versus');page.locator('#fight-now').click();page.wait_for_function("window.__kenjatimeGoState?.players.length===2 && window.__kenjatimeGoState.players.every(p=>p.state===0)",timeout=90000)
+  page.locator('#arena-mode').select_option('versus');page.locator('#fight-now').click();page.wait_for_function("window.__kenjatimeGoState?.roundState===2 && window.__kenjatimeGoState.players.length===2 && window.__kenjatimeGoState.players.every(p=>p.state===0)",timeout=90000)
   frame=page.frames[1];frame.wait_for_function("window.__kenjatimeFrame.snapshot().music.streaming",timeout=30000)
-  state=frame.evaluate('window.__kenjatimeFrame.snapshot()');assert state['music']['file'].endswith('/tone.wav'),state
+  evidence['checks']['backend']=frame.evaluate('window.__kenjatimeFrame.backend()');state=frame.evaluate('window.__kenjatimeFrame.snapshot()');assert state['music']['file'].endswith('/tone.wav'),state
   from urllib.parse import urlparse,parse_qs
   assets=[u for u in requests if urlparse(u).path.split('/')[-1] in ['core.zip','wasm_exec.js','ikemen.wasm.bin'] or '/engine/index.html' in u]
   versions=[parse_qs(urlparse(u).query).get('v') for u in assets];assert len(assets)==4 and all(versions) and all(v==versions[0] for v in versions),(assets,versions)

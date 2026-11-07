@@ -43,14 +43,19 @@ const (
 	// of primitives a frame, each with ~11 attribute pointers, ~25 uniforms,
 	// up to 7 texture binds and a drawElements: one crossing per call would be
 	// thousands of crossings per frame.
-	wcUniformMat3  = 23 // locID, 9 f
-	wcAttribPtr    = 24 // index, size, type, normalized(0/1), stride, offset (vertexAttribPointer)
-	wcAttribOff    = 25 // index, f, f, f, f (disableVertexAttribArray + vertexAttrib4f)
-	wcDrawElements = 26 // mode, count, offset (UNSIGNED_INT indices)
-	wcActiveBindT  = 27 // unit, target, texID (activeTexture + bindTexture on any target)
-	wcFrontFace    = 28 // mode
-	wcAttribOn     = 29 // index (enableVertexAttribArray)
-	wcBindBuffer   = 30 // target, bufID
+	wcUniformMat3     = 23 // locID, 9 f
+	wcAttribPtr       = 24 // index, size, type, normalized(0/1), stride, offset (vertexAttribPointer)
+	wcAttribOff       = 25 // index, f, f, f, f (disableVertexAttribArray + vertexAttrib4f)
+	wcDrawElements    = 26 // mode, count, offset (UNSIGNED_INT indices)
+	wcActiveBindT     = 27 // unit, target, texID (activeTexture + bindTexture on any target)
+	wcFrontFace       = 28 // mode
+	wcAttribOn        = 29 // index (enableVertexAttribArray)
+	wcBindBuffer      = 30 // target, bufID
+	wcBindFramebuffer = 31 // target, framebufferID
+	wcViewport        = 32 // x, y, width, height
+	wcClear           = 33 // mask
+	wcPresent         = 34 // frame boundary for diagnostics
+	wcFrameSize       = 35 // may adapt render resolution
 )
 
 // JavaScript submission is implemented in submit.js and reads live WASM memory.
@@ -58,13 +63,13 @@ const (
 const wglCmdBufBytes = 1 << 18 // 256KB = 64K words; a heavy frame fits in one flush
 
 type wglCmdBuf struct {
-	stage     []byte // Go-side staging (little-endian 4-byte words)
-	pos       int    // bytes used
-	presentFn js.Value
-	streamFn  js.Value
-	runFn     js.Value // the interpreter
-	tables    js.Value // JS array of registered GL objects
-	nextID    int      // next table slot
+	stage    []byte // Go-side staging (little-endian 4-byte words)
+	pos      int    // bytes used
+	directFn js.Value
+	streamFn js.Value
+	runFn    js.Value // the interpreter
+	tables   js.Value // JS array of registered GL objects
+	nextID   int      // next table slot
 }
 
 func (r *Renderer_WebGL) initCmdBuf() {
@@ -77,7 +82,7 @@ func (r *Renderer_WebGL) initCmdBuf() {
 		panic(Error("Kenjatime GPU bridge is missing"))
 	}
 	cb.runFn = factory.Invoke(r.gl, memory, cb.tables)
-	cb.presentFn = cb.runFn.Get("present")
+	cb.directFn = cb.runFn.Get("direct")
 	cb.streamFn = cb.runFn.Get("stream")
 	js.Global().Set("__kenjatimeGPU", cb.runFn.Get("stats"))
 }
@@ -123,7 +128,10 @@ func (r *Renderer_WebGL) flushCmds() {
 // already flushed, like bindAndPrepare).
 func (r *Renderer_WebGL) glc(name string, args ...interface{}) js.Value {
 	r.flushCmds()
-	return r.gl.Call(name, args...)
+	values := make([]interface{}, 1, len(args)+1)
+	values[0] = name
+	values = append(values, args...)
+	return r.cmd.directFn.Invoke(values...)
 }
 
 // need ensures capacity for n more words, flushing if the buffer is near full.
