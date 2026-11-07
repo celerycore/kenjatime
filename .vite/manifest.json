@@ -7,35 +7,27 @@
     "file": "assets/index-Dl1qKiz5.js",
     "name": "index"
   },
-  "_main-Bw4qBH5U.js": {
-    "file": "assets/main-Bw4qBH5U.js",
+  "_main-UY0ZCfbb.css": {
+    "file": "assets/main-UY0ZCfbb.css",
+    "src": "_main-UY0ZCfbb.css"
+  },
+  "_main-jQPxAmtP.js": {
+    "file": "assets/main-jQPxAmtP.js",
     "name": "main",
     "imports": [
-      "_native-setup-Hj5T20iJ.js",
-      "_browser-BrENwvay.js",
-      "_preload-helper-Dp1pzeXC.js"
-    ],
-    "dynamicImports": [
-      "_native-export-C2PJnu0z.js"
+      "_native-setup-bXN5XoCS.js",
+      "_browser-BrENwvay.js"
     ],
     "css": [
       "assets/main-UY0ZCfbb.css"
     ]
   },
-  "_main-UY0ZCfbb.css": {
-    "file": "assets/main-UY0ZCfbb.css",
-    "src": "_main-UY0ZCfbb.css"
-  },
-  "_modulepreload-polyfill-B5Qt9EMX.js": {
-    "file": "assets/modulepreload-polyfill-B5Qt9EMX.js",
-    "name": "modulepreload-polyfill"
-  },
-  "_native-export-C2PJnu0z.js": {
-    "file": "assets/native-export-C2PJnu0z.js",
+  "_native-export-C3ub1oFk.js": {
+    "file": "assets/native-export-C3ub1oFk.js",
     "name": "native-export",
     "isDynamicEntry": true,
     "imports": [
-      "_preload-helper-Dp1pzeXC.js",
+      "_preload-helper-mg6Z-sIv.js",
       "_index-Dl1qKiz5.js"
     ],
     "dynamicImports": [
@@ -43,48 +35,50 @@
       "node_modules/@capacitor/share/dist/esm/web.js"
     ]
   },
-  "_native-setup-BDvTAN5d.css": {
-    "file": "assets/native-setup-BDvTAN5d.css",
-    "src": "_native-setup-BDvTAN5d.css"
+  "_native-setup-DbH0cXs-.css": {
+    "file": "assets/native-setup-DbH0cXs-.css",
+    "src": "_native-setup-DbH0cXs-.css"
   },
-  "_native-setup-Hj5T20iJ.js": {
-    "file": "assets/native-setup-Hj5T20iJ.js",
+  "_native-setup-bXN5XoCS.js": {
+    "file": "assets/native-setup-bXN5XoCS.js",
     "name": "native-setup",
     "imports": [
-      "_browser-BrENwvay.js"
+      "_browser-BrENwvay.js",
+      "_preload-helper-mg6Z-sIv.js"
+    ],
+    "dynamicImports": [
+      "_native-export-C3ub1oFk.js"
     ],
     "css": [
-      "assets/native-setup-BDvTAN5d.css"
+      "assets/native-setup-DbH0cXs-.css"
     ]
   },
-  "_preload-helper-Dp1pzeXC.js": {
-    "file": "assets/preload-helper-Dp1pzeXC.js",
+  "_preload-helper-mg6Z-sIv.js": {
+    "file": "assets/preload-helper-mg6Z-sIv.js",
     "name": "preload-helper"
   },
   "engine/index.html": {
-    "file": "assets/engine-BsPxjR-B.js",
+    "file": "assets/engine-BCV-U8TM.js",
     "name": "engine",
     "src": "engine/index.html",
     "isEntry": true,
     "imports": [
-      "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_preload-helper-Dp1pzeXC.js"
+      "_preload-helper-mg6Z-sIv.js"
     ],
     "dynamicImports": [
       "src/engine-runtime.js"
     ]
   },
   "mobile/index.html": {
-    "file": "assets/mobile-C1nx1aUH.js",
+    "file": "assets/mobile-CWvQ0Q0p.js",
     "name": "mobile",
     "src": "mobile/index.html",
     "isEntry": true,
     "imports": [
-      "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_main-Bw4qBH5U.js",
-      "_native-setup-Hj5T20iJ.js",
+      "_preload-helper-mg6Z-sIv.js",
+      "_main-jQPxAmtP.js",
+      "_native-setup-bXN5XoCS.js",
       "_index-Dl1qKiz5.js",
-      "_preload-helper-Dp1pzeXC.js",
       "_browser-BrENwvay.js"
     ],
     "dynamicImports": [
@@ -92,13 +86,13 @@
     ]
   },
   "native-ui/index.html": {
-    "file": "assets/native-HlzAY4YA.js",
+    "file": "assets/native-BhYq63dS.js",
     "name": "native",
     "src": "native-ui/index.html",
     "isEntry": true,
     "imports": [
-      "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_native-setup-Hj5T20iJ.js",
+      "_preload-helper-mg6Z-sIv.js",
+      "_native-setup-bXN5XoCS.js",
       "_browser-BrENwvay.js"
     ]
   },
@@ -112,14 +106,14 @@
     ]
   },
   "node_modules/@capacitor/filesystem/dist/esm/web.js": {
-    "file": "assets/web-QYEB8Ab_.js",
+    "file": "assets/web-DYwY_4qT.js",
     "name": "web",
     "src": "node_modules/@capacitor/filesystem/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
       "_index-Dl1qKiz5.js",
-      "_native-export-C2PJnu0z.js",
-      "_preload-helper-Dp1pzeXC.js"
+      "_native-export-C3ub1oFk.js",
+      "_preload-helper-mg6Z-sIv.js"
     ]
   },
   "node_modules/@capacitor/share/dist/esm/web.js": {
