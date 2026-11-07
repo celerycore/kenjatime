@@ -1,80 +1,106 @@
 {
-  "_browser-D103_8UB.js": {
-    "file": "assets/browser-D103_8UB.js",
+  "_browser-BrENwvay.js": {
+    "file": "assets/browser-BrENwvay.js",
     "name": "browser"
   },
-  "_main-CqDmkuy_.css": {
-    "file": "assets/main-CqDmkuy_.css",
-    "src": "_main-CqDmkuy_.css"
-  },
-  "_main-DR5VpIg9.js": {
-    "file": "assets/main-DR5VpIg9.js",
+  "_main-184PgmYU.js": {
+    "file": "assets/main-184PgmYU.js",
     "name": "main",
     "imports": [
-      "_native-setup-DiMkLyqi.js",
-      "_browser-D103_8UB.js"
+      "_native-setup-Ba4ovHmt.js",
+      "_browser-BrENwvay.js"
     ],
     "css": [
-      "assets/main-CqDmkuy_.css"
+      "assets/main-Bdv7faMY.css"
+    ]
+  },
+  "_main-Bdv7faMY.css": {
+    "file": "assets/main-Bdv7faMY.css",
+    "src": "_main-Bdv7faMY.css"
+  },
+  "_modulepreload-polyfill-B5Qt9EMX.js": {
+    "file": "assets/modulepreload-polyfill-B5Qt9EMX.js",
+    "name": "modulepreload-polyfill"
+  },
+  "_native-setup-Ba4ovHmt.js": {
+    "file": "assets/native-setup-Ba4ovHmt.js",
+    "name": "native-setup",
+    "imports": [
+      "_browser-BrENwvay.js"
+    ],
+    "css": [
+      "assets/native-setup-Bi0SoaCA.css"
     ]
   },
   "_native-setup-Bi0SoaCA.css": {
     "file": "assets/native-setup-Bi0SoaCA.css",
     "src": "_native-setup-Bi0SoaCA.css"
   },
-  "_native-setup-DiMkLyqi.js": {
-    "file": "assets/native-setup-DiMkLyqi.js",
-    "name": "native-setup",
-    "imports": [
-      "_browser-D103_8UB.js"
-    ],
-    "css": [
-      "assets/native-setup-Bi0SoaCA.css"
-    ]
+  "_preload-helper-Dp1pzeXC.js": {
+    "file": "assets/preload-helper-Dp1pzeXC.js",
+    "name": "preload-helper"
   },
   "engine/index.html": {
-    "file": "assets/engine-7d-8g7MQ.js",
+    "file": "assets/engine-DfrCJlLL.js",
     "name": "engine",
     "src": "engine/index.html",
     "isEntry": true,
     "imports": [
-      "_browser-D103_8UB.js"
+      "_modulepreload-polyfill-B5Qt9EMX.js",
+      "_preload-helper-Dp1pzeXC.js"
+    ],
+    "dynamicImports": [
+      "src/engine-runtime.js"
     ]
   },
   "mobile/index.html": {
-    "file": "assets/mobile-CF7zCS92.js",
+    "file": "assets/mobile-DAM8BoJK.js",
     "name": "mobile",
     "src": "mobile/index.html",
     "isEntry": true,
     "imports": [
-      "_browser-D103_8UB.js",
-      "_main-DR5VpIg9.js",
-      "_native-setup-DiMkLyqi.js"
+      "_modulepreload-polyfill-B5Qt9EMX.js",
+      "_main-184PgmYU.js",
+      "_native-setup-Ba4ovHmt.js",
+      "_preload-helper-Dp1pzeXC.js",
+      "_browser-BrENwvay.js"
     ],
     "dynamicImports": [
       "node_modules/@capacitor/app/dist/esm/web.js"
     ]
   },
   "native-ui/index.html": {
-    "file": "assets/native-CaPR1hnw.js",
+    "file": "assets/native-CgRM8KZg.js",
     "name": "native",
     "src": "native-ui/index.html",
     "isEntry": true,
     "imports": [
-      "_browser-D103_8UB.js",
-      "_native-setup-DiMkLyqi.js"
+      "_modulepreload-polyfill-B5Qt9EMX.js",
+      "_native-setup-Ba4ovHmt.js",
+      "_browser-BrENwvay.js"
     ]
   },
   "node_modules/@capacitor/app/dist/esm/web.js": {
-    "file": "assets/web-BFpRhAos.js",
+    "file": "assets/web-Cp0rQs1s.js",
     "name": "web",
     "src": "node_modules/@capacitor/app/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
       "mobile/index.html",
-      "_browser-D103_8UB.js",
-      "_main-DR5VpIg9.js",
-      "_native-setup-DiMkLyqi.js"
+      "_modulepreload-polyfill-B5Qt9EMX.js",
+      "_main-184PgmYU.js",
+      "_native-setup-Ba4ovHmt.js",
+      "_browser-BrENwvay.js",
+      "_preload-helper-Dp1pzeXC.js"
+    ]
+  },
+  "src/engine-runtime.js": {
+    "file": "assets/engine-runtime-DpTXagyY.js",
+    "name": "engine-runtime",
+    "src": "src/engine-runtime.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_browser-BrENwvay.js"
     ]
   }
 }
