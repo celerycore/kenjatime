@@ -1,0 +1,84 @@
+{
+  "sourceCommit": "a4b03b165a1a9f54fe4fb085d2d5f3c8ff21d021",
+  "apk": {
+    "package": "io.github.celerycore.kenjatime",
+    "version": "0.4.3",
+    "versionCode": 11,
+    "startupUrl": "https://localhost/mobile/index.html",
+    "apkBytes": 12222763,
+    "apkSha256": "194c2cfc7d08b8607e788781da5f6d5d05a765a952a3fc48644503a403286be0",
+    "signatureVerified": true,
+    "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "minimumWebView": 107,
+    "bundledWebFilesMatchDist": 49,
+    "onlyBundledCharacterArchive": "kfm.zip",
+    "sharedEngineCoreArchive": "engine/core.zip",
+    "lint": {
+      "errors": 0,
+      "warnings": [
+        {
+          "id": "UnusedAttribute",
+          "severity": "Warning",
+          "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+        },
+        {
+          "id": "NewerVersionAvailable",
+          "severity": "Warning",
+          "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
+        },
+        {
+          "id": "UnusedResources",
+          "severity": "Warning",
+          "message": "The resource `R.xml.config` appears to be unused"
+        },
+        {
+          "id": "UsableSpace",
+          "severity": "Warning",
+          "message": "Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
+        }
+      ]
+    },
+    "deviceTesting": "Packaging checks do not execute Android or measure phone FPS."
+  },
+  "repositoryTests": {
+    "passed": 522,
+    "failed": 0,
+    "skipped": 0
+  },
+  "nativeTests": [
+    {
+      "class": "io.github.celerycore.kenjatime.StartupTest",
+      "passed": 4,
+      "failed": 0,
+      "cases": [
+        "archiveSaveCopiesOriginalBytesToTheChosenDocument",
+        "exposesNativeStartupAndWebViewDetailsWithoutOpeningTheLibrary",
+        "startsAtBundledMobilePageOnLocalhost",
+        "fightsKeepTheScreenAwakeWithoutChangingTheCurrentViewOrOrientation"
+      ]
+    },
+    {
+      "class": "io.github.celerycore.kenjatime.ArchivePickerTest",
+      "passed": 6,
+      "failed": 0,
+      "cases": [
+        "multipleDocumentResultsReachWebViewTogether",
+        "competingPickerCannotStealAnExistingSelection",
+        "destroyingTheActivityReleasesPendingWebViewSelection",
+        "cancelledAndEmptyResultsReleaseTheCallbackAndAllowAnotherImport",
+        "opensDocumentsInDownloadsWithoutMediaOrMimeFilters",
+        "returnsArchiveAndExtensionlessContentUrisWithoutDependingOnMimeMetadata"
+      ]
+    }
+  ],
+  "archiveImportFixtures": 18,
+  "startupScenarios": 18,
+  "documentPicker": {
+    "action": "android.intent.action.OPEN_DOCUMENT",
+    "mime": "*/*",
+    "initialLocation": "content://com.android.providers.downloads.documents/root/downloads"
+  },
+  "physicalAndroidExecution": false
+}
