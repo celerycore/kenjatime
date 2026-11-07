@@ -1,0 +1,49 @@
+{
+  "package": "io.github.celerycore.kenjatime",
+  "version": "0.4.1",
+  "versionCode": 9,
+  "startupUrl": "https://localhost/mobile/index.html",
+  "apkBytes": 12216352,
+  "apkSha256": "19ca5f5fb50bde3b643d9f940209a8d4970789907a636a125ee1d9f7b0bf0be9",
+  "signatureVerified": true,
+  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "minSdk": 24,
+  "targetSdk": 36,
+  "minimumWebView": 107,
+  "bundledWebFilesMatchDist": 50,
+  "onlyBundledCharacterArchive": "kfm.zip",
+  "sharedEngineCoreArchive": "engine/core.zip",
+  "lint": {
+    "errors": 0,
+    "warnings": [
+      {
+        "id": "UnusedAttribute",
+        "severity": "Warning",
+        "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+      },
+      {
+        "id": "NewerVersionAvailable",
+        "severity": "Warning",
+        "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
+      },
+      {
+        "id": "UnusedResources",
+        "severity": "Warning",
+        "message": "The resource `R.xml.config` appears to be unused"
+      }
+    ]
+  },
+  "deviceTesting": "Packaging checks do not execute Android or measure phone FPS.",
+  "sourceCommit": "80d62335aa375d3c086116fbf97439c0d314324b",
+  "libraryRecovery": {
+    "physicalPhone": false,
+    "purgesCurrentAndLegacyLibraries": true,
+    "sampleRestored": true,
+    "resetConsumedOnce": true,
+    "newImportsSurviveReload": true,
+    "unrelatedDataAndOriginalFilePreserved": true,
+    "resetWorksDuringHungStartup": true,
+    "hungStorageFallsBackToPlayableSample": true,
+    "errors": []
+  }
+}
