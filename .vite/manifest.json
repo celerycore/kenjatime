@@ -3,20 +3,20 @@
     "file": "assets/browser-BrENwvay.js",
     "name": "browser"
   },
-  "_main-184PgmYU.js": {
-    "file": "assets/main-184PgmYU.js",
+  "_main-CNWqEsrl.js": {
+    "file": "assets/main-CNWqEsrl.js",
     "name": "main",
     "imports": [
       "_native-setup-Ba4ovHmt.js",
       "_browser-BrENwvay.js"
     ],
     "css": [
-      "assets/main-Bdv7faMY.css"
+      "assets/main-UY0ZCfbb.css"
     ]
   },
-  "_main-Bdv7faMY.css": {
-    "file": "assets/main-Bdv7faMY.css",
-    "src": "_main-Bdv7faMY.css"
+  "_main-UY0ZCfbb.css": {
+    "file": "assets/main-UY0ZCfbb.css",
+    "src": "_main-UY0ZCfbb.css"
   },
   "_modulepreload-polyfill-B5Qt9EMX.js": {
     "file": "assets/modulepreload-polyfill-B5Qt9EMX.js",
@@ -41,7 +41,7 @@
     "name": "preload-helper"
   },
   "engine/index.html": {
-    "file": "assets/engine-DfrCJlLL.js",
+    "file": "assets/engine-CD_rimrW.js",
     "name": "engine",
     "src": "engine/index.html",
     "isEntry": true,
@@ -54,13 +54,13 @@
     ]
   },
   "mobile/index.html": {
-    "file": "assets/mobile-DAM8BoJK.js",
+    "file": "assets/mobile-kaUUVgF1.js",
     "name": "mobile",
     "src": "mobile/index.html",
     "isEntry": true,
     "imports": [
       "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_main-184PgmYU.js",
+      "_main-CNWqEsrl.js",
       "_native-setup-Ba4ovHmt.js",
       "_preload-helper-Dp1pzeXC.js",
       "_browser-BrENwvay.js"
@@ -81,21 +81,21 @@
     ]
   },
   "node_modules/@capacitor/app/dist/esm/web.js": {
-    "file": "assets/web-Cp0rQs1s.js",
+    "file": "assets/web-CsP282QR.js",
     "name": "web",
     "src": "node_modules/@capacitor/app/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
       "mobile/index.html",
       "_modulepreload-polyfill-B5Qt9EMX.js",
-      "_main-184PgmYU.js",
+      "_main-CNWqEsrl.js",
       "_native-setup-Ba4ovHmt.js",
       "_browser-BrENwvay.js",
       "_preload-helper-Dp1pzeXC.js"
     ]
   },
   "src/engine-runtime.js": {
-    "file": "assets/engine-runtime-DpTXagyY.js",
+    "file": "assets/engine-runtime-BVAHBeho.js",
     "name": "engine-runtime",
     "src": "src/engine-runtime.js",
     "isDynamicEntry": true,

@@ -13,7 +13,7 @@
   },
   "threeVersion": "0.187.0",
   "threeSources": {
-    "submit.js": "6cf9d7a7d341cc6edb7ff3d3a87df423b9ffde93f5f045410b15b3b4e591bcc7"
+    "submit.js": "e18b9f2f9060de5129bce7d1320fb4f8e400316a62ea1d1554885b93c2a47b5b"
   },
   "rendererSources": {
     "render-target.js": "0b36f649479d7b6440e74c9588347f17a8e4e406cabf0bd5b3732b69a86649e5",
@@ -50,8 +50,8 @@
       "sha256": "45ce9dfe7211247544ab6f4268eb8cb5b6f3d5ae602dc3b51447b7eada99c229"
     },
     "core.zip": {
-      "bytes": 1369174,
-      "sha256": "930028ce6955f01254255f8a2d5190228f46abd4a7f49570a41718bc7ca46b02"
+      "bytes": 1369182,
+      "sha256": "b9add3c2dd0e90d3211b4d69ef01bb2164ea2040f2da6a56a4b7321481e28376"
     },
     "THIRD-PARTY-LICENSES.txt": {
       "bytes": 84936,
