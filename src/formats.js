@@ -122,9 +122,14 @@ export function animations(text) {
    if (Object.keys(source).length!==source.length) (current.diagnostics??=[]).push({line:lineIndex+1,message:`Incomplete Clsn${kind} definition; missing boxes ignored`});
    return source.filter(Boolean).map(b=>b.slice());
   };
-  const optional=(index,fallback)=>a[index]?Number(a[index]):fallback;
-  const scaleX=optional(7,1),scaleY=optional(8,1),angle=optional(9,0);
-  if (![scaleX,scaleY,angle].every(Number.isFinite)) throw Error(`Invalid AIR transform on line ${lineIndex+1}`);
+  const optional=(index,fallback,field)=>{
+   if(!a[index])return fallback;
+   const value=Number(a[index]);if(Number.isFinite(value))return value;
+   // Legacy AIRs sometimes leave alpha-like tokens (e.g. A0) in optional
+   // transform columns. Keep the frame and use the engine's default value.
+   (current.diagnostics??=[]).push({line:lineIndex+1,message:`Invalid AIR ${field} ignored; using ${fallback}`});return fallback;
+  };
+  const scaleX=optional(7,1,'x-scale'),scaleY=optional(8,1,'y-scale'),angle=optional(9,0,'angle');
   current.frames.push({group:numbers[0],number:numbers[1],x:numbers[2],y:numbers[3],ticks:numbers[4],flip:(a[5]||'').toUpperCase(),blend:(a[6]||'').toUpperCase(),scaleX,scaleY,angle,clsn1:boxes(1),clsn2:boxes(2)});
   pending={};
  }

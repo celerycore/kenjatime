@@ -50,6 +50,16 @@ Clsn1[3] = 0,0,5,5
  assert.throws(()=>animations('[Begin Action 1]\nClsn1: 1000000\n0,0,0,0,1'),/limit/);
 });
 
+test('legacy AIR optional transform tokens warn without blocking upload or losing frames',async()=>{
+ const {animations}=await import('../src/formats.js');
+ const [a]=animations('[Begin Action 4611]\n3605, 1, 0, 0, 10, H, , A0\n3605, 3, 0, 0, 70, H, , 0, bad, Infinity\n3605, 0, 0, 0, -1, V, AS128D256, -1.5, 2, 45');
+ assert.equal(a.frames.length,3);
+ assert.deepEqual(a.frames.map(f=>[f.scaleX,f.scaleY,f.angle]),[[1,1,0],[0,1,0],[-1.5,2,45]]);
+ assert.equal(a.frames[0].flip,'H');assert.equal(a.frames[0].blend,'');assert.equal(a.frames[0].ticks,10);
+ assert.equal(a.frames[2].blend,'AS128D256');assert.deepEqual(a.diagnostics.map(d=>d.line),[2,3,3]);
+ assert.throws(()=>animations('[Begin Action 0]\n0,0,0,0,bad'),/Invalid AIR frame/);
+});
+
 test('text decoding supports UTF-8 BOM, UTF-8 names, and legacy ANSI',async()=>{
  const {decodeText}=await import('../src/formats.js');
  assert.equal(decodeText(new Uint8Array([0xef,0xbb,0xbf,...strToU8('Kung Fu Man')])),'Kung Fu Man');

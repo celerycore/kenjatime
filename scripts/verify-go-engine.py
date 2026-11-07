@@ -66,7 +66,7 @@ with sync_playwright() as p:
  page.evaluate('''async bytes=>{const r=indexedDB.open('kenjatime.archives',1);await new Promise((yes,no)=>{r.onupgradeneeded=()=>{for(const n of ['archives','metadata'])r.result.createObjectStore(n,{keyPath:'id'});};r.onsuccess=yes;r.onerror=no;});const db=r.result,tx=db.transaction(['archives','metadata'],'readwrite'),metadata={id:'legacy-fixture',name:'Saved before Go upgrade.zip',stageOnly:false,savedAt:1};tx.objectStore('archives').put({id:metadata.id,metadata,blob:new Blob([Uint8Array.from(bytes)])});tx.objectStore('metadata').put(metadata);await new Promise((yes,no)=>{tx.oncomplete=yes;tx.onerror=no;});db.close();}''',list(sample))
  page.reload();ready();row=page.locator('.library-item').filter(has_text='Saved before Go upgrade.zip');row.locator('button',has_text='Open').click();page.wait_for_function("document.querySelector('#status').textContent.includes('Saved archive installed')");assert page.locator('#name').inner_text()=='Archive Fixture';out['cases']['oldLibraryMigration']=True
  # Real supplied RARs exercise the same decoder and Go VM, rather than only fixtures.
- for envkey,name in [('MUGEN_CNS_KFM_ZIP','Kung Fu Man'),('MUGEN_TOMOKA_RAR','Tomoka Minato'),('MUGEN_FOREST_RAR','Forest')]:
+ for envkey,name in [('MUGEN_CNS_KFM_ZIP','Kung Fu Man'),('MUGEN_TOMOKA_RAR','Tomoka Minato'),('MUGEN_FOREST_RAR','Forest'),('MUGEN_KUROMARU_RAR','kuromaru girl plus'),('MUGEN_KUROMARU_ZIP','kuromaru plus')]:
   path=os.environ.get(envkey,str(ROOT/'public/kfm.zip') if envkey=='MUGEN_CNS_KFM_ZIP' else None)
   if not path:continue
   with page.expect_file_chooser() as chosen:page.locator('#add-stage' if 'FOREST' in envkey else '#browse').click()
@@ -74,7 +74,9 @@ with sync_playwright() as p:
   print('IMPORTED',envkey,flush=True);start()
   if envkey=='MUGEN_FOREST_RAR':
    page.wait_for_function("window.__kenjatimeGoState?.music.streaming && window.__kenjatimeGoState.music.file.endsWith('/blood heat!.mp3')",timeout=30000)
-  out['cases'][envkey]={'started':True,'state':state()};page.wait_for_timeout(1000);page.screenshot(path='work/ikemen-web/'+('tomoka' if 'TOMOKA' in envkey else 'forest')+'.png');stop()
+  out['cases'][envkey]={'started':True,'state':state()};page.wait_for_timeout(1000)
+  if 'KUROMARU' not in envkey:page.screenshot(path='work/ikemen-web/'+('tomoka' if 'TOMOKA' in envkey else 'forest')+'.png')
+  stop()
  assert not errors,errors;assert not bad,bad;out['errors']=errors;out['failedRequests']=bad;browser.close()
 if server:server.shutdown()
 Path('work/go-engine-browser-evidence.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps(out))

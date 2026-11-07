@@ -1,17 +1,45 @@
 # Kenjatime browser-runtime Android app
 
-Version 0.2.1 (version code 7) packages the same Kenjatime interface and Go/WASM engine as the website in Capacitor 8. It starts at `https://localhost/mobile/index.html`, uses bundled assets, WebGL2 and Web Audio, and does not depend on Brave or the hosted site. Stock IKEMEN menus, screenpacks and logos are excluded. The separate [native app](native-android.md) runs the ARM64 engine directly and is the preferred build for native gameplay.
+Version 0.4.0 (version code 8) packages the current Three.js renderer and
+Go/WASM combat engine in Capacitor 8. It starts at
+`https://localhost/mobile/index.html` from bundled assets and works offline.
+It retains Kenjatime’s UI, fixed-aspect match view, touch controls, lifebars,
+palettes and controller bridge. Stock IKEMEN menus and screenpacks are excluded.
 
 ## Included
 
 - Android 7.0/API 24+, Android System WebView 107+, SDK 36 target.
-- Offline sample Kung Fu Man and engine core; ZIP/RAR/7z and compressed TAR installs through the validated archive worker.
-- Private IndexedDB package library, selectable fighters, palettes and stages. Previously saved web archives migrate on Open without removing the originals.
-- The shared Kenjatime setup, HUD, touch controls, Menu and Pause. Landscape/immersive fight mode, background suspension and return to setup on Android Back.
-- Browser-standard gamepad input. Physical Bluetooth/USB controller behavior needs device testing.
+- Offline sample and engine core; decoder code and WASM are bundled too.
+- ZIP (including BZIP2/LZMA methods), RAR4/RAR5, 7z, TAR, gzip/bzip2/xz/zstd
+  compressed TAR and common TGZ/TBZ2/TXZ/TZST aliases. CPIO and ZIP
+  self-extracting containers are also tested as data.
+- Content detection accepts downloaded files without reliable names or MIME.
+- New imports save the original archive separately from catalog metadata.
+  **Save archive** downloads it on the web or opens Android’s document save picker.
+  The picker accepts every supported archive extension and streams the file to
+  the folder chosen by the user. A share-sheet fallback remains for other hosts.
+  Export bridges use at most 256 KiB per chunk, rather than base64-encoding
+  an entire large RAR/7z at once.
+- Existing installed packages migrate from library schema 1 to 2 without
+  deleting characters, stages or extracted files. An old package needs its
+  archive imported again before Save archive is available.
+- Audio uses the device’s native AudioContext rate and adaptive, bounded PCM
+  headroom. The audio worklet continues during short rendering stalls. See
+  [audio measurements](mobile-audio.md).
+- Matches remain in the same view. The app keeps the screen awake during play,
+  pauses on background, and returns to setup with Android Back. Orientation
+  and fullscreen are not forced.
 
-The 0.2.1 installer retains the existing app ID and signing certificate. Install over the previous browser-runtime app to preserve its library. Uninstalling or clearing storage removes saved copies.
+The installer retains the browser-runtime app ID and signing certificate.
+Install it over that existing app to keep its library. The separate ARM64 native
+prototype and the website have their own storage. Uninstalling or clearing
+storage removes copies inside the affected app.
 
+Archive imports retain the existing 128 MB compressed, 512 MB expanded and
+5,000-entry limits. Multi-part volumes must first be combined. The password field
+supports encrypted formats supported by the decoders; password-protected ZIP
+and original encrypted-byte export are tested. This does not certify every
+compression/encryption variant.
 ## Build and verify
 
 Use Node 22+, JDK 21 and Android SDK platform/build tools 36.
@@ -40,4 +68,4 @@ npm run android:sync
 cd android && ./gradlew :app:testDebugUnitTest assembleDebug lintDebug
 ```
 
-The APK verifier also rejects relative/directory startup paths. The replacement has a higher version code and the same signing certificate as the originally published APK. Install it over the current app; uninstalling would clear the saved app library. The download page now points to version 0.2.1.
+The APK verifier also rejects relative/directory startup paths. The replacement has a higher version code and the same signing certificate as the originally published APK. Install it over the current app; uninstalling would clear the saved app library. The download page now points to the current version.

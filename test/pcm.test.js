@@ -25,3 +25,37 @@ test('PCM underflow emits silence and waits for enough data before restarting',(
 test('PCM rejects a malformed source block',()=>{
  const q=new PCMQueue(()=>{},48000,48000);assert.throws(()=>q.push(new ArrayBuffer(4)),/Invalid PCM/);
 });
+
+function stalledProducer(Queue,options){
+ let now=0,pending=[],q;const left=new Float32Array(128),right=new Float32Array(128);
+ q=new Queue(buffer=>pending.push({buffer,at:now+2}),48000,48000,options);q.start();
+ for(let tick=0;tick<6000;tick++){
+  now=tick*128/48;const blocked=now%500>=250&&now%500<340;
+  if(!blocked)while(pending.length&&pending[0].at<=now){const {buffer}=pending.shift();new Float32Array(buffer).fill(.25);q.push(buffer);}
+  q.render(left,right);
+ }
+ return q;
+}
+test('adaptive PCM headroom absorbs repeated 90 ms producer stalls with a bounded pool',()=>{
+ const fixed=stalledProducer(PCMQueue,{adaptive:false,poolSize:3}),adaptive=stalledProducer(PCMQueue,{poolSize:4});
+ assert.ok(fixed.underruns>=20,fixed.stats());assert.ok(adaptive.underruns<fixed.underruns/4,adaptive.stats());
+ assert.ok(adaptive.poolSize<=8);assert.ok(adaptive.stats().bufferLimitMs<171);assert.equal(adaptive.stats().resampling,false);
+});
+test('healthy playback retires surplus buffers without skipping or repeating samples',()=>{
+ let value=0,q;const pending=[];
+ q=new PCMQueue(buffer=>pending.push(buffer),48000,48000,{recoverySeconds:.02});q.start();
+ const left=new Float32Array(128),right=new Float32Array(128);
+ // First starve the queue to grow it. All returned buffers remain in FIFO order.
+ for(let i=0;i<2;i++){const buffer=pending.shift();new Float32Array(buffer).fill(0);q.push(buffer);}
+ for(let i=0;i<17;i++)q.render(left,right);assert.equal(q.poolSize,4);
+ while(pending.length){const buffer=pending.shift(),data=new Float32Array(buffer);for(let i=0;i<1024;i++)data[i*2]=data[i*2+1]=value++;q.push(buffer);}
+ let expected=0;
+ for(let i=0;i<50;i++){
+  q.render(left,right);for(const v of left)assert.equal(v,expected++);
+  while(pending.length){const buffer=pending.shift(),data=new Float32Array(buffer);for(let i=0;i<1024;i++)data[i*2]=data[i*2+1]=value++;q.push(buffer);}
+ }
+ assert.equal(q.poolSize,3);assert.equal(q.underruns,1);
+});
+test('PCM validates device rates and buffer limits',()=>{
+ for(const [a,b,o] of [[0,48000,{}],[Infinity,48000,{}],[44100,NaN,{}],[44100,48000,{poolSize:9}],[44100,48000,{poolSize:4,maxBlocks:3}]])assert.throws(()=>new PCMQueue(()=>{},a,b,o),/Invalid PCM/);
+});

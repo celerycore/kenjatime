@@ -43,6 +43,9 @@ try:
   context=browser.new_context(viewport={'width':844,'height':390},is_mobile=True,has_touch=True);context.add_init_script(probe)
   if os.environ.get('MUGEN_QA_MAIN_FALLBACK'):context.add_init_script('HTMLCanvasElement.prototype.transferControlToOffscreen=undefined;')
   if os.environ.get('MUGEN_QA_SCRIPT_AUDIO'):context.add_init_script('window.AudioWorkletNode=undefined;')
+  if os.environ.get('MUGEN_QA_AUDIO_RATE'):
+   rate=int(os.environ['MUGEN_QA_AUDIO_RATE']);assert rate in [44100,48000]
+   context.add_init_script(f'window.AudioContext=class extends window.AudioContext{{constructor(options){{super({{...options,sampleRate:{rate}}});}}}};')
   page=context.new_page();page.set_default_timeout(60000);errors=[];requests=[];page.on('pageerror',lambda e:errors.append(str(e)));context.on('request',lambda r:requests.append(r.url))
   page.goto(base+'arena-classic/');page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'");page.wait_for_function("document.querySelector('canvas').dataset.previewCount==='2'")
   page.locator('.viewer').screenshot(path=str(OUT/'two-fighter-preview.png'));evidence['checks']['twoPreviewFighters']=True;print('PASS two-fighter preview',flush=True)
@@ -64,6 +67,8 @@ try:
   page.wait_for_timeout(1000);frame.evaluate('window.__pcmProbe={buffers:0,peak:0}')
   frame.wait_for_function('window.__pcmProbe.peak>.01 && window.__pcmProbe.buffers>2',timeout=30000)
   evidence['checks']['stageAudio']={'music':state['music'],'pcm':frame.evaluate('window.__pcmProbe'),'audio':frame.evaluate('window.__kenjatimeFrame.audioStatus()')}
+  if os.environ.get('MUGEN_QA_AUDIO_RATE'):
+   assert evidence['checks']['stageAudio']['audio']['sampleRate']==rate and not evidence['checks']['stageAudio']['audio']['pcm']['resampling'],evidence
   print('PASS stage PCM output and audio unlock',flush=True)
   page.locator('[data-pause]').click();page.wait_for_function('window.__kenjatimeGoState.paused');page.locator('.kenjatime-battle iframe').screenshot(path=str(OUT/'hud-before.png'));before=colors(OUT/'hud-before.png');assert before['p1']>500 and before['p2']>500,before
   evidence['checks']['hudBefore']=before;page.locator('[data-pause]').click()

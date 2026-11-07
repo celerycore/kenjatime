@@ -36,6 +36,7 @@ async function workerSupported(){
  }catch{worker?.terminate();worker=null;return false;}
 }
 async function start(data){
+ try{data.sampleRate=audio.prepare();}catch(error){console.warn('Audio device unavailable:',error.message);}
  qualityValue=data.quality||'auto';const canvas=document.querySelector('canvas'),urls={runtime:asset('wasm_exec.js'),wasm:asset('ikemen.wasm.bin')};
  if(await workerSupported()){
   if(stopped){worker.terminate();return;}

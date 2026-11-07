@@ -10,6 +10,20 @@ import android.webkit.ServiceWorkerClient;
 import android.webkit.ServiceWorkerController;
 import android.webkit.ServiceWorkerWebSettings;
 import com.getcapacitor.Bridge;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.PluginCall;
+import android.os.Looper;
+import android.view.WindowManager;
+import org.robolectric.Shadows;
+import androidx.activity.result.ActivityResult;
+import android.app.Activity;
+import android.content.Intent;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
@@ -55,6 +69,59 @@ public class StartupTest {
             public String getMethod() { return "GET"; }
             public Map<String, String> getRequestHeaders() { return Collections.emptyMap(); }
         };
+    }
+
+    @Test
+    public void archiveSaveCopiesOriginalBytesToTheChosenDocument() throws Exception {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            ArenaDevicePlugin plugin = (ArenaDevicePlugin) activity.getBridge().getPlugin("ArenaDevice").getInstance();
+            File folder = new File(activity.getCacheDir(), "exports");
+            folder.mkdirs();
+            File source = new File(folder, "fighter.7z");
+            byte[] original = new byte[300123];
+            for (int i = 0; i < original.length; i++) original[i] = (byte)(i * 37);
+            Files.write(source.toPath(), original);
+            Uri destination = Uri.parse("content://documents/Downloads/fighter.7z");
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            Shadows.shadowOf(activity.getContentResolver()).registerOutputStream(destination, output);
+            CountDownLatch completed = new CountDownLatch(1);
+            AtomicBoolean saved = new AtomicBoolean(false);
+            PluginCall call = new PluginCall(null, "ArenaDevice", "test", "saveArchive",
+                new JSObject().put("uri", Uri.fromFile(source).toString())) {
+                @Override public void resolve(JSObject result) { saved.set(result.optBoolean("saved")); completed.countDown(); }
+                @Override public void reject(String message, Exception error) { completed.countDown(); }
+            };
+            plugin.archiveDestination(call, new ActivityResult(Activity.RESULT_OK, new Intent().setData(destination)));
+            assertTrue("Native save must finish", completed.await(5, TimeUnit.SECONDS));
+            assertTrue(saved.get());
+            assertArrayEquals(original, output.toByteArray());
+            assertFalse("Completed export should remove its temporary cache file", source.exists());
+            File outside = new File(activity.getCacheDir(), "unrelated.txt");
+            Files.write(outside.toPath(), new byte[] {1});
+            assertThrows(java.io.IOException.class, () -> plugin.exportSource(Uri.fromFile(outside).toString()));
+        }
+    }
+
+    @Test
+    public void fightsKeepTheScreenAwakeWithoutChangingTheCurrentViewOrOrientation() throws Exception {
+        try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
+            MainActivity activity = controller.get();
+            Bridge bridge = activity.getBridge();
+            ArenaDevicePlugin plugin = (ArenaDevicePlugin) bridge.getPlugin("ArenaDevice").getInstance();
+            int orientation = activity.getRequestedOrientation();
+            String url = bridge.getWebView().getUrl();
+            plugin.setBattleMode(new PluginCall(null, "ArenaDevice", "test", "setBattleMode",
+                new JSObject().put("enabled", true).put("awake", true)) {
+                @Override public void resolve() {}
+            });
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            assertTrue((activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0);
+            assertEquals(orientation, activity.getRequestedOrientation());
+            assertEquals(url, bridge.getWebView().getUrl());
+            controller.pause();
+            assertEquals(0, activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
     }
 
     @Test

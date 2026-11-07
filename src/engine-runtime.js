@@ -31,11 +31,16 @@ export function createEngineRuntime(emit){
    audioPort=data.port;audioPort.onmessage=event=>{if(stopped)return;pendingAudio=event.data.buffer;globalThis.kenjatimeAudioPull?.();};audioPort.start();
   }
  }
- async function start({files,args,canvas,urls,quality}){
+ async function start({files,args,canvas,urls,quality,sampleRate}){
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();if(!stopped)emit({type:'error',message:'The graphics device reset. Start the match again.'});},{once:true});
   globalThis.__kenjatimeCanvas=canvas;globalThis.__kenjatimeQuality=quality;
   globalThis.__kenjatimeCreateGPUControl=value=>{globalThis.__kenjatimeQuality=value;globalThis.__kenjatimeGPUControl?.quality(value);};
   files['save/config.ini']=files['data/kenjatime/config.ini'].slice();
+  // Mix directly at the AudioContext's native rate; Android need not resample
+  // a forced 44.1 kHz context into its usual 48 kHz output device.
+  if(Number.isInteger(sampleRate)&&sampleRate>=8000&&sampleRate<=192000){
+   const config=files['save/config.ini'],sound=new TextEncoder().encode('\n[Sound]\nSampleRate = '+sampleRate+'\n'),merged=new Uint8Array(config.length+sound.length);merged.set(config);merged.set(sound,config.length);files['save/config.ini']=merged;
+  }
   files['save/kenjatime-match.json']=new TextEncoder().encode(JSON.stringify(Object.fromEntries(Array.from({length:args.length/2},(_,i)=>[args[i*2],args[i*2+1]]))));
   const mounted=createEngineFS(files,{onOutput:line=>{console.log(line);if(/panic:|Error executing|LUA OPEN FAILED/i.test(line))emit({type:'error',message:line});}});
   globalThis.fs=mounted.fs;globalThis.process=mounted.process;

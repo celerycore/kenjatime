@@ -5,7 +5,7 @@
 .mobile-library summary{cursor:pointer;font-weight:bold;min-height:30px}
 .mobile-library label{display:flex;align-items:center;gap:8px;margin:12px 0}
 .mobile-library input{accent-color:#d3fb8d;min-height:24px;min-width:24px}
-.mobile-library .library-item{display:flex;gap:8px;align-items:center;margin-top:12px}
+.mobile-library .library-item{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
 .library-item span{flex:1;overflow-wrap:anywhere;min-width:0}
 .mobile-battle-bar{display:none}
 body.mobile-battle{overflow:hidden;padding:0;overscroll-behavior:none}

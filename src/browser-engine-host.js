@@ -5,11 +5,12 @@ import {readArchiveFile,unpackArchive} from './uploads.js';
 import {ArchiveLibrary} from './mobile-library.js';
 import {openGoBattle} from './go-battle.js';
 import {stageWithResolvedMusic} from './engine-stage.js';
+import {exportFile} from './export-file.js';
 
 const legacy=new ArchiveLibrary();
 const base=new URL('../',import.meta.url);let corePromise,dbPromise;
 const request=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
-function open(){return dbPromise??=new Promise((resolve,reject)=>{const r=indexedDB.open('kenjatime.engine.library',1);r.onupgradeneeded=()=>{r.result.createObjectStore('packages',{keyPath:'id'});r.result.createObjectStore('files',{keyPath:'path'}).createIndex('packageId','packageId');};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('Close other Kenjatime windows and try again.'));});}
+function open(){return dbPromise??=new Promise((resolve,reject)=>{const r=indexedDB.open('kenjatime.engine.library',2);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('packages'))db.createObjectStore('packages',{keyPath:'id'});if(!db.objectStoreNames.contains('files'))db.createObjectStore('files',{keyPath:'path'}).createIndex('packageId','packageId');if(!db.objectStoreNames.contains('archives'))db.createObjectStore('archives',{keyPath:'id'});};r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();dbPromise=null;};resolve(r.result);};r.onerror=()=>reject(r.error);r.onblocked=()=>reject(Error('Close other Kenjatime windows and try again.'));}).catch(error=>{dbPromise=null;throw error;});}
 function done(tx){return new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onabort=tx.onerror=()=>reject(tx.error||Error('The library could not be saved.'));});}
 async function core(){return corePromise??=fetch(new URL('engine/core.zip?v='+__KENJATIME_ENGINE_REVISION__,base)).then(async r=>{if(!r.ok)throw Error('The included game resources could not load.');return unzipSync(new Uint8Array(await r.arrayBuffer()));}).catch(e=>{corePromise=null;throw e;});}
 function entries(files,prefix='',packageId=null,packageName='Included sample'){
@@ -17,15 +18,15 @@ function entries(files,prefix='',packageId=null,packageName='Included sample'){
  const stages=stageDefinitions(files).map(s=>({id:prefix+s.path,name:s.name,author:s.author||'',fileName:s.path.split('/').at(-1),packageName,...(packageId?{packageId}:{})}));return{characters,stages};
 }
 async function packages(){const db=await open();return request(db.transaction('packages').objectStore('packages').getAll());}
-async function catalog(){const builtin=entries(await core()),saved=await packages(),old=(await legacy.list().catch(()=>[])).filter(row=>!saved.some(p=>p.legacyId===row.id));return{characters:[...builtin.characters,...saved.flatMap(p=>p.characters)],stages:[...builtin.stages,...saved.flatMap(p=>p.stages)],packages:[...saved.map(p=>({id:p.id,name:p.name})),...old.map(p=>({id:'legacy:'+p.id,name:p.name,legacy:true}))]};}
+async function catalog(){const builtin=entries(await core()),saved=await packages(),old=(await legacy.list().catch(()=>[])).filter(row=>!saved.some(p=>p.legacyId===row.id));return{characters:[...builtin.characters,...saved.flatMap(p=>p.characters)],stages:[...builtin.stages,...saved.flatMap(p=>p.stages)],packages:[...saved.map(p=>({id:p.id,name:p.name,downloadable:!!p.archiveSaved})),...old.map(p=>({id:'legacy:'+p.id,name:p.name,legacy:true}))]};}
 async function pickFile(){return new Promise(resolve=>{const input=document.createElement('input');input.type='file';input.accept='*/*';input.hidden=true;input.id='engine-archive-file';input.onchange=()=>{const file=input.files?.[0];input.remove();resolve(file);};input.oncancel=()=>{input.remove();resolve(null);};document.body.append(input);input.click();});}
 async function resource(path){const builtin=await core();if(builtin[path])return new Blob([builtin[path]]);const db=await open(),row=await request(db.transaction('files').objectStore('files').get(path));if(!row)throw Error('The installed resource is missing.');return row.blob;}
 async function install(file,data,legacyId){
  window.__kenjatimeNativeProgress?.(`Reading ${file.name}…`);
    const {files,characters,stages}=await unpackArchive(await readArchiveFile(file),{password:data.password,prepareStageData:false,onProgress:m=>window.__kenjatimeNativeProgress?.(m)});
    if(data.kind==='stage'&&!stages.length)throw Error('No stage DEF found. Choose a stage archive.');if(!characters.length&&!stages.length)throw Error('No character or stage DEF found.');
-   const id=crypto.randomUUID(),prefix=`imports/${id}/`,meta={id,name:file.name,...(legacyId?{legacyId}:{}),...entries(files,prefix,id,file.name)};
-   const db=await open(),tx=db.transaction(['packages','files'],'readwrite'),finished=done(tx);tx.objectStore('packages').put(meta);
+   const id=crypto.randomUUID(),prefix=`imports/${id}/`,meta={id,name:file.name,archiveSaved:true,...(legacyId?{legacyId}:{}),...entries(files,prefix,id,file.name)};
+   const db=await open(),tx=db.transaction(['packages','files','archives'],'readwrite'),finished=done(tx);tx.objectStore('packages').put(meta);tx.objectStore('archives').put({id,name:file.name,blob:file});
    for(const [path,bytes]of Object.entries(files))tx.objectStore('files').put({path:prefix+path,packageId:id,blob:new Blob([bytes])});await finished;return catalog();
 }
 export function createBrowserEngineHost(){return{
@@ -36,10 +37,15 @@ export function createBrowserEngineHost(){return{
    const file=await pickFile();if(!file)return{cancelled:true};return install(file,data);
   }
   if(action==='openLegacy'){const saved=await legacy.read(data.id.slice(7));return install(saved.file,{...data,kind:saved.stageOnly?'stage':'any'},saved.id);}
+  if(action==='downloadArchive'){
+   const db=await open(),row=await request(db.transaction('archives').objectStore('archives').get(data.packageId));
+   if(!row)throw Error('The original archive was not saved by this older app version. Import it again to enable Save archive.');
+   await exportFile(row.blob,row.name);return{};
+  }
   if(action==='remove'){
    if(data.packageId.startsWith('legacy:')){await legacy.remove(data.packageId.slice(7));return catalog();}
    if(!/^[a-f0-9-]{36}$/.test(data.packageId))throw Error('Unknown installed package.');
-   const db=await open(),tx=db.transaction(['packages','files'],'readwrite'),finished=done(tx);tx.objectStore('packages').delete(data.packageId);
+   const db=await open(),tx=db.transaction(['packages','files','archives'],'readwrite'),finished=done(tx);tx.objectStore('packages').delete(data.packageId);tx.objectStore('archives').delete(data.packageId);
    const r=tx.objectStore('files').index('packageId').openCursor(IDBKeyRange.only(data.packageId));r.onsuccess=()=>{const c=r.result;if(c){c.delete();c.continue();}};await finished;return catalog();
   }
   if(action==='launch'){

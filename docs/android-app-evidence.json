@@ -1,37 +1,183 @@
 {
-  "package": "io.github.celerycore.kenjatime",
-  "version": "0.2.1",
-  "versionCode": 7,
-  "startupUrl": "https://localhost/mobile/index.html",
-  "apkBytes": 13236349,
-  "apkSha256": "1d0bc8dc1b131ae2860b7022669328fe04d0581a3cceada3d7c3621ed215702d",
-  "signatureVerified": true,
-  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
-  "minSdk": 24,
-  "targetSdk": 36,
-  "minimumWebView": 107,
-  "bundledWebFilesMatchDist": 41,
-  "onlyBundledCharacterArchive": "kfm.zip",
-  "sharedEngineCoreArchive": "engine/core.zip",
-  "lint": {
-    "errors": 0,
-    "warnings": [
-      {
-        "id": "UnusedAttribute",
-        "severity": "Warning",
-        "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
-      },
-      {
-        "id": "NewerVersionAvailable",
-        "severity": "Warning",
-        "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
-      },
-      {
-        "id": "UnusedResources",
-        "severity": "Warning",
-        "message": "The resource `R.xml.config` appears to be unused"
-      }
-    ]
+  "version": "0.4.0",
+  "repositoryTests": {
+    "passed": 519,
+    "failed": 0,
+    "skipped": 0
   },
-  "deviceTesting": "Packaging checks do not execute Android or measure phone FPS."
+  "apk": {
+    "package": "io.github.celerycore.kenjatime",
+    "version": "0.4.0",
+    "versionCode": 8,
+    "startupUrl": "https://localhost/mobile/index.html",
+    "apkBytes": 12259407,
+    "apkSha256": "9134ffdca57476137338f651cc35efacff423638096977d4641178e3c3d9cee6",
+    "signatureVerified": true,
+    "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "minimumWebView": 107,
+    "bundledWebFilesMatchDist": 50,
+    "onlyBundledCharacterArchive": "kfm.zip",
+    "sharedEngineCoreArchive": "engine/core.zip",
+    "lint": {
+      "errors": 0,
+      "warnings": [
+        {
+          "id": "UnusedAttribute",
+          "severity": "Warning",
+          "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+        },
+        {
+          "id": "NewerVersionAvailable",
+          "severity": "Warning",
+          "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
+        },
+        {
+          "id": "UnusedResources",
+          "severity": "Warning",
+          "message": "The resource `R.xml.config` appears to be unused"
+        }
+      ]
+    },
+    "deviceTesting": "Packaging checks do not execute Android or measure phone FPS."
+  },
+  "nativeStartupAndSaveTests": {
+    "tests": 3,
+    "failures": 0
+  },
+  "archiveRoundTrips": {
+    "physicalAndroid": false,
+    "formats": [
+      {
+        "name": "fighter.zip",
+        "imported": true,
+        "originalDownloadSha256": "2c76fce88289f59246af27714fb06bdfc30f63607e9632b06105e9edaca88196",
+        "password": false
+      },
+      {
+        "name": "fighter.bzip2.zip",
+        "imported": true,
+        "originalDownloadSha256": "23653298a518ddd187c5eaaabffb1a06e756145143813401417d7a99621337e4",
+        "password": false
+      },
+      {
+        "name": "fighter.lzma.zip",
+        "imported": true,
+        "originalDownloadSha256": "4e866986297dc9e23a8cf353dccd20af491d3737fc96059638e2deb97bca030c",
+        "password": false
+      },
+      {
+        "name": "fighter.7z",
+        "imported": true,
+        "originalDownloadSha256": "d1bc85068e7c27f580e8fe5efc46645ccfca4d3666893226655ce60d6f7f2b7f",
+        "password": false
+      },
+      {
+        "name": "fighter.tar",
+        "imported": true,
+        "originalDownloadSha256": "1949798122b0f6bc8e1f790bc7dba10d353d7f752b96a0fe1d23c9f3a5faf7bc",
+        "password": false
+      },
+      {
+        "name": "fighter.tar.gz",
+        "imported": true,
+        "originalDownloadSha256": "e518c0a0679ec7e2481d18219db980564206aa034f03e94186c4f88d6c24a072",
+        "password": false
+      },
+      {
+        "name": "fighter.tar.bz2",
+        "imported": true,
+        "originalDownloadSha256": "e54ac42ddff6deebbc65cd99d1b5bfa24869c904d56cea61ee87651cc8b01036",
+        "password": false
+      },
+      {
+        "name": "fighter.tar.xz",
+        "imported": true,
+        "originalDownloadSha256": "0c5437f995c7ba44eb0300a22be0a01457a1c7bc9fe1d2ec269d5d3ea40f7e85",
+        "password": false
+      },
+      {
+        "name": "fighter.tar.zst",
+        "imported": true,
+        "originalDownloadSha256": "1234ec84d30b703b9d6e01fc6e4ddaecd13eecfdef22c71bd69f4c5975c60e96",
+        "password": false
+      },
+      {
+        "name": "fighter.cpio",
+        "imported": true,
+        "originalDownloadSha256": "64a7e4814a9175856dc2199692c3292b435c2108fa00d2491d0d78b4b1f4ca79",
+        "password": false
+      },
+      {
+        "name": "fighter-sfx.zip",
+        "imported": true,
+        "originalDownloadSha256": "185bf2d31d38fcb3787ea8f3ed1baf5bdf9c6064cab6589ee5f1afc97f6e490f",
+        "password": false
+      },
+      {
+        "name": "fighter-rar4.rar",
+        "imported": true,
+        "originalDownloadSha256": "f959222c27e6a8c120a0a0574c435b020d764cdb82d086719011de1fbefc6fc2",
+        "password": false
+      },
+      {
+        "name": "fighter-rar5.rar",
+        "imported": true,
+        "originalDownloadSha256": "33a52c8d7d6418c74266e310a2f0c1653425539327dd198f7537ab1d02b543e0",
+        "password": false
+      },
+      {
+        "name": "fighter-password.zip",
+        "imported": true,
+        "originalDownloadSha256": "5b005aa715ba46bf8d9dd2220d1e37ad11efd2976f9cb777ed4595a521866770",
+        "password": true
+      },
+      {
+        "name": "fighter.tgz",
+        "imported": true,
+        "originalDownloadSha256": "e518c0a0679ec7e2481d18219db980564206aa034f03e94186c4f88d6c24a072",
+        "password": false
+      },
+      {
+        "name": "fighter.tbz2",
+        "imported": true,
+        "originalDownloadSha256": "e54ac42ddff6deebbc65cd99d1b5bfa24869c904d56cea61ee87651cc8b01036",
+        "password": false
+      },
+      {
+        "name": "fighter.txz",
+        "imported": true,
+        "originalDownloadSha256": "0c5437f995c7ba44eb0300a22be0a01457a1c7bc9fe1d2ec269d5d3ea40f7e85",
+        "password": false
+      },
+      {
+        "name": "fighter.tzst",
+        "imported": true,
+        "originalDownloadSha256": "1234ec84d30b703b9d6e01fc6e4ddaecd13eecfdef22c71bd69f4c5975c60e96",
+        "password": false
+      }
+    ],
+    "version1LibraryPreserved": true,
+    "downloadSurvivesReload": true,
+    "deleteCleansSavedArchive": true,
+    "errors": []
+  },
+  "kuromaru": {
+    "girlRar": {
+      "reportedLine": 3271,
+      "animations": 835,
+      "nonfatalOptionalTransformWarnings": 181,
+      "started": true
+    },
+    "plusZip": {
+      "reportedLine": 7044,
+      "animations": 1227,
+      "nonfatalOptionalTransformWarnings": 181,
+      "started": true
+    },
+    "errors": [],
+    "failedRequests": []
+  },
+  "physicalAndroidExecution": false
 }
