@@ -2,9 +2,9 @@
   "sources": {
     "src/archive-limits.js": "f3890d703c9aa16ce6ba5f96f4700fecf69b0461cc289a4c3e92dae56269d70e",
     "src/combat-rules.js": "4e2533353a120d1d0099a581f3a2f9cf1ad0259ba178537b22ecf56513e30472",
-    "src/combat.js": "b8a65c14d89ac6409ccdcc9905585e6b9240f17e4d89f70bdbd7014002b92e84",
+    "src/combat.js": "4dedc3c94c326cb6a1561539a9b8e0451c5680db357fd1de87995ced989c6a54",
     "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
-    "src/common.js": "8ad8df1b404df60b22b3ca704f6099e04f2710c9dcb5d0df559308d73d74784b",
+    "src/common.js": "303afb70bd26d275376266a18ec45ddf50bbb67eb2b776e4ec32f9a14d308fc5",
     "src/coordinates.js": "e78025e9f91b2c25c2b66c5b4d8d5f9e88d4888467125ee532848a0ddd326b11",
     "src/core/runtime.js": "64020d6ccc642d32786e25ffdb59e19b45248f453a3cffd057a3db45c7c81705",
     "src/core/session.js": "879817e1f752ef79417112508694e41b1d8e7ac4cab108d944c17c0c6fa1cf86",
@@ -31,7 +31,7 @@
     "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
     "src/rendering.js": "382ef7815af616ea80a48405e8d0881a3beda8c72c66e7d1ac6029524029b8ed",
     "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4",
-    "src/runtime.js": "1342a3968f5232588b0ee9673b37dbc77c1e78e06cd459332ee1be418841553a",
+    "src/runtime.js": "997ea36034622ed33297b7fe88bd7521adc0781e852d611882df6bc5d9670842",
     "src/stages.js": "5b7e777297a1ad2cb6da4a0dc0b5731c6c3e671cb5d10f51de29f351f2ff1824"
   },
   "thirdPartyPackages": [
