@@ -1,0 +1,59 @@
+name: Native character verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [source/mugen-compatibility]
+    paths:
+      - 'engine/**'
+      - 'public/engine/**'
+      - 'public/kfm.zip'
+      - 'scripts/character*'
+      - 'scripts/verify-characters.py'
+      - 'test/character*'
+      - 'test/fixtures/character-verification/**'
+      - '*package*.json'
+      - 'vite.config.js'
+      - '.github/workflows/character-verification.yml'
+permissions:
+  contents: read
+jobs:
+  replay:
+    name: '${{ matrix.group }} against native capture'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Keep the known timing discrepancy visible without blocking unrelated fixes.
+    continue-on-error: ${{ matrix.group == 'interactions' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [kfm-classic, kfm-720, interactions, palette-1-2, palette-3-4, palette-5-6, palette-7-8, palette-9-10, palette-11-12]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci && npm run build
+      - run: npm run test:characters
+      - run: node --test test/character-inventory.test.js
+      - run: pip install playwright pillow
+      - run: python -m playwright install --with-deps chromium
+      - name: Compare production worker/Three renderer with independent native evidence
+        run: npm run verify:characters -- --profile full --browser-only --group '${{ matrix.group }}'
+      - if: always()
+        run: |
+          echo 'Native MUGEN and physical Android have not been captured.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The interactions group has a known frame-pacing-sensitive InGuardDist difference after projectile retirement. Its comparison remains strict and reports every difference; this job is advisory until resolved. See docs/character-verification.md.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: character-${{ matrix.group }}
+          path: |
+            work/character-verification/evidence.json
+            work/character-verification/${{ matrix.group }}/*.json*
+            work/character-verification/${{ matrix.group }}/*.log
+            work/character-verification/${{ matrix.group }}/*.png
+          if-no-files-found: error

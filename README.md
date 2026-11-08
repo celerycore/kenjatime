@@ -2,7 +2,7 @@
 
 Import MUGEN fighters and stages, choose your match, and play through Kenjatime’s interface.
 
-The website executes **IKEMEN GO 1.0.0 compiled from Go to WebAssembly**, with a Three.js WebGL2 renderer and Web Audio. Android **Kenjatime 0.4.3** bundles that current renderer and engine for offline use, with adaptive audio, original-archive saving and [exportable startup diagnostics](docs/startup-diagnostics.md). The separate **Kenjatime Native 0.3.1** test build executes the ARM64 engine. All use Kenjatime’s setup, HUD and match-only Lua bootstrap. Stock title/select/options menus, screenpacks, startup logos and menu scripts are excluded. The previous JavaScript combat interpreter is retained in source and historical tests, and is not loaded by these application entries.
+The website executes **IKEMEN GO 1.0.0 compiled from Go to WebAssembly**, with a Three.js WebGL2 renderer and Web Audio. Android **Kenjatime 0.4.4** bundles that current renderer and engine for offline use, with adaptive audio, original-archive saving and [exportable startup diagnostics](docs/startup-diagnostics.md). The separate **Kenjatime Native 0.3.1** test build executes the ARM64 engine. All use Kenjatime’s setup, HUD and match-only Lua bootstrap. Stock title/select/options menus, screenpacks, startup logos and menu scripts are excluded. The previous JavaScript combat interpreter is retained in source and historical tests, and is not loaded by these application entries.
 
 - [Play](https://celerycore.github.io/kenjatime/arena-classic/) · [Android download](https://celerycore.github.io/kenjatime/android/)
 - [Three.js browser renderer and verification](docs/three-browser-renderer.md)
@@ -35,5 +35,7 @@ npm run android:sync
 `build-go-engine.py` pins the browser-port source, Go toolchain and supplemental dependency source, records checksums, and builds the shipped WASM without copying another project’s UI. A dedicated CI job rebuilds and compares the compressed binary. The native verifier checks all ten engine libraries and 53 SDL JNI signatures against the official release.
 
 The original Android entrypoint ignores command-line arguments. Kenjatime writes its own default startup configuration and a validated private JSON match selection; the shared bootstrap reads that file. It never needs the stock main menu to launch a match.
+
+[Character verification](docs/character-verification.md) runs complete curated KFM movesets and interaction fixtures against independently captured native IKEMEN traces. Use `npm run test:characters` for the comparator tests and `npm run verify:characters -- --browser-only` for the shipping browser runtime.
 
 Host verification includes repository tests, native startup/import tests, real Go/WASM matches with touch damage and pause, archive imports on all four routes, old-library migration, and supplied Tomoka/Forest resources. Physical phone FPS is not measured here. The browser port currently omits video-background decoding and some native music decoders; the platform backends have different media capabilities. Passing tests do not certify every authored character or stage.

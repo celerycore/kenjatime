@@ -45,6 +45,20 @@ into persistent three-region streams. It batches framebuffer/viewport commands,
 mirrors GL bindings and avoids steady-state GL state queries and buffer
 reallocation. Direct resource changes flush queued Three draws first.
 
+## Buffer-binding regression in 0.4.4
+
+A GPU buffer-size lookup bound an external model index buffer without restoring
+its previous binding. Because element bindings belong to the current VAO, this
+could change a cached sprite geometry and hide later projectiles. The metadata
+lookup now restores the binding. It retains the existing geometry/material
+cache and only queries state when discovering an uncached buffer.
+
+The new `webgl-binding-reuse.js` regression fails before the fix with a missing
+green sprite and `INVALID_OPERATION` (1282). After the fix both pixels and the
+GL error result match the raw WebGL reference. Native/browser palette fixture
+readbacks also verify both independent and inherited projectile colors. See
+[character verification](character-verification.md).
+
 ## Browser execution, audio and controls
 
 The normal path runs the Go VM, filesystem and Three renderer in a dedicated

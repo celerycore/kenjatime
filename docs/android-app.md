@@ -1,10 +1,16 @@
 # Kenjatime browser-runtime Android app
 
-Version 0.4.3 (version code 11) packages the current Three.js renderer and
+Version 0.4.4 (version code 12) packages the current Three.js renderer and
 Go/WASM combat engine in Capacitor 8. It starts at
 `https://localhost/mobile/index.html` from bundled assets and works offline.
 It retains Kenjatime’s UI, fixed-aspect match view, touch controls, lifebars,
 palettes and controller bridge. Stock IKEMEN menus and screenpacks are excluded.
+
+Version 0.4.4 fixes disappearing projectiles caused by a cached GPU index-buffer
+binding. The new [character verification suite](character-verification.md)
+compares the same browser assets with independent native IKEMEN captures, and
+records an unresolved projectile-retirement guard-distance timing difference
+under load.
 
 ## Included
 

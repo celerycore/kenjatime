@@ -16,10 +16,10 @@
 <body>
   <p class="label">KENJATIME / ANDROID</p>
   <h1>Your arena.<br>On your phone.</h1>
-  <h2>Kenjatime 0.4.3</h2>
+  <h2>Kenjatime 0.4.4</h2>
   <p>The current Three.js arena, packaged for Android. Your fighters, stages and included sample run offline with Kenjatime’s interface. Matches play in the same view with touch controls and a fixed aspect ratio.</p>
-  <a class="download" href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.4.3-debug.apk" download>Download Kenjatime for Android</a>
-  <small>Version 0.4.3 · Android 7.0+ · Android System WebView 107 or newer · Signed test APK</small>
+  <a class="download" href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.4.4-debug.apk" download>Download Kenjatime for Android</a>
+  <small>Version 0.4.4 · Android 7.0+ · Android System WebView 107 or newer · Signed test APK</small>
   <ul>
     <li>Import ZIP, RAR4/RAR5, 7z, TAR, TAR.GZ/TGZ, TAR.BZ2/TBZ2, TAR.XZ/TXZ and TAR.ZST/TZST archives.</li>
     <li>Android imports open the document picker in Downloads, with all file types visible instead of a media-only chooser.</li>
@@ -28,10 +28,11 @@
     <li>Adaptive audio buffering helps absorb brief rendering stalls. Audio follows the device’s output sample rate.</li>
     <li>Startup report shows loading phases and saves a diagnostic report, even while storage is waiting.</li>
     <li>Reset library remains available during startup. Use it to remove installed copies and restore the included fighter.</li>
+    <li>Fixed disappearing projectiles when cached GPU buffers are reused. Combat verification compares the browser engine with native IKEMEN.</li>
     <li>Kenjatime controls, lifebars, palettes and controller support. No stock IKEMEN menus.</li>
   </ul>
   <p>Open the downloaded APK with Android’s package installer. Install over the matching Kenjatime browser-runtime app to keep its installed library. Your browser library and the separate native test app have their own storage. New imports retain their original archive; older installed packages remain playable.</p>
-  <p><a href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.4.3-debug.apk.sha256">APK checksum</a> · <a href="../arena-classic/">Open browser arena</a> · <a href="https://github.com/celerycore/kenjatime/blob/source/mugen-compatibility/docs/android-app.md">Source and build instructions</a></p>
+  <p><a href="https://github.com/celerycore/kenjatime/raw/refs/heads/android-builds/downloads/kenjatime-android-0.4.4-debug.apk.sha256">APK checksum</a> · <a href="../arena-classic/">Open browser arena</a> · <a href="https://github.com/celerycore/kenjatime/blob/source/mugen-compatibility/docs/android-app.md">Source and build instructions</a></p>
   <p>Uninstalling the app or clearing its storage removes the copies saved inside it. Imports accept up to 128 MB compressed, 512 MB expanded and 5,000 entries. Multi-part volumes need to be combined first. Use the archive password field for supported encrypted archives.</p>
   <details><summary>Previous native engine test build</summary>
     <p>The separate ARM64 native engine app remains available for comparison. It requires Android 14+ and OpenGL ES 3.2, and has its own installed library.</p>

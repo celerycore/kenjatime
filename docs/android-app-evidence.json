@@ -1,17 +1,17 @@
 {
-  "version": "0.4.3",
+  "version": "0.4.4",
   "repositoryTests": {
-    "passed": 522,
+    "passed": 525,
     "failed": 0,
     "skipped": 0
   },
   "apk": {
     "package": "io.github.celerycore.kenjatime",
-    "version": "0.4.3",
-    "versionCode": 11,
+    "version": "0.4.4",
+    "versionCode": 12,
     "startupUrl": "https://localhost/mobile/index.html",
-    "apkBytes": 12222763,
-    "apkSha256": "194c2cfc7d08b8607e788781da5f6d5d05a765a952a3fc48644503a403286be0",
+    "apkBytes": 12224424,
+    "apkSha256": "ddc412aaeda26717248ab9126ec7868c08beed9969e6b190992034480587bbeb",
     "signatureVerified": true,
     "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
     "minSdk": 24,
@@ -684,5 +684,15 @@
       "hungStorageFallsBackToPlayableSample": true,
       "errors": []
     }
+  },
+  "characterVerification": {
+    "report": "character-verification-evidence.json",
+    "quietReplay": {
+      "scenarios": 316,
+      "frames": 26889,
+      "differences": 0
+    },
+    "openFinding": "four InGuardDist timing differences after projectile retirement under concurrent load",
+    "physicalAndroidExecution": false
   }
 }

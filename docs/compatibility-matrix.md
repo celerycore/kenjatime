@@ -2,6 +2,23 @@
 
 The target is native MUGEN character behavior, starting with the supplied MUGEN 1.1 beta 1 documentation. Recognition of a controller name is not evidence that every parameter or timing interaction works. The automated corpus includes classic/720p KFM, independently authored CNS/CMD/AIR fixtures, supplied Tomoka/Taiga import packs, a Shiki script/report replay and the Forest stage. Coverage is scoped to the exercised paths.
 
+## Shipping Go/WASM engine
+
+The current website and Android 0.4.4 execute Go/WASM with Three.js. The
+[character verification workflow](character-verification.md) compares this
+production path with independently captured official native IKEMEN GO 1.0.0.
+It includes complete curated KFM CMD entry coverage in classic and 720p
+coordinates, throws/custom states, helper/projectile interactions and 12 palette
+selections. Read its evidence and remaining differences before claiming parity.
+Native MUGEN itself and full supplied-character movesets are not yet captured.
+
+## Historical JavaScript engine evidence
+
+The following tables and `npm run compatibility` replay commands describe the
+retired JavaScript interpreter. They remain useful for reproducing historical
+reports; passing them does not verify the shipping Go engine. Use
+`npm run verify:characters` for the current runtime.
+
 | Area | Current evidence | Remaining work |
 | --- | --- | --- |
 | Optional WebGL renderer | PixiJS quad batches, shader PalFX and blend math have 324 aligned pixel comparisons, projected-shape checks and eight scenes with matching gameplay hashes. See [prototype evidence and limits](pixi-renderer.md). Canvas remains the default and fallback. | Native phone profiling, transformed-edge raster parity, fractional clipping, indexed/atlas textures, animated-stage uploads and heavy-helper tail latency. |
@@ -27,7 +44,7 @@ The target is native MUGEN character behavior, starting with the supplied MUGEN 
 | Stage / match integration | Bounded stages/camera/zoom and scored two-player rounds are tested. Edition 20 adds a visible stage library/Add stage chooser, legacy hires background scale and adjacent packed music resolution. Forest of King Cruel sprites/animation/MP3 and equivalent low/hires camera pixels have browser coverage. See [stages/controllers](stages-controllers.md). | Remaining native stage/camera options, complete configuration and motifs. |
 | Version compatibility | 1.1 examples and selected legacy defaults work. | Systematic WinMUGEN/1.0/1.1 differences; no blanket legacy certification. |
 | Loading / performance | ZIP/RAR4/RAR5 imports retain 128 MiB compressed/512 MiB expanded/5,000-entry bounds. Worker decoding, transferred buffers, mobile providers, real Tomoka/Taiga archives, 40.56 MiB RAR and 55.56 MiB ZIP fixtures are verified on the shared Classic Arena too. See [Edition 19](rar-classic-landing.md). Sprite/effect caches remain bounded. | Streaming archive reads, lazy media decoding, larger real-character stress profiles and physical-device memory checks. |
-| Native engine comparison | Replay exporter and field-by-field baseline comparator are available. | No independently captured native-engine baseline is bundled; native execution is not part of this tool. |
+| Native engine comparison | Historical JS replay exporter/comparator. The shipping Go workflow now bundles independent native captures; see [current verification](character-verification.md). | Legacy replay results do not certify Go/WASM. |
 
 ## Repeatable workflow
 

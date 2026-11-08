@@ -42,7 +42,13 @@ export function createThreeSubmitter(raw,memory,objects){
   if(v){raw.bindVertexArray(v);for(let i=0,n=raw.getParameter(raw.MAX_VERTEX_ATTRIBS);i<n;i++)if(raw.getVertexAttrib(i,raw.VERTEX_ATTRIB_ARRAY_ENABLED)){const buffer=raw.getVertexAttrib(i,raw.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);a.attrs.set(i,{buffer,size:raw.getVertexAttrib(i,raw.VERTEX_ATTRIB_ARRAY_SIZE),type:raw.getVertexAttrib(i,raw.VERTEX_ATTRIB_ARRAY_TYPE),normalized:raw.getVertexAttrib(i,raw.VERTEX_ATTRIB_ARRAY_NORMALIZED),stride:raw.getVertexAttrib(i,raw.VERTEX_ATTRIB_ARRAY_STRIDE),offset:raw.getVertexAttribOffset(i,raw.VERTEX_ATTRIB_ARRAY_POINTER),enabled:true});}a.element=raw.getParameter(raw.ELEMENT_ARRAY_BUFFER_BINDING);}
   return a;
  }
- function bytes(buffer,target){let b=buffers.get(buffer);if(!b||!b.bytes){raw.bindBuffer(target,buffer);const size=raw.getBufferParameter(target,raw.BUFFER_SIZE);id(buffer);b=buffers.get(buffer);b.bytes=size;}return b.bytes;}
+ function bytes(buffer,target){let b=buffers.get(buffer);if(!b||!b.bytes){
+  // ELEMENT_ARRAY_BUFFER belongs to the currently bound VAO. A metadata read
+  // must preserve it: Three may reuse that sprite VAO later in the same frame.
+  const previous=raw.getParameter(target===raw.ARRAY_BUFFER?raw.ARRAY_BUFFER_BINDING:raw.ELEMENT_ARRAY_BUFFER_BINDING);
+  raw.bindBuffer(target,buffer);const size=raw.getBufferParameter(target,raw.BUFFER_SIZE);raw.bindBuffer(target,previous);
+  id(buffer);b=buffers.get(buffer);b.bytes=size;
+ }return b.bytes;}
  function external(handle,type){
   if(!handle)return null;let texture=textures.get(handle);if(!texture){texture=new ExternalTexture(handle);texture.colorSpace='';if(type===raw.SAMPLER_CUBE){const owner=new WebGLCubeRenderTarget(1);owner.depthTexture=new DepthTexture(1,1);renderer.setRenderTargetTextures(owner,handle,null);texture=owner.texture;texture.colorSpace='';}if(type===raw.SAMPLER_2D_ARRAY)texture.isDataArrayTexture=true;if(type===raw.SAMPLER_3D){const owner=new WebGLRenderTarget(1,1);owner.texture=new Data3DTexture();owner.depthTexture=new DepthTexture(1,1);renderer.setRenderTargetTextures(owner,handle,null);texture=owner.texture;texture.colorSpace='';}textures.set(handle,texture);}return texture;
  }
