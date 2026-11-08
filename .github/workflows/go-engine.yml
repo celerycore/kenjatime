@@ -65,9 +65,15 @@ jobs:
         run: python scripts/verify-go-gpu.py
       - name: Check multipart/encrypted installs, exact downloads and re-imports
         run: python scripts/verify-support-archives.py
+      - name: Install stable Chrome with MP4 and AAC codecs
+        run: python -m playwright install chrome
       - name: Check tracker music, video pixels/audio and three light shadow types
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome
         run: python scripts/verify-media-support.py
       - name: Check low quality shadows and main-thread media fallback
+        env:
+          CHROMIUM_PATH: /usr/bin/google-chrome
         run: |
           python scripts/verify-media-support.py --group shadow --quality low
           python scripts/verify-media-support.py --group all --main-thread
@@ -89,3 +95,10 @@ jobs:
         run: MUGEN_QA_AUDIO_RATE=48000 python scripts/verify-go-presentation.py
       - name: Check the main-thread and ScriptProcessor compatibility fallback
         run: MUGEN_QA_MAIN_FALLBACK=1 MUGEN_QA_SCRIPT_AUDIO=1 python scripts/verify-go-presentation.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: media-support-diagnostics
+          path: work/support-media/
+          if-no-files-found: ignore
+          retention-days: 14

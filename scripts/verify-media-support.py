@@ -57,6 +57,7 @@ def main():
       audio=page.evaluate('window.__kenjatimeFrame.audioStatus()');assert audio['pcm']['peak']>.005,audio
       result={'format':variant,'music':page.evaluate('window.__kenjatimeFrame.snapshot().music'),'audio':audio}
      elif kind=='video':
+      capability=page.evaluate("type=>document.createElement('video').canPlayType(type)", 'video/mp4; codecs="avc1.42E01E,mp4a.40.2"' if variant=='mp4' else 'video/webm; codecs="vp9,opus"');print('VIDEO CODECS',variant,repr(capability),browser.version,flush=True);assert capability,'Test browser lacks the fixture codecs; run with CHROMIUM_PATH pointing to Chrome with MP4/AAC support.'
       page.wait_for_function('window.__kenjatimeFrame.videoStatus().frames>3',timeout=30000)
       colors=[]
       for i in range(8):
