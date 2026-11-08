@@ -8,7 +8,7 @@
     "src/archive-reader.js": "7929afbb0cbd045f98d3e674ab356892af0d3cd26c384663b07eda8b8d18333d",
     "src/archive-volumes.js": "5c4f6c1274aaa0add7c442f1dbed4082fe29dee3c759ff9f169530f4ba40c5ff",
     "src/combat-rules.js": "4e2533353a120d1d0099a581f3a2f9cf1ad0259ba178537b22ecf56513e30472",
-    "src/combat.js": "4dedc3c94c326cb6a1561539a9b8e0451c5680db357fd1de87995ced989c6a54",
+    "src/combat.js": "ca7bd04e42d87fc146688284bb8261449a98792b7740a86628f32da505ba3339",
     "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
     "src/common.js": "303afb70bd26d275376266a18ec45ddf50bbb67eb2b776e4ec32f9a14d308fc5",
     "src/coordinates.js": "e78025e9f91b2c25c2b66c5b4d8d5f9e88d4888467125ee532848a0ddd326b11",
