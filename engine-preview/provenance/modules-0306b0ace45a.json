@@ -1,6 +1,7 @@
 {
   "sources": {
     "core/index.html": "c26b847678077e94b319be75c8e82db323b4ede8d1fc34ed04df3179c721c687",
+    "src/animation-clock.js": "f52b950774cce62243be29671f09599d8607eb451d04934ff3001265d2f0d665",
     "src/app-shell.js": "d4c1524fb598e27d72d8cf27d7a3bb4a46532330c116431d5cc13f3728b7a663",
     "src/archive-export.js": "bdcee8bf629e414074419968f5dde3103d9bec2dbd693041432a91c3b2bbe857",
     "src/archive-kind.js": "dcf3907f4c3fb0b482834c0e105e4de11948b2ccde5797bfcb4ff01571be04b3",
@@ -8,7 +9,7 @@
     "src/archive-reader.js": "7929afbb0cbd045f98d3e674ab356892af0d3cd26c384663b07eda8b8d18333d",
     "src/archive-volumes.js": "5c4f6c1274aaa0add7c442f1dbed4082fe29dee3c759ff9f169530f4ba40c5ff",
     "src/combat-rules.js": "4e2533353a120d1d0099a581f3a2f9cf1ad0259ba178537b22ecf56513e30472",
-    "src/combat.js": "7a5298ff039a1a61f70735447000d08f5af68212393ea252a8826916be8c98da",
+    "src/combat.js": "bb91c407eb83db9b6ed1a8abc70db74c4eb4f66277e6fe7f50dd7a503655ade4",
     "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
     "src/common.js": "86ab2e401e7027fbfc1bd318b91d8688821cb5f0c6e69a6306dbaf14fdb9c37b",
     "src/coordinates.js": "6ca870a1720be3b154d05313fff1e02b3456a532198c2fdd57792b7976405518",
@@ -52,14 +53,14 @@
     "src/rar-reader.js": "c7cf0f9fc1ac1b3af463b93198980b2e9851de5de67dd4c873f698fbfa03907c",
     "src/rendering.js": "382ef7815af616ea80a48405e8d0881a3beda8c72c66e7d1ac6029524029b8ed",
     "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4",
-    "src/runtime.js": "226b5101991364ff0d556604cf8db9df65097ea807dbd65ae93c9473e9dfbc1a",
+    "src/runtime.js": "647a1914afffac471bdc3e27bab8681b49d3e8a040c221dd2d842b3d36036f20",
     "src/seven-archive.js": "19921cb4816451381452d8cac1e0bbedd7cf9a101f97e622d0ae2002bf8a4747",
     "src/stages.js": "5b7e777297a1ad2cb6da4a0dc0b5731c6c3e671cb5d10f51de29f351f2ff1824",
     "src/startup-diagnostics.js": "8b4132b15e3115f1abd120cc1871c6abf1c629b73d51f6c13df8ce66a5b03618",
     "src/style.css": "c8abe0c829078242bed3cf36cd6a51ab4692527b58ec6c35584fef1bb3fe83f3",
     "src/touch-controls.js": "d65bbfdc28de4fdf85af7f9add7083f6e50fed8756a1f9e30bac2c5b930625ce",
     "src/uploads.js": "480c10fb80133f43d4b1a6329e6ad9f534ed69ae9f08ce4cd44af8643ff97c2f",
-    "src/zip-encrypted.js": "336d21b5ea401a8fab30a650a4a4ffe8447ddda55072b6893833f74e72a16251",
+    "src/zip-encrypted.js": "e94a93cc6a09ea5ad7c5f3f2b53a1f52473711cc98821c0bbf46e110307dc4cb",
     "src/zip-lzma.js": "54619d449e7a23c74893268e2df8deda89c9e0d94807c4f27f3e3f95fabae5ac"
   },
   "thirdPartyPackages": [
