@@ -23,5 +23,12 @@
   "hostTests": 600,
   "physicalPhoneMeasured": false,
   "verificationWorkflow": "https://github.com/celerycore/kenjatime/actions/runs/42530711561",
-  "verificationStatus": "pending"
+  "verificationStatus": "passed",
+  "verifiedCheckpoint": "checkpoint/core-preview-0.5.5",
+  "verificationSourceCommit": "065a8ee4f10aa569ac0c8b456f9ddafce6227f3c",
+  "browserCI": "success",
+  "androidCI": "success",
+  "pagesDeployment": "https://github.com/celerycore/kenjatime/actions/runs/42530807709",
+  "pagesCI": "success",
+  "publishedDownloadSha256Verified": true
 }
