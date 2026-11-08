@@ -144,6 +144,34 @@ test("contact geometry refreshes after movement, facing and animation changes", 
   assert.equal(m.events.length, 0);
 });
 
+test("a reversal success state stops further reversals with immediate state entry", () => {
+  const attacker = actor(
+    "[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=200\n" +
+      "[State Hit]\ntype=HitDef\ntrigger1=Time=0\nattr=S,NA\ndamage=10\npausetime=0,0\nground.hittime=10\nground.velocity=0\n",
+  );
+  const defender = actor(
+    "[Statedef 200]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=200\n" +
+      "[State Counter]\ntype=ReversalDef\ntrigger1=Time=0\nreversal.attr=S,NA\ndamage=5\npausetime=0,0\np1stateno=0\n",
+    "counter",
+  );
+  const m = new TrainingMatch(attacker, {
+    opponentCharacter: defender,
+    initialize: false,
+    pushboxes: false,
+    commonText: commonStates(),
+  });
+  m.player.pos.x = -16;
+  m.opponent.pos.x = 16;
+  m.player.changeState(200);
+  m.opponent.changeState(200);
+  const helper = m.spawnHelper(m.player, { stateno: 200, keyctrl: 0 });
+  m.tick();
+  assert.equal(m.events.filter((e) => e.type === "reversal").length, 1);
+  assert.equal(m.events.filter((e) => e.type === "hit").length, 1);
+  assert.equal(helper.life, 1000);
+  assert.equal(m.opponent.life, 990);
+});
+
 test("hit snap and facing are deferred together, while velocity uses the eventual facing", () => {
   const m = match(
     "[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nanim=200\nctrl=0\n" +

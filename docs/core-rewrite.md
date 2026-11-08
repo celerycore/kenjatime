@@ -19,7 +19,7 @@ The saved 0.4.5 recovery tags remain available. The preview has a separate websi
 
 The 0.5.2 update separates screen margins from body widths, preserves horizontal inertia through back-hop landing, delays velocity changes until the hit-state header runs, and corrects launch/fall animation handoffs and landing thresholds. Gravity applies once when a hit-up animation enters its next state. All changes use original implementation code and unchanged behavior captures.
 
-Contact scanning now rejects inactive attackers before sorting defenders, computes each active attack's boxes once, and shares defender geometry within the current collection pass. Reversal scanning skips fighters without a reversal definition. The geometry cache is discarded after the pass; tests cover movement, facing changes and empty collision frames on later ticks. Nearest-defender ordering and simultaneous-contact resolution are preserved.
+Contact scanning now rejects inactive attackers before sorting defenders, computes each active attack's boxes once, and shares defender geometry within the current collection pass. Reversal scanning skips fighters without a reversal definition. The geometry cache is discarded after the pass; tests cover movement, facing changes and empty collision frames on later ticks. Nearest-defender ordering and simultaneous-contact resolution are preserved. Reversal definitions are rechecked after each counter so a success-state transition stops further immediate-entry counters.
 
 Compared with the verified `6e32004` runtime, exact scenarios increased from 77 to 103 of 147; differing fields fell from 16,645 to 5,422 (67.4% fewer). All 77 previously matching scenarios remain matching. `npm run compatibility` requires these 103 moveset scenarios and all 16 interaction scenarios. The other 44 scenarios retain explicit mismatch reports. The subset manifest pins the native capture hash and never replaces expected samples. The 0.5.1 recovery checkpoints and installers remain available.
 
@@ -29,26 +29,26 @@ Compared with the verified `6e32004` runtime, exact scenarios increased from 77 
 
 | Check | Result | Scope |
 | --- | --- | --- |
-| Core tests | 31 passed | Compiler, input phases, replay consistency, resource delivery and audio lifecycle |
+| Core tests | 32 passed | Compiler, input phases, replay consistency, resource delivery and audio lifecycle |
 | Existing regressions through the compiler | 549 passed, no skips | Supplied character/stage corpus available; compares the independent implementation's own behavior |
 | Captured interaction comparison | 16 scenarios, 1,130 ticks, 67,800 field comparisons, zero differences | State, animation clocks, motion, damage/power, hit clocks, falls, targets, proximity and entity counts |
 | Larger captured KFM moveset comparison | 103 of 147 scenarios match; 5,422 field differences remain across 12,854 ticks | Diagnostic report remains failing; it is not presented as full compatibility |
 | Browser integration | Worker, main thread and forced worker-GPU failure passed | Two fighters/lifebars, fixed aspect ratio, attacks, decoded audio, same-page play, frozen paused GPU, early cancellation and three repeated sessions per backend |
 | Archive integration | 19 import/export cases passed | ZIP, RAR4/5, 7z, TAR variants, CPIO, self-extracting ZIP, AES variants and split ZIP/7z/RAR; bundle reimport and failure recovery |
 | Android | 10 startup/picker tests and lint passed | Localhost startup, native provider/save behavior and lifecycle; no physical phone execution |
-| APK audit | 6,957,162 bytes | Signed; exact independent web assets; separate application ID; no reference-engine payloads |
+| APK audit | 7,204,436 bytes | Signed; exact independent web assets; separate application ID; no reference-engine payloads |
 | Expression microbenchmark | 124.29 ms interpreter / 65.43 ms compiler, **1.90×** | Median of five 400,000-evaluation host samples; identical checksums, 751-byte numeric module |
 
 The CPU simulation benchmark compares this implementation with `6e32004`. Each median covers five 2,000-tick samples after warm-up, using the shared independent JS interpreter and authored stationary loads. Attacks miss by design; entity counts and state checksums must remain identical. Graphics, audio and imports are excluded.
 
 | CPU workload | 0.5.1 median | 0.5.2 median | Speedup |
 | --- | --- | --- | --- |
-| two-fighters | 32.14 ms | 34.27 ms | 0.94× |
-| idle-helpers | 461.68 ms | 116.02 ms | 3.98× |
-| attacking-helpers | 3629.43 ms | 1620.57 ms | 2.24× |
-| projectile-load | 1888.26 ms | 912.04 ms | 2.07× |
+| two-fighters | 32.14 ms | 32.54 ms | 0.99× |
+| idle-helpers | 461.68 ms | 123.32 ms | 3.74× |
+| attacking-helpers | 3629.43 ms | 1634.68 ms | 2.22× |
+| projectile-load | 1888.26 ms | 1026.06 ms | 1.84× |
 
-The two-fighter sample is slightly slower, by about 0.001 ms per tick. The measured gains apply to entity-heavy collision scans. Host timings vary and do not predict phone FPS. CI records the current workloads without imposing a timing threshold. To compare a saved source checkout, set `CORE_BENCH_SOURCE=/path/to/checkout` and `CORE_BENCH_OUTPUT=/path/to/report.json` when running `npm run benchmark:core:combat`.
+The two-fighter sample is slightly slower, by about 0.0002 ms per tick. The measured gains apply to entity-heavy collision scans. Host timings vary and do not predict phone FPS. CI records the current workloads without imposing a timing threshold. To compare a saved source checkout, set `CORE_BENCH_SOURCE=/path/to/checkout` and `CORE_BENCH_OUTPUT=/path/to/report.json` when running `npm run benchmark:core:combat`.
 
 The microbenchmark compares Kenjatime's interpreter with its compiled backend. It does not measure phone FPS or establish a speed advantage over another complete engine. Browser graphics checks use software WebGL in headless Chromium. Physical Infinix/Brave performance and audible crackle still need device measurements.
 

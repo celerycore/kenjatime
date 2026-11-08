@@ -295,9 +295,10 @@ export class TrainingMatch {
     const contacts = [];
     const reversed = new Set();
     for (const defender of fighters) {
-      const reversal=defender.reversalDef;
-      if (!reversal || frozen.has(defender) || paused.has(defender) || this.roundFlow&&this.roundFlow.roundState!==2) continue;
+      if (!defender.reversalDef || frozen.has(defender) || paused.has(defender) || this.roundFlow&&this.roundFlow.roundState!==2) continue;
       for (const attacker of fighters) {
+        const reversal=defender.reversalDef;
+        if (!reversal) break;
         const hit=attacker.hitDef;
         if (!hit || attacker === defender || attacker.teamSide === defender.teamSide || paused.has(attacker) || reversed.has(attacker)) continue;
         if (!defender.attributeMatches(reversal['reversal.attr'],hit.attr) || this.usedHits.get(defender)?.get(attacker.id) === reversal.serial) continue;
@@ -307,7 +308,7 @@ export class TrainingMatch {
         attacker.moveContact=attacker.moveHit=attacker.moveGuarded=0;attacker.moveReversed = 1; attacker.hitDef = null; reversed.add(attacker);
         if (!this.usedHits.has(defender)) this.usedHits.set(defender,new Map()); this.usedHits.get(defender).set(attacker.id,reversal.serial);
         this.events.push({type:'reversal',attacker:defender,defender:attacker,hitDef:reversal,damage:result.damage,guarded:false,x:(overlap[0]+overlap[2])/2,y:(overlap[1]+overlap[3])/2,tick:this.ticks});
-    }
+      }
     }
     // Geometry is immutable while candidates are collected. Keep this cache
     // local to this pass: state changes, facing and positions may differ next tick.

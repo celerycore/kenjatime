@@ -9,7 +9,7 @@
     "recovery/pre-original-engine-android-0.4.5"
   ],
   "unitTests": {
-    "core": 31,
+    "core": 32,
     "compiledRegressionCorpus": 549,
     "skipped": 0,
     "suppliedCharacterAndStageArchivesPresent": true,
@@ -1226,8 +1226,8 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 9444,
-          "interpreted": 6,
+          "wasm": 10454,
+          "interpreted": 7,
           "deoptimized": 0,
           "compiled": 483,
           "bytes": 16596,
@@ -1235,10 +1235,10 @@
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 64,
+          "frames": 38,
           "draws": 3,
-          "textureBytes": 135095,
-          "textures": 29,
+          "textureBytes": 102197,
+          "textures": 23,
           "width": 960,
           "height": 540
         },
@@ -1284,8 +1284,8 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 10306,
-          "interpreted": 8,
+          "wasm": 10212,
+          "interpreted": 6,
           "deoptimized": 0,
           "compiled": 483,
           "bytes": 16596,
@@ -1293,10 +1293,10 @@
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 40,
+          "frames": 31,
           "draws": 3,
-          "textureBytes": 111468,
-          "textures": 24,
+          "textureBytes": 114771,
+          "textures": 25,
           "width": 960,
           "height": 540
         },
@@ -1317,7 +1317,7 @@
             "peak": 0,
             "underruns": 0
           },
-          "voices": 0,
+          "voices": 1,
           "cacheBytes": 22004,
           "cachedSounds": 1,
           "decoding": 0,
@@ -1343,8 +1343,8 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 9740,
-          "interpreted": 4,
+          "wasm": 9395,
+          "interpreted": 7,
           "deoptimized": 0,
           "compiled": 483,
           "bytes": 16596,
@@ -1352,10 +1352,10 @@
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 34,
+          "frames": 77,
           "draws": 3,
-          "textureBytes": 108987,
-          "textures": 24,
+          "textureBytes": 128629,
+          "textures": 28,
           "width": 960,
           "height": 540
         },
@@ -1506,8 +1506,8 @@
   "android": {
     "applicationId": "io.github.celerycore.kenjatime.core.preview",
     "version": "0.5.2-core-preview",
-    "bytes": 6957162,
-    "sha256": "7d286941677d5c6cb2a3178c651b1110b48fc754df2f955a0e71bd2425be2000",
+    "bytes": 7204436,
+    "sha256": "f5d541eee41c6295300c7e0783432994edcb76e758260b7e7c6e1e4ea4df94f7",
     "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
     "offlineAssetsMatchWebBuild": true,
     "bundledFiles": 36,
@@ -1523,7 +1523,7 @@
     "defaultBuildUsesSeparatePreviewId": true
   },
   "build": {
-    "bytes": 6607002,
+    "bytes": 6607046,
     "graphManifests": 4,
     "artifactManifest": "dist-core/provenance.json"
   },
@@ -1629,7 +1629,7 @@
       "node": "v24.19.0",
       "platform": "linux",
       "arch": "x64",
-      "combatSourceSha256": "4dedc3c94c326cb6a1561539a9b8e0451c5680db357fd1de87995ced989c6a54",
+      "combatSourceSha256": "ca7bd04e42d87fc146688284bb8261449a98792b7740a86628f32da505ba3339",
       "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
       "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
       "workloads": [
@@ -1640,13 +1640,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 34.271562999999986,
+          "medianMs": 32.538456,
           "timesMs": [
-            44.668082999999996,
-            34.271562999999986,
-            34.689254000000005,
-            33.891977,
-            31.557614
+            40.833015999999986,
+            32.538456,
+            33.126250999999996,
+            24.46979699999997,
+            32.084451
           ],
           "checksum": 3101414621
         },
@@ -1657,13 +1657,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 116.01646900000014,
+          "medianMs": 123.32094399999994,
           "timesMs": [
-            154.06446400000004,
-            120.48470300000008,
-            115.28843200000006,
-            114.3808140000001,
-            116.01646900000014
+            131.63983700000006,
+            127.88434700000005,
+            118.13913600000001,
+            123.32094399999994,
+            122.64349399999992
           ],
           "checksum": 960736573
         },
@@ -1674,13 +1674,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 1620.573708,
+          "medianMs": 1634.6820719999996,
           "timesMs": [
-            1620.573708,
-            1675.2299379999995,
-            1643.9901250000003,
-            1524.496548000001,
-            1514.1297950000007
+            1681.384943,
+            1636.0992889999998,
+            1590.4812279999996,
+            1634.6820719999996,
+            1625.412543999999
           ],
           "checksum": 984608061
         },
@@ -1691,13 +1691,13 @@
           "projectiles": 32,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 912.0436430000009,
+          "medianMs": 1026.0557850000005,
           "timesMs": [
-            899.8235780000014,
-            912.0436430000009,
-            983.4414350000006,
-            893.3768910000017,
-            915.544084000001
+            1025.7905840000003,
+            1007.5204020000001,
+            1076.556924999999,
+            1026.0664880000004,
+            1026.0557850000005
           ],
           "checksum": 2939807261
         }
@@ -1707,29 +1707,29 @@
       {
         "name": "two-fighters",
         "baselineMedianMs": 32.13965300000001,
-        "optimizedMedianMs": 34.271562999999986,
-        "speedup": 0.937793616240964,
+        "optimizedMedianMs": 32.538456,
+        "speedup": 0.9877436409398164,
         "identicalChecksums": true
       },
       {
         "name": "idle-helpers",
         "baselineMedianMs": 461.67950599999995,
-        "optimizedMedianMs": 116.01646900000014,
-        "speedup": 3.97943076512697,
+        "optimizedMedianMs": 123.32094399999994,
+        "speedup": 3.7437234181405565,
         "identicalChecksums": true
       },
       {
         "name": "attacking-helpers",
         "baselineMedianMs": 3629.433336000002,
-        "optimizedMedianMs": 1620.573708,
-        "speedup": 2.239597815318871,
+        "optimizedMedianMs": 1634.6820719999996,
+        "speedup": 2.220268637044184,
         "identicalChecksums": true
       },
       {
         "name": "projectile-load",
         "baselineMedianMs": 1888.259011999995,
-        "optimizedMedianMs": 912.0436430000009,
-        "speedup": 2.070360367612357,
+        "optimizedMedianMs": 1026.0557850000005,
+        "speedup": 1.8403083337228046,
         "identicalChecksums": true
       }
     ],
@@ -1833,5 +1833,13 @@
         "core": 149
       }
     }
-  ]
+  ],
+  "reversalRegression": {
+    "originalDefectSource": "273c8214e7e232f69e1f301eab2636fef26a665f",
+    "beforeReversals": 2,
+    "expectedReversals": 1,
+    "afterReversals": 1,
+    "successStateStopsImmediateReversals": true,
+    "remainingAttackerRetainsOrdinaryHit": true
+  }
 }
