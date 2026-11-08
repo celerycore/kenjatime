@@ -1,0 +1,51 @@
+{
+  "package": "io.github.celerycore.kenjatime",
+  "version": "0.4.5",
+  "versionCode": 13,
+  "startupUrl": "https://localhost/mobile/index.html",
+  "apkBytes": 13695411,
+  "apkSha256": "0ce4a7f3a5f841d088f0cf58b8b6184d3c4d36f912f9f880b606fd57202816b2",
+  "signatureVerified": true,
+  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "minSdk": 24,
+  "targetSdk": 36,
+  "minimumWebView": 107,
+  "bundledWebFilesMatchDist": 58,
+  "onlyBundledCharacterArchive": "kfm.zip",
+  "sharedEngineCoreArchive": "engine/core.zip",
+  "lint": {
+    "errors": 0,
+    "warnings": [
+      {
+        "id": "UnusedAttribute",
+        "severity": "Warning",
+        "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+      },
+      {
+        "id": "NewerVersionAvailable",
+        "severity": "Warning",
+        "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
+      },
+      {
+        "id": "UnusedResources",
+        "severity": "Warning",
+        "message": "The resource `R.xml.config` appears to be unused"
+      },
+      {
+        "id": "UsableSpace",
+        "severity": "Warning",
+        "message": "Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
+      }
+    ]
+  },
+  "deviceTesting": "Packaging checks do not execute Android or measure phone FPS.",
+  "noStaleWebAssets": true,
+  "apkContainerOverheadBytes": 87117,
+  "sourceCommit": "978a117c64393dddc81424d5e403c68471f697b8",
+  "sourceBranch": "source/mugen-compatibility",
+  "codecSource": {
+    "file": "kenjatime-archive-codec-source.zip",
+    "sha256": "023191216463059a82caa657748db199be7e19c49b94a766542f105f06910b8b"
+  },
+  "verificationReport": "https://github.com/celerycore/kenjatime/blob/978a117c64393dddc81424d5e403c68471f697b8/docs/media-support-evidence.json"
+}

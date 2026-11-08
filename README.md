@@ -1,10 +1,10 @@
 # Kenjatime Android builds
 
-Current installer: **[Kenjatime 0.4.4](downloads/kenjatime-android-0.4.4-debug.apk)**. Android 7.0+, WebView 107+. Bundles the current Three.js renderer and Go/WASM engine, fixed-aspect same-view matches, adaptive audio, common MUGEN archive imports and native archive saving. Includes the legacy optional AIR transform correction for the supplied Kuromaru archives.
+Current installer: **[Kenjatime 0.4.5](downloads/kenjatime-android-0.4.5-debug.apk)**. Android 7.0+, WebView 107+. Bundles the current Three.js renderer and Go/WASM engine, fixed-aspect same-view matches, adaptive audio, common MUGEN archive imports and native archive saving. Adds multipart ZIP/RAR/7z selection, ZIP AES variants, encrypted 7z/RAR, MOD/XM/IT/S3M music, MP4/WebM backgrounds and WebGL2 model shadows.
 
-Source: https://github.com/celerycore/kenjatime/tree/db6822ec8229d505a967cd46f5540f4f350a5b27
+Source: https://github.com/celerycore/kenjatime/tree/978a117c64393dddc81424d5e403c68471f697b8
 
-[Checksum](downloads/kenjatime-android-0.4.4-debug.apk.sha256) · [Build verification](downloads/kenjatime-android-0.4.4-build.json)
+[Checksum](downloads/kenjatime-android-0.4.5-debug.apk.sha256) · [Build verification](downloads/kenjatime-android-0.4.5-build.json)
 
 Signed with the same certificate as earlier browser-runtime installers. Install over that app to preserve its library. The separate native prototype and the website have separate storage. Phone performance remains device-dependent; the recorded audio stability tests ran on the host browser.
 
@@ -14,6 +14,8 @@ Sources and reproducible build instructions: https://github.com/celerycore/kenja
 
 APK license notices are bundled. Matching native FFmpeg source: https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/src_ffmpeg.tar.gz
 
-0.4.4 fixes disappearing projectiles when cached sprite index-buffer bindings are reused. The GPU regression verifies the missing sprite and GL error before/after correction. Independent native IKEMEN comparisons cover 316 character scenarios and 26,889 simulation frames, including complete curated classic/720p KFM CMD entry coverage, throws/custom states, helpers, projectiles and 12 palettes. A four-frame InGuardDist retirement discrepancy under concurrent load remains documented; these results do not certify every MUGEN character.
+The prior 0.4.4 release fixes disappearing projectiles when cached sprite index-buffer bindings are reused. The GPU regression verifies the missing sprite and GL error before/after correction. Independent native IKEMEN comparisons cover 316 character scenarios and 26,889 simulation frames, including complete curated classic/720p KFM CMD entry coverage, throws/custom states, helpers, projectiles and 12 palettes. A four-frame InGuardDist retirement discrepancy under concurrent load remains documented; these results do not certify every MUGEN character.
 
 The Android document picker still shows every file type and starts in Downloads on Android 8+. ZIP/RAR/7z content URIs, missing MIME metadata, cancellation and retry have six picker regressions, alongside four native startup/bridge tests. Physical OEM picker and phone performance verification remain pending.
+
+Matching 7-Zip codec sources and build scripts: [source bundle](downloads/kenjatime-archive-codec-source.zip) · [checksum](downloads/kenjatime-archive-codec-source.zip.sha256). Licenses are available inside the app via Credits and source.
