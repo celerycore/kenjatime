@@ -1,0 +1,58 @@
+; Authored QA recipe; capture variants change type, position fractions and localcoord.
+
+[Statedef 0]
+type=S
+movetype=I
+physics=N
+ctrl=0
+anim=0
+[State Probe]
+type=ScreenBound
+trigger1=1
+value=0
+movecamera=0,0
+[State Probe]
+type=PlayerPush
+trigger1=1
+value=0
+[State Probe]
+type=Turn
+trigger1=time%2=0
+[State Probe]
+type=PosSet
+trigger1=1
+x=ifelse(time%4=0 || time%4=3,132.625,170.375)*ifelse(time%8<4,1,-1)
+[State Probe]
+type=Width
+trigger1=time%16>=8
+edge=7,11
+[State Probe]
+type=VarSet
+trigger1=1
+v=0
+value=floor((FrontEdgeDist)*10000)
+[State Probe]
+type=VarSet
+trigger1=1
+v=1
+value=floor((BackEdgeDist)*10000)
+[State Probe]
+type=VarSet
+trigger1=1
+v=2
+value=floor((FrontEdgeBodyDist)*10000)
+[State Probe]
+type=VarSet
+trigger1=1
+v=3
+value=floor((BackEdgeBodyDist)*10000)
+[State Probe]
+type=VarSet
+trigger1=1
+v=4
+value=floor((Pos X)*10000)
+[State Probe]
+type=VarSet
+trigger1=1
+v=5
+value=floor((Facing)*10000)

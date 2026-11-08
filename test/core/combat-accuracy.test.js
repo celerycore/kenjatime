@@ -45,6 +45,182 @@ function match(script, victimScript = "") {
   });
 }
 
+test("deferred state entry keeps an existing animation running and respects explicit restarts", () => {
+  const m = match(
+    "[Statedef 201]\ntype=S\nphysics=N\nctrl=0\nanim=200\n[Statedef 202]\ntype=S\nphysics=N\nctrl=0\n",
+  );
+  m.player.changeState(201);
+  m.tick();
+  assert.equal(m.player.frameTime, 0);
+  m.tick();
+  assert.equal(m.player.frameTime, 1);
+  m.player.changeState(202);
+  m.tick();
+  assert.equal(m.player.frameTime, 2);
+  m.player.changeState(201);
+  m.tick();
+  assert.equal(m.player.frameTime, 0);
+});
+
+test("a queued safe state recovers after a previous tick exhausts its state-change budget", () => {
+  const m = match(
+    "[Statedef 201]\ntype=S\nphysics=N\nctrl=0\n[State Loop]\ntype=ChangeState\ntrigger1=1\nvalue=201\n",
+  );
+  m.player.changeState(201);
+  m.tick();
+  assert.ok(m.player.diagnostics.some((d) => d.type === "state-loop"));
+  m.player.changeState(0);
+  m.tick();
+  assert.equal(m.player.stateNo, 0);
+  assert.equal(m.player.time, 1);
+  m.tick();
+  assert.equal(m.player.time, 2);
+});
+
+test("scalar and argument triggers stay live across helper and target redirects", () => {
+  const m = match(),
+    a = m.player,
+    b = m.opponent,
+    helper = m.spawnHelper(a, { stateno: 0, keyctrl: 0 });
+  a.time = 17;
+  b.time = 29;
+  a.power = 300;
+  helper.time = 5;
+  a.targets = [b];
+  assert.equal(a.resolveTrigger("time"), 17);
+  assert.equal(a.resolveTrigger("time", [], { name: "target", args: [] }), 29);
+  assert.equal(helper.resolveTrigger("time"), 5);
+  assert.equal(helper.resolveTrigger("power"), 300);
+  a.power = 701;
+  assert.equal(helper.resolveTrigger("power"), 701);
+  b.getHitVars.xvel = 3;
+  assert.equal(
+    a.resolveTrigger("gethitvar", ["xvel"], { name: "target", args: [] }, 0.5),
+    6,
+  );
+  assert.equal(a.resolveTrigger("const", ["size.ground.front"]), 16);
+  a.commands.add("move");
+  assert.equal(a.resolveTrigger("command", ["move"]), 1);
+  assert.throws(() => a.resolveTrigger("__proto__"), /Unsupported trigger/);
+});
+
+test("edge triggers match captured fractional positions, both facings, air insets and coordinate widths", () => {
+  const observations = JSON.parse(
+    readFileSync(
+      new URL("../fixtures/core/edge-triggers.json", import.meta.url),
+    ),
+  );
+  for (const run of observations.runs) {
+    const a = match().player,
+      scale = 320 / run.coordinateWidth;
+    a.coordinateScale = a.baseCoordinateScale = scale;
+    a.stateType = run.stateType;
+    for (const [index, sample] of run.samples.entries()) {
+      a.pos.x = sample.x * scale;
+      a.facing = sample.facing;
+      a.width = { edge: sample.edges };
+      for (const [i, trigger] of observations.triggers.entries())
+        assert.equal(
+          a.resolveTrigger(trigger),
+          sample.expected[i],
+          `${run.coordinateWidth}/${run.stateType}/${index}/${trigger}`,
+        );
+    }
+  }
+});
+
+test("edge trigger reads retain the previous Width for one tick while collision width resets", () => {
+  const m = match("[State Width]\ntype=Width\ntrigger1=Time=0\nedge=7,11\n");
+  m.player.pos.x = 132.625;
+  m.tick();
+  assert.equal(m.player.resolveTrigger("frontedgebodydist"), 20);
+  m.tick();
+  assert.equal(m.player.width, null);
+  assert.equal(m.player.resolveTrigger("frontedgebodydist"), 20);
+  m.tick();
+  assert.equal(m.player.resolveTrigger("frontedgebodydist"), 27);
+});
+
+test("Turn preserves physical horizontal motion during a scripted facing change", () => {
+  const m = match(
+    "[Statedef 201]\ntype=S\nphysics=N\nctrl=0\nvelset=3,0\n[State Turn]\ntype=Turn\ntrigger1=Time=0\n",
+  );
+  const x = m.player.pos.x;
+  m.player.changeState(201);
+  m.tick();
+  assert.equal(m.player.facing, -1);
+  assert.equal(m.player.vel.x, -3);
+  assert.equal(m.player.pos.x, x + 3);
+});
+
+test("fall reaction defaults and explicit animation types select the captured hit-shake poses", () => {
+  for (const [type, fallType, expectedType, expectedAnim] of [
+    ["Hard", "", 3, 5030],
+    ["Hard", "Hard", 2, 5012],
+    ["Up", "", 4, 5051],
+  ]) {
+    const m = match(
+      "[Statedef 201]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=200\n" +
+        "[State Hit]\ntype=HitDef\ntrigger1=Time=0\nattr=S,NA\npausetime=0,2\nfall=1\nground.type=Low\nground.velocity=-2,-4\nanimtype=" +
+        type +
+        "\n" +
+        (fallType ? "fall.animtype=" + fallType + "\n" : ""),
+    );
+    for (const id of [5012, 5030, 5051])
+      m.opponent.animations.set(id, {
+        id,
+        frames: m.opponent.animations.get(0).frames,
+      });
+    m.player.pos.x = -16;
+    m.opponent.pos.x = 16;
+    m.player.changeState(201);
+    m.tick();
+    assert.equal(m.opponent.getHitVars.animtype, expectedType);
+    m.tick();
+    assert.equal(m.opponent.anim, expectedAnim);
+  }
+});
+
+test("crouching guard enters its startup pose before the held guard state", () => {
+  const s = new CoreSession(sampleFiles(), { mode: "training" }),
+    a = s.match.player;
+  s.tick();
+  a.changeState(11);
+  a.inGuardDistance = true;
+  s.tick(new Set(["D", "L"]));
+  assert.equal(a.stateNo, 120);
+  assert.equal(a.stateType, "C");
+  assert.equal(a.anim, 121);
+  a.inGuardDistance = true;
+  s.tick(new Set(["D", "L"]));
+  assert.equal(a.stateNo, 131);
+  assert.equal(a.anim, 131);
+  s.close();
+});
+
+test("trip motion starts without an extra gravity step and resets the hit-shake animation clock", () => {
+  const s = new CoreSession(sampleFiles(), { mode: "training" }),
+    a = s.match.player;
+  Object.assign(a.getHitVars, {
+    fall: 1,
+    xvel: -1.5,
+    yvel: -2,
+    yaccel: Math.fround(0.35),
+  });
+  a.hitTime = 20;
+  a.changeAnimation(5070);
+  a.frameTime = 3;
+  a.changeState(5071);
+  s.tick();
+  assert.equal(a.vel.y, -2);
+  assert.equal(a.pos.y, -2);
+  assert.equal(a.frameTime, 0);
+  s.tick();
+  assert.equal(a.vel.y, Math.fround(-1.65));
+  assert.equal(a.frameTime, 1);
+  s.close();
+});
+
 test("Core loads constants from the designated CNS while retaining states from other files", () => {
   const files = sampleFiles();
   files["kfm/kfm.def"] = encode(

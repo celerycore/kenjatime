@@ -7,7 +7,7 @@ import {clipboardFormat,formatClipboard,decodeQuotedText} from './debug.js';
 import {forceFeedbackParameters} from './haptics.js';
 import {executeExplod,updateExplods as advanceExplods} from './explods.js';
 import {hitAttribute,attributeMatches as matchAttribute,filterAllows} from './hit-filters.js';
-import {baseScale,bodyWidthWorld,spatialConstant,spatialHitVars,changeCoordinateScale} from './coordinates.js';
+import {baseScale,bodyWidthWorld,edgeTriggerDistance,spatialConstant,spatialHitVars,changeCoordinateScale} from './coordinates.js';
 import {allowsHitActivation,claimHitActivation,hitSourceId,recordHitContact} from './hit-rules.js';
 import {initialHitVariables,hitVariableNames,sampleRecoveryInput,advanceHitState} from './hit-state.js';
 import {scaledDamage,hitPower,koVelocity} from './combat-rules.js';
@@ -128,6 +128,15 @@ function controllerRules(controller){
   for(const [n,entries]of rules.groups)if(n>=next){rules.groups.delete(n);rules.warnings.push({line:entries[0].line,message:`trigger${n} is ignored because trigger${next} is missing.`});}
   controllerMetadata.set(controller,rules);return rules;
 }
+
+// Scalar reads must not build the expensive world/animation trigger snapshot.
+const simpleTriggerFields=new Map(Object.entries({
+  time:'time',stateno:'stateNo',prevstateno:'prevStateNo',anim:'anim',animtime:'animTime',
+  ctrl:'ctrl',statetype:'stateType',movetype:'moveType',physics:'physics',
+  life:'life',lifemax:'maxLife',power:'power',powermax:'maxPower',facing:'facing',
+  hitpausetime:'hitPauseTime',movecontact:'moveContact',movehit:'moveHit',moveguarded:'moveGuarded',
+  hitcount:'hitCount',uniqhitcount:'uniqHitCount',id:'id',name:'name'
+}));
 
 export function parseProgram(character, { commonText = '',constantDefaults={},constantsFromCnsOnly=false } = {}) {
   const program = { states: new Map(), constants: new Map(Object.entries({...DEFAULT_CONSTANTS,...constantDefaults})), quotes:new Map(), diagnostics: [], sources: [], controllerTypes: new Set() };
@@ -252,7 +261,7 @@ export class FighterRuntime {
     this.vel = { x: 0, y: 0 }; this.facing = this.options.facing === -1 ? -1 : 1;
     this.ctrl = 1; this.stateType = 'S'; this.moveType = 'I'; this.physics = 'S';
     this.stateNo = 0; this.prevStateNo = 0; this.time = 0; this.gameTime = 0;
-    this.anim = 0; this.frameIndex = 0; this.frameTime = 0; this.animationTime = 0; this.animationCycleTime = 0; this.animationLooped = false; this.animationEnded = false;
+    this.anim = 0; this.frameIndex = 0; this.frameTime = 0; this.animationTime = 0; this.animationCycleTime = 0; this.animationLooped = false; this.animationEnded = false;this._animationSerial=0;
     this.collisionFrame = null;this.collisionAnimationOwner=null;
     this.collisionAnimation=null;this.collisionFrameIndex=0;this.collisionFrameTime=0;
     this.hitDef = null; this.reversalDef = null; this.moveReversed = 0; this._hitSerial = 0; this.hitPauseTime = 0; this.hitTime = -1;
@@ -266,7 +275,7 @@ export class FighterRuntime {
     this.attackMultiplier = 1; this.defenceMultiplier = 1;
     this.sprPriority = 0; this.angle = 0; this.drawScale = { x: 1, y: 1 }; this.drawOffset = { x: 0, y: 0 };
     this.playerPush = !this.parent; this.screenBound = !this.parent;this.moveCamera={x:!this.parent,y:!this.parent}; this.posFrozen = false;
-    this.width = null; this.hitFilters=[null,null]; this.hitOverrides = new Map();
+    this.width = null;this._previousWidth=null; this.hitFilters=[null,null]; this.hitOverrides = new Map();
     this.bound = null; this._controllerCounts = new Map(); this._entrySerial = 0;
     this.pauseMoveTime = this.options.pauseMoveTime || 0; this.superMoveTime = this.options.superMoveTime || 0;
     this.projectileHistory = []; this.trans = null; this.angleDraw = false;
@@ -369,48 +378,9 @@ export class FighterRuntime {
       if (index < 0 || index >= array.length) throw new BottomError(`${name} index out of range: ${index}`);
       return array[index];
     }
-    if(name==='inguarddist')return +(this.world?this.inGuardDistance||false:inGuardDistance(this,this.opponent?[this.opponent]:[]));
-    const other = this.opponent;
-    const flow=this.world?.roundFlow,side=this.root===this.world?.player?'player':'opponent',won=!!flow?.roundWinner&&flow.roundWinner===side,lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
-    const values = {
-      time: this.time, stateno: this.stateNo, prevstateno: this.prevStateNo,
-      anim: this.anim, animelem: this.frameIndex + 1, animtime: this.animTime,
-      ctrl: this.ctrl, statetype: this.stateType, movetype: this.moveType, physics: this.physics,
-      life: this.life, lifemax: this.maxLife, power: this.power, powermax: this.maxPower,
-      facing: this.facing, alive: +this.alive, gametime: this.world?.ticks??this.gameTime,
-      hitpausetime: this.hitPauseTime, hitshakeover: +((this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime)===0), hitover: +(this.hitTime < 0),
-      movecontact: this.moveContact, movehit: this.moveHit, moveguarded: this.moveGuarded,
-      movereversed: this.moveReversed || 0, hitcount: this.hitCount, uniqhitcount: this.uniqHitCount,
-      numhelper: this.ownedHelpers().length, numexplod: this.explods.length, numtarget: this.targets.length,
-      numenemy: other ? 1 : 0, numpartner: 0, ishelper: +!!this.parent,
-      roundstate: this.roundState ?? 2, roundsexisted: this.roundsExisted ?? 0, roundno: this.roundNo ?? 1, matchno: this.matchNo ?? 1, matchover:+!!this.world?.matchOver,
-      teamside: this.teamSide ?? this.id, teampower: this.power, tickspersecond: 60,
-      aiLevel: this.aiLevel || 0, ailevel: this.aiLevel || 0, palno: this.paletteNo || 1,
-      teammode:'single',
-      ishometeam:+(this.teamSide===1),
-      id: this.id, name: this.name, authorname: this.character.def?.info?.author || '',
-      numproj: (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed).length, win:flow?+won:+(this.roundState === 4 && this.alive && other?.life <= 0),
-      lose:flow?+lost:+(this.roundState === 4 && !this.alive), drawgame:flow?+(flow.roundWinner==='draw'):+(this.roundState === 4 && !this.alive && other?.life <= 0),
-      winko:+(won&&flow.reason!=='time'),wintime:+(won&&flow.reason==='time'),winperfect:+(won&&this.life===this.maxLife),loseko:+(lost&&flow.reason!=='time'),losetime:+(lost&&flow.reason==='time'),loseperfect:+(lost&&other?.life===other?.maxLife),
-      camerazoom:this.cameraZoom??1,gamewidth:(this.world?.view.width??320)/scale,gameheight:(this.world?.view.height??240)/scale,
-      screenwidth:320/scale,screenheight:(this.world?.view.displayHeight??240)/scale,
-      leftedge:(this.world?.view.left??-160)/scale,rightedge:(this.world?.view.right??160)/scale,topedge:(this.world?.view.top??-240)/scale,bottomedge:(this.world?.view.bottom??0)/scale,
-      frontedge:(this.facing===1?this.world?.view.right??160:this.world?.view.left??-160)/scale,backedge:(this.facing===1?this.world?.view.left??-160:this.world?.view.right??160)/scale,
-      canrecover: +(!!this.getHitVars.fall&&this.getHitVars['fall.recover']!==0&&(this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4)), hitfall: this.getHitVars.fall || 0,
-      'hitvel x': (this.getHitVars.xvel||0)*this.coordinateScale/scale,'hitvel y':(this.getHitVars.yvel||0)*this.coordinateScale/scale,
-      'pos x': (this.pos.x-(this.cameraPos?.x||0)) / scale, 'pos y': this.pos.y / scale, 'vel x': this.vel.x / scale, 'vel y': this.vel.y / scale,
-      'screenpos x': (this.pos.x-(this.world?.view.left??-160)) / scale, 'screenpos y': (this.pos.y-(this.world?.view.top??-240)) / scale,
-      'camerapos x': (this.cameraPos?.x || 0) / scale, 'camerapos y': (this.cameraPos?.y || 0) / scale,
-    };
+    const simpleField=simpleTriggerFields.get(name);
+    if(simpleField)return this[simpleField];
     if (name === 'command') return +this.commands.has(String(args[0]));
-    if(name==='stagevar'){if(!this.world?.stage)throw Error('StageVar requires an imported stage.');return this.world.stage.variable(args[0]);}
-    if (name === 'ishelper' && args.length) return +(!!this.parent && this.helperId === +args[0]);
-    if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === Math.max(0,Math.trunc(+args[0]))).length;
-    if (/^proj(contact|hit|guarded|cancel)time$/.test(name)) {
-      const kind = name.slice(4, -4), wanted = Math.max(0,+args[0] || 0), record = this.projectileHistory.at(-1);
-      return record && (!wanted || record.projId === wanted) && (kind === 'contact' ? ['hit','guarded'].includes(record.type) : record.type === kind) ? (this.world?.ticks ?? this.gameTime) - record.tick : -1;
-    }
-    if (/^(parentdist|rootdist) [xy]$/.test(name)) { const parent = !this.parent?null:name.startsWith('parent') ? this.parent : this.root; if (!parent||parent.destroyed||name.startsWith('parent')&&!parent.alive) { const e = Error('No live parent or root'); e.bottom = true; throw e; } const axis = name.at(-1); return (parent.pos[axis] - this.pos[axis]) * (axis === 'x' ? this.facing : 1) / scale; }
     if (name === 'const') return this.constant(args[0],scale);
     if (name === 'const240p') return numeric(args[0]) / this.coordinateScale;
     if (name === 'const480p') return numeric(args[0]) / (2*this.coordinateScale);
@@ -448,6 +418,43 @@ export class FighterRuntime {
       if (hitVariableNames.has(key)) return 0;
       throw new Error(`Unsupported GetHitVar field: ${key}`);
     }
+    if(name==='inguarddist')return +(this.world?this.inGuardDistance||false:inGuardDistance(this,this.opponent?[this.opponent]:[]));
+    const other = this.opponent;
+    const flow=this.world?.roundFlow,side=this.root===this.world?.player?'player':'opponent',won=!!flow?.roundWinner&&flow.roundWinner===side,lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
+    const values = {
+      animelem: this.frameIndex + 1,
+      alive: +this.alive, gametime: this.world?.ticks??this.gameTime,
+      hitshakeover: +((this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime)===0), hitover: +(this.hitTime < 0),
+      movereversed: this.moveReversed || 0,
+      numhelper: this.ownedHelpers().length, numexplod: this.explods.length, numtarget: this.targets.length,
+      numenemy: other ? 1 : 0, numpartner: 0, ishelper: +!!this.parent,
+      roundstate: this.roundState ?? 2, roundsexisted: this.roundsExisted ?? 0, roundno: this.roundNo ?? 1, matchno: this.matchNo ?? 1, matchover:+!!this.world?.matchOver,
+      teamside: this.teamSide ?? this.id, teampower: this.power, tickspersecond: 60,
+      aiLevel: this.aiLevel || 0, ailevel: this.aiLevel || 0, palno: this.paletteNo || 1,
+      teammode:'single',
+      ishometeam:+(this.teamSide===1),
+      authorname: this.character.def?.info?.author || '',
+      numproj: (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed).length, win:flow?+won:+(this.roundState === 4 && this.alive && other?.life <= 0),
+      lose:flow?+lost:+(this.roundState === 4 && !this.alive), drawgame:flow?+(flow.roundWinner==='draw'):+(this.roundState === 4 && !this.alive && other?.life <= 0),
+      winko:+(won&&flow.reason!=='time'),wintime:+(won&&flow.reason==='time'),winperfect:+(won&&this.life===this.maxLife),loseko:+(lost&&flow.reason!=='time'),losetime:+(lost&&flow.reason==='time'),loseperfect:+(lost&&other?.life===other?.maxLife),
+      camerazoom:this.cameraZoom??1,gamewidth:(this.world?.view.width??320)/scale,gameheight:(this.world?.view.height??240)/scale,
+      screenwidth:320/scale,screenheight:(this.world?.view.displayHeight??240)/scale,
+      leftedge:(this.world?.view.left??-160)/scale,rightedge:(this.world?.view.right??160)/scale,topedge:(this.world?.view.top??-240)/scale,bottomedge:(this.world?.view.bottom??0)/scale,
+      frontedge:(this.facing===1?this.world?.view.right??160:this.world?.view.left??-160)/scale,backedge:(this.facing===1?this.world?.view.left??-160:this.world?.view.right??160)/scale,
+      canrecover: +(!!this.getHitVars.fall&&this.getHitVars['fall.recover']!==0&&(this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4)), hitfall: this.getHitVars.fall || 0,
+      'hitvel x': (this.getHitVars.xvel||0)*this.coordinateScale/scale,'hitvel y':(this.getHitVars.yvel||0)*this.coordinateScale/scale,
+      'pos x': (this.pos.x-(this.cameraPos?.x||0)) / scale, 'pos y': this.pos.y / scale, 'vel x': this.vel.x / scale, 'vel y': this.vel.y / scale,
+      'screenpos x': (this.pos.x-(this.world?.view.left??-160)) / scale, 'screenpos y': (this.pos.y-(this.world?.view.top??-240)) / scale,
+      'camerapos x': (this.cameraPos?.x || 0) / scale, 'camerapos y': (this.cameraPos?.y || 0) / scale,
+    };
+    if(name==='stagevar'){if(!this.world?.stage)throw Error('StageVar requires an imported stage.');return this.world.stage.variable(args[0]);}
+    if (name === 'ishelper' && args.length) return +(!!this.parent && this.helperId === +args[0]);
+    if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === Math.max(0,Math.trunc(+args[0]))).length;
+    if (/^proj(contact|hit|guarded|cancel)time$/.test(name)) {
+      const kind = name.slice(4, -4), wanted = Math.max(0,+args[0] || 0), record = this.projectileHistory.at(-1);
+      return record && (!wanted || record.projId === wanted) && (kind === 'contact' ? ['hit','guarded'].includes(record.type) : record.type === kind) ? (this.world?.ticks ?? this.gameTime) - record.tick : -1;
+    }
+    if (/^(parentdist|rootdist) [xy]$/.test(name)) { const parent = !this.parent?null:name.startsWith('parent') ? this.parent : this.root; if (!parent||parent.destroyed||name.startsWith('parent')&&!parent.alive) { const e = Error('No live parent or root'); e.bottom = true; throw e; } const axis = name.at(-1); return (parent.pos[axis] - this.pos[axis]) * (axis === 'x' ? this.facing : 1) / scale; }
     if (name === 'numexplod' && args.length) return this.explods.filter(e => e.id === +args[0]).length;
     if (name === 'numhelper' && args.length) return this.ownedHelpers().filter(h => +args[0] <= 0 || h.helperId === +args[0]).length;
     if (name === 'numtarget' && args.length) return this.targets.filter(t => !t.destroyed && (+args[0] < 0 || (this.targetHitIds.get(t.id)??t.hitId) === +args[0])).length;
@@ -455,6 +462,7 @@ export class FighterRuntime {
     if (['frontedgedist','backedgedist','frontedgebodydist','backedgebodydist'].includes(name)) {
       const front = name.startsWith('front');
       const direction = this.facing * (front ? 1 : -1);
+      if(this.world?.orderedPhases)return edgeTriggerDistance(this,direction,{body:name.includes('body'),scale});
       const boundary = direction > 0 ? (this.world?.view.right??this.options.rightBound ?? 160) : (this.world?.view.left??this.options.leftBound ?? -160);
       let distance = (direction>0?boundary-this.pos.x:this.pos.x-boundary) / scale;
       if (name.includes('body')) distance -= bodyWidthWorld(this,direction,{edge:true})/scale;
@@ -517,7 +525,7 @@ export class FighterRuntime {
     }
     const frames = owner.animations.get(number).frames;
     const requested=integer(element)-1,index=requested>=0&&requested<frames.length?requested:0;
-    this.animationOwner = owner; this.anim = number; this.frameIndex = index; this.frameTime = 0; this.animationEnded = false;
+    this._animationSerial++;this.animationOwner = owner; this.anim = number; this.frameIndex = index; this.frameTime = 0; this.animationEnded = false;
     this.animationTime = frames.slice(0, index).reduce((sum, frame) => sum + Math.max(1, frame.ticks), 0);
     this.animationCycleTime = this.animationTime; this.animationLooped = false;
     return true;
@@ -625,7 +633,7 @@ export class FighterRuntime {
     if (guarding && this.world?.orderedPhases && [120, 130, 131, 132, 140].includes(this.stateNo)) return;
     if (guarding && ![120, 130, 131, 132, 140].includes(this.stateNo)) {
       const forbidden = this.stateType === 'A' ? 'noairguard' : this.stateType === 'C' ? 'nocrouchguard' : 'nostandguard';
-      const target = this.stateType === 'A' ? 132 : this.stateType === 'C' ? 131 : 120;
+      const target = this.world?.orderedPhases?120:this.stateType === 'A' ? 132 : this.stateType === 'C' ? 131 : 120;
       if (!this.asserted.has(forbidden) && this.program.states.has(target)) { this.changeState(target); return; }
     }
     if (!this.asserted.has('noautoturn') &&this.world?.stage?.definition.autoturn!==false&& this.stateType !== 'A' && this.opponent && [0, 10, 11, 12, 20].includes(this.stateNo)) {
@@ -649,19 +657,20 @@ export class FighterRuntime {
 
   tick({ commands = new Set(), opponent = null, paused: worldPaused = false,input=null } = {}) {
     const ordered=this.world?.orderedPhases;
+    if(!worldPaused)this._changeCount=0;
     if(ordered&&!worldPaused&&this._pendingHitTransform){const pending=this._pendingHitTransform;this._pendingHitTransform=null;if(pending.facing!==undefined)this.facing=pending.facing;for(const axis of ['x','y'])if(pending[axis]!==undefined)this.pos[axis]=pending[axis];}
-    const entered=ordered&&!!this._pendingStateEntry&&!worldPaused;
+    const animationSerial=this._animationSerial;
     if(ordered&&this._pendingStateEntry&&!worldPaused){const pending=this._pendingStateEntry;this._pendingStateEntry=null;this.stateNo=pending.oldState;this.stateOwner=pending.oldOwner;this.changeState(pending.number,pending.ctrl,pending.owner);}
     this.events = []; this.commands = commands; this.opponent = opponent;
     sampleRecoveryInput(this,input,commands);
     if (worldPaused || this.destroyed) {if(!this.world)this.updateExplods({forceFrozen:true});this.gameTime++; return this.events; }
-    this._changeCount = 0; this._executing = null;
+    this._executing = null;
     const paused = this.hitPauseTime > 0;
     const shaking=ordered&&(this.getHitVars.hitshaketime||0)>0&&this.moveType==='H';
-    if(ordered&&!entered&&!paused&&!shaking)this.advanceAnimation();
+    if(ordered&&animationSerial===this._animationSerial&&!paused&&!shaking)this.advanceAnimation();
     this.asserted = new Set();this.posFrozen=false;
     if(!paused){
-      this.playerPush=!this.parent;this.screenBound=!this.parent;this.moveCamera={x:!this.parent,y:!this.parent};this.width=null;
+      this.playerPush=!this.parent;this.screenBound=!this.parent;this.moveCamera={x:!this.parent,y:!this.parent};this._previousWidth=this.width;this.width=null;
     }
     this.drawOffset = { x: 0, y: 0 }; this.drawScale = { x: 1, y: 1 }; this.trans = null; this.angleDraw = false;
     if (this.moveContact > 0 && !paused) this.moveContact++;
@@ -808,7 +817,7 @@ export class FighterRuntime {
       return;
     }
     if (type === 'gravity') { this.vel.y += this.constant('movement.yaccel') * this.coordinateScale; return; }
-    if (type === 'turn') { this.facing *= -1; return; }
+    if (type === 'turn') { if(this.world?.orderedPhases&&this.vel.x!==0)this.vel.x=-this.vel.x;this.facing *= -1; return; }
     if (type === 'posfreeze') { this.posFrozen = truth(num('value', 1)); return; }
     if (type === 'helper') {
       if (!this.world) throw Error('Helper requires a match world.');
@@ -1157,7 +1166,7 @@ export class FighterRuntime {
     const airAnim=hit['air.animtype']||hit.animtype||'light',fallAnim=hit['fall.animtype']||(String(airAnim).toLowerCase()==='up'?'up':'back');
     const fall = knockout?1:guarded?0:+((!hit.forcenofall||hit.fall)&&!!previous.fall||truth(numeric(airborne?hit['air.fall']??hit.fall??0:hit.fall||0)));
     this.getHitVars = {
-      animtype: animTypes[String(falling?fallAnim:airborne?airAnim:hit.animtype||'light').toLowerCase()] ?? 0,
+      animtype: animTypes[String((ordered?fall&&!guarded:falling)?fallAnim:airborne?airAnim:hit.animtype||'light').toLowerCase()] ?? 0,
       groundtype: groundType,
       airtype: groundTypes[String(hit['air.type'] || 'high').toLowerCase()] ?? 1,
       type:airborne?groundTypes[String(hit['air.type']||hit['ground.type']||'high').toLowerCase()]??1:groundType,
@@ -1242,6 +1251,7 @@ export class FighterRuntime {
     if(binding.target.destroyed){this.bound=null;return;}
     this.pos.x = binding.target.pos.x + binding.x * binding.target.facing;
     this.pos.y = binding.target.pos.y + binding.y;
+    if(this.world?.orderedPhases){this.pos.x=Math.fround(this.pos.x);this.pos.y=Math.fround(this.pos.y);}
     if (binding.facing) this.facing = binding.target.facing * (binding.facing < 0 ? -1 : 1);
     if (binding.time > 0 && --binding.time === 0) this.bound = null;
   }

@@ -145,6 +145,26 @@ const report = {
   combatSourceSha256: createHash("sha256")
     .update(readFileSync(resolve(source, "src/combat.js")))
     .digest("hex"),
+  simulationSources: Object.fromEntries(
+    [
+      "combat",
+      "runtime",
+      "common",
+      "coordinates",
+      "commands",
+      "expressions",
+      "hit-state",
+      "projectiles",
+      "guard-distance",
+      "cpu",
+      "rounds",
+    ].map((name) => [
+      "src/" + name + ".js",
+      createHash("sha256")
+        .update(readFileSync(resolve(source, "src/" + name + ".js")))
+        .digest("hex"),
+    ]),
+  ),
   expressionBackend:
     "Independent JS interpreter, identical for baseline and optimized runs",
   scope:

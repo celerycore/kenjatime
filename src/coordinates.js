@@ -17,6 +17,19 @@ export function bodyWidthWorld(actor,direction,{edge=false}={}){
   return Math.max(0,Number(value)||0)*baseScale(actor);
 }
 
+/** Edge triggers use their own width bar and quantize in script coordinates. */
+export function edgeTriggerDistance(actor,direction,{body=false,scale=actor.coordinateScale}={}){
+  const view=actor.world?.view;
+  const boundary=direction>0?(view?.right??actor.options?.rightBound??160):(view?.left??actor.options?.leftBound??-160);
+  let distance=direction>0?boundary-actor.pos.x:actor.pos.x-boundary;
+  if(body){
+    const width=actor.width??actor._previousWidth;
+    const offset=Number(width?.edge?.[actor.facing===direction?0:1])||0;
+    distance-=offset*actor.coordinateScale+(actor.stateType==='A'?.5:0);
+  }
+  return Math.trunc(distance/scale);
+}
+
 export function spatialConstant(name){
   if(name.startsWith('velocity.'))return !/\.mul(?:\.|$)/.test(name);
   if(name.startsWith('size.'))return !['size.xscale','size.yscale','size.proj.doscale'].includes(name);
