@@ -1,0 +1,11 @@
+{
+  "appId": "io.github.celerycore.kenjatime.core.preview",
+  "appName": "Kenjatime Core Preview",
+  "webDir": "dist-core",
+  "server": {
+    "appStartPath": "/core/index.html",
+    "androidScheme": "https",
+    "hostname": "localhost"
+  },
+  "android": { "allowMixedContent": false, "minWebViewVersion": 113 }
+}

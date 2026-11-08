@@ -1,4 +1,4 @@
-node_modules/
+node_modules
 dist/
 work/
 android/.gradle/
@@ -16,3 +16,5 @@ native-android/generated/
 native-android/**/build/
 
 __pycache__/
+
+dist-core/

@@ -1,5 +1,5 @@
 // libopenmpt is initialized only for a match containing tracker files. Decode
-// bounded blocks on demand through IKEMEN's mixer, never an entire song to RAM.
+// bounded blocks on demand through the bounded native-rate PCM mixer, never an entire song to RAM.
 const libraryURL=new URL('../node_modules/chiptune3/libopenmpt.worklet.js',import.meta.url);
 export async function createModuleMusic(){
  const {default:factory}=await import(/* @vite-ignore */ libraryURL.href);

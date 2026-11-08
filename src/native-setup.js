@@ -12,6 +12,7 @@ const $=s=>document.querySelector(s),escape=s=>String(s??'').replace(/[&<>"']/g,
 let catalog={characters:[],stages:[],packages:[]},selected=null,busy=false,previewEpoch=0;
 window.__kenjatimeNativeProgress=message=>{$('#status').textContent=message;};
 const native=(action,data={})=>engineHost.request(action,data);
+const selectionKey=engineHost.selectionKey||'kenjatime.native.selection';
 const startup=engineHost.diagnostics;
 function status(message){$('#status').textContent=message;}
 async function run(message,action){
@@ -81,7 +82,7 @@ async function drawPreview(step){
   else{ctx.font='15px system-ui';ctx.fillText('Preview unavailable',center,280);ctx.fillText('Ready to use in a match',center,305);}
  });canvas.dataset.previewCount=String(images.filter(Boolean).length);canvas.setAttribute('aria-label',`Match preview: Player 1 ${selected.name}, Player 2 ${rival.name}`);
 }
-function remember(){try{localStorage.setItem('kenjatime.native.selection',JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,mode:$('#arena-mode').value}));}catch{}}
+function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,mode:$('#arena-mode').value}));}catch{}}
 function choose(id){
  selected=catalog.characters.find(c=>c.id===id)||catalog.characters[0];if(!selected)return;
  $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent='SFF / AIR';$('#viewtitle').textContent='MATCH PREVIEW · P1 / P2';
@@ -90,7 +91,7 @@ function choose(id){
  $('#cards').querySelectorAll('.card').forEach(card=>card.classList.toggle('selected',card.dataset.id===selected.id));remember();void preview();
 }
 function drawCatalog(data){
- catalog=data;const old=selected?.id;let saved={};try{saved=JSON.parse(localStorage.getItem('kenjatime.native.selection')||'{}');}catch{}
+ catalog=data;const old=selected?.id;let saved={};try{saved=JSON.parse(localStorage.getItem(selectionKey)||'{}');}catch{}
  $('#count').textContent=String(catalog.characters.length).padStart(2,'0');$('#cards').replaceChildren();
  for(const entry of catalog.characters){const button=document.createElement('button');button.className='card';button.dataset.id=entry.id;button.innerHTML=`<span class="mini">拳</span><span><b>${escape(entry.name)}</b><small>${escape(entry.author||'MUGEN character')}</small></span><span class="card-arrow">↗</span>`;button.onclick=()=>choose(entry.id);$('#cards').append(button);}
  const options=(list,first)=>first+list.map(e=>`<option value="${escape(e.id)}">${escape(e.name)}</option>`).join('');

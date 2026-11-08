@@ -14,7 +14,7 @@ ${parameters}
 const change = (target, trigger, ctrl = 1) => controller('ChangeState', `value = ${target}\nctrl = ${ctrl}`, trigger);
 const anim = (value, trigger = 'time = 0') => controller('ChangeAnim', `value = ${value}`, `(${trigger}) && selfanimexist(${value})`);
 
-export const COMMON_STATES = [
+export function commonStates({orderedPhases=false}={}){return [
   state(0, 'type = S\nmovetype = I\nphysics = S\nctrl = 1',
     anim(0, 'anim != 0') + controller('VelSet', 'y = 0', 'time = 0')),
   state(10, 'type = C\nmovetype = I\nphysics = C',
@@ -34,8 +34,8 @@ export const COMMON_STATES = [
   state(50, 'type = A\nmovetype = I\nphysics = A\nctrl = 1',
     anim('ifelse(vel x = 0, 41, ifelse(vel x > 0, 42, 43))') + change(52, 'pos y >= 0 && vel y > 0', 0)),
   state(51, 'type = A\nmovetype = I\nphysics = A'),
-  state(52, 'type = S\nmovetype = I\nphysics = S\nctrl = 0',
-    anim(47) + controller('PosSet', 'y = 0', 'time = 0') + controller('VelSet', 'y = 0', 'time = 0') + change(0, 'time >= 3 && (animtime = 0 || !selfanimexist(47))')),
+  state(52, 'type = S\nmovetype = I\nphysics = S\nctrl = 0'+(orderedPhases?'\nvelset=0,0':''),
+    anim(47) + controller('PosSet', 'y = 0', 'time = 0') + controller('VelSet', 'y = 0', 'time = 0') + (orderedPhases?controller('CtrlSet','value=1','time>=3'):'') + change(0, 'time >= 3 && (animtime = 0 || !selfanimexist(47))')),
   state(100, 'type = S\nmovetype = I\nphysics = N\nctrl = 1',
     anim(100) + controller('VelSet', 'x = const(velocity.run.fwd.x)') + controller('AssertSpecial', 'flag = nowalk\nflag2 = noautoturn') + change(0, 'command != "holdfwd"')),
   state(105, 'type = A\nmovetype = I\nphysics = A\nctrl = 0',
@@ -55,13 +55,13 @@ export const COMMON_STATES = [
         controller('StateTypeSet','statetype=C\nphysics=C','command="holddown"')+controller('StateTypeSet','statetype=S\nphysics=S','command!="holddown"')+
         controller('ChangeState','value=ifelse(statetype=C,131,130)\nctrl=1','hitover')))),
   ...[[5000,'S','ifelse(gethitvar(groundtype)=2,5010,5000)'],[5010,'C','5020'],[5020,'A','5030']].map(([id,posture,base])=>{
-    const action=`ifelse(gethitvar(animtype)>=3,5030,${base}+gethitvar(animtype))`;
+    const action=`ifelse(gethitvar(animtype)>=3,5030,${orderedPhases?'ifelse(gethitvar(fall)||gethitvar(yvel)!=0,5030,':''}${base}${orderedPhases?')':''}+gethitvar(animtype))`;
     return state(id,`type=${posture}\nmovetype=H\nphysics=N\nctrl=0\nvelset=0,0`,
       controller('ChangeAnim',`value=${action}`,`time=0 && selfanimexist(${action})`)+
       controller('ChangeState',`value=${posture==='A'?'5030':`ifelse(gethitvar(fall)||gethitvar(yvel)!=0||pos y!=0,5030,${id+1})`}\nctrl=0`,'hitshakeover'));
   }),
   ...[[5001,'S'],[5011,'C']].map(([id,posture])=>state(id,`type=${posture}\nmovetype=H\nphysics=${posture}\nctrl=0`,
-    controller('HitVelSet','x=1','time=0')+controller('VelMul','x=.6','time>=gethitvar(slidetime)')+
+    (orderedPhases?anim('anim'):'')+controller('HitVelSet','x=1','time=0')+controller('VelMul','x=.6','time>=gethitvar(slidetime)')+
     controller('VelSet','x=0','hitover')+controller('DefenceMulSet','value=1','hitover')+change(0,'hitover'))),
   ...[5030,5035].map(id=>state(id,'type=A\nmovetype=H\nphysics=N\nctrl=0',
     (id===5030?controller('HitVelSet','x=1\ny=1','time=0'):anim(5035))+
@@ -91,8 +91,11 @@ export const COMMON_STATES = [
     anim(5120) + controller('SelfState','value=0\nctrl=1','animtime = 0 || !selfanimexist(5120)')),
   state(5150, 'type = L\nmovetype = H\nphysics = N\nctrl = 0\nvelset = 0,0', anim(5110)),
   state(5210,'type=A\nmovetype=I\nphysics=N\nctrl=0',anim(5210)+controller('PosFreeze','value=1','time<4')+
-    controller('VelMul','x=.5\ny=.2','time=4')+controller('VelAdd','y=Const240p(-4.5)','time=4')+
-    controller('NotHitBy','value=SCA','time<4')+change(50,'time>=4')),
-].join('\n');
+    controller('VelMul',orderedPhases?'x=const(velocity.air.gethit.airrecover.mul.x)\ny=const(velocity.air.gethit.airrecover.mul.y)':'x=.5\ny=.2','time=4')+
+    controller('VelAdd',orderedPhases?'x=const(velocity.air.gethit.airrecover.add.x)\ny=const(velocity.air.gethit.airrecover.add.y)':'y=Const240p(-4.5)','time=4')+
+    controller('NotHitBy','value=SCA',orderedPhases?'time<20':'time<4')+
+    (orderedPhases?controller('VelAdd','y=const(movement.air.gethit.airrecover.yaccel)','time>=4')+controller('CtrlSet','value=1','time>=20')+change(52,'pos y>=0 && vel y>0',0):change(50,'time>=4'))),
+].join('\n');}
+export const COMMON_STATES=commonStates();
 
 export const COMMON_LIMITATIONS = 'Built-in common states cover basic movement, guarding and hit recovery. Supply the original common state file in a full engine ZIP for its scripted states. Engine-level rules still have compatibility gaps.';

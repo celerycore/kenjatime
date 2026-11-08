@@ -2,7 +2,7 @@ export const hitVariableNames=new Set(['xveladd','yveladd','type','animtype','ai
 
 export function initialHitVariables(actor){
   return {type:0,hitid:-1,chainid:0,hitcount:0,fallcount:0,hittime:-1,recovertime:actor.constant('data.liedown.time'),
-    xveladd:0,yveladd:0,zoff:0,fall:0,'fall.time':0,'fall.recover':1,'fall.recovertime':4};
+    xveladd:0,yveladd:0,zoff:0,fall:0,'fall.time':0,'fall.recover':actor.world?.orderedPhases?0:1,'fall.recovertime':4};
 }
 
 const keys=new Set(['a','b','c','x','y','z','s','U','D','L','R']);
@@ -28,7 +28,7 @@ export function advanceHitState(actor,{hitPaused=false}={}){
   }else{
     actor.comboHits=0;
     actor.hitTime=-1;actor.hitId=actor.hitId<0?-1:0;actor.hitSourceId=undefined;
-    vars.fall=0;vars.fallcount=0;vars['fall.time']=0;vars['fall.envshake.time']=0;
+    vars.fall=0;vars.fallcount=0;if(!actor.world?.orderedPhases)vars['fall.time']=0;vars['fall.envshake.time']=0;
     actor._fallDefenceMultiplier=1;
     vars.recovertime=actor.constant('data.liedown.time');
   }

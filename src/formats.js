@@ -305,7 +305,8 @@ export function sff(bytes,options={}) {
   if(start+sp.length>bytes.length||sp.length<(sp.format?4:0))throw Error('Truncated SFF sprite data');
   return{...sp,indices:decodePixels(bytes.subarray(start+(sp.format?4:0),start+sp.length),sp.w*sp.h,sp.format),colors:palette(sp.palette)};
  }
- return {sprites,decode,decodeIndexed,decodeWithPalette,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
+ const paletteColors=(group,number)=>{const target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return palette(target.index).slice();};
+ return {sprites,decode,decodeIndexed,decodeWithPalette,paletteColors,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
 function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
@@ -352,7 +353,9 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
   const result=recolor({...sp,w,h:height,indices},palette);cache.set(index,result);return result;
  }
  function decodeWithPalette(index,group,number){const original=decode(index),target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return recolor(original,colors[target.index]);}
- return{sprites,palettes,decode,decodeWithPalette,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
+ const paletteColors=(group,number)=>{const target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return colors[target.index].slice();};
+ const decodeIndexed=index=>{const sprite=decode(index);return {...sprite,colors:colors[sprite.palette]};};
+ return{sprites,palettes,decode,decodeIndexed,decodeWithPalette,paletteColors,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
 export function decodeAct(bytes){

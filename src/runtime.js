@@ -84,7 +84,7 @@ const CONTROLLERS = new Set([
   'varset', 'varadd', 'varmul', 'varrandom', 'varrangeset',
   'parentvarset', 'parentvaradd', 'lifeadd', 'lifeset', 'poweradd', 'powerset',
   'hitvelset', 'hitdef', 'hitby', 'nothitby', 'hitoverride',
-  'sprpriority', 'width', 'screenbound', 'playerpush', 'assertspecial',
+  'sprpriority', 'width', 'screenbound', 'playerpush', 'assertspecial','assertinput',
   'playsnd', 'stopsnd', 'sndpan', 'envshake', 'palfx', 'allpalfx', 'bgpalfx',
   'explod', 'modifyexplod', 'removeexplod', 'explodbindtime',
   'targetbind', 'targetfacing', 'targetlifeadd', 'targetpoweradd', 'targetvelset', 'targetveladd',
@@ -105,7 +105,7 @@ const unquote = text => String(text ?? '').replace(/^"(.*)"$/, '$1');
 const decode = decodeText;
 const requiredParameters=new Map();
 for(const type of ['attackdist','attackmulset','changeanim','changeanim2','changestate','selfstate','ctrlset','defencemulset','hitadd','lifeadd','lifeset','playerpush','playsnd','poweradd','powerset','targetfacing','targetlifeadd','targetpoweradd','targetstate'])requiredParameters.set(type,['value']);
-for(const [type,keys]of Object.entries({afterimagetime:['time'],assertspecial:['flag'],displaytoclipboard:['text'],appendtoclipboard:['text'],envshake:['time'],explod:['anim'],hitdef:['attr'],pause:['time'],reversaldef:['reversal.attr'],sndpan:['channel'],stopsnd:['channel'],trans:['trans'],varrandom:['v']}))requiredParameters.set(type,keys);
+for(const [type,keys]of Object.entries({afterimagetime:['time'],assertspecial:['flag'],assertinput:['flag'],displaytoclipboard:['text'],appendtoclipboard:['text'],envshake:['time'],explod:['anim'],hitdef:['attr'],pause:['time'],reversaldef:['reversal.attr'],sndpan:['channel'],stopsnd:['channel'],trans:['trans'],varrandom:['v']}))requiredParameters.set(type,keys);
 const controllerMetadata=new WeakMap();
 function controllerRules(controller){
   if(controllerMetadata.has(controller))return controllerMetadata.get(controller);
@@ -129,8 +129,8 @@ function controllerRules(controller){
   controllerMetadata.set(controller,rules);return rules;
 }
 
-export function parseProgram(character, { commonText = '' } = {}) {
-  const program = { states: new Map(), constants: new Map(Object.entries(DEFAULT_CONSTANTS)), quotes:new Map(), diagnostics: [], sources: [], controllerTypes: new Set() };
+export function parseProgram(character, { commonText = '',constantDefaults={} } = {}) {
+  const program = { states: new Map(), constants: new Map(Object.entries({...DEFAULT_CONSTANTS,...constantDefaults})), quotes:new Map(), diagnostics: [], sources: [], controllerTypes: new Set() };
   const sourceTexts = [];
   if (commonText) sourceTexts.push(['<common states>', commonText]);
   const files = character.files || {};
@@ -258,6 +258,8 @@ export class FighterRuntime {
     this.moveContact = 0; this.moveHit = 0; this.moveGuarded = 0; this.hitCount = 0;this.uniqHitCount=0;this.comboHits=0;this._lastHitCountTick=null;
     this.getHitVars = initialHitVariables(this);this._fallXVelocityDefined=false;this._fallDefenceMultiplier=1;this._previousInput=new Set();this.rawInput=new Set();this._fallEntry=-1; this.targets = [];this.targetHitIds=new Map(); this.helpers = []; this.explods = [];this.drawExplods=[];
     this.events = []; this.commands = new Set(); this.asserted = new Set(); this.opponent = null;
+    this.pendingAssertedInputs=new Set();
+    this._pendingStateEntry=null;
     this.attackMultiplier = 1; this.defenceMultiplier = 1;
     this.sprPriority = 0; this.angle = 0; this.drawScale = { x: 1, y: 1 }; this.drawOffset = { x: 0, y: 0 };
     this.playerPush = !this.parent; this.screenBound = !this.parent;this.moveCamera={x:!this.parent,y:!this.parent}; this.posFrozen = false;
@@ -315,10 +317,11 @@ export class FighterRuntime {
 
   evaluate(source, controller = this._executing, typed=false) {
     try {
-      return (typed?evaluateTypedExpression:evaluateExpression)(source, {
+      return (this.options.expressionEvaluator|| (typed?evaluateTypedExpression:evaluateExpression))(source, {
         resolve: (name, args = [], redirect = null) => this.resolveTrigger(name, args, redirect),
         assign: (name, args, value) => this.assignVariable(name, args, value),
         onWarning: error => { if (!error.bottom) this.diagnostic('expression-warning', `${source}: ${error.message}`, controller); },
+        typedResult:typed,
       });
     } catch (error) {
       if (!error.bottom) this.diagnostic('expression', `${source}: ${error.message}`, controller);
@@ -372,7 +375,7 @@ export class FighterRuntime {
       ctrl: this.ctrl, statetype: this.stateType, movetype: this.moveType, physics: this.physics,
       life: this.life, lifemax: this.maxLife, power: this.power, powermax: this.maxPower,
       facing: this.facing, alive: +this.alive, gametime: this.world?.ticks??this.gameTime,
-      hitpausetime: this.hitPauseTime, hitshakeover: +(this.hitPauseTime === 0), hitover: +(this.hitTime < 0),
+      hitpausetime: this.hitPauseTime, hitshakeover: +((this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime)===0), hitover: +(this.hitTime < 0),
       movecontact: this.moveContact, movehit: this.moveHit, moveguarded: this.moveGuarded,
       movereversed: this.moveReversed || 0, hitcount: this.hitCount, uniqhitcount: this.uniqHitCount,
       numhelper: this.ownedHelpers().length, numexplod: this.explods.length, numtarget: this.targets.length,
@@ -437,7 +440,7 @@ export class FighterRuntime {
       const key = String(args[0]).toLowerCase();
       if (key === 'isbound') return +(!!this.bound && !this.bound.target.destroyed);
       if (key === 'hittime') return this.hitTime;
-      if (key === 'hitshaketime') return this.hitPauseTime;
+      if(key==='hitshaketime')return this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime;
       if (key in this.getHitVars) return this.getHitVars[key]*(spatialHitVars.has(key)?this.coordinateScale/scale:1);
       if (hitVariableNames.has(key)) return 0;
       throw new Error(`Unsupported GetHitVar field: ${key}`);
@@ -524,6 +527,9 @@ export class FighterRuntime {
       this.diagnostic('missing-state', `State ${number} does not exist.`);
       return false;
     }
+    if(this.world?.orderedPhases&&(this.world.contactPhase||this.world.activeActor!==this&&this.world._entities?.includes(this))){
+      this._pendingStateEntry={number,ctrl,owner,oldState:this._pendingStateEntry?.oldState??this.stateNo,oldOwner:this._pendingStateEntry?.oldOwner??this.stateOwner};this.prevStateNo=this.stateNo;this.stateNo=number;this.stateOwner=owner;this.time=0;return true;
+    }
     if (++this._changeCount > 64) {
       this.diagnostic('state-loop', 'More than 64 state changes in one tick; execution stopped.');
       return false;
@@ -602,11 +608,18 @@ export class FighterRuntime {
     }
   }
 
+  movementHeld(command) {
+    if(!this.world?.manageInputs)return this.commands.has(command);
+    const keys=this.rawInput,forward=this.facing<0?'L':'R',back=this.facing<0?'R':'L';
+    return command==='holdup'?keys.has('U')&&!keys.has('D'):command==='holddown'?keys.has('D')&&!keys.has('U'):command==='holdfwd'?keys.has(forward)&&!keys.has(back):command==='holdback'?keys.has(back)&&!keys.has(forward):false;
+  }
+
   automaticTransitions() {
     if (!this.ctrl || this.moveType === 'H' || !this.alive || this.stateOwner !== this || this.parent && !this.keyCtrl||this.world?.roundFlow&&this.world.roundFlow.roundState!==2) return;
-    const down = this.commands.has('holddown'), up = this.commands.has('holdup');
-    const moving = this.commands.has('holdfwd') || this.commands.has('holdback');
-    const guarding = this.commands.has('holdback') && !this.asserted.has('noautoguard') && !!this.resolveTrigger('inguarddist');
+    const down = this.movementHeld('holddown'), up = this.movementHeld('holdup');
+    const moving = this.movementHeld('holdfwd') || this.movementHeld('holdback');
+    const guarding = this.movementHeld('holdback') && !this.asserted.has('noautoguard') && !!this.resolveTrigger('inguarddist');
+    if(this.world?.orderedPhases&&guarding&&[120,130,131,132,140].includes(this.stateNo))return;
     if (guarding && ![120, 130, 131, 132, 140].includes(this.stateNo)) {
       const forbidden = this.stateType === 'A' ? 'noairguard' : this.stateType === 'C' ? 'nocrouchguard' : 'nostandguard';
       const target = this.stateType === 'A' ? 132 : this.stateType === 'C' ? 131 : 120;
@@ -626,17 +639,22 @@ export class FighterRuntime {
     if (down && this.stateType === 'S' && !this.asserted.has('nocrouch') && this.program.states.has(10)) { this.changeState(10); return; }
     if (!down && this.stateType === 'C' && [10, 11].includes(this.stateNo) && this.program.states.has(12)) { this.changeState(12); return; }
     if (!this.asserted.has('nowalk') && this.stateType === 'S' && this.moveType === 'I') {
-      if (moving && this.stateNo === 0 && this.program.states.has(20)) this.changeState(20);
+      if (moving && (this.world?.orderedPhases?this.stateNo!==20:this.stateNo===0) && this.program.states.has(20)) this.changeState(20);
       else if (!moving && this.stateNo === 20) this.changeState(0);
     }
   }
 
   tick({ commands = new Set(), opponent = null, paused: worldPaused = false,input=null } = {}) {
+    const ordered=this.world?.orderedPhases;
+    const entered=ordered&&!!this._pendingStateEntry&&!worldPaused;
+    if(ordered&&this._pendingStateEntry&&!worldPaused){const pending=this._pendingStateEntry;this._pendingStateEntry=null;this.stateNo=pending.oldState;this.stateOwner=pending.oldOwner;this.changeState(pending.number,pending.ctrl,pending.owner);}
     this.events = []; this.commands = commands; this.opponent = opponent;
     sampleRecoveryInput(this,input,commands);
     if (worldPaused || this.destroyed) {if(!this.world)this.updateExplods({forceFrozen:true});this.gameTime++; return this.events; }
     this._changeCount = 0; this._executing = null;
     const paused = this.hitPauseTime > 0;
+    const shaking=ordered&&(this.getHitVars.hitshaketime||0)>0&&this.moveType==='H';
+    if(ordered&&!entered&&!paused&&!shaking)this.advanceAnimation();
     this.asserted = new Set();this.posFrozen=false;
     if(!paused){
       this.playerPush=!this.parent;this.screenBound=!this.parent;this.moveCamera={x:!this.parent,y:!this.parent};this.width=null;
@@ -666,29 +684,43 @@ export class FighterRuntime {
     if(!paused)this._initializing=false;
     this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner;
     if (paused) {advanceHitState(this,{hitPaused:true});if(!this.world)this.updateExplods({hitPaused:true});this.hitPauseTime = Math.max(0, this.hitPauseTime - 1); this.gameTime++; return this.events; }
-    if (!this.posFrozen && !this.bound) {
+    if (!this.posFrozen && !this.bound&&!shaking) {
       this.pos.x += this.vel.x * this.facing+this.cornerPush; this.pos.y += this.vel.y;
+      if(ordered){this.pos.x=Math.fround(this.pos.x);this.pos.y=Math.fround(this.pos.y);}
     }
     this.cornerPush*=clamp(this.constant('movement.stand.friction'),0,1);if(Math.abs(this.cornerPush)<.01)this.cornerPush=0;
-    if (this.physics === 'A') {
-      this.vel.y += this.constant('movement.yaccel') * this.coordinateScale;
+    if (!shaking&&this.physics === 'A') {
+      this.vel.y += (ordered?Math.fround(this.constant('movement.yaccel')):this.constant('movement.yaccel')) * this.coordinateScale;
+      if(ordered)this.vel.y=Math.fround(this.vel.y);
       if (this.pos.y >= 0 && this.vel.y > 0) {
         this.pos.y = 0; this.vel.y = 0; this.airJumps = 0;
         if (this.program.states.has(52)) this.changeState(52);
       }
-    } else if (this.physics === 'S' || this.physics === 'C') {
-      if (![20, 100].includes(this.stateNo)) this.vel.x *= this.constant(this.physics === 'C' ? 'movement.crouch.friction' : 'movement.stand.friction');
+    } else if (!shaking&&(this.physics === 'S' || this.physics === 'C')) {
+      if (ordered||![20, 100].includes(this.stateNo)) {
+        const posture=this.physics==='C'?'crouch':'stand';
+        const friction=this.constant('movement.'+posture+'.friction');this.vel.x *= ordered?Math.fround(friction):friction;
+        if(ordered)this.vel.x=Math.fround(this.vel.x);
+        if(ordered){
+          // The default stop threshold is one local unit for standing motion.
+          // Explicit character constants always take precedence.
+          const threshold=this.constant('movement.'+posture+'.friction.threshold');
+          if(this.stateNo!==20&&Math.abs(this.vel.x)<threshold*this.coordinateScale)this.vel.x=0;
+        }
+      }
     }
-    this.updateBinding(); this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner; this.collisionAnimation=this.animation;this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime; this.advanceAnimation();if(!this.world)this.updateExplods();
-    advanceHitState(this);
+    this.updateBinding(); this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner; this.collisionAnimation=this.animation;this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime;if(!ordered)this.advanceAnimation();if(!this.world)this.updateExplods();
+    if(shaking)this.getHitVars.hitshaketime=Math.max(0,this.getHitVars.hitshaketime-1);
+    advanceHitState(this,{hitPaused:ordered&&(this.getHitVars.hitshaketime||0)>0});
     this.time++; this.gameTime++;
-    this._previousUp = this.commands.has('holdup');
+    this._previousUp = this.movementHeld('holdup');
     return this.events;
   }
 
   advanceAnimation() {
     const animation = this.animation, frame = this.currentFrame;
-    if (!frame || frame.ticks < 0) return;
+    if (!frame) return;
+    if(frame.ticks<0){if(this.world?.orderedPhases){this.frameTime++;this.animationTime++;this.animationCycleTime++;}return;}
     if (this.animationEnded) this.animationEnded = false;
     this.frameTime++; this.animationTime++; this.animationCycleTime++;
     if (this.frameTime >= Math.max(1, frame.ticks)) {
@@ -715,6 +747,14 @@ export class FighterRuntime {
     const text = (key, fallback = '') => this.text(controller, key, fallback);
     if (!CONTROLLERS.has(type)) { this.diagnostic('unsupported-controller', `Controller ${type || '(missing type)'} is not implemented.`, controller); return; }
     if (type === 'null') return;
+    if(type==='assertinput'){
+      if(!this.world?.manageInputs){this.diagnostic('unsupported-input-routing','AssertInput needs the independent input scheduler.');return;}
+      for(const entry of controller.entries)if(/^flag\d*$/.test(entry.key))for(const value of this.text(controller,entry.key).split(/[+|\s,]+/).filter(Boolean)){
+        const aliases={up:'U',down:'D',forward:'F',fwd:'F',back:'B',start:'s'},flag=aliases[value.toLowerCase()]||value;
+        if(!['U','D','F','B','a','b','c','x','y','z','s'].includes(flag)){this.diagnostic('unsupported-input',`Input flag ${value} is not implemented.`,controller);continue;}
+        this.pendingAssertedInputs.add(flag);
+      }return;
+    }
     if(['displaytoclipboard','appendtoclipboard','clearclipboard'].includes(type)){
       if(type==='clearclipboard'){this.clipboard='';return;}
       const format=clipboardFormat(controller.values.text||''),params=controller.values.params===undefined?[]:splitArguments(controller.values.params);
@@ -759,6 +799,7 @@ export class FighterRuntime {
         if (op === 'set') field[axis] = value+(type==='posset'&&axis==='x'?(this.cameraPos?.x||0):0);
         else if (op === 'add') field[axis] += value * (type === 'posadd' && axis === 'x' ? this.facing : 1);
         else field[axis] *= value;
+        if(this.world?.orderedPhases)field[axis]=Math.fround(field[axis]);
       }
       return;
     }
@@ -1005,7 +1046,7 @@ export class FighterRuntime {
       program.constants.set(key,converted);
       if (Array.isArray(converted)) { program.constants.set(key+'.x',converted[0]); program.constants.set(key+'.y',converted[1]); }
     }
-    const helper = new FighterRuntime(this.character, {program,commonAnimations:this.commonAnimations,world:this.world,
+    const helper = new FighterRuntime(this.character, {program,expressionEvaluator:this.options.expressionEvaluator,commonAnimations:this.commonAnimations,world:this.world,
       id,position:pos,facing,parent:this,root:this.root,helperId:Math.trunc(spec.id||0),keyCtrl:!!spec.keyctrl,
       ownPal:!!spec.ownpal,teamSide:this.teamSide,pauseMoveTime:spec.pausemovetime||0,superMoveTime:spec.supermovetime||0});
     helper.name = spec.name || `${this.name}'s helper`; helper.opponent = this.opponent;
@@ -1050,7 +1091,7 @@ export class FighterRuntime {
     for(const key of ['air','down','guard'])hit[key+'.cornerpush.veloff']??=hit['ground.cornerpush.veloff'];
     hit['airguard.cornerpush.veloff']??=hit['guard.cornerpush.veloff'];
     hit.groundHitTime = hit['ground.hittime'] ?? 0; hit.airHitTime = hit['air.hittime'] ?? 20;
-    hit.guardHitTime = hit['guard.hittime'] ?? hit.groundHitTime;
+    hit.guardHitTime = hit['guard.hittime'] ?? (this.world?.orderedPhases?hit['ground.slidetime']??0:hit.groundHitTime);
     hit['ground.slidetime']??=0;hit['guard.slidetime']??=hit.guardHitTime;
     hit['guard.ctrltime']??=hit['guard.slidetime'];hit['airguard.ctrltime']??=hit['guard.ctrltime'];
     hit.hitFlag = String(hit.hitflag ?? 'MAF').toUpperCase(); hit.guardFlag = String(hit.guardflag ?? '').toUpperCase();
@@ -1094,14 +1135,15 @@ export class FighterRuntime {
     if(hit.forcestand && this.stateType==='C')this.stateType='S';
     const baseDamage = numeric(hit.damage?.[guarded ? 1 : 0] || 0);
     const damage = Math.max(0,scaledDamage(baseDamage,attacker,this));
-    this.life = clamp(this.life - damage, (guarded ? hit['guard.kill'] : hit.kill) === 0 ? 1 : 0, this.maxLife);
+    const ordered=this.world?.orderedPhases,minimum=(guarded?hit['guard.kill']:hit.kill)===0?1:0,projected=clamp((this._projectedLife??this.life)-damage,minimum,this.maxLife);
+    if(ordered)this._projectedLife=projected;else this.life=projected;
     if (attacker && hit.p2facing) this.facing = attacker.facing * (hit.p2facing < 0 ? -1 : 1);
     if (attacker && hit.p1getp2facing) attacker.facing = this.facing * (hit.p1getp2facing < 0 ? -1 : 1);
     else if (attacker && hit.p1facing === -1) attacker.facing *= -1;
     const velocity = guarded ? (airborne ? hit.airGuardVelocity : hit.guardVelocity) : downed&&hit['down.velocity']!==undefined ? (Array.isArray(hit['down.velocity'])?hit['down.velocity']:[hit['down.velocity'],0]) : (airborne ? hit.airVelocity : hit.groundVelocity);
     const hitScale=hit.coordinateScale??attacker?.coordinateScale??this.coordinateScale,factor=hitScale/this.coordinateScale;
     let xvel = (velocity?.[0] || 0) * factor*-impactFacing*this.facing, yvel = (velocity?.[1] || 0) * factor;
-    const knockout=!this.alive,boost=knockout?koVelocity(xvel,yvel,initialType,this.coordinateScale):{x:xvel,y:yvel,xadd:0,yadd:0};xvel=boost.x;yvel=boost.y;
+    const knockout=projected<=0,boost=knockout?koVelocity(xvel,yvel,initialType,this.coordinateScale):{x:xvel,y:yvel,xadd:0,yadd:0};xvel=boost.x;yvel=boost.y;
     const time = guarded ? hit.guardHitTime : downed&&yvel===0 ? hit['down.hittime']??20 : airborne||yvel!==0 ? hit.airHitTime??20 : hit.groundHitTime??0;
     const animTypes = { light: 0, medium: 1, med:1, hard: 2, back: 3, up: 4, diagup: 5 };
     const groundTypes = { high: 1, low: 2, trip: 3, none: 0 };
@@ -1122,14 +1164,14 @@ export class FighterRuntime {
       guarded: +guarded, fall,hitid:hit.id??0,chainid:Math.max(0,hit.id??0), isbound: 0,xveladd:0,yveladd:0,zoff:0,
       recovertime:downed?Math.min(previous.recovertime??this.constant('data.liedown.time'),this.constant('data.liedown.time')):this.constant('data.liedown.time'),'fall.time':0,
       'fall.damage': hit['fall.damage'] || 0, 'fall.xvel': hit['fall.xvelocity'] === undefined ? xvel : hit['fall.xvelocity'] * factor*-impactFacing*this.facing,
-      'fall.yvel': downed&&!hit['down.bounce']&&yvel!==0?0:hit['fall.yvelocity'] === undefined ? -4.5 / this.coordinateScale : hit['fall.yvelocity'] * factor, 'fall.recover': knockout?0:hit['fall.recover'] ?? 1,
+      'fall.yvel': downed&&!hit['down.bounce']&&yvel!==0?0:hit['fall.yvelocity'] === undefined ? -4.5 / this.coordinateScale : hit['fall.yvelocity'] * factor, 'fall.recover': knockout||ordered&&guarded?0:hit['fall.recover'] ?? 1,
       'fall.recovertime': hit['fall.recovertime'] ?? 4, 'fall.kill': hit['fall.kill'] ?? 1,
       'fall.envshake.time':hit['fall.envshake.time']||0,'fall.envshake.freq':hit['fall.envshake.freq']??60,
       'fall.envshake.ampl':hit['fall.envshake.ampl']===undefined?-4/this.coordinateScale:hit['fall.envshake.ampl']*factor,'fall.envshake.phase':hit['fall.envshake.phase']??0,
     };
     this.comboHits=guarded?0:(inCombo?this.comboHits||0:0)+Math.max(0,Math.trunc(hit.numhits??1));
     this._fallXVelocityDefined=hit['fall.xvelocity']!==undefined;
-    this.hitTime = Math.max(0, time || 0); this.hitPauseTime = Math.max(0, pause?.[1] || 0);
+    this.hitTime = Math.max(0, time || 0)+(ordered&&!guarded&&time>0?1:0); this.hitPauseTime = ordered?0:Math.max(0, pause?.[1] || 0);
     this.ctrl = 0; this.moveType = 'H'; this.hitId = hit.id ?? 0;
     this.hitSourceId=hitSourceId(attacker);
     this.vel = { x: 0, y: 0 };this.cornerPush=0;
@@ -1158,8 +1200,8 @@ export class FighterRuntime {
       if (!attacker.targets.includes(this)) attacker.targets.push(this);
       attacker.targetHitIds?.set(this.id,hit.id??0);
       const {get:getPower,give:givePower}=hitPower(hit,this.world?.combatRules);
-      attacker.power = clamp(attacker.power + (getPower[guarded ? 1 : 0] || 0), 0, attacker.maxPower);
-      this.power = clamp(this.power + (givePower[guarded ? 1 : 0] || 0), 0, this.maxPower);
+      if(ordered)this.world.pendingCombatEffects.push({defender:this,attacker,damage,minimum,get:getPower[guarded?1:0]||0,give:givePower[guarded?1:0]||0});
+      else{attacker.power=clamp(attacker.power+(getPower[guarded?1:0]||0),0,attacker.maxPower);this.power=clamp(this.power+(givePower[guarded?1:0]||0),0,this.maxPower);}
     }
     if (attacker) {
       attacker.sprPriority = hit.p1sprpriority ?? 1; this.sprPriority = hit.p2sprpriority ?? 0;

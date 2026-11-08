@@ -1,0 +1,36 @@
+{
+  "runtime": "Kenjatime Core",
+  "forbiddenProjectPrefixes": [
+    "engine/",
+    "native-android/",
+    "public/engine/",
+    "work/",
+    "dist/"
+  ],
+  "forbiddenProjectModules": [
+    "src/engine-runtime.js",
+    "src/engine-host.js",
+    "src/engine-fs.js",
+    "src/go-battle.js",
+    "src/go-presentation.js",
+    "src/ikemen-host.js",
+    "src/pixi-renderer.js"
+  ],
+  "allowedPackages": [
+    "three",
+    "fflate",
+    "fzstd",
+    "node-unrar-js",
+    "7z-wasm",
+    "libarchive-wasm",
+    "@zip.js/zip.js",
+    "lzma",
+    "chiptune3",
+    "@capacitor/core",
+    "@capacitor/app",
+    "@capacitor/filesystem",
+    "@capacitor/share",
+    "@capacitor/synapse"
+  ],
+  "scope": "Distribution dependency boundary. Third-party graphics, audio, archive and platform libraries retain their own authorship and licenses. This policy does not certify universal behavioral compatibility."
+}

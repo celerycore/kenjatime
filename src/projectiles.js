@@ -23,7 +23,7 @@ export class ProjectileRuntime {
     const velocity = vector(spec.velocity); this.vel = {x:velocity[0]*this.coordinateScale,y:velocity[1]*this.coordinateScale};
     this.accel = vector(spec.accel).map(v=>v*this.coordinateScale); this.velmul = vector(spec.velmul,[1,1]);
     this.anim = Math.trunc(spec.projanim ?? 0); this.frameIndex = 0; this.frameTime = 0; this.collisionFrame = null;
-    this.hitDef = spec.hitDef; this.hitPauseTime = 0; this.hitCount = 0;
+    this.hitDef = spec.hitDef; this.proximityHitDef=spec.hitDef; this.hitPauseTime = 0; this.hitCount = 0;
     this.moveType = 'A'; this.stateType = (this.hitDef?.attr || 'S')[0].toUpperCase();
     this.priority = Math.max(1,Math.trunc(spec.projpriority ?? 1)); this.sprPriority = spec.projsprpriority ?? 3;
     this.remainingHits = Math.max(0,Math.trunc(spec.projhits ?? 1)); this.missTime = Math.max(0,Math.trunc(spec.projmisstime ?? 0));
@@ -62,7 +62,7 @@ export class ProjectileRuntime {
     if(!this._contactPending)return;this._contactPending=false;
     // A single collision pass can touch a root and several helpers. MUGEN
     // consumes one projectile hit and starts miss-time once for that pass.
-    this.remainingHits--;this.nextHitAge=this.activeTicks+this.missTime+1;
+    this.remainingHits--;this.nextHitAge=this.activeTicks+(this.world?.orderedPhases?Math.max(1,this.missTime):this.missTime+1);
     if(this.spec.projremove!==0&&this.remainingHits<=0)this.remove('hit');
   }
   cancel() { if (!this.removing && !this.removed) { this.record('cancel');this.hitPauseTime=0;this.remove('cancel'); } }
@@ -142,6 +142,11 @@ export class ProjectileRuntime {
     // a pause starts. Hitpause/global freeze hold both counters; a new Pause
     // does not replenish a projectile that already used its allowance.
     if(paused||!this._activeThisTick||this._hitPausedThisTick||this.hitPauseTime>0)return;
+    if(this.world?.orderedPhases){
+      if(this.world.pause?.remaining>0)this.pauseMoveTime=Math.max(0,this.pauseMoveTime-1);
+      if(this.world.superPause?.remaining>0)this.superMoveTime=Math.max(0,this.superMoveTime-1);
+      return;
+    }
     this.pauseMoveTime=Math.max(0,this.pauseMoveTime-1);this.superMoveTime=Math.max(0,this.superMoveTime-1);
   }
   captureFrame(){

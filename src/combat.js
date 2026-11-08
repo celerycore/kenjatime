@@ -38,13 +38,13 @@ export function transformedBoxes(fighter, kind = 'clsn1', frame = fighter.collis
   });
 }
 
-export function boxesOverlap(a, b) {
-  return a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+export function boxesOverlap(a, b, inclusive=false) {
+  return inclusive?a[0]<=b[2]&&a[2]>=b[0]&&a[1]<=b[3]&&a[3]>=b[1]:a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
 }
 
-function contactArea(attackBoxes, hurtBoxes) {
+function contactArea(attackBoxes, hurtBoxes, inclusive=false) {
   for (const a of attackBoxes) for (const b of hurtBoxes) {
-    if (boxesOverlap(a, b)) return [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
+    if (boxesOverlap(a, b,inclusive)) return [Math.max(a[0], b[0]), Math.max(a[1], b[1]), Math.min(a[2], b[2]), Math.min(a[3], b[3])];
   }
   return null;
 }
@@ -66,7 +66,7 @@ function canGuard(hit, attacker, defender, commands) {
   const forbiddenGuard = defender.stateType === 'A' ? 'noairguard' : defender.stateType === 'C' ? 'nocrouchguard' : 'nostandguard';
   if (defender.asserted?.has(forbiddenGuard)) return false;
   const normalized = new Set([...commands].map(command => String(command).toLowerCase()));
-  if (!normalized.has('holdback')) return false;
+  if (!(defender.world?.manageInputs?defender.movementHeld('holdback'):normalized.has('holdback'))) return false;
   const flags = flagText(hit.guardFlag ?? hit.guardflag);
   return defender.stateType === 'A' ? flags.includes('A') : defender.stateType === 'C' ? /[LM]/.test(flags) : /[HM]/.test(flags);
 }
@@ -88,7 +88,11 @@ function chooseContacts(contacts) {
 
 /** Deterministic, two-fighter training. Stage bounds and ground push separation are intentionally simple. */
 export class TrainingMatch {
-  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0} = {}) {
+  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0,expressionEvaluator=null,programs=null,manageInputs=false,orderedPhases=false} = {}) {
+    this.expressionEvaluator=expressionEvaluator;
+    this.programs=programs;
+    this.manageInputs=manageInputs;
+    this.orderedPhases=orderedPhases;
     this.combatRules=readCombatRules(character.files,combatRules);
     if (!Number.isFinite(leftBound) || !Number.isFinite(rightBound) || leftBound >= rightBound) throw Error('Invalid training stage bounds.');
     this.character = character;
@@ -111,8 +115,8 @@ export class TrainingMatch {
     this.roundFlow=prior?.flow||(this.rules?new RoundFlow(this.rules):null);this.roundGeneration=(this.roundGeneration||0)+1;
     if(this.stage)this.stage.reset({backgrounds:!preserveMatch||this.stage.definition.resetBG});
     const starts=this.stage?.definition.starts||[{x:-70,y:0,facing:1},{x:70,y:0,facing:-1}];
-    this.player = new FighterRuntime(this.character, {world:this,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[0], facing:starts[0].facing, id: 1, teamSide: 1,paletteNo:this.playerPalette,aiLevel:this.playerAILevel});
-    this.opponent = new FighterRuntime(this.opponentCharacter, {world:this,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[1], facing:starts[1].facing, id: 2, teamSide: 2,paletteNo:this.opponentPalette,aiLevel:this.opponentAILevel});
+    this.player = new FighterRuntime(this.character, {world:this,program:this.programs?.get(this.character),expressionEvaluator:this.expressionEvaluator,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[0], facing:starts[0].facing, id: 1, teamSide: 1,paletteNo:this.playerPalette,aiLevel:this.playerAILevel});
+    this.opponent = new FighterRuntime(this.opponentCharacter, {world:this,program:this.programs?.get(this.opponentCharacter),expressionEvaluator:this.expressionEvaluator,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[1], facing:starts[1].facing, id: 2, teamSide: 2,paletteNo:this.opponentPalette,aiLevel:this.opponentAILevel});
     this.player.teamSide = 1;
     this.opponent.teamSide = 2;
     this.player.opponent=this.opponent;this.opponent.opponent=this.player;
@@ -120,6 +124,8 @@ export class TrainingMatch {
     this.orphanEffectOwners=[];this.renderEntities=[...this._entities];this.drawProjectiles=[];this.helperCommands=new Map();
     this.usedHits = new Map();this.juggles=new Map(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
     this.commandBuffers = new Map(); this.presentationEvents = [];this.eventEntities=[];
+    this.pendingCombatEffects=[];this.activeActor=null;this.contactPhase=false;
+    this.inputBuffers=new Map();this.inputProfiles=new Map();if(this.manageInputs)for(const actor of this._entities){if(!this.inputProfiles.has(actor.character))this.inputProfiles.set(actor.character,characterCommands(actor.character));this.inputBuffers.set(actor,new CommandBuffer(this.inputProfiles.get(actor.character)));}
     this.events = [];
     this.cpus=new Map();
     for(const actor of this._entities)if(actor.aiLevel){const parsed=characterCommands(actor.character);this.cpus.set(actor,new CpuController(parsed,{level:actor.aiLevel,seed:0x6d2b79f5^(actor.id*0x9e3779b9)^(this.roundFlow?.roundNo||1)}));for(const issue of parsed.diagnostics)actor.diagnostic('command',issue.message,{source:actor.character.def.files.cmd,line:issue.line});}
@@ -219,6 +225,7 @@ export class TrainingMatch {
   }
 
   tick(commands = new Set(), opponentCommands = new Set(),{playerInput=null,opponentInput=null}={}) {
+    if(this.orderedPhases){for(const effect of this.pendingCombatEffects){const{defender,attacker,damage,minimum,get,give}=effect;defender.life=Math.max(minimum,Math.min(defender.maxLife,defender.life-damage));if(attacker){attacker.power=Math.max(0,Math.min(attacker.maxPower,attacker.power+get));defender.power=Math.max(0,Math.min(defender.maxPower,defender.power+give));}}this.pendingCombatEffects=[];for(const actor of this._entities)actor._projectedLife=undefined;}
     this.events = []; this.presentationEvents = [];
     commands = commands instanceof Set ? commands : new Set(commands);
     opponentCommands = opponentCommands instanceof Set ? opponentCommands : new Set(opponentCommands);
@@ -238,8 +245,12 @@ export class TrainingMatch {
       const fighter = this._entities[index]; if (fighter.destroyed) continue;
       updatedActors.push(fighter);
       let input = fighter.root === this.player ? commands : opponentCommands;
-      const physical=fighter.root===this.player?playerInput:opponentInput;
-      if(fighter.parent&&fighter.keyCtrl&&physical!==null)input=this.helperCommands.get(fighter).update(physical,fighter.facing);
+      let physical=fighter.root===this.player?playerInput:opponentInput;
+      if(this.manageInputs&&fighter.keyCtrl){
+        physical=new Set(physical||[]);for(const flag of fighter.pendingAssertedInputs){physical.add(flag==='F'?(fighter.facing===1?'R':'L'):flag==='B'?(fighter.facing===1?'L':'R'):flag);}fighter.pendingAssertedInputs.clear();
+        if(!this.inputBuffers.has(fighter))this.inputBuffers.set(fighter,new CommandBuffer(this.inputProfiles.get(fighter.root.character)));
+        input=this.inputBuffers.get(fighter).update(physical,fighter.facing);
+      }else if(fighter.parent&&fighter.keyCtrl&&physical!==null)input=this.helperCommands.get(fighter).update(physical,fighter.facing);
       if (!fighter.keyCtrl||this.roundFlow&&this.roundFlow.roundState!==2) input = new Set();
       const other = fighter.teamSide === this.player.teamSide ? this.opponent : this.player;
       const stopped = this.isFrozen(fighter);fighter._hitPausedThisTick=fighter.hitPauseTime>0;
@@ -252,7 +263,7 @@ export class TrainingMatch {
           for (const command of input) this.commandBuffers.get(fighter).add(command);
         }
       } else if (this.commandBuffers.has(fighter)) { input = new Set([...input,...this.commandBuffers.get(fighter)]); this.commandBuffers.delete(fighter); }
-      fighter.tick({commands:input,opponent:other,paused:stopped,input:fighter.keyCtrl?(fighter.root===this.player?playerInput:opponentInput):new Set()});
+      this.activeActor=fighter;try{fighter.tick({commands:input,opponent:other,paused:stopped,input:fighter.keyCtrl?physical:new Set()});}finally{this.activeActor=null;}
     }
     for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile._hitPausedThisTick=projectile.hitPauseTime>0;projectile.tick({paused:stopped}); }
     if(this.stage){for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));this.stage.updateCamera(this.entities);this.syncEnvironment();this.stage.tick({paused:backgroundPaused});}
@@ -269,7 +280,7 @@ export class TrainingMatch {
       const candidates=[];
       for(let j=i+1;j<projectiles.length;j++){
         const b=projectiles[j];
-        if(a.teamSide===b.teamSide||b.removing||frozen.has(a)&&frozen.has(b)||!contactArea(clashBoxes[i],clashBoxes[j]))continue;
+        if(a.teamSide===b.teamSide||b.removing||frozen.has(a)&&frozen.has(b)||!contactArea(clashBoxes[i],clashBoxes[j],this.orderedPhases))continue;
         candidates.push(b);
       }
       const distance=p=>(p.pos.x-a.pos.x)**2+(p.pos.y-a.pos.y)**2;
@@ -278,7 +289,8 @@ export class TrainingMatch {
     }
     // The proximity flag belongs to collision detection. CNS reads the preceding
     // collision pass, so creation/destruction order cannot change another CNS pass.
-    const threats=[...fighters,...projectiles];
+    const guardProjectiles=this.orderedPhases?this.projectiles.filter(p=>!p.removed||p.drawVisible):projectiles;
+    const threats=[...fighters,...guardProjectiles];
     for(const fighter of fighters)fighter.inGuardDistance=inGuardDistance(fighter,threats);
     const contacts = [];
     const reversed = new Set();
@@ -287,7 +299,7 @@ export class TrainingMatch {
       const reversal = defender.reversalDef, hit = attacker.hitDef;
       if (!reversal || !hit || attacker === defender || attacker.teamSide === defender.teamSide || frozen.has(defender) || paused.has(defender) || paused.has(attacker) || reversed.has(attacker)) continue;
       if (!defender.attributeMatches(reversal['reversal.attr'],hit.attr) || this.usedHits.get(defender)?.get(attacker.id) === reversal.serial) continue;
-      const overlap = contactArea(transformedBoxes(defender),transformedBoxes(attacker)); if (!overlap) continue;
+      const overlap = contactArea(transformedBoxes(defender),transformedBoxes(attacker),this.orderedPhases); if (!overlap) continue;
       const result = attacker.receiveHit(reversal,defender); if (result.rejected) continue;
       this.applyCornerPush(defender,attacker,result.cornerPush,reversal.coordinateScale);
       attacker.moveContact=attacker.moveHit=attacker.moveGuarded=0;attacker.moveReversed = 1; attacker.hitDef = null; reversed.add(attacker);
@@ -307,9 +319,10 @@ export class TrainingMatch {
       const activation = hit.serial ?? hit;
       if (attacker instanceof ProjectileRuntime ? !attacker.canHit(defender,this.ticks) : this.usedHits.get(attacker)?.get(defender.id) === activation) continue;
       const attackBoxes = transformedBoxes(attacker), hurtBoxes = transformedBoxes(defender, 'clsn2');
-      const overlap = contactArea(attackBoxes, hurtBoxes);
+      const overlap = contactArea(attackBoxes, hurtBoxes,this.orderedPhases);
       if (!overlap) continue;
-      contacts.push({attacker, defender, hit, activation, overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall, guarded: canGuard(hit, attacker, defender, defender.parent?defender.commands:defender===this.player?commands:opponentCommands)});
+      const guardCommands=this.manageInputs?defender.commands:defender.parent?defender.commands:defender===this.player?commands:opponentCommands;
+      contacts.push({attacker, defender, hit, activation, overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall, guarded: canGuard(hit, attacker, defender, guardCommands)});
     }
     // Resolve from a shared snapshot so a simultaneous normal hit can trade.
     const accepted = contacts.filter(contact => {
@@ -319,7 +332,7 @@ export class TrainingMatch {
     const contactedProjectiles=new Set();
     for (const contact of accepted) {
       if (contact.attacker instanceof ProjectileRuntime && (contact.defender._projectileContactShield||!contact.attacker.canHit())) continue;
-      const result = contact.defender.receiveHit(contact.hit, contact.attacker, {guarded: contact.guarded});
+      let result;this.contactPhase=true;try{result=contact.defender.receiveHit(contact.hit, contact.attacker, {guarded: contact.guarded});}finally{this.contactPhase=false;}
       if (result?.rejected) continue;
       this.applyCornerPush(contact.attacker,contact.defender,result.cornerPush,contact.hit.coordinateScale);
       if(!contact.guarded&&!result.typeNone)this.recordJuggle(contact.attacker,contact.defender,contact.hit,{wasFalling:contact.wasFalling});
@@ -357,13 +370,13 @@ export class TrainingMatch {
   cleanupEntities() {
     const dead = this._entities.filter(p=>p.destroyed);
     for(const actor of dead)if(!actor._effectsDetached)this.retireEffects(actor);
-    for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor); this.commandBuffers.delete(actor);this.helperCommands.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
+    for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor); this.commandBuffers.delete(actor);this.inputBuffers.delete(actor);this.helperCommands.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
     this._entities = this._entities.filter(p=>!p.destroyed);
     this.projectiles = this.projectiles.filter(p=>!p.removed);
     for (const fighter of this._entities) {
       fighter.helpers = fighter.helpers.filter(h=>!h.destroyed);
-      fighter.targets = fighter.targets.filter(t=>!t.destroyed);
-      for(const id of fighter.targetHitIds.keys())if(!this.findPlayer(id))fighter.targetHitIds.delete(id);
+      fighter.targets = fighter.targets.filter(t=>!t.destroyed&&(!this.orderedPhases||t.moveType==='H'));
+      for(const id of fighter.targetHitIds.keys())if(!fighter.targets.some(t=>t.id===id))fighter.targetHitIds.delete(id);
       if (fighter.bound?.target.destroyed) fighter.bound = null;
     }
     this.renderEntities=[...this._entities,...this.orphanEffectOwners].sort((a,b)=>a.id-b.id);

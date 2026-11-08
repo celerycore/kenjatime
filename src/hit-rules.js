@@ -25,7 +25,7 @@ export function claimHitActivation(defender,hit,attacker){
 export function recordHitContact(attacker,hit,guarded,{count=true}={}){
   if(!attacker)return;
   attacker.moveContact=1;attacker.moveHit=guarded?0:1;attacker.moveGuarded=guarded?1:0;attacker.moveReversed=0;
-  if(guarded||!count)return;
+  if(guarded||!count||attacker.world?.orderedPhases&&hit.numhits===0)return;
   const tick=attacker.world?.ticks??attacker.gameTime??0;
   if(attacker._lastHitCountTick!==tick){attacker.hitCount=(attacker.hitCount||0)+1;attacker._lastHitCountTick=tick;}
   attacker.uniqHitCount=(attacker.uniqHitCount||0)+1;

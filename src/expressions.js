@@ -269,11 +269,17 @@ export function splitArguments(source) {
   return result;
 }
 
-export function compileExpression(source) {
-  if (cache.has(source)) return cache.get(source);
+export function parseExpression(source) {
   const parser = new Parser(source);
   const ast = parser.parse();
   if (parser.peek().type !== 'end') parser.fail('Unexpected token');
+  const freeze=node=>{for(const value of Object.values(node)){if(Array.isArray(value)){value.forEach(item=>item&&typeof item==='object'&&freeze(item));Object.freeze(value);}else if(value&&typeof value==='object')freeze(value);}return Object.freeze(node);};
+  return freeze(ast);
+}
+
+export function compileExpression(source) {
+  if (cache.has(source)) return cache.get(source);
+  const ast = parseExpression(source);
   const compiled = context => execute(ast, context || {}, source);
   // A caller cannot mutate a shared AST. The closure is the cached artifact.
   if (cache.size >= 512) cache.delete(cache.keys().next().value);

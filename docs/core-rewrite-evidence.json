@@ -1,0 +1,1534 @@
+{
+  "engine": "Kenjatime Core",
+  "version": "0.5.0-core-preview",
+  "independentRuntime": true,
+  "universalCompatibility": false,
+  "recoveryTags": [
+    "recovery/pre-original-engine-0.4.5",
+    "recovery/pre-original-engine-web-0.4.5",
+    "recovery/pre-original-engine-android-0.4.5"
+  ],
+  "unitTests": {
+    "core": 20,
+    "compiledRegressionCorpus": 547,
+    "skipped": 0,
+    "suppliedCharacterAndStageArchivesPresent": true,
+    "scope": "Existing regressions through the compiled backend use the original independent interpreter behavior, not native-engine certification."
+  },
+  "interactions": {
+    "engine": "Kenjatime Core",
+    "group": "interactions",
+    "matched": true,
+    "scenarios": 16,
+    "comparedTicks": 1130,
+    "comparedFields": 67800,
+    "differentFields": 0,
+    "fieldCounts": {},
+    "firstDifferences": [],
+    "cases": [
+      {
+        "id": "direct-hit",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "direct-guard",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "throw-forward",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "throw-mirrored",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "helper-attack",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "helper-body-push",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "helper-guard-distance",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "projectile-hit-removal",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "projectile-guard-removal",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "simultaneous-projectiles",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "projectile-clash",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "pause-allowances",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "helper-orphan-projectile",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "air-recovery",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "palette-fx-lifecycle",
+        "ticks": 75,
+        "differences": 0,
+        "firstDifferences": []
+      },
+      {
+        "id": "palette-ownership-pixels",
+        "ticks": 5,
+        "differences": 0,
+        "firstDifferences": []
+      }
+    ],
+    "nativeCaptureSha256": "a38f87abf783fe7a66447196a7b043e2c0248fcb0e751e55817611d3c8389811",
+    "referenceProvenance": {
+      "kind": "native-ikemen",
+      "version": "1.0.0",
+      "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+      "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+      "captureMethod": "Unmodified official Linux executable; shared QA Common.Lua capture and AssertInput driver",
+      "rawCaptureSha256": "0bd8bb1f5a49baab42c4fd85862d78bd2f890761c3f7991cc9ea719f7fba87f4"
+    },
+    "scope": "Identical authored neutral setup and AssertInput CNS recipes; primary state/motion/contact fields only. Native common-state implementation is not loaded. Palette pixels, full helper/projectile field traces, and full native resource identity are not compared. Differences remain explicit; no certification is claimed."
+  },
+  "movesets": {
+    "engine": "Kenjatime Core",
+    "group": "kfm-classic",
+    "matched": false,
+    "scenarios": 147,
+    "comparedTicks": 12854,
+    "comparedFields": 771240,
+    "differentFields": 55647,
+    "fieldCounts": {
+      "x": 16967,
+      "vx": 3599,
+      "y": 2012,
+      "facing": 2662,
+      "anim": 3639,
+      "stateType": 1406,
+      "elementTime": 4275,
+      "element": 2793,
+      "state": 2220,
+      "time": 5880,
+      "vy": 2000,
+      "life": 669,
+      "targets": 388,
+      "moveType": 562,
+      "physics": 905,
+      "fall": 209,
+      "fallTime": 3403,
+      "ctrl": 488,
+      "moveContact": 186,
+      "moveGuarded": 72,
+      "hitPause": 80,
+      "hitShake": 84,
+      "hitTime": 260,
+      "power": 457,
+      "guardDistance": 203,
+      "hitCount": 114,
+      "moveHit": 114
+    },
+    "firstDifferences": [
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 11,
+        "side": "player",
+        "field": "x",
+        "native": -20.400001525878906,
+        "core": -22.270002365112305
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 11,
+        "side": "player",
+        "field": "vx",
+        "native": 0,
+        "core": -1.533400058746338
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 12,
+        "side": "player",
+        "field": "x",
+        "native": -20.400001525878906,
+        "core": -23.803401947021484
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 12,
+        "side": "player",
+        "field": "vx",
+        "native": 0,
+        "core": -1.2573879957199097
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 13,
+        "side": "player",
+        "field": "x",
+        "native": -20.400001525878906,
+        "core": -25.060789108276367
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 13,
+        "side": "player",
+        "field": "vx",
+        "native": 0,
+        "core": -1.0310581922531128
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 14,
+        "side": "player",
+        "field": "x",
+        "native": -20.400001525878906,
+        "core": -26.091846466064453
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 14,
+        "side": "player",
+        "field": "vx",
+        "native": 0,
+        "core": -0.8454676866531372
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 15,
+        "side": "player",
+        "field": "x",
+        "native": -20.400001525878906,
+        "core": -26.937314987182617
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 15,
+        "side": "player",
+        "field": "vx",
+        "native": 0,
+        "core": -0.6932834982872009
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 16,
+        "side": "player",
+        "field": "x",
+        "native": -20.400001525878906,
+        "core": -27.630598068237305
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 16,
+        "side": "player",
+        "field": "vx",
+        "native": 0,
+        "core": -0.5684924721717834
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 17,
+        "side": "player",
+        "field": "x",
+        "native": -20.400001525878906,
+        "core": -28.1990909576416
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 18,
+        "side": "player",
+        "field": "x",
+        "native": -22.60000228881836,
+        "core": -30.399091720581055
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 19,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 20,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 21,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 22,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 23,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 24,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 25,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 26,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 27,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 28,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 29,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 30,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 31,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 32,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 33,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      },
+      {
+        "case": "kfm-3050-0-1-near",
+        "tick": 34,
+        "side": "player",
+        "field": "x",
+        "native": -24.800003051757812,
+        "core": -32.599090576171875
+      }
+    ],
+    "nativeCaptureSha256": "10680807361ae7544d6a9bc7fd9ad25006817774a2330dba7ce04cc78784fd84",
+    "referenceProvenance": {
+      "kind": "native-ikemen",
+      "version": "1.0.0",
+      "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+      "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+      "captureMethod": "Unmodified official Linux executable; shared QA Common.Lua capture and AssertInput driver",
+      "rawCaptureSha256": "654287b12fed75765f385bff1f9e11c4feee665d514689cbae88bcb90c84ae2a"
+    },
+    "scope": "Identical authored neutral setup and AssertInput CNS recipes; primary state/motion/contact fields only. Native common-state implementation is not loaded. Palette pixels, full helper/projectile field traces, and full native resource identity are not compared. Differences remain explicit; no certification is claimed."
+  },
+  "movesetCases": [
+    {
+      "id": "kfm-3050-0-1-near",
+      "ticks": 253,
+      "differences": 1614
+    },
+    {
+      "id": "kfm-3050-0-1-far",
+      "ticks": 94,
+      "differences": 184
+    },
+    {
+      "id": "kfm-3050-0-1-guard",
+      "ticks": 124,
+      "differences": 1735
+    },
+    {
+      "id": "kfm-3050-0--1-near",
+      "ticks": 253,
+      "differences": 1670
+    },
+    {
+      "id": "kfm-3050-1-1-near",
+      "ticks": 253,
+      "differences": 1670
+    },
+    {
+      "id": "kfm-3050-1--1-near",
+      "ticks": 253,
+      "differences": 1670
+    },
+    {
+      "id": "kfm-3000-0-1-near",
+      "ticks": 266,
+      "differences": 1265
+    },
+    {
+      "id": "kfm-3000-0-1-far",
+      "ticks": 236,
+      "differences": 1029
+    },
+    {
+      "id": "kfm-3000-0-1-guard",
+      "ticks": 183,
+      "differences": 769
+    },
+    {
+      "id": "kfm-3000-0--1-near",
+      "ticks": 266,
+      "differences": 1265
+    },
+    {
+      "id": "kfm-3000-1-1-near",
+      "ticks": 266,
+      "differences": 1265
+    },
+    {
+      "id": "kfm-3000-1--1-near",
+      "ticks": 266,
+      "differences": 1265
+    },
+    {
+      "id": "kfm-1070-0-1-near",
+      "ticks": 195,
+      "differences": 1073
+    },
+    {
+      "id": "kfm-1070-0-1-far",
+      "ticks": 53,
+      "differences": 113
+    },
+    {
+      "id": "kfm-1070-0-1-guard",
+      "ticks": 73,
+      "differences": 294
+    },
+    {
+      "id": "kfm-1070-0--1-near",
+      "ticks": 195,
+      "differences": 1073
+    },
+    {
+      "id": "kfm-1050-0-1-near",
+      "ticks": 173,
+      "differences": 972
+    },
+    {
+      "id": "kfm-1050-0-1-far",
+      "ticks": 48,
+      "differences": 103
+    },
+    {
+      "id": "kfm-1050-0-1-guard",
+      "ticks": 60,
+      "differences": 257
+    },
+    {
+      "id": "kfm-1050-0--1-near",
+      "ticks": 173,
+      "differences": 972
+    },
+    {
+      "id": "kfm-1060-0-1-near",
+      "ticks": 175,
+      "differences": 985
+    },
+    {
+      "id": "kfm-1060-0-1-far",
+      "ticks": 55,
+      "differences": 118
+    },
+    {
+      "id": "kfm-1060-0-1-guard",
+      "ticks": 67,
+      "differences": 278
+    },
+    {
+      "id": "kfm-1060-0--1-near",
+      "ticks": 175,
+      "differences": 985
+    },
+    {
+      "id": "kfm-1020-0-1-near",
+      "ticks": 186,
+      "differences": 899
+    },
+    {
+      "id": "kfm-1020-0-1-far",
+      "ticks": 52,
+      "differences": 53
+    },
+    {
+      "id": "kfm-1020-0-1-guard",
+      "ticks": 60,
+      "differences": 283
+    },
+    {
+      "id": "kfm-1020-0--1-near",
+      "ticks": 186,
+      "differences": 899
+    },
+    {
+      "id": "kfm-1000-0-1-near",
+      "ticks": 160,
+      "differences": 705
+    },
+    {
+      "id": "kfm-1000-0-1-far",
+      "ticks": 44,
+      "differences": 44
+    },
+    {
+      "id": "kfm-1000-0-1-guard",
+      "ticks": 59,
+      "differences": 227
+    },
+    {
+      "id": "kfm-1000-0--1-near",
+      "ticks": 160,
+      "differences": 705
+    },
+    {
+      "id": "kfm-1010-0-1-near",
+      "ticks": 161,
+      "differences": 833
+    },
+    {
+      "id": "kfm-1010-0-1-far",
+      "ticks": 49,
+      "differences": 79
+    },
+    {
+      "id": "kfm-1010-0-1-guard",
+      "ticks": 64,
+      "differences": 249
+    },
+    {
+      "id": "kfm-1010-0--1-near",
+      "ticks": 161,
+      "differences": 833
+    },
+    {
+      "id": "kfm-1120-0-1-near",
+      "ticks": 200,
+      "differences": 1433
+    },
+    {
+      "id": "kfm-1120-0-1-far",
+      "ticks": 48,
+      "differences": 98
+    },
+    {
+      "id": "kfm-1120-0-1-guard",
+      "ticks": 72,
+      "differences": 328
+    },
+    {
+      "id": "kfm-1120-0--1-near",
+      "ticks": 200,
+      "differences": 1433
+    },
+    {
+      "id": "kfm-1100-0-1-near",
+      "ticks": 187,
+      "differences": 1292
+    },
+    {
+      "id": "kfm-1100-0-1-far",
+      "ticks": 42,
+      "differences": 86
+    },
+    {
+      "id": "kfm-1100-0-1-guard",
+      "ticks": 58,
+      "differences": 276
+    },
+    {
+      "id": "kfm-1100-0--1-near",
+      "ticks": 187,
+      "differences": 1292
+    },
+    {
+      "id": "kfm-1110-0-1-near",
+      "ticks": 194,
+      "differences": 1367
+    },
+    {
+      "id": "kfm-1110-0-1-far",
+      "ticks": 49,
+      "differences": 100
+    },
+    {
+      "id": "kfm-1110-0-1-guard",
+      "ticks": 65,
+      "differences": 307
+    },
+    {
+      "id": "kfm-1110-0--1-near",
+      "ticks": 194,
+      "differences": 1367
+    },
+    {
+      "id": "kfm-1220-0-1-near",
+      "ticks": 69,
+      "differences": 164
+    },
+    {
+      "id": "kfm-1220-0-1-far",
+      "ticks": 46,
+      "differences": 0
+    },
+    {
+      "id": "kfm-1220-0-1-guard",
+      "ticks": 61,
+      "differences": 165
+    },
+    {
+      "id": "kfm-1220-0--1-near",
+      "ticks": 69,
+      "differences": 145
+    },
+    {
+      "id": "kfm-1200-0-1-near",
+      "ticks": 58,
+      "differences": 82
+    },
+    {
+      "id": "kfm-1200-0-1-far",
+      "ticks": 42,
+      "differences": 0
+    },
+    {
+      "id": "kfm-1200-0-1-guard",
+      "ticks": 54,
+      "differences": 159
+    },
+    {
+      "id": "kfm-1200-0--1-near",
+      "ticks": 58,
+      "differences": 82
+    },
+    {
+      "id": "kfm-1210-0-1-near",
+      "ticks": 64,
+      "differences": 90
+    },
+    {
+      "id": "kfm-1210-0-1-far",
+      "ticks": 47,
+      "differences": 0
+    },
+    {
+      "id": "kfm-1210-0-1-guard",
+      "ticks": 59,
+      "differences": 177
+    },
+    {
+      "id": "kfm-1210-0--1-near",
+      "ticks": 64,
+      "differences": 90
+    },
+    {
+      "id": "kfm-1300-0-1-near",
+      "ticks": 40,
+      "differences": 635
+    },
+    {
+      "id": "kfm-1300-0--1-near",
+      "ticks": 40,
+      "differences": 635
+    },
+    {
+      "id": "kfm-1300-1-1-near",
+      "ticks": 40,
+      "differences": 78
+    },
+    {
+      "id": "kfm-1300-1--1-near",
+      "ticks": 40,
+      "differences": 78
+    },
+    {
+      "id": "kfm-1320-0-1-near",
+      "ticks": 40,
+      "differences": 639
+    },
+    {
+      "id": "kfm-1320-0--1-near",
+      "ticks": 40,
+      "differences": 639
+    },
+    {
+      "id": "kfm-1320-1-1-near",
+      "ticks": 40,
+      "differences": 38
+    },
+    {
+      "id": "kfm-1320-1--1-near",
+      "ticks": 40,
+      "differences": 38
+    },
+    {
+      "id": "kfm-1340-0-1-near",
+      "ticks": 40,
+      "differences": 710
+    },
+    {
+      "id": "kfm-1340-0--1-near",
+      "ticks": 40,
+      "differences": 710
+    },
+    {
+      "id": "kfm-1340-1-1-near",
+      "ticks": 40,
+      "differences": 68
+    },
+    {
+      "id": "kfm-1340-1--1-near",
+      "ticks": 40,
+      "differences": 68
+    },
+    {
+      "id": "kfm-1420-0-1-near",
+      "ticks": 175,
+      "differences": 809
+    },
+    {
+      "id": "kfm-1420-0-1-far",
+      "ticks": 54,
+      "differences": 55
+    },
+    {
+      "id": "kfm-1420-0-1-guard",
+      "ticks": 75,
+      "differences": 291
+    },
+    {
+      "id": "kfm-1420-0--1-near",
+      "ticks": 175,
+      "differences": 832
+    },
+    {
+      "id": "kfm-1400-0-1-near",
+      "ticks": 53,
+      "differences": 35
+    },
+    {
+      "id": "kfm-1400-0-1-far",
+      "ticks": 41,
+      "differences": 0
+    },
+    {
+      "id": "kfm-1400-0-1-guard",
+      "ticks": 53,
+      "differences": 155
+    },
+    {
+      "id": "kfm-1400-0--1-near",
+      "ticks": 53,
+      "differences": 17
+    },
+    {
+      "id": "kfm-1410-0-1-near",
+      "ticks": 57,
+      "differences": 21
+    },
+    {
+      "id": "kfm-1410-0-1-far",
+      "ticks": 45,
+      "differences": 1
+    },
+    {
+      "id": "kfm-1410-0-1-guard",
+      "ticks": 57,
+      "differences": 166
+    },
+    {
+      "id": "kfm-1410-0--1-near",
+      "ticks": 57,
+      "differences": 21
+    },
+    {
+      "id": "kfm-100-0-1-near",
+      "ticks": 40,
+      "differences": 82
+    },
+    {
+      "id": "kfm-100-0--1-near",
+      "ticks": 40,
+      "differences": 82
+    },
+    {
+      "id": "kfm-105-0-1-near",
+      "ticks": 40,
+      "differences": 145
+    },
+    {
+      "id": "kfm-105-0--1-near",
+      "ticks": 40,
+      "differences": 145
+    },
+    {
+      "id": "kfm-800-0-1-near",
+      "ticks": 184,
+      "differences": 454
+    },
+    {
+      "id": "kfm-800-0--1-near",
+      "ticks": 184,
+      "differences": 458
+    },
+    {
+      "id": "kfm-200-0-1-near",
+      "ticks": 40,
+      "differences": 33
+    },
+    {
+      "id": "kfm-200-0-1-far",
+      "ticks": 40,
+      "differences": 0
+    },
+    {
+      "id": "kfm-200-0-1-guard",
+      "ticks": 40,
+      "differences": 117
+    },
+    {
+      "id": "kfm-200-0--1-near",
+      "ticks": 40,
+      "differences": 29
+    },
+    {
+      "id": "kfm-210-0-1-near",
+      "ticks": 40,
+      "differences": 103
+    },
+    {
+      "id": "kfm-210-0-1-far",
+      "ticks": 40,
+      "differences": 0
+    },
+    {
+      "id": "kfm-210-0-1-guard",
+      "ticks": 40,
+      "differences": 128
+    },
+    {
+      "id": "kfm-210-0--1-near",
+      "ticks": 40,
+      "differences": 103
+    },
+    {
+      "id": "kfm-230-0-1-near",
+      "ticks": 40,
+      "differences": 20
+    },
+    {
+      "id": "kfm-230-0-1-far",
+      "ticks": 40,
+      "differences": 0
+    },
+    {
+      "id": "kfm-230-0-1-guard",
+      "ticks": 40,
+      "differences": 95
+    },
+    {
+      "id": "kfm-230-0--1-near",
+      "ticks": 40,
+      "differences": 20
+    },
+    {
+      "id": "kfm-240-0-1-near",
+      "ticks": 40,
+      "differences": 24
+    },
+    {
+      "id": "kfm-240-0-1-far",
+      "ticks": 40,
+      "differences": 0
+    },
+    {
+      "id": "kfm-240-0-1-guard",
+      "ticks": 40,
+      "differences": 67
+    },
+    {
+      "id": "kfm-240-0--1-near",
+      "ticks": 40,
+      "differences": 24
+    },
+    {
+      "id": "kfm-195-0-1-near",
+      "ticks": 42,
+      "differences": 0
+    },
+    {
+      "id": "kfm-195-0--1-near",
+      "ticks": 42,
+      "differences": 0
+    },
+    {
+      "id": "kfm-400-0-1-near",
+      "ticks": 40,
+      "differences": 118
+    },
+    {
+      "id": "kfm-400-0-1-far",
+      "ticks": 40,
+      "differences": 110
+    },
+    {
+      "id": "kfm-400-0-1-guard",
+      "ticks": 40,
+      "differences": 164
+    },
+    {
+      "id": "kfm-400-0--1-near",
+      "ticks": 40,
+      "differences": 118
+    },
+    {
+      "id": "kfm-410-0-1-near",
+      "ticks": 56,
+      "differences": 32
+    },
+    {
+      "id": "kfm-410-0-1-far",
+      "ticks": 40,
+      "differences": 0
+    },
+    {
+      "id": "kfm-410-0-1-guard",
+      "ticks": 52,
+      "differences": 8
+    },
+    {
+      "id": "kfm-410-0--1-near",
+      "ticks": 56,
+      "differences": 32
+    },
+    {
+      "id": "kfm-430-0-1-near",
+      "ticks": 40,
+      "differences": 14
+    },
+    {
+      "id": "kfm-430-0-1-far",
+      "ticks": 40,
+      "differences": 0
+    },
+    {
+      "id": "kfm-430-0-1-guard",
+      "ticks": 40,
+      "differences": 27
+    },
+    {
+      "id": "kfm-430-0--1-near",
+      "ticks": 40,
+      "differences": 14
+    },
+    {
+      "id": "kfm-440-0-1-near",
+      "ticks": 120,
+      "differences": 368
+    },
+    {
+      "id": "kfm-440-0-1-far",
+      "ticks": 40,
+      "differences": 40
+    },
+    {
+      "id": "kfm-440-0-1-guard",
+      "ticks": 48,
+      "differences": 135
+    },
+    {
+      "id": "kfm-440-0--1-near",
+      "ticks": 120,
+      "differences": 382
+    },
+    {
+      "id": "kfm-600-0-1-near",
+      "ticks": 40,
+      "differences": 102
+    },
+    {
+      "id": "kfm-600-0-1-far",
+      "ticks": 40,
+      "differences": 109
+    },
+    {
+      "id": "kfm-600-0-1-guard",
+      "ticks": 40,
+      "differences": 191
+    },
+    {
+      "id": "kfm-600-0--1-near",
+      "ticks": 40,
+      "differences": 94
+    },
+    {
+      "id": "kfm-610-0-1-near",
+      "ticks": 40,
+      "differences": 76
+    },
+    {
+      "id": "kfm-610-0-1-far",
+      "ticks": 40,
+      "differences": 109
+    },
+    {
+      "id": "kfm-610-0-1-guard",
+      "ticks": 40,
+      "differences": 137
+    },
+    {
+      "id": "kfm-610-0--1-near",
+      "ticks": 40,
+      "differences": 76
+    },
+    {
+      "id": "kfm-630-0-1-near",
+      "ticks": 40,
+      "differences": 96
+    },
+    {
+      "id": "kfm-630-0-1-far",
+      "ticks": 40,
+      "differences": 109
+    },
+    {
+      "id": "kfm-630-0-1-guard",
+      "ticks": 40,
+      "differences": 171
+    },
+    {
+      "id": "kfm-630-0--1-near",
+      "ticks": 40,
+      "differences": 96
+    },
+    {
+      "id": "kfm-640-0-1-near",
+      "ticks": 40,
+      "differences": 68
+    },
+    {
+      "id": "kfm-640-0-1-far",
+      "ticks": 40,
+      "differences": 99
+    },
+    {
+      "id": "kfm-640-0-1-guard",
+      "ticks": 40,
+      "differences": 128
+    },
+    {
+      "id": "kfm-640-0--1-near",
+      "ticks": 40,
+      "differences": 68
+    },
+    {
+      "id": "kfm-back-throw-1",
+      "ticks": 201,
+      "differences": 855
+    },
+    {
+      "id": "kfm-back-throw--1",
+      "ticks": 201,
+      "differences": 876
+    },
+    {
+      "id": "kfm-chain",
+      "ticks": 80,
+      "differences": 101
+    },
+    {
+      "id": "kfm-insufficient-power-1020",
+      "ticks": 160,
+      "differences": 687
+    },
+    {
+      "id": "kfm-insufficient-power-1070",
+      "ticks": 173,
+      "differences": 962
+    },
+    {
+      "id": "kfm-insufficient-power-3000",
+      "ticks": 169,
+      "differences": 924
+    },
+    {
+      "id": "kfm-insufficient-power-3050",
+      "ticks": 67,
+      "differences": 117
+    }
+  ],
+  "exactMovesetScenarios": 12,
+  "benchmark": {
+    "engine": "Kenjatime Core",
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "expressions": 8,
+    "evaluationsPerSample": 400000,
+    "samples": 5,
+    "interpreterMedianMs": 124.29199499999999,
+    "compiledMedianMs": 65.42782500000001,
+    "speedup": 1.8996809843518405,
+    "identicalChecksums": true,
+    "moduleBytes": 751,
+    "compiledFunctions": 8,
+    "interpreterSamples": [
+      {
+        "ms": 128.45228600000002,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 124.29199499999999,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 130.17454399999997,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 105.59981900000002,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 106.63662199999999,
+        "checksum": 9521041.002861023
+      }
+    ],
+    "compiledSamples": [
+      {
+        "ms": 65.42782500000001,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 72.75734799999998,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 63.82551000000001,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 66.22607899999991,
+        "checksum": 9521041.002861023
+      },
+      {
+        "ms": 58.627681999999936,
+        "checksum": 9521041.002861023
+      }
+    ],
+    "scope": "Host numeric expression microbenchmark, not phone FPS or complete engine parity."
+  },
+  "browser": {
+    "worker": {
+      "physicalPhone": false,
+      "backendTest": "worker",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 12118,
+          "interpreted": 8,
+          "deoptimized": 0,
+          "compiled": 466,
+          "bytes": 15434,
+          "activeFunctions": 466
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 28,
+          "draws": 3,
+          "textureBytes": 100367,
+          "textures": 22,
+          "width": 960,
+          "height": 540
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 0,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "pause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3
+      }
+    },
+    "main": {
+      "physicalPhone": false,
+      "backendTest": "main",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 12817,
+          "interpreted": 11,
+          "deoptimized": 0,
+          "compiled": 466,
+          "bytes": 15434,
+          "activeFunctions": 466
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 24,
+          "draws": 3,
+          "textureBytes": 108291,
+          "textures": 24,
+          "width": 960,
+          "height": 540
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 1,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "pause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3,
+        "contextLossReturnsToLibrary": true
+      }
+    },
+    "worker-fallback": {
+      "physicalPhone": false,
+      "backendTest": "worker-fallback",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 13767,
+          "interpreted": 6,
+          "deoptimized": 0,
+          "compiled": 466,
+          "bytes": 15434,
+          "activeFunctions": 466
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 22,
+          "draws": 3,
+          "textureBytes": 95636,
+          "textures": 21,
+          "width": 960,
+          "height": 540
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 0,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "pause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3
+      }
+    }
+  },
+  "archives": {
+    "physicalAndroid": false,
+    "imports": [
+      {
+        "archive": "zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "bzip2.zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "lzma.zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "7z",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.gz",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.bz2",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.xz",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.zst",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "cpio",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "sfx.zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "rar4",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "rar5",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "zip-aes128",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "zip-aes192",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "zip-aes256",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "split-7z",
+        "parts": 9,
+        "downloadExact": true
+      },
+      {
+        "archive": "split-zip",
+        "parts": 10,
+        "downloadExact": true
+      },
+      {
+        "archive": "split-rar",
+        "parts": 3,
+        "downloadExact": true
+      }
+    ],
+    "errors": [],
+    "bundleReimport": true,
+    "reloadPreservesImports": true,
+    "wrongPasswordPreservesLibrary": true,
+    "missingPartPreservesLibrary": true,
+    "independentResetPreservesRecoveryLibrary": true,
+    "arbitraryMimePicker": true
+  },
+  "android": {
+    "applicationId": "io.github.celerycore.kenjatime.core.preview",
+    "version": "0.5.0-core-preview",
+    "bytes": 7199117,
+    "sha256": "124e824d216059a3c5a9b06ea5d4e38ed0005c900c26958b821bd16bece8be4e",
+    "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+    "offlineAssetsMatchWebBuild": true,
+    "bundledFiles": 36,
+    "startupUrl": "https://localhost/core/index.html",
+    "separateRecoveryInstallation": true,
+    "externalEnginePayloads": false,
+    "physicalPhoneTest": false
+  },
+  "androidChecks": {
+    "startupAndPickerTests": 10,
+    "failures": 0,
+    "lint": "passed",
+    "defaultBuildUsesSeparatePreviewId": true
+  },
+  "build": {
+    "bytes": 6603869,
+    "graphManifests": 4,
+    "artifactManifest": "dist-core/provenance.json"
+  },
+  "physicalPhoneMeasured": false
+}

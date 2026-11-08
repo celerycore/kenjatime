@@ -144,11 +144,12 @@ public class StartupTest {
     }
 
     @Test
-    public void startsAtBundledMobilePageOnLocalhost() throws Exception {
+    public void startsAtBundledPageOnLocalhost() throws Exception {
         try (ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup()) {
             Bridge bridge = controller.get().getBridge();
             assertNotNull(bridge);
-            assertEquals("https://localhost/mobile/index.html", bridge.getAppUrl());
+            boolean core = controller.get().getPackageName().endsWith(".core.preview");
+            assertEquals("https://localhost/" + (core ? "core" : "mobile") + "/index.html", bridge.getAppUrl());
             assertEquals(bridge.getAppUrl(), bridge.getWebView().getUrl());
             assertEquals("localhost", Uri.parse(bridge.getAppUrl()).getHost());
 
@@ -156,10 +157,24 @@ public class StartupTest {
             assertNotNull("Startup must be served by Capacitor, without DNS", response);
             assertEquals(200, response.getStatusCode());
             String html = new String(response.getData().readAllBytes(), StandardCharsets.UTF_8);
-            assertTrue("Load mobile arena, not root lab fallback", html.contains("data-mobile-app=\"true\""));
-            assertTrue(html.contains("capacitor"));
+            if (core) assertTrue(html.contains("<title>Kenjatime Core</title>"));
+            else {
+                assertTrue("Load mobile arena, not root lab fallback", html.contains("data-mobile-app=\"true\""));
+                assertTrue(html.contains("capacitor"));
+            }
 
-            Uri sample = Uri.parse(bridge.getAppUrl()).buildUpon().path("/kfm.zip").build();
+            String samplePath = "/kfm.zip";
+            if (core) {
+                String json = new String(controller.get().getAssets().open("public/provenance.json").readAllBytes(), StandardCharsets.UTF_8);
+                org.json.JSONObject files = new org.json.JSONObject(json).getJSONObject("files");
+                samplePath = null;
+                for (java.util.Iterator<String> keys = files.keys(); keys.hasNext();) {
+                    String path = keys.next();
+                    if (path.startsWith("assets/kfm-") && path.endsWith(".zip")) samplePath = "/" + path;
+                }
+                assertNotNull("The preview must include an offline fighter", samplePath);
+            }
+            Uri sample = Uri.parse(bridge.getAppUrl()).buildUpon().path(samplePath).build();
             WebResourceResponse archive = bridge.getLocalServer().shouldInterceptRequest(request(sample.toString()));
             assertNotNull(archive);
             assertEquals(200, archive.getStatusCode());
