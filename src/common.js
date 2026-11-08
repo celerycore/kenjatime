@@ -16,7 +16,7 @@ const anim = (value, trigger = 'time = 0') => controller('ChangeAnim', `value = 
 
 export function commonStates({orderedPhases=false}={}){return [
   state(0, 'type = S\nmovetype = I\nphysics = S\nctrl = 1',
-    anim(0, 'anim != 0') + controller('VelSet', 'y = 0', 'time = 0')+(orderedPhases?controller('VelSet','x=0','abs(vel x)<const(movement.stand.friction.threshold)'):'')),
+    anim(0, 'anim != 0') + controller('VelSet', 'y = 0', 'time = 0')+(orderedPhases?controller('VelSet','x=0','time>=4 || abs(vel x)<const(movement.stand.friction.threshold)'):'')),
   state(10, 'type = C\nmovetype = I\nphysics = C'+(orderedPhases?'\nvelset=0,0':''),
     anim(10) + change(11, 'animtime = 0 || !selfanimexist(10)')),
   state(11, 'type = C\nmovetype = I\nphysics = C\nctrl = 1', anim(11)),
@@ -52,7 +52,7 @@ export function commonStates({orderedPhases=false}={}){return [
       controller('ChangeState','value=ifelse(statetype=A,50,ifelse(statetype=C,11,0))\nctrl=1','animtime=0 || command!="holdback"'))]:[]),
   ...[[120, 'S', 130], [130, 'S', 130], [131, 'C', 131], [132, 'A', 132], [140, 'S', 130]].filter(([id])=>!orderedPhases||id!==120&&id!==140).map(([id, posture, action]) =>
     state(id, `type = ${posture}\nmovetype = I\nphysics = ${posture}\nctrl = 1${posture === 'A' ? '' : '\nvelset = 0,0'}`,
-      anim(action) + change(posture === 'A' ? 50 : posture === 'C' ? 11 : 0, 'command != "holdback"'))),
+      anim(action) + (orderedPhases?change(140,'!inguarddist'):'') + change(posture === 'A' ? 50 : posture === 'C' ? 11 : 0, 'command != "holdback"'))),
   ...[[150,'S',150,151],[152,'C',151,153],[154,'A',152,155]].map(([id,posture,action,next])=>
     state(id,`type=${posture}\nmovetype=H\nphysics=N\nctrl=0\nvelset=0,0`,anim(action)+change(next,'hitshakeover',0))),
   ...[[151,'S',150],[153,'C',151],[155,'A',152]].map(([id,posture,action])=>

@@ -18,7 +18,7 @@ ZIP, RAR4/5, 7z, TAR and compressed TAR imports use content detection. Tested en
 
 ```sh
 npm run verify:core:interactions   # strict captured interaction comparison
-npm run verify:core:movesets      # strict gate for 132 captured movesets
+npm run verify:core:movesets      # strict gate for 141 captured movesets
 npm run diagnose:core:movesets    # reports all 147, including known differences
 npm run verify:core:browser       # built UI, input, audio and GPU lifecycle
 npm run verify:core:archives      # real picker/worker/store/download checks

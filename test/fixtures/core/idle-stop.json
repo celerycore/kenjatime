@@ -1,0 +1,202 @@
+{
+  "reference": {
+    "kind": "native-observations",
+    "version": "1.0.0",
+    "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+    "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+    "method": "Unmodified official Linux executable, original KFM data and authored QA AssertInput recipe for kfm-100-0-1-near. Authored -3 controllers sample velocity, threshold and state time before the common state runs. The second run injects x velocity 10 at idle time 1. No native implementation source was read.",
+    "engine": "IKEMEN GO",
+    "releaseUrl": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/Ikemen_GO-v1.0.0-linux.zip"
+  },
+  "scope": "Default standing idle with no direction held, ground friction .85 and threshold 2, localcoord 320. Does not establish other common-state or physics profiles.",
+  "runs": [
+    {
+      "injectedVelocity": null,
+      "rawCaptureSha256": "6f368c09b41b1e2e068be73e4ed4b2989a4fc086e4702f635b6ead2154b93a0d",
+      "samples": [
+        {
+          "tick": 10,
+          "state": 0,
+          "time": 1,
+          "velocity": 3.9100000858306885,
+          "observedBeforeState": [
+            39100,
+            20000,
+            30000
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 0,
+          "time": 2,
+          "velocity": 3.323500156402588,
+          "observedBeforeState": [
+            39100,
+            20000,
+            10000
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 0,
+          "time": 3,
+          "velocity": 2.8249752521514893,
+          "observedBeforeState": [
+            33235,
+            20000,
+            20000
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 0,
+          "time": 4,
+          "velocity": 2.4012291431427,
+          "observedBeforeState": [
+            28249,
+            20000,
+            30000
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 0,
+          "time": 5,
+          "velocity": 0,
+          "observedBeforeState": [
+            24012,
+            20000,
+            40000
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 0,
+          "time": 6,
+          "velocity": 0,
+          "observedBeforeState": [
+            0,
+            20000,
+            50000
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 0,
+          "time": 7,
+          "velocity": 0,
+          "observedBeforeState": [
+            0,
+            20000,
+            60000
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 0,
+          "time": 8,
+          "velocity": 0,
+          "observedBeforeState": [
+            0,
+            20000,
+            70000
+          ]
+        }
+      ]
+    },
+    {
+      "injectedVelocity": 10,
+      "rawCaptureSha256": "1b1c82ba190e7af9557fe6a43b7d6fff3b0f0642fead0768090716519ddf9196",
+      "samples": [
+        {
+          "tick": 10,
+          "state": 0,
+          "time": 1,
+          "velocity": 3.9100000858306885,
+          "observedBeforeState": [
+            39100,
+            20000,
+            30000
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 0,
+          "time": 2,
+          "velocity": 8.5,
+          "observedBeforeState": [
+            100000,
+            20000,
+            10000
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 0,
+          "time": 3,
+          "velocity": 7.225000381469727,
+          "observedBeforeState": [
+            85000,
+            20000,
+            20000
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 0,
+          "time": 4,
+          "velocity": 6.1412506103515625,
+          "observedBeforeState": [
+            72250,
+            20000,
+            30000
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 0,
+          "time": 5,
+          "velocity": 0,
+          "observedBeforeState": [
+            61412,
+            20000,
+            40000
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 0,
+          "time": 6,
+          "velocity": 0,
+          "observedBeforeState": [
+            0,
+            20000,
+            50000
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 0,
+          "time": 7,
+          "velocity": 0,
+          "observedBeforeState": [
+            0,
+            20000,
+            60000
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 0,
+          "time": 8,
+          "velocity": 0,
+          "observedBeforeState": [
+            0,
+            20000,
+            70000
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -285,7 +285,7 @@ export class FighterRuntime {
     if(this.paletteNo!==1)this._paletteRemaps.set('1,1',[1,this.paletteNo]);
     this._initializing=false;
     this.aiLevel=this.parent?this.root.aiLevel:Math.max(0,Math.min(8,Math.trunc(Number.isFinite(Number(this.options.aiLevel))?Number(this.options.aiLevel):0)));
-    this.clipboard='';this.victoryQuoteIndex=-1;this.victoryQuote=null;this._dustTicks=new Map();this.cornerPush=0;
+    this.clipboard='';this.victoryQuoteIndex=-1;this.victoryQuote=null;this._dustTicks=new Map();this.cornerPush=0;this.cornerPushTarget=null;this.cornerPushSide=0;
     this._previousUp = false; this.airJumps = 0; this._changeCount = 0; this._executing = null;
     this.attackDist=undefined;
     this.changeState(0);
@@ -698,10 +698,10 @@ export class FighterRuntime {
     this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner;
     if (paused) {advanceHitState(this,{hitPaused:true});if(!this.world)this.updateExplods({hitPaused:true});this.hitPauseTime = Math.max(0, this.hitPauseTime - 1); this.gameTime++; return this.events; }
     if (!this.posFrozen && !this.bound&&!shaking) {
-      this.pos.x += this.vel.x * this.facing+this.cornerPush; this.pos.y += this.vel.y;
+      this.pos.x += this.vel.x * this.facing+(ordered?0:this.cornerPush); this.pos.y += this.vel.y;
       if(ordered){this.pos.x=Math.fround(this.pos.x);this.pos.y=Math.fround(this.pos.y);}
     }
-    this.cornerPush*=clamp(this.constant('movement.stand.friction'),0,1);if(Math.abs(this.cornerPush)<.01)this.cornerPush=0;
+    if(!ordered){this.cornerPush*=clamp(this.constant('movement.stand.friction'),0,1);if(Math.abs(this.cornerPush)<.01)this.cornerPush=0;}
     if (!shaking&&this.physics === 'A') {
       this.vel.y += (ordered?Math.fround(this.constant('movement.yaccel')):this.constant('movement.yaccel')) * this.coordinateScale;
       if(ordered)this.vel.y=Math.fround(this.vel.y);
@@ -1145,7 +1145,7 @@ export class FighterRuntime {
     const airborne = this.stateType === 'A'||!!override?.forceAir,downed=this.stateType==='L'&&!override?.forceAir,falling=airborne&&!!this.getHitVars.fall;
     const previous=this.getHitVars,inCombo=this.moveType==='H'&&!previous.guarded;
     const cornerPush=hit[(guarded?airborne?'airguard':'guard':downed?'down':airborne?'air':'ground')+'.cornerpush.veloff']||0;
-    if(hit.forcestand && this.stateType==='C')this.stateType='S';
+    if(!guarded&&hit.forcestand && this.stateType==='C')this.stateType='S';
     const baseDamage = numeric(hit.damage?.[guarded ? 1 : 0] || 0);
     const damage = Math.max(0,scaledDamage(baseDamage,attacker,this));
     const ordered=this.world?.orderedPhases,minimum=(guarded?hit['guard.kill']:hit.kill)===0?1:0,projected=clamp((this._projectedLife??this.life)-damage,minimum,this.maxLife);
@@ -1188,7 +1188,7 @@ export class FighterRuntime {
     this.hitTime = Math.max(0, time || 0)+(ordered&&!guarded&&time>0?1:0); this.hitPauseTime = ordered?0:Math.max(0, pause?.[1] || 0);
     this.ctrl = 0; this.moveType = 'H'; this.hitId = hit.id ?? 0;
     this.hitSourceId=hitSourceId(attacker);
-    if(!ordered)this.vel = { x: 0, y: 0 };this.cornerPush=0;
+    if(!ordered)this.vel = { x: 0, y: 0 };this.cornerPush=0;this.cornerPushTarget=null;
     if(attacker&&(!guarded||ordered)){
       const scale=hitScale;
       for(const [axis,index]of [['x',0],['y',1]]){

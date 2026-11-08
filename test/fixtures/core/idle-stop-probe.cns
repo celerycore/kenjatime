@@ -1,0 +1,49 @@
+; Independently authored black-box probe; insert these controllers at the start
+; of the character Statedef -3. The authored run recipe is kfm-100-0-1-near.
+; For the second run only, enable the first controller (x=10).
+[State Optional injected speed]
+type=VelSet
+trigger1=0 ; second run: stateno=0 && time=1
+x=10
+
+[State Reserved slot zero]
+type=VarSet
+trigger1=1
+ignorehitpause=1
+v=0
+value=0
+
+[State Reserved slot one]
+type=VarSet
+trigger1=1
+ignorehitpause=1
+v=1
+value=0
+
+[State Observe velocity]
+type=VarSet
+trigger1=1
+ignorehitpause=1
+v=2
+value=floor((Vel X)*10000)
+
+[State Observe threshold]
+type=VarSet
+trigger1=1
+ignorehitpause=1
+v=3
+value=floor(Const(movement.stand.friction.threshold)*10000)
+
+[State Observe time]
+type=VarSet
+trigger1=1
+ignorehitpause=1
+v=4
+value=Time*10000
+
+[State Observe animation time]
+type=VarSet
+trigger1=1
+ignorehitpause=1
+v=5
+value=floor(AnimElemTime(5)*10000)

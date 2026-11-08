@@ -1,6 +1,6 @@
 {
   "engine": "Kenjatime Core",
-  "version": "0.5.3-core-preview",
+  "version": "0.5.4-core-preview",
   "independentRuntime": true,
   "universalCompatibility": false,
   "recoveryTags": [
@@ -9,7 +9,7 @@
     "recovery/pre-original-engine-android-0.4.5"
   ],
   "unitTests": {
-    "core": 41,
+    "core": 46,
     "compiledRegressionCorpus": 549,
     "skipped": 0,
     "suppliedCharacterAndStageArchivesPresent": true,
@@ -141,257 +141,251 @@
     "scenarios": 147,
     "comparedTicks": 12854,
     "comparedFields": 771240,
-    "differentFields": 1195,
+    "differentFields": 458,
     "fieldCounts": {
-      "x": 1053,
-      "vx": 4,
-      "elementTime": 59,
-      "state": 28,
-      "time": 5,
-      "anim": 27,
-      "stateType": 13,
-      "element": 6
+      "x": 410,
+      "elementTime": 48
     },
     "firstDifferences": [
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 144,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 84,
+        "side": "opponent",
         "field": "x",
-        "native": 103.3491439819336,
-        "core": 105.97103881835938
+        "native": 90.25077819824219,
+        "core": 90.25079345703125
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 145,
+        "case": "kfm-1020-0-1-near",
+        "tick": 85,
         "side": "player",
         "field": "x",
-        "native": 103.14875793457031,
-        "core": 107.6059799194336
+        "native": 61.45077896118164,
+        "core": 61.45079040527344
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 146,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 85,
+        "side": "opponent",
         "field": "x",
-        "native": 103.25373077392578,
-        "core": 108.99568176269531
+        "native": 89.45077514648438,
+        "core": 89.45079040527344
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 147,
+        "case": "kfm-1020-0-1-near",
+        "tick": 86,
         "side": "player",
         "field": "x",
-        "native": 104.43497467041016,
-        "core": 110.17692565917969
+        "native": 60.65077590942383,
+        "core": 60.65079116821289
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 148,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 86,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 88.65077209472656,
+        "core": 88.65078735351562
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 149,
+        "case": "kfm-1020-0-1-near",
+        "tick": 87,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 59.850772857666016,
+        "core": 59.850791931152344
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 150,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 87,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 87.85076904296875,
+        "core": 87.85079193115234
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 151,
+        "case": "kfm-1020-0-1-near",
+        "tick": 88,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 58.350772857666016,
+        "core": 58.350791931152344
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 152,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 88,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 89.35076904296875,
+        "core": 89.35079193115234
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 153,
+        "case": "kfm-1020-0-1-near",
+        "tick": 89,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 58.350772857666016,
+        "core": 58.350791931152344
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 154,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 89,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 89.35076904296875,
+        "core": 89.35079193115234
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 155,
+        "case": "kfm-1020-0-1-near",
+        "tick": 90,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 58.350772857666016,
+        "core": 58.350791931152344
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 156,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 90,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 89.35076904296875,
+        "core": 89.35079193115234
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 157,
+        "case": "kfm-1020-0-1-near",
+        "tick": 91,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 58.350772857666016,
+        "core": 58.350791931152344
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 158,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 91,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 89.35076904296875,
+        "core": 89.35079193115234
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 159,
+        "case": "kfm-1020-0-1-near",
+        "tick": 92,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 57.750770568847656,
+        "core": 57.75079345703125
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 160,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 92,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 88.75077819824219,
+        "core": 88.75079345703125
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 161,
+        "case": "kfm-1020-0-1-near",
+        "tick": 93,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 57.15077590942383,
+        "core": 57.150794982910156
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 162,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 93,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 88.15077209472656,
+        "core": 88.15079498291016
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 163,
+        "case": "kfm-1020-0-1-near",
+        "tick": 94,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 56.55077362060547,
+        "core": 56.55079650878906
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 164,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 94,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 87.55078125,
+        "core": 87.55079650878906
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 165,
+        "case": "kfm-1020-0-1-near",
+        "tick": 95,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 55.95077896118164,
+        "core": 55.95079803466797
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 166,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 95,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 86.95077514648438,
+        "core": 86.95079803466797
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 167,
+        "case": "kfm-1020-0-1-near",
+        "tick": 96,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 55.35077667236328,
+        "core": 55.350799560546875
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 168,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 96,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 86.35078430175781,
+        "core": 86.35079956054688
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 169,
+        "case": "kfm-1020-0-1-near",
+        "tick": 97,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 54.75078201293945,
+        "core": 54.75080108642578
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 170,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 97,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 85.75077819824219,
+        "core": 85.75080108642578
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 171,
+        "case": "kfm-1020-0-1-near",
+        "tick": 98,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 54.150779724121094,
+        "core": 54.15080261230469
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 172,
-        "side": "player",
+        "case": "kfm-1020-0-1-near",
+        "tick": 98,
+        "side": "opponent",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 85.15078735351562,
+        "core": 85.15080261230469
       },
       {
-        "case": "kfm-3000-0-1-near",
-        "tick": 173,
+        "case": "kfm-1020-0-1-near",
+        "tick": 99,
         "side": "player",
         "field": "x",
-        "native": 105.43903350830078,
-        "core": 111.18098449707031
+        "native": 53.550785064697266,
+        "core": 53.550804138183594
       }
     ],
     "nativeCaptureSha256": "10680807361ae7544d6a9bc7fd9ad25006817774a2330dba7ce04cc78784fd84",
@@ -405,8 +399,8 @@
     },
     "scope": "Identical authored neutral setup and AssertInput CNS recipes; primary state/motion/contact fields only. Native common-state implementation is not loaded. Palette pixels, full helper/projectile field traces, and full native resource identity are not compared. Differences remain explicit; no certification is claimed.",
     "verifiedSubset": {
-      "required": 132,
-      "matched": 132,
+      "required": 141,
+      "matched": 141,
       "failures": []
     }
   },
@@ -414,740 +408,1469 @@
     {
       "id": "kfm-3050-0-1-near",
       "ticks": 253,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3050-0-1-far",
       "ticks": 94,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3050-0-1-guard",
       "ticks": 124,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3050-0--1-near",
       "ticks": 253,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3050-1-1-near",
       "ticks": 253,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3050-1--1-near",
       "ticks": 253,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3000-0-1-near",
       "ticks": 266,
-      "differences": 123
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3000-0-1-far",
       "ticks": 236,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3000-0-1-guard",
       "ticks": 183,
-      "differences": 43
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3000-0--1-near",
       "ticks": 266,
-      "differences": 123
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3000-1-1-near",
       "ticks": 266,
-      "differences": 123
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-3000-1--1-near",
       "ticks": 266,
-      "differences": 123
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1070-0-1-near",
       "ticks": 195,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1070-0-1-far",
       "ticks": 53,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1070-0-1-guard",
       "ticks": 73,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1070-0--1-near",
       "ticks": 195,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1050-0-1-near",
       "ticks": 173,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1050-0-1-far",
       "ticks": 48,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1050-0-1-guard",
       "ticks": 60,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1050-0--1-near",
       "ticks": 173,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1060-0-1-near",
       "ticks": 175,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1060-0-1-far",
       "ticks": 55,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1060-0-1-guard",
       "ticks": 67,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1060-0--1-near",
       "ticks": 175,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1020-0-1-near",
       "ticks": 186,
-      "differences": 205
+      "differences": 205,
+      "firstDifferences": [
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 84,
+          "side": "opponent",
+          "field": "x",
+          "native": 90.25077819824219,
+          "core": 90.25079345703125
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 85,
+          "side": "player",
+          "field": "x",
+          "native": 61.45077896118164,
+          "core": 61.45079040527344
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 85,
+          "side": "opponent",
+          "field": "x",
+          "native": 89.45077514648438,
+          "core": 89.45079040527344
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 86,
+          "side": "player",
+          "field": "x",
+          "native": 60.65077590942383,
+          "core": 60.65079116821289
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 86,
+          "side": "opponent",
+          "field": "x",
+          "native": 88.65077209472656,
+          "core": 88.65078735351562
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 87,
+          "side": "player",
+          "field": "x",
+          "native": 59.850772857666016,
+          "core": 59.850791931152344
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 87,
+          "side": "opponent",
+          "field": "x",
+          "native": 87.85076904296875,
+          "core": 87.85079193115234
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 88,
+          "side": "player",
+          "field": "x",
+          "native": 58.350772857666016,
+          "core": 58.350791931152344
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 88,
+          "side": "opponent",
+          "field": "x",
+          "native": 89.35076904296875,
+          "core": 89.35079193115234
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 89,
+          "side": "player",
+          "field": "x",
+          "native": 58.350772857666016,
+          "core": 58.350791931152344
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 89,
+          "side": "opponent",
+          "field": "x",
+          "native": 89.35076904296875,
+          "core": 89.35079193115234
+        },
+        {
+          "case": "kfm-1020-0-1-near",
+          "tick": 90,
+          "side": "player",
+          "field": "x",
+          "native": 58.350772857666016,
+          "core": 58.350791931152344
+        }
+      ]
     },
     {
       "id": "kfm-1020-0-1-far",
       "ticks": 52,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1020-0-1-guard",
       "ticks": 60,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1020-0--1-near",
       "ticks": 186,
-      "differences": 205
+      "differences": 205,
+      "firstDifferences": [
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 84,
+          "side": "opponent",
+          "field": "x",
+          "native": -90.25077819824219,
+          "core": -90.25079345703125
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 85,
+          "side": "player",
+          "field": "x",
+          "native": -61.45077896118164,
+          "core": -61.45079040527344
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 85,
+          "side": "opponent",
+          "field": "x",
+          "native": -89.45077514648438,
+          "core": -89.45079040527344
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 86,
+          "side": "player",
+          "field": "x",
+          "native": -60.65077590942383,
+          "core": -60.65079116821289
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 86,
+          "side": "opponent",
+          "field": "x",
+          "native": -88.65077209472656,
+          "core": -88.65078735351562
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 87,
+          "side": "player",
+          "field": "x",
+          "native": -59.850772857666016,
+          "core": -59.850791931152344
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 87,
+          "side": "opponent",
+          "field": "x",
+          "native": -87.85076904296875,
+          "core": -87.85079193115234
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 88,
+          "side": "player",
+          "field": "x",
+          "native": -58.350772857666016,
+          "core": -58.350791931152344
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 88,
+          "side": "opponent",
+          "field": "x",
+          "native": -89.35076904296875,
+          "core": -89.35079193115234
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 89,
+          "side": "player",
+          "field": "x",
+          "native": -58.350772857666016,
+          "core": -58.350791931152344
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 89,
+          "side": "opponent",
+          "field": "x",
+          "native": -89.35076904296875,
+          "core": -89.35079193115234
+        },
+        {
+          "case": "kfm-1020-0--1-near",
+          "tick": 90,
+          "side": "player",
+          "field": "x",
+          "native": -58.350772857666016,
+          "core": -58.350791931152344
+        }
+      ]
     },
     {
       "id": "kfm-1000-0-1-near",
       "ticks": 160,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1000-0-1-far",
       "ticks": 44,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1000-0-1-guard",
       "ticks": 59,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1000-0--1-near",
       "ticks": 160,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1010-0-1-near",
       "ticks": 161,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1010-0-1-far",
       "ticks": 49,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1010-0-1-guard",
       "ticks": 64,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1010-0--1-near",
       "ticks": 161,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1120-0-1-near",
       "ticks": 200,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1120-0-1-far",
       "ticks": 48,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1120-0-1-guard",
       "ticks": 72,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1120-0--1-near",
       "ticks": 200,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1100-0-1-near",
       "ticks": 187,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1100-0-1-far",
       "ticks": 42,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1100-0-1-guard",
       "ticks": 58,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1100-0--1-near",
       "ticks": 187,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1110-0-1-near",
       "ticks": 194,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1110-0-1-far",
       "ticks": 49,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1110-0-1-guard",
       "ticks": 65,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1110-0--1-near",
       "ticks": 194,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1220-0-1-near",
       "ticks": 69,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1220-0-1-far",
       "ticks": 46,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1220-0-1-guard",
       "ticks": 61,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1220-0--1-near",
       "ticks": 69,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1200-0-1-near",
       "ticks": 58,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1200-0-1-far",
       "ticks": 42,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1200-0-1-guard",
       "ticks": 54,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1200-0--1-near",
       "ticks": 58,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1210-0-1-near",
       "ticks": 64,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1210-0-1-far",
       "ticks": 47,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1210-0-1-guard",
       "ticks": 59,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1210-0--1-near",
       "ticks": 64,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1300-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1300-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1300-1-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1300-1--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1320-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1320-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1320-1-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1320-1--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1340-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1340-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1340-1-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1340-1--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1420-0-1-near",
       "ticks": 175,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1420-0-1-far",
       "ticks": 54,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1420-0-1-guard",
       "ticks": 75,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1420-0--1-near",
       "ticks": 175,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1400-0-1-near",
       "ticks": 53,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1400-0-1-far",
       "ticks": 41,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1400-0-1-guard",
       "ticks": 53,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1400-0--1-near",
       "ticks": 53,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1410-0-1-near",
       "ticks": 57,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1410-0-1-far",
       "ticks": 45,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1410-0-1-guard",
       "ticks": 57,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1410-0--1-near",
       "ticks": 57,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-100-0-1-near",
       "ticks": 40,
-      "differences": 56
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-100-0--1-near",
       "ticks": 40,
-      "differences": 56
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-105-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-105-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-800-0-1-near",
       "ticks": 184,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-800-0--1-near",
       "ticks": 184,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-200-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-200-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-200-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-200-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-210-0-1-near",
       "ticks": 40,
-      "differences": 12
+      "differences": 12,
+      "firstDifferences": [
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 11,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 12,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 13,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 14,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 15,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 16,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 17,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 18,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 19,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 20,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 21,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-near",
+          "tick": 22,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        }
+      ]
     },
     {
       "id": "kfm-210-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-210-0-1-guard",
       "ticks": 40,
-      "differences": 12
+      "differences": 12,
+      "firstDifferences": [
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 11,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 12,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 13,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 14,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 15,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 16,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 17,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 18,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 19,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 20,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 21,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0-1-guard",
+          "tick": 22,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        }
+      ]
     },
     {
       "id": "kfm-210-0--1-near",
       "ticks": 40,
-      "differences": 12
+      "differences": 12,
+      "firstDifferences": [
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 11,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 12,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 13,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 14,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 15,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 16,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 17,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 18,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 19,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 20,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 21,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-210-0--1-near",
+          "tick": 22,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        }
+      ]
     },
     {
       "id": "kfm-230-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-230-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-230-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-230-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-240-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-240-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-240-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-240-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-195-0-1-near",
       "ticks": 42,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-195-0--1-near",
       "ticks": 42,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-400-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-400-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-400-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-400-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-410-0-1-near",
       "ticks": 56,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-410-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-410-0-1-guard",
       "ticks": 52,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-410-0--1-near",
       "ticks": 56,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-430-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-430-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-430-0-1-guard",
       "ticks": 40,
-      "differences": 20
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-430-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-440-0-1-near",
       "ticks": 120,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-440-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-440-0-1-guard",
       "ticks": 48,
-      "differences": 70
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-440-0--1-near",
       "ticks": 120,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-600-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-600-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-600-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-600-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-610-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-610-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-610-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-610-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-630-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-630-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-630-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-630-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-640-0-1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-640-0-1-far",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-640-0-1-guard",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-640-0--1-near",
       "ticks": 40,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-back-throw-1",
       "ticks": 201,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-back-throw--1",
       "ticks": 201,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-chain",
       "ticks": 80,
-      "differences": 12
+      "differences": 12,
+      "firstDifferences": [
+        {
+          "case": "kfm-chain",
+          "tick": 51,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 52,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 53,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 54,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 55,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 56,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 57,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 58,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 59,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 60,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 61,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        },
+        {
+          "case": "kfm-chain",
+          "tick": 62,
+          "side": "player",
+          "field": "elementTime",
+          "native": 1,
+          "core": 0
+        }
+      ]
     },
     {
       "id": "kfm-insufficient-power-1020",
       "ticks": 160,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-insufficient-power-1070",
       "ticks": 173,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-insufficient-power-3000",
       "ticks": 169,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-insufficient-power-3050",
       "ticks": 67,
-      "differences": 0
+      "differences": 0,
+      "firstDifferences": []
     }
   ],
-  "exactMovesetScenarios": 132,
+  "exactMovesetScenarios": 141,
   "benchmark": {
     "engine": "Kenjatime Core",
     "node": "v24.19.0",
@@ -1217,19 +1940,19 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 10513,
+          "wasm": 9259,
           "interpreted": 2,
           "deoptimized": 0,
-          "compiled": 483,
-          "bytes": 16596,
-          "activeFunctions": 483
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 42,
+          "frames": 83,
           "draws": 3,
-          "textureBytes": 118536,
-          "textures": 26,
+          "textureBytes": 135095,
+          "textures": 29,
           "width": 960,
           "height": 540
         },
@@ -1275,19 +1998,19 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 11128,
-          "interpreted": 5,
+          "wasm": 9163,
+          "interpreted": 2,
           "deoptimized": 0,
-          "compiled": 483,
-          "bytes": 16596,
-          "activeFunctions": 483
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 28,
+          "frames": 83,
           "draws": 3,
-          "textureBytes": 113181,
-          "textures": 25,
+          "textureBytes": 135095,
+          "textures": 29,
           "width": 960,
           "height": 540
         },
@@ -1308,7 +2031,7 @@
             "peak": 0,
             "underruns": 0
           },
-          "voices": 0,
+          "voices": 1,
           "cacheBytes": 22004,
           "cachedSounds": 1,
           "decoding": 0,
@@ -1334,19 +2057,19 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 10364,
-          "interpreted": 3,
+          "wasm": 9546,
+          "interpreted": 2,
           "deoptimized": 0,
-          "compiled": 483,
-          "bytes": 16596,
-          "activeFunctions": 483
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 33,
+          "frames": 79,
           "draws": 3,
-          "textureBytes": 123877,
-          "textures": 27,
+          "textureBytes": 135095,
+          "textures": 29,
           "width": 960,
           "height": 540
         },
@@ -1496,9 +2219,9 @@
   },
   "android": {
     "applicationId": "io.github.celerycore.kenjatime.core.preview",
-    "version": "0.5.3-core-preview",
-    "bytes": 6958458,
-    "sha256": "d567d8f3b6cddda85e91ec25280038d90d4789b595209f505670641f0cbb2f33",
+    "version": "0.5.4-core-preview",
+    "bytes": 7207442,
+    "sha256": "6612958f21cb631dc502f0b8d351c99e3410a9b77ec5efc6ff979ae9f443c564",
     "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
     "offlineAssetsMatchWebBuild": true,
     "bundledFiles": 36,
@@ -1514,120 +2237,27 @@
     "defaultBuildUsesSeparatePreviewId": true
   },
   "build": {
-    "bytes": 6610992,
+    "bytes": 6617437,
     "graphManifests": 4,
     "artifactManifest": "dist-core/provenance.json"
   },
   "physicalPhoneMeasured": false,
   "movesetImprovement": {
-    "baselineSource": "d543cb55bbcacf7d140b37a12125d527e6133844",
+    "baselineSource": "4a97df40086a68d4e754889c937085633e717a60",
     "sameAuthoredInputPlan": true,
     "inputPlanSha256": "309e60bc59e19f977271d5a7dabd56011a862f754c7c715e04ad8b6547295a6c",
     "unchangedNativeCapture": true,
-    "baselineExactScenarios": 103,
-    "currentExactScenarios": 132,
-    "baselineDifferentFields": 5422,
-    "currentDifferentFields": 1195,
-    "reductionPercent": 77.96,
+    "baselineExactScenarios": 132,
+    "currentExactScenarios": 141,
+    "baselineDifferentFields": 1195,
+    "currentDifferentFields": 458,
+    "reductionPercent": 61.67,
     "previouslyMatchingScenariosRegressed": 0,
     "scope": "Root combat trace fields across the same 147 captured scenarios in their original order; not a frame-rate benchmark or full compatibility claim."
   },
   "combatBenchmark": {
-    "baselineSource": "d543cb55bbcacf7d140b37a12125d527e6133844",
+    "baselineSource": "4a97df40086a68d4e754889c937085633e717a60",
     "baseline": {
-      "engine": "Kenjatime Core",
-      "version": "0.5.2-core-preview",
-      "node": "v24.19.0",
-      "platform": "linux",
-      "arch": "x64",
-      "combatSourceSha256": "ca7bd04e42d87fc146688284bb8261449a98792b7740a86628f32da505ba3339",
-      "simulationSources": {
-        "src/combat.js": "ca7bd04e42d87fc146688284bb8261449a98792b7740a86628f32da505ba3339",
-        "src/runtime.js": "997ea36034622ed33297b7fe88bd7521adc0781e852d611882df6bc5d9670842",
-        "src/common.js": "303afb70bd26d275376266a18ec45ddf50bbb67eb2b776e4ec32f9a14d308fc5",
-        "src/coordinates.js": "e78025e9f91b2c25c2b66c5b4d8d5f9e88d4888467125ee532848a0ddd326b11",
-        "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
-        "src/expressions.js": "dcfab8e96748d520097816795c249f97ffcb82aa21f726d2fe3c528dd232f63f",
-        "src/hit-state.js": "a35f52ae114045a5bb6fb858b710db585a14ef441164636a07ec691388e1915c",
-        "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
-        "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
-        "src/cpu.js": "564266a9e8ea72990e6cf8104829b401aef81a1c58ff956d22ac3c72d879d729",
-        "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4"
-      },
-      "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
-      "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
-      "workloads": [
-        {
-          "name": "two-fighters",
-          "helpers": 0,
-          "attacking": true,
-          "projectiles": 0,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 31.21092999999999,
-          "timesMs": [
-            40.60442800000001,
-            34.926309,
-            31.21092999999999,
-            20.83483100000001,
-            19.85425300000003
-          ],
-          "checksum": 3101414621
-        },
-        {
-          "name": "idle-helpers",
-          "helpers": 40,
-          "attacking": false,
-          "projectiles": 0,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 116.79185299999995,
-          "timesMs": [
-            118.85764599999999,
-            115.34397000000001,
-            115.76075900000001,
-            125.21356500000002,
-            116.79185299999995
-          ],
-          "checksum": 960736573
-        },
-        {
-          "name": "attacking-helpers",
-          "helpers": 40,
-          "attacking": true,
-          "projectiles": 0,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 1616.4347659999994,
-          "timesMs": [
-            1528.0714280000002,
-            1588.4496170000002,
-            1616.4347659999994,
-            1815.1486540000005,
-            1660.0704769999993
-          ],
-          "checksum": 984608061
-        },
-        {
-          "name": "projectile-load",
-          "helpers": 16,
-          "attacking": true,
-          "projectiles": 32,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 986.5058119999994,
-          "timesMs": [
-            1090.2675100000015,
-            986.5058119999994,
-            1008.254809,
-            942.8485849999997,
-            971.8604190000005
-          ],
-          "checksum": 2939807261
-        }
-      ]
-    },
-    "optimized": {
       "engine": "Kenjatime Core",
       "version": "0.5.3-core-preview",
       "node": "v24.19.0",
@@ -1657,13 +2287,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 19.784864,
+          "medianMs": 23.16447499999998,
           "timesMs": [
-            32.297380000000004,
-            21.760582,
-            19.784864,
-            18.551525999999996,
-            17.47384199999999
+            30.72954999999999,
+            24.12714600000001,
+            21.490721000000008,
+            23.16447499999998,
+            20.833290000000005
           ],
           "checksum": 3101414621
         },
@@ -1674,13 +2304,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 124.09616499999993,
+          "medianMs": 122.89109800000006,
           "timesMs": [
-            124.09616499999993,
-            115.98281900000006,
-            116.21893499999999,
-            133.89856699999996,
-            126.94223399999987
+            125.46747900000003,
+            127.40948700000001,
+            118.45483200000001,
+            122.89109800000006,
+            107.91689799999995
           ],
           "checksum": 960736573
         },
@@ -1691,13 +2321,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 1466.2046019999998,
+          "medianMs": 1423.4147709999997,
           "timesMs": [
-            1453.2092619999999,
-            1520.4695590000001,
-            1478.6922270000005,
-            1461.4208320000007,
-            1466.2046019999998
+            1589.9988799999996,
+            1324.3108569999995,
+            1412.7866169999998,
+            1433.811948999999,
+            1423.4147709999997
           ],
           "checksum": 984608061
         },
@@ -1708,13 +2338,106 @@
           "projectiles": 32,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 997.8287720000008,
+          "medianMs": 880.673906,
           "timesMs": [
-            852.4400400000013,
-            934.1212250000008,
-            997.8287720000008,
-            1066.742454000001,
-            1009.3280769999983
+            880.673906,
+            878.6460719999995,
+            872.9105589999999,
+            896.2232059999988,
+            904.7797130000017
+          ],
+          "checksum": 2939807261
+        }
+      ]
+    },
+    "optimized": {
+      "engine": "Kenjatime Core",
+      "version": "0.5.4-core-preview",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64",
+      "combatSourceSha256": "7a5298ff039a1a61f70735447000d08f5af68212393ea252a8826916be8c98da",
+      "simulationSources": {
+        "src/combat.js": "7a5298ff039a1a61f70735447000d08f5af68212393ea252a8826916be8c98da",
+        "src/runtime.js": "226b5101991364ff0d556604cf8db9df65097ea807dbd65ae93c9473e9dfbc1a",
+        "src/common.js": "86ab2e401e7027fbfc1bd318b91d8688821cb5f0c6e69a6306dbaf14fdb9c37b",
+        "src/coordinates.js": "6ca870a1720be3b154d05313fff1e02b3456a532198c2fdd57792b7976405518",
+        "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
+        "src/expressions.js": "dcfab8e96748d520097816795c249f97ffcb82aa21f726d2fe3c528dd232f63f",
+        "src/hit-state.js": "a35f52ae114045a5bb6fb858b710db585a14ef441164636a07ec691388e1915c",
+        "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
+        "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
+        "src/cpu.js": "564266a9e8ea72990e6cf8104829b401aef81a1c58ff956d22ac3c72d879d729",
+        "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4"
+      },
+      "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
+      "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
+      "workloads": [
+        {
+          "name": "two-fighters",
+          "helpers": 0,
+          "attacking": true,
+          "projectiles": 0,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 24.092670999999996,
+          "timesMs": [
+            35.635902999999985,
+            32.462774000000024,
+            20.76797399999998,
+            24.092670999999996,
+            20.95759899999996
+          ],
+          "checksum": 3101414621
+        },
+        {
+          "name": "idle-helpers",
+          "helpers": 40,
+          "attacking": false,
+          "projectiles": 0,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 109.66999499999997,
+          "timesMs": [
+            135.28249300000004,
+            107.10252700000001,
+            99.74757699999998,
+            110.74587900000006,
+            109.66999499999997
+          ],
+          "checksum": 960736573
+        },
+        {
+          "name": "attacking-helpers",
+          "helpers": 40,
+          "attacking": true,
+          "projectiles": 0,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 853.24613,
+          "timesMs": [
+            871.1036959999997,
+            883.8594839999996,
+            853.24613,
+            771.2933400000002,
+            840.8047559999995
+          ],
+          "checksum": 984608061
+        },
+        {
+          "name": "projectile-load",
+          "helpers": 16,
+          "attacking": true,
+          "projectiles": 32,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 596.3470949999992,
+          "timesMs": [
+            635.4929339999999,
+            596.3470949999992,
+            590.0379169999997,
+            573.539182999999,
+            631.2762399999992
           ],
           "checksum": 2939807261
         }
@@ -1723,36 +2446,40 @@
     "comparison": [
       {
         "name": "two-fighters",
-        "baselineMedianMs": 31.21092999999999,
-        "optimizedMedianMs": 19.784864,
-        "speedup": 1.5775155189340697,
+        "baselineMs": 23.16447499999998,
+        "optimizedMs": 24.092670999999996,
+        "speedup": 0.9614739270710162,
+        "lessCpuPercent": -4.006980516502168,
         "identicalChecksums": true
       },
       {
         "name": "idle-helpers",
-        "baselineMedianMs": 116.79185299999995,
-        "optimizedMedianMs": 124.09616499999993,
-        "speedup": 0.9411399054918419,
+        "baselineMs": 122.89109800000006,
+        "optimizedMs": 109.66999499999997,
+        "speedup": 1.1205535114686573,
+        "lessCpuPercent": 10.758389513290933,
         "identicalChecksums": true
       },
       {
         "name": "attacking-helpers",
-        "baselineMedianMs": 1616.4347659999994,
-        "optimizedMedianMs": 1466.2046019999998,
-        "speedup": 1.1024619373006166,
+        "baselineMs": 1423.4147709999997,
+        "optimizedMs": 853.24613,
+        "speedup": 1.668234664011895,
+        "lessCpuPercent": 40.05639484824483,
         "identicalChecksums": true
       },
       {
         "name": "projectile-load",
-        "baselineMedianMs": 986.5058119999994,
-        "optimizedMedianMs": 997.8287720000008,
-        "speedup": 0.9886524017770042,
+        "baselineMs": 880.673906,
+        "optimizedMs": 596.3470949999992,
+        "speedup": 1.4767807429329411,
+        "lessCpuPercent": 32.28514085212385,
         "identicalChecksums": true
       }
     ],
-    "scope": "Median of five 2,000-tick stationary synthetic CPU simulations after warm-up; attacks miss by design. Same independent JS interpreter, geometry and cleanup; no graphics/audio/imports. Checksums match. Two-fighter and attacking-helper samples improved; idle-helper and projectile samples were slightly slower. No phone/browser FPS claim."
+    "scope": "Sequential host samples of authored stationary synthetic loads. Identical checksums; no graphics/audio/imports, phone FPS or full-engine comparison. A final source change to handle positive wall offsets required rerunning the optimized measurement; these are the final-source results."
   },
-  "previousVerifiedCheckpoint": "checkpoint/core-preview-0.5.2",
+  "previousVerifiedCheckpoint": "checkpoint/core-preview-0.5.3",
   "remainingMovesetExamples": [
     {
       "id": "kfm-1020-0-1-near",
@@ -1779,75 +2506,51 @@
       }
     },
     {
-      "id": "kfm-3000-0-1-near",
-      "differentFields": 123,
+      "id": "kfm-210-0-1-near",
+      "differentFields": 12,
       "firstDifference": {
-        "case": "kfm-3000-0-1-near",
-        "tick": 144,
+        "case": "kfm-210-0-1-near",
+        "tick": 11,
         "side": "player",
-        "field": "x",
-        "native": 103.3491439819336,
-        "core": 105.97103881835938
+        "field": "elementTime",
+        "native": 1,
+        "core": 0
       }
     },
     {
-      "id": "kfm-3000-0--1-near",
-      "differentFields": 123,
+      "id": "kfm-210-0-1-guard",
+      "differentFields": 12,
       "firstDifference": {
-        "case": "kfm-3000-0--1-near",
-        "tick": 144,
+        "case": "kfm-210-0-1-guard",
+        "tick": 11,
         "side": "player",
-        "field": "x",
-        "native": -103.3491439819336,
-        "core": -105.97103881835938
+        "field": "elementTime",
+        "native": 1,
+        "core": 0
       }
     },
     {
-      "id": "kfm-3000-1-1-near",
-      "differentFields": 123,
+      "id": "kfm-210-0--1-near",
+      "differentFields": 12,
       "firstDifference": {
-        "case": "kfm-3000-1-1-near",
-        "tick": 144,
+        "case": "kfm-210-0--1-near",
+        "tick": 11,
         "side": "player",
-        "field": "x",
-        "native": 103.3491439819336,
-        "core": 105.97103881835938
+        "field": "elementTime",
+        "native": 1,
+        "core": 0
       }
     },
     {
-      "id": "kfm-3000-1--1-near",
-      "differentFields": 123,
+      "id": "kfm-chain",
+      "differentFields": 12,
       "firstDifference": {
-        "case": "kfm-3000-1--1-near",
-        "tick": 144,
+        "case": "kfm-chain",
+        "tick": 51,
         "side": "player",
-        "field": "x",
-        "native": -103.3491439819336,
-        "core": -105.97103881835938
-      }
-    },
-    {
-      "id": "kfm-440-0-1-guard",
-      "differentFields": 70,
-      "firstDifference": {
-        "case": "kfm-440-0-1-guard",
-        "tick": 15,
-        "side": "opponent",
-        "field": "state",
-        "native": 152,
-        "core": 150
-      }
-    },
-    {
-      "id": "kfm-100-0-1-near",
-      "differentFields": 56,
-      "firstDifference": {
-        "case": "kfm-100-0-1-near",
-        "tick": 14,
-        "side": "player",
-        "field": "x",
-        "native": 2.849236488342285,
-        "core": 4.049854278564453
+        "field": "elementTime",
+        "native": 1,
+        "core": 0
       }
     }
   ],
@@ -1878,6 +2581,27 @@
     "queuedStateRecoversAfterPreviousTickStateLoopBudget": true,
     "unchangedAnimationContinuesThroughDeferredStateEntry": true,
     "explicitAnimationRestartResetsClock": true,
-    "scalarReadsRemainLiveAcrossHelperTargetRedirects": true
+    "scalarReadsRemainLiveAcrossHelperTargetRedirects": true,
+    "wallRecoilWaitsForTargetBoundary": true,
+    "recoilFreezesInHitpauseAndWorldPause": true,
+    "positiveWallOffsetsUseTargetBoundary": true,
+    "recoilRegistryClearsDestroyedHelpersAndReset": true,
+    "zeroWallOffsetReleasesTarget": true,
+    "guardEndAndCrouchingBlockVerified": true,
+    "browserPauseAwaitsPublishedPausedSnapshot": true
+  },
+  "idleStopProbes": {
+    "runs": 2,
+    "fixtureSha256": "e6a7a319198ec559aa74ed5aed855ef62ebf355c6de2976c89c738df8835ae2c",
+    "reference": {
+      "kind": "native-observations",
+      "version": "1.0.0",
+      "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+      "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+      "method": "Unmodified official Linux executable, original KFM data and authored QA AssertInput recipe for kfm-100-0-1-near. Authored -3 controllers sample velocity, threshold and state time before the common state runs. The second run injects x velocity 10 at idle time 1. No native implementation source was read.",
+      "engine": "IKEMEN GO",
+      "releaseUrl": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/Ikemen_GO-v1.0.0-linux.zip"
+    },
+    "scope": "Default standing idle with no direction held, ground friction .85 and threshold 2, localcoord 320. Does not establish other common-state or physics profiles."
   }
 }

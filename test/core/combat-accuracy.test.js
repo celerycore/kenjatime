@@ -198,6 +198,113 @@ test("crouching guard enters its startup pose before the held guard state", () =
   s.close();
 });
 
+test("held crouching guard retires through guard end when the threat disappears", () => {
+  const s = new CoreSession(sampleFiles(), { mode: "training" }),
+    a = s.match.player;
+  s.tick();
+  a.changeState(131);
+  a.inGuardDistance = true;
+  s.tick(new Set(["D", "L"]));
+  assert.equal(a.stateNo, 131);
+  a.inGuardDistance = false;
+  s.tick(new Set(["D", "L"]));
+  assert.equal(a.stateNo, 140);
+  assert.equal(a.stateType, "C");
+  s.tick(new Set(["D", "L"]));
+  assert.equal(a.stateNo, 11);
+  s.close();
+});
+
+test("default idle stops residual run speed at the native four-tick limit", () => {
+  const fixture = JSON.parse(
+    readFileSync(new URL("../fixtures/core/idle-stop.json", import.meta.url)),
+  );
+  for (const run of fixture.runs) {
+    const s = new CoreSession(sampleFiles(), { mode: "training" }),
+      a = s.match.player;
+    s.tick();
+    a.changeState(0);
+    // Capture starts immediately after idle time zero has executed.
+    s.tick();
+    a.vel.x = run.samples[0].velocity;
+    for (const expected of run.samples.slice(1)) {
+      if (run.injectedVelocity !== null && a.time === 1)
+        a.vel.x = run.injectedVelocity;
+      s.tick();
+      assert.equal(a.time, expected.time);
+      assert.equal(a.vel.x, expected.velocity);
+    }
+    s.close();
+  }
+});
+
+test("forcestand changes an unguarded crouching hit but preserves a crouching block", () => {
+  for (const guarded of [false, true]) {
+    const m = match(
+      "[Statedef 201]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=200\n" +
+        "[State Hit]\ntype=HitDef\ntrigger1=Time=0\nattr=S,NA\nforcestand=1\npausetime=0,0\nguardflag=L\nground.hittime=10\n",
+    );
+    m.player.changeState(201);
+    m.tick();
+    m.opponent.stateType = "C";
+    m.opponent.receiveHit(m.player.hitDef, m.player, { guarded });
+    assert.equal(m.opponent.stateNo, guarded ? 152 : 5000);
+    assert.equal(m.opponent.stateType, guarded ? "C" : "S");
+  }
+});
+
+test("wall recoil waits for the target boundary and freezes with hitpause or world pause", () => {
+  for (const facing of [1, -1]) {
+    const m = match(),
+      a = m.player,
+      b = m.opponent;
+    a.pos.x = 0;
+    b.pos.x = 150 * facing;
+    b.facing = facing;
+    b.vel.x = 5;
+    m.applyCornerPush(a, b, -10);
+    a.hitPauseTime = 1;
+    m.tick();
+    assert.equal(a.pos.x, 0);
+    assert.equal(a.cornerPush, -10 * facing);
+    m.tick();
+    assert.equal(a.pos.x, -10 * facing);
+    assert.equal(a.cornerPush, -7 * facing);
+    m.pause = { remaining: 1, movetime: 0, moved: new Map(), elapsed: 0 };
+    m.tick();
+    assert.equal(a.pos.x, -10 * facing);
+    assert.equal(a.cornerPush, -7 * facing);
+    m.tick();
+    assert.equal(a.pos.x, -17 * facing);
+    m.applyCornerPush(a, b, 0);
+    assert.equal(m.cornerPushActors.size, 0);
+    assert.equal(a.cornerPushTarget, null);
+    m.tick();
+    assert.equal(a.pos.x, -17 * facing);
+  }
+});
+
+test("positive wall velocity offsets use the target boundary and retire with destroyed helpers", () => {
+  for (const facing of [1, -1]) {
+    const m = match(),
+      a = m.player,
+      b = m.opponent;
+    a.pos.x = 0;
+    b.pos.x = 160 * facing;
+    m.applyCornerPush(a, b, 5);
+    m.tick();
+    assert.equal(a.pos.x, 5 * facing);
+    const helper = m.spawnHelper(a, { stateno: 0 });
+    m.applyCornerPush(helper, b, -5);
+    assert.ok(m.cornerPushActors.has(helper));
+    m.destroyHelper(helper);
+    m.tick();
+    assert.ok(!m.cornerPushActors.has(helper));
+    m.reset();
+    assert.equal(m.cornerPushActors.size, 0);
+  }
+});
+
 test("trip motion starts without an extra gravity step and resets the hit-shake animation clock", () => {
   const s = new CoreSession(sampleFiles(), { mode: "training" }),
     a = s.match.player;

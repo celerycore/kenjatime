@@ -49,14 +49,12 @@ function contactArea(attackBoxes, hurtBoxes, inclusive=false) {
   return null;
 }
 
-function allowsState(hit, defender) {
-  const flags = flagText(hit.hitFlag ?? hit.hitflag ?? 'MAF');
-  if (!/[HLAMFD]/.test(flags) || (flags.includes('+') && flags.includes('-'))) return false;
+function allowsState(flags, defender) {
   const inHit = defender.moveType === 'H';
   if (flags.includes('+') && !inHit || flags.includes('-') && inHit) return false;
   if (defender.stateType === 'L') return flags.includes('D');
   if (defender.stateType === 'A') return flags.includes(defender.moveType==='H'&&defender.getHitVars?.fall?'F':'A');
-  return defender.stateType === 'C' ? /[LM]/.test(flags) : /[HM]/.test(flags);
+  return flags.includes('M')||flags.includes(defender.stateType==='C'?'L':'H');
 }
 
 function canGuard(hit, attacker, defender, commands) {
@@ -122,7 +120,7 @@ export class TrainingMatch {
     this.player.opponent=this.opponent;this.opponent.opponent=this.player;
     this._entities = [this.player,this.opponent]; this.projectiles = []; this.nextEntityId = 3;
     this.orphanEffectOwners=[];this.renderEntities=[...this._entities];this.drawProjectiles=[];this.helperCommands=new Map();
-    this.usedHits = new Map();this.juggles=new Map(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
+    this.usedHits = new Map();this.juggles=new Map();this.cornerPushActors=new Set(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
     this.commandBuffers = new Map(); this.presentationEvents = [];this.eventEntities=[];
     this.pendingCombatEffects=[];this.activeActor=null;this.contactPhase=false;
     this.inputBuffers=new Map();this.inputProfiles=new Map();if(this.manageInputs)for(const actor of this._entities){if(!this.inputProfiles.has(actor.character))this.inputProfiles.set(actor.character,characterCommands(actor.character));this.inputBuffers.set(actor,new CommandBuffer(this.inputProfiles.get(actor.character)));}
@@ -267,6 +265,7 @@ export class TrainingMatch {
     }
     for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile._hitPausedThisTick=projectile.hitPauseTime>0;projectile.tick({paused:stopped}); }
     if(this.stage){for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));this.stage.updateCamera(this.entities);this.syncEnvironment();this.stage.tick({paused:backgroundPaused});}
+    if(this.orderedPhases)this.advanceCornerPush(frozen);
     const pushed=this.constrainPositions();
     if(pushed&&this.stage){this.stage.updateCamera(this.entities);this.syncEnvironment();this.constrainPositions({push:false});}
     const fighters = this.entities;
@@ -317,14 +316,15 @@ export class TrainingMatch {
       if (this.winner || this.roundFlow&&this.roundFlow.roundState!==2 || attacker.destroyed || frozen.has(attacker) || reversed.has(attacker) || paused.has(attacker) || attacker.life<=0 || attacker.moveType!=='A') continue;
       const hit=attacker.hitDef;
       if (!hit || !/^[SCA]\s*,\s*[NSH][ATP]$/i.test(String(hit.attr??'').trim())) continue;
+      const hitFlags=flagText(hit.hitFlag??hit.hitflag??'MAF');
+      if(!/[HLAMFD]/.test(hitFlags)||hitFlags.includes('+')&&hitFlags.includes('-'))continue;
       const team=flagText(hit.affectteam??'E'),activation=hit.serial??hit,used=this.usedHits.get(attacker);
       let attackGeometry;
       for (const defender of [...fighters].sort((a,b)=>Math.abs(a.pos.x-attacker.pos.x)-Math.abs(b.pos.x-attacker.pos.x))) {
-        if (attacker===defender || attacker.isProjectile&&attacker.owner===defender || defender.life<=0 || paused.has(defender) || !allowsState(hit,defender)) continue;
+        if (attacker===defender || attacker.isProjectile&&attacker.owner===defender || defender.life<=0 || paused.has(defender)) continue;
         const friend=attacker.teamSide===defender.teamSide;
         if (team==='E'&&friend || team==='F'&&!friend) continue;
-        if (typeof defender.canBeHit==='function'&&!defender.canBeHit(hit,attacker)) continue;
-        if (String(hit[defender.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()!=='none'&&!this.canJuggle(attacker,defender,hit)) continue;
+        if(!allowsState(hitFlags,defender))continue;
         if (attacker instanceof ProjectileRuntime?!attacker.canHit(defender,this.ticks):used?.get(defender.id)===activation) continue;
         attackGeometry??=transformedBoxes(attacker);
         if (!attackGeometry.length) break;
@@ -332,6 +332,10 @@ export class TrainingMatch {
         if (!hurt) { hurt=transformedBoxes(defender,'clsn2');hurtGeometry?.set(defender,hurt); }
         const overlap=contactArea(attackGeometry,hurt,this.orderedPhases);
         if (!overlap) continue;
+        // Expensive pure eligibility checks only matter for overlapping boxes.
+        // Hit flags are normalized once per immutable attack in this pass.
+        if (typeof defender.canBeHit==='function'&&!defender.canBeHit(hit,attacker)) continue;
+        if (String(hit[defender.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()!=='none'&&!this.canJuggle(attacker,defender,hit)) continue;
         const guardCommands=this.manageInputs?defender.commands:defender.parent?defender.commands:defender===this.player?commands:opponentCommands;
         contacts.push({attacker,defender,hit,activation,overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall,guarded:canGuard(hit,attacker,defender,guardCommands)});
       }
@@ -382,7 +386,7 @@ export class TrainingMatch {
   cleanupEntities() {
     const dead = this._entities.filter(p=>p.destroyed);
     for(const actor of dead)if(!actor._effectsDetached)this.retireEffects(actor);
-    for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor); this.commandBuffers.delete(actor);this.inputBuffers.delete(actor);this.helperCommands.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
+    for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor);this.cornerPushActors.delete(actor); this.commandBuffers.delete(actor);this.inputBuffers.delete(actor);this.helperCommands.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
     this._entities = this._entities.filter(p=>!p.destroyed);
     this.projectiles = this.projectiles.filter(p=>!p.removed);
     for (const fighter of this._entities) {
@@ -425,10 +429,34 @@ export class TrainingMatch {
       return{min,max};
   }
   applyCornerPush(attacker,defender,velocity=0,scale=attacker.coordinateScale){
-    if(!velocity||attacker instanceof ProjectileRuntime||defender.screenBound===false)return;
+    if(attacker instanceof ProjectileRuntime)return;
+    if(this.orderedPhases){
+      const direction=defender.pos.x===attacker.pos.x?attacker.facing:Math.sign(defender.pos.x-attacker.pos.x);
+      attacker.cornerPush=Math.fround(velocity*scale*direction);
+      attacker.cornerPushTarget=attacker.cornerPush?defender:null;
+      attacker.cornerPushSide=direction;
+      if(attacker.cornerPush)this.cornerPushActors.add(attacker);else this.cornerPushActors.delete(attacker);
+      return;
+    }
+    if(!velocity||defender.screenBound===false)return;
     const {min,max}=this.horizontalLimits(defender),direction=defender.pos.x===attacker.pos.x?attacker.facing:Math.sign(defender.pos.x-attacker.pos.x);
     if(direction>0?defender.pos.x<max-.01:defender.pos.x>min+.01)return;
     attacker.cornerPush=velocity*scale*direction;
+  }
+  advanceCornerPush(frozen){
+    for(const attacker of this.cornerPushActors){
+      if(!attacker.cornerPush||attacker.destroyed){this.cornerPushActors.delete(attacker);attacker.cornerPushTarget=null;continue;}
+      if(frozen.has(attacker)||attacker._hitPausedThisTick)continue;
+      const defender=attacker.cornerPushTarget;
+      if(defender&&!defender.destroyed&&defender.screenBound!==false){
+        const {min,max}=this.horizontalLimits(defender);
+        if(attacker.cornerPushSide>0?defender.pos.x>=max:defender.pos.x<=min)
+          attacker.pos.x=Math.fround(attacker.pos.x+attacker.cornerPush);
+      }
+      attacker.cornerPush=Math.fround(attacker.cornerPush*Math.fround(.7));
+      if(Math.abs(attacker.cornerPush)<attacker.coordinateScale)attacker.cornerPush=0;
+      if(!attacker.cornerPush){attacker.cornerPushTarget=null;this.cornerPushActors.delete(attacker);}
+    }
   }
   constrainPositions({push=true}={}) {
     const fighters=this.entities,limits=new Map(fighters.map(p=>[p,this.horizontalLimits(p)]));
