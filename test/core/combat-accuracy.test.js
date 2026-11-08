@@ -141,6 +141,60 @@ test("edge trigger reads retain the previous Width for one tick while collision 
   assert.equal(m.player.resolveTrigger("frontedgebodydist"), 27);
 });
 
+test("reciprocal body pushing matches native fractional positions, widths, postures and hurt-box separation", () => {
+  const fixture = JSON.parse(
+    readFileSync(new URL("../fixtures/core/body-push.json", import.meta.url)),
+  );
+  for (const run of fixture.runs) {
+    const files = sampleFiles();
+    const def = new TextDecoder().decode(files["kfm/kfm.def"]);
+    files["kfm/probe-victim.def"] = encode(
+      def.replace(/^(\s*cns\s*=)[^;\r\n]+/im, "$1probe-victim.cns"),
+    );
+    let constants = new TextDecoder().decode(files["kfm/kfm.cns"]);
+    if (run.widthOverride !== null)
+      constants = constants.replace(
+        /^(\s*(?:air|ground)\.(?:back|front)\s*=)[^;\r\n]+/gim,
+        (_, prefix) => prefix + run.widthOverride,
+      );
+    files["kfm/probe-victim.cns"] = encode(constants);
+    const s = new CoreSession(files, {
+      mode: "training",
+      character: "kfm/kfm.def",
+      opponent: "kfm/probe-victim.def",
+    });
+    s.match.leftBound = -160;
+    s.match.rightBound = 160;
+    const a = s.match.player,
+      b = s.match.opponent;
+    a.anim = b.anim = 0;
+    a.frameIndex = b.frameIndex = 0;
+    a.facing = b.facing = 1;
+    a.stateType = "S";
+    b.stateType = run.stateType;
+    if (run.wideHurtBox)
+      for (const actor of [a, b])
+        actor.collisionFrame = { clsn2: [[-40, -90, 40, 0]] };
+    for (const sample of run.samples) {
+      a.pos.x = Math.fround(sample.input[0]);
+      b.pos.x = Math.fround(sample.input[1]);
+      a.pos.y = b.pos.y = 0;
+      s.match.constrainPositions();
+      assert.deepEqual(
+        [a.pos.x, b.pos.x],
+        sample.expected,
+        JSON.stringify({
+          posture: run.stateType,
+          width: run.widthOverride,
+          wide: run.wideHurtBox,
+          input: sample.input,
+        }),
+      );
+    }
+    s.close();
+  }
+});
+
 test("Turn preserves physical horizontal motion during a scripted facing change", () => {
   const m = match(
     "[Statedef 201]\ntype=S\nphysics=N\nctrl=0\nvelset=3,0\n[State Turn]\ntype=Turn\ntrigger1=Time=0\n",

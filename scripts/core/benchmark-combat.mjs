@@ -1,5 +1,5 @@
 /** Reproducible CPU simulation workload; this does not measure browser/phone FPS. */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import { performance } from "node:perf_hooks";
@@ -158,11 +158,14 @@ const report = {
       "guard-distance",
       "cpu",
       "rounds",
+      "animation-clock",
     ].map((name) => [
       "src/" + name + ".js",
-      createHash("sha256")
-        .update(readFileSync(resolve(source, "src/" + name + ".js")))
-        .digest("hex"),
+      existsSync(resolve(source, "src/" + name + ".js"))
+        ? createHash("sha256")
+            .update(readFileSync(resolve(source, "src/" + name + ".js")))
+            .digest("hex")
+        : null,
     ]),
   ),
   expressionBackend:

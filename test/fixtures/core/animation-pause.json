@@ -1,0 +1,3353 @@
+{
+  "reference": {
+    "kind": "native-observations",
+    "version": "1.0.0",
+    "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+    "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+    "method": "Unmodified official Linux executable with original KFM data, authored QA AssertInput, and independently authored ignorehitpause VarSet/ChangeAnim probes. Selected samples compare CNS reads with post-tick externally observable animation clocks.",
+    "engine": "IKEMEN GO",
+    "releaseUrl": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/Ikemen_GO-v1.0.0-linux.zip"
+  },
+  "scope": "Standing KFM attacks at localcoord 320; ordinary pause, same-action reset, different-action reset, repeated resets, loop boundaries and reset-to-first-element. External clocks, CNS reads and sprite dimensions/axis offsets are separate observations. No claim for every pause/controller combination.",
+  "runs": [
+    {
+      "id": "kfm-200-0-1-near-base",
+      "action": 200,
+      "expressions": [
+        "AnimElemTime(3)",
+        "AnimElemNo(0)",
+        "HitPauseTime",
+        "Time"
+      ],
+      "extraControllers": "",
+      "rawCaptureSha256": "b4d3b6d3043d2215b3e99467d292a3e4ec8f1b70c8c087186aa0275754837e09",
+      "samples": [
+        {
+          "tick": 3,
+          "state": 200,
+          "time": 2,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            46,
+            106,
+            16,
+            105
+          ]
+        },
+        {
+          "tick": 4,
+          "state": 200,
+          "time": 3,
+          "anim": 200,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            20000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 5,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 8,
+          "probes": [
+            0,
+            30000,
+            0,
+            30000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 6,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 7,
+          "probes": [
+            10000,
+            30000,
+            80000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 7,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 6,
+          "probes": [
+            10000,
+            30000,
+            70000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 8,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 5,
+          "probes": [
+            10000,
+            30000,
+            60000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 9,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 4,
+          "probes": [
+            10000,
+            30000,
+            50000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 10,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 3,
+          "probes": [
+            10000,
+            30000,
+            40000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 2,
+          "probes": [
+            10000,
+            30000,
+            30000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 1,
+          "probes": [
+            10000,
+            30000,
+            20000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 200,
+          "time": 4,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            10000,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 200,
+          "time": 5,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            0,
+            40000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 200,
+          "time": 6,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 2,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            30000,
+            0,
+            50000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 200,
+          "time": 7,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 3,
+          "hitPause": 0,
+          "probes": [
+            30000,
+            30000,
+            0,
+            60000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 200,
+          "time": 8,
+          "anim": 200,
+          "element": 4,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            40000,
+            40000,
+            0,
+            70000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 18,
+          "state": 200,
+          "time": 9,
+          "anim": 200,
+          "element": 4,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            50000,
+            40000,
+            0,
+            80000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 19,
+          "state": 200,
+          "time": 10,
+          "anim": 200,
+          "element": 4,
+          "elementTime": 2,
+          "hitPause": 0,
+          "probes": [
+            60000,
+            40000,
+            0,
+            90000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 20,
+          "state": 200,
+          "time": 11,
+          "anim": 200,
+          "element": 5,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            70000,
+            50000,
+            0,
+            100000
+          ],
+          "sprite": [
+            46,
+            106,
+            16,
+            105
+          ]
+        },
+        {
+          "tick": 21,
+          "state": 200,
+          "time": 12,
+          "anim": 200,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            80000,
+            50000,
+            0,
+            110000
+          ],
+          "sprite": [
+            46,
+            106,
+            16,
+            105
+          ]
+        },
+        {
+          "tick": 22,
+          "state": 0,
+          "time": 1,
+          "anim": 0,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            90000,
+            10000,
+            0,
+            120000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 23,
+          "state": 0,
+          "time": 2,
+          "anim": 0,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -160000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 24,
+          "state": 0,
+          "time": 3,
+          "anim": 0,
+          "element": 1,
+          "elementTime": 2,
+          "hitPause": 0,
+          "probes": [
+            -150000,
+            10000,
+            0,
+            20000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        }
+      ],
+      "extraAIR": ""
+    },
+    {
+      "id": "kfm-210-0-1-near-base",
+      "action": 210,
+      "expressions": [
+        "AnimElemTime(5)",
+        "AnimElemNo(0)",
+        "HitPauseTime",
+        "Time"
+      ],
+      "extraControllers": "",
+      "rawCaptureSha256": "d5bb1b68e3dcb29a0b7451c6f40df01fb7261e223a38b2698a2785507b888345",
+      "samples": [
+        {
+          "tick": 3,
+          "state": 210,
+          "time": 2,
+          "anim": 210,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -70000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            46,
+            106,
+            16,
+            105
+          ]
+        },
+        {
+          "tick": 4,
+          "state": 210,
+          "time": 3,
+          "anim": 210,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -60000,
+            20000,
+            0,
+            20000
+          ],
+          "sprite": [
+            65,
+            101,
+            11,
+            100
+          ]
+        },
+        {
+          "tick": 5,
+          "state": 210,
+          "time": 4,
+          "anim": 210,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -50000,
+            20000,
+            0,
+            30000
+          ],
+          "sprite": [
+            65,
+            101,
+            11,
+            100
+          ]
+        },
+        {
+          "tick": 6,
+          "state": 210,
+          "time": 5,
+          "anim": 210,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -40000,
+            30000,
+            0,
+            40000
+          ],
+          "sprite": [
+            70,
+            98,
+            7,
+            97
+          ]
+        },
+        {
+          "tick": 7,
+          "state": 210,
+          "time": 6,
+          "anim": 210,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            30000,
+            0,
+            50000
+          ],
+          "sprite": [
+            70,
+            98,
+            7,
+            97
+          ]
+        },
+        {
+          "tick": 8,
+          "state": 210,
+          "time": 7,
+          "anim": 210,
+          "element": 4,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            40000,
+            0,
+            60000
+          ],
+          "sprite": [
+            64,
+            102,
+            6,
+            101
+          ]
+        },
+        {
+          "tick": 9,
+          "state": 210,
+          "time": 8,
+          "anim": 210,
+          "element": 4,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            40000,
+            0,
+            70000
+          ],
+          "sprite": [
+            64,
+            102,
+            6,
+            101
+          ]
+        },
+        {
+          "tick": 10,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 0,
+          "hitPause": 12,
+          "probes": [
+            0,
+            50000,
+            0,
+            80000
+          ],
+          "sprite": [
+            95,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 11,
+          "probes": [
+            10000,
+            50000,
+            120000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 10,
+          "probes": [
+            20000,
+            60000,
+            110000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 9,
+          "probes": [
+            20000,
+            60000,
+            100000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 8,
+          "probes": [
+            20000,
+            60000,
+            90000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 7,
+          "probes": [
+            20000,
+            60000,
+            80000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 6,
+          "probes": [
+            20000,
+            60000,
+            70000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 5,
+          "probes": [
+            20000,
+            60000,
+            60000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 18,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 4,
+          "probes": [
+            20000,
+            60000,
+            50000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 19,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 3,
+          "probes": [
+            20000,
+            60000,
+            40000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 20,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 2,
+          "probes": [
+            20000,
+            60000,
+            30000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 21,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 1,
+          "probes": [
+            20000,
+            60000,
+            20000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 22,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            60000,
+            10000,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 23,
+          "state": 210,
+          "time": 10,
+          "anim": 210,
+          "element": 6,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            60000,
+            0,
+            90000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 24,
+          "state": 210,
+          "time": 11,
+          "anim": 210,
+          "element": 6,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            30000,
+            60000,
+            0,
+            100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        }
+      ],
+      "extraAIR": ""
+    },
+    {
+      "id": "kfm-210-0-1-near-replace",
+      "action": 210,
+      "expressions": [
+        "AnimElemTime(5)",
+        "AnimElemNo(0)",
+        "HitPauseTime",
+        "Anim"
+      ],
+      "extraControllers": "[State Authored pause reset]\ntype=ChangeAnim\ntrigger1=stateno=210 && hitpausetime=12\nignorehitpause=1\nvalue=200\nelem=2\n",
+      "rawCaptureSha256": "4095a0444469c49ebb6d9edbe01270c549e95db73b4ce803562816e96eafecb9",
+      "samples": [
+        {
+          "tick": 3,
+          "state": 210,
+          "time": 2,
+          "anim": 210,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -70000,
+            10000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            46,
+            106,
+            16,
+            105
+          ]
+        },
+        {
+          "tick": 4,
+          "state": 210,
+          "time": 3,
+          "anim": 210,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -60000,
+            20000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            65,
+            101,
+            11,
+            100
+          ]
+        },
+        {
+          "tick": 5,
+          "state": 210,
+          "time": 4,
+          "anim": 210,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -50000,
+            20000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            65,
+            101,
+            11,
+            100
+          ]
+        },
+        {
+          "tick": 6,
+          "state": 210,
+          "time": 5,
+          "anim": 210,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -40000,
+            30000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            70,
+            98,
+            7,
+            97
+          ]
+        },
+        {
+          "tick": 7,
+          "state": 210,
+          "time": 6,
+          "anim": 210,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            30000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            70,
+            98,
+            7,
+            97
+          ]
+        },
+        {
+          "tick": 8,
+          "state": 210,
+          "time": 7,
+          "anim": 210,
+          "element": 4,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            40000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            64,
+            102,
+            6,
+            101
+          ]
+        },
+        {
+          "tick": 9,
+          "state": 210,
+          "time": 8,
+          "anim": 210,
+          "element": 4,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            40000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            64,
+            102,
+            6,
+            101
+          ]
+        },
+        {
+          "tick": 10,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 0,
+          "hitPause": 12,
+          "probes": [
+            0,
+            50000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            95,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 11,
+          "probes": [
+            10000,
+            50000,
+            120000,
+            2100000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 10,
+          "probes": [
+            -80000,
+            20000,
+            110000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 9,
+          "probes": [
+            -80000,
+            20000,
+            100000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 8,
+          "probes": [
+            -80000,
+            20000,
+            90000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 7,
+          "probes": [
+            -80000,
+            20000,
+            80000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 6,
+          "probes": [
+            -80000,
+            20000,
+            70000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 5,
+          "probes": [
+            -80000,
+            20000,
+            60000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 18,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 4,
+          "probes": [
+            -80000,
+            20000,
+            50000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 19,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 3,
+          "probes": [
+            -80000,
+            20000,
+            40000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 20,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 2,
+          "probes": [
+            -80000,
+            20000,
+            30000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 21,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 1,
+          "probes": [
+            -80000,
+            20000,
+            20000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 22,
+          "state": 210,
+          "time": 9,
+          "anim": 200,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -80000,
+            20000,
+            10000,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 23,
+          "state": 210,
+          "time": 10,
+          "anim": 200,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -80000,
+            20000,
+            0,
+            2000000
+          ],
+          "sprite": [
+            61,
+            106,
+            14,
+            105
+          ]
+        },
+        {
+          "tick": 24,
+          "state": 210,
+          "time": 11,
+          "anim": 200,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 12,
+          "probes": [
+            -70000,
+            30000,
+            0,
+            2000000
+          ],
+          "sprite": [
+            76,
+            106,
+            14,
+            105
+          ]
+        }
+      ],
+      "extraAIR": ""
+    },
+    {
+      "id": "kfm-210-0-1-near-repeat",
+      "action": 210,
+      "expressions": [
+        "AnimElemTime(5)",
+        "AnimElemNo(0)",
+        "HitPauseTime",
+        "Anim"
+      ],
+      "extraControllers": "[State Authored repeated reset]\ntype=ChangeAnim\ntrigger1=stateno=210 && hitpausetime>=10\nignorehitpause=1\nvalue=210\nelem=6\n",
+      "rawCaptureSha256": "f03b0d6eb580920953ffd9def4711fd46a6ffdd25c1137ff966f19e8425f925b",
+      "samples": [
+        {
+          "tick": 3,
+          "state": 210,
+          "time": 2,
+          "anim": 210,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -70000,
+            10000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            46,
+            106,
+            16,
+            105
+          ]
+        },
+        {
+          "tick": 4,
+          "state": 210,
+          "time": 3,
+          "anim": 210,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -60000,
+            20000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            65,
+            101,
+            11,
+            100
+          ]
+        },
+        {
+          "tick": 5,
+          "state": 210,
+          "time": 4,
+          "anim": 210,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -50000,
+            20000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            65,
+            101,
+            11,
+            100
+          ]
+        },
+        {
+          "tick": 6,
+          "state": 210,
+          "time": 5,
+          "anim": 210,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -40000,
+            30000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            70,
+            98,
+            7,
+            97
+          ]
+        },
+        {
+          "tick": 7,
+          "state": 210,
+          "time": 6,
+          "anim": 210,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            30000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            70,
+            98,
+            7,
+            97
+          ]
+        },
+        {
+          "tick": 8,
+          "state": 210,
+          "time": 7,
+          "anim": 210,
+          "element": 4,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            40000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            64,
+            102,
+            6,
+            101
+          ]
+        },
+        {
+          "tick": 9,
+          "state": 210,
+          "time": 8,
+          "anim": 210,
+          "element": 4,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            40000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            64,
+            102,
+            6,
+            101
+          ]
+        },
+        {
+          "tick": 10,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 0,
+          "hitPause": 12,
+          "probes": [
+            0,
+            50000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            95,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 11,
+          "probes": [
+            10000,
+            50000,
+            120000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 10,
+          "probes": [
+            20000,
+            60000,
+            110000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 9,
+          "probes": [
+            20000,
+            60000,
+            100000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 8,
+          "probes": [
+            20000,
+            60000,
+            90000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 7,
+          "probes": [
+            20000,
+            60000,
+            80000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 6,
+          "probes": [
+            20000,
+            60000,
+            70000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 5,
+          "probes": [
+            20000,
+            60000,
+            60000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 18,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 4,
+          "probes": [
+            20000,
+            60000,
+            50000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 19,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 3,
+          "probes": [
+            20000,
+            60000,
+            40000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 20,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 2,
+          "probes": [
+            20000,
+            60000,
+            30000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 21,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 1,
+          "probes": [
+            20000,
+            60000,
+            20000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 22,
+          "state": 210,
+          "time": 9,
+          "anim": 210,
+          "element": 5,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            60000,
+            10000,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 23,
+          "state": 210,
+          "time": 10,
+          "anim": 210,
+          "element": 6,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            60000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        },
+        {
+          "tick": 24,
+          "state": 210,
+          "time": 11,
+          "anim": 210,
+          "element": 6,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            30000,
+            60000,
+            0,
+            2100000
+          ],
+          "sprite": [
+            60,
+            104,
+            13,
+            103
+          ]
+        }
+      ],
+      "extraAIR": ""
+    },
+    {
+      "id": "kfm-200-0-1-near-loop-unique",
+      "action": 200,
+      "expressions": [
+        "AnimElemTime(3)",
+        "AnimElemNo(0)",
+        "HitPauseTime",
+        "Time"
+      ],
+      "extraControllers": "[State Authored reset at wrap]\ntype=ChangeAnim\ntrigger1=stateno=7001 && hitpausetime=4\nignorehitpause=1\nvalue=7000\nelem=3\n[State Authored loop entry]\ntype=ChangeState\ntrigger1=stateno=200 && time=1\nvalue=7001\nctrl=0\n[Statedef 7001]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=7000\n[State Authored hit]\ntype=HitDef\ntrigger1=time=5\nattr=S,NA\ndamage=1\npausetime=4,0\nground.type=High\nground.hittime=1\nground.velocity=0\n",
+      "rawCaptureSha256": "1c98f2685299d8218f0696051e79fba8a6d85423515b2b5123e84734c6d2bd77",
+      "samples": [
+        {
+          "tick": 3,
+          "state": 7001,
+          "time": 1,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 4,
+          "state": 7001,
+          "time": 2,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 5,
+          "state": 7001,
+          "time": 3,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            20000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 6,
+          "state": 7001,
+          "time": 4,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            30000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 7,
+          "state": 7001,
+          "time": 5,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            40000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 8,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 4,
+          "probes": [
+            10000,
+            30000,
+            0,
+            50000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 9,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 3,
+          "probes": [
+            20000,
+            10000,
+            40000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 10,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 2,
+          "probes": [
+            0,
+            30000,
+            30000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 1,
+          "probes": [
+            0,
+            30000,
+            20000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            10000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 7001,
+          "time": 7,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 7001,
+          "time": 8,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            0,
+            70000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 7001,
+          "time": 9,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            10000,
+            0,
+            80000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 7001,
+          "time": 10,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            90000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 7001,
+          "time": 11,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            100000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 18,
+          "state": 7001,
+          "time": 12,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            110000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 19,
+          "state": 7001,
+          "time": 13,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            120000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 20,
+          "state": 7001,
+          "time": 14,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            0,
+            130000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 21,
+          "state": 7001,
+          "time": 15,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            10000,
+            0,
+            140000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 22,
+          "state": 7001,
+          "time": 16,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            150000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 23,
+          "state": 7001,
+          "time": 17,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            160000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 24,
+          "state": 7001,
+          "time": 18,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            170000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        }
+      ],
+      "extraAIR": "\n[Begin Action 7000]\nClsn2Default: 1\nClsn2[0]=-13,-79,16,0\nClsn1Default: 1\nClsn1[0]=0,-79,40,0\n0,0,0,0,2\n0,1,0,0,2\n0,2,0,0,2\n"
+    },
+    {
+      "id": "kfm-200-0-1-near-loop-first",
+      "action": 200,
+      "expressions": [
+        "AnimElemTime(3)",
+        "AnimElemNo(0)",
+        "HitPauseTime",
+        "Time"
+      ],
+      "extraControllers": "[State Authored reset at wrap]\ntype=ChangeAnim\ntrigger1=stateno=7001 && hitpausetime=4\nignorehitpause=1\nvalue=7000\nelem=1\n[State Authored loop entry]\ntype=ChangeState\ntrigger1=stateno=200 && time=1\nvalue=7001\nctrl=0\n[Statedef 7001]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=7000\n[State Authored hit]\ntype=HitDef\ntrigger1=time=5\nattr=S,NA\ndamage=1\npausetime=4,0\nground.type=High\nground.hittime=1\nground.velocity=0\n",
+      "rawCaptureSha256": "3630c9018aff1282d4b0e415f46ec23934f07d245746cb8936944b126eb38ed9",
+      "samples": [
+        {
+          "tick": 3,
+          "state": 7001,
+          "time": 1,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 4,
+          "state": 7001,
+          "time": 2,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 5,
+          "state": 7001,
+          "time": 3,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            20000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 6,
+          "state": 7001,
+          "time": 4,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            30000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 7,
+          "state": 7001,
+          "time": 5,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            40000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 8,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 4,
+          "probes": [
+            10000,
+            30000,
+            0,
+            50000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 9,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 0,
+          "elementTime": -1,
+          "hitPause": 3,
+          "probes": [
+            20000,
+            10000,
+            40000,
+            60000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 10,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 0,
+          "elementTime": -1,
+          "hitPause": 2,
+          "probes": [
+            -40000,
+            10000,
+            30000,
+            60000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 0,
+          "elementTime": -1,
+          "hitPause": 1,
+          "probes": [
+            -40000,
+            10000,
+            20000,
+            60000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 0,
+          "elementTime": -1,
+          "hitPause": 0,
+          "probes": [
+            -40000,
+            10000,
+            10000,
+            60000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 7001,
+          "time": 7,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -40000,
+            10000,
+            0,
+            60000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 7001,
+          "time": 8,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            70000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 7001,
+          "time": 9,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            80000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 7001,
+          "time": 10,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            90000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 7001,
+          "time": 11,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            100000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 18,
+          "state": 7001,
+          "time": 12,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            0,
+            110000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 19,
+          "state": 7001,
+          "time": 13,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            10000,
+            0,
+            120000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 20,
+          "state": 7001,
+          "time": 14,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            130000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 21,
+          "state": 7001,
+          "time": 15,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            140000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 22,
+          "state": 7001,
+          "time": 16,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            150000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 23,
+          "state": 7001,
+          "time": 17,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            160000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 24,
+          "state": 7001,
+          "time": 18,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            0,
+            170000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        }
+      ],
+      "extraAIR": "\n[Begin Action 7000]\nClsn2Default: 1\nClsn2[0]=-13,-79,16,0\nClsn1Default: 1\nClsn1[0]=0,-79,40,0\n0,0,0,0,2\n0,1,0,0,2\n0,2,0,0,2\n"
+    },
+    {
+      "id": "kfm-200-0-1-near-loop-held",
+      "action": 200,
+      "expressions": [
+        "AnimElemTime(3)",
+        "AnimElemNo(0)",
+        "HitPauseTime",
+        "Time"
+      ],
+      "extraControllers": "[State Authored loop entry]\ntype=ChangeState\ntrigger1=stateno=200 && time=1\nvalue=7001\nctrl=0\n[Statedef 7001]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=7000\n[State Authored hit]\ntype=HitDef\ntrigger1=time=5\nattr=S,NA\ndamage=1\npausetime=4,0\nground.type=High\nground.hittime=1\nground.velocity=0\n",
+      "rawCaptureSha256": "54708fd1965200068bd693600bb30fcc1d84c1337a6e10b3076f849ecf156966",
+      "samples": [
+        {
+          "tick": 3,
+          "state": 7001,
+          "time": 1,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 4,
+          "state": 7001,
+          "time": 2,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            10000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 5,
+          "state": 7001,
+          "time": 3,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            20000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 6,
+          "state": 7001,
+          "time": 4,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            30000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 7,
+          "state": 7001,
+          "time": 5,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            40000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 8,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 4,
+          "probes": [
+            10000,
+            30000,
+            0,
+            50000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 9,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 3,
+          "probes": [
+            20000,
+            10000,
+            40000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 10,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 2,
+          "probes": [
+            20000,
+            10000,
+            30000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 11,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 1,
+          "probes": [
+            20000,
+            10000,
+            20000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 12,
+          "state": 7001,
+          "time": 6,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            10000,
+            10000,
+            60000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 13,
+          "state": 7001,
+          "time": 7,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            10000,
+            0,
+            60000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 14,
+          "state": 7001,
+          "time": 8,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            70000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 15,
+          "state": 7001,
+          "time": 9,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            80000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 16,
+          "state": 7001,
+          "time": 10,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            90000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 17,
+          "state": 7001,
+          "time": 11,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            100000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 18,
+          "state": 7001,
+          "time": 12,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            0,
+            110000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 19,
+          "state": 7001,
+          "time": 13,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            20000,
+            10000,
+            0,
+            120000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 20,
+          "state": 7001,
+          "time": 14,
+          "anim": 7000,
+          "element": 1,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -30000,
+            10000,
+            0,
+            130000
+          ],
+          "sprite": [
+            47,
+            106,
+            18,
+            105
+          ]
+        },
+        {
+          "tick": 21,
+          "state": 7001,
+          "time": 15,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            -20000,
+            20000,
+            0,
+            140000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 22,
+          "state": 7001,
+          "time": 16,
+          "anim": 7000,
+          "element": 2,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            -10000,
+            20000,
+            0,
+            150000
+          ],
+          "sprite": [
+            48,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 23,
+          "state": 7001,
+          "time": 17,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 0,
+          "hitPause": 0,
+          "probes": [
+            0,
+            30000,
+            0,
+            160000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        },
+        {
+          "tick": 24,
+          "state": 7001,
+          "time": 18,
+          "anim": 7000,
+          "element": 3,
+          "elementTime": 1,
+          "hitPause": 0,
+          "probes": [
+            10000,
+            30000,
+            0,
+            170000
+          ],
+          "sprite": [
+            49,
+            105,
+            18,
+            104
+          ]
+        }
+      ],
+      "extraAIR": "\n[Begin Action 7000]\nClsn2Default: 1\nClsn2[0]=-13,-79,16,0\nClsn1Default: 1\nClsn1[0]=0,-79,40,0\n0,0,0,0,2\n0,1,0,0,2\n0,2,0,0,2\n"
+    }
+  ]
+}

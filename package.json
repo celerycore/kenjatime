@@ -1,6 +1,6 @@
 {
   "name": "kenjatime-core",
-  "version": "0.5.4-core-preview",
+  "version": "0.5.5-core-preview",
   "type": "module",
   "scripts": {
     "dev": "npm run dev:core",
@@ -29,8 +29,9 @@
     "compatibility:legacy": "node scripts/compatibility-audit.mjs",
     "build:reference": "vite build",
     "dev:reference": "vite --host 0.0.0.0",
-    "verify:core:movesets": "python scripts/core/compare-native.py --group kfm-classic --allow-gaps --require-verified",
-    "benchmark:core:combat": "node scripts/core/benchmark-combat.mjs"
+    "verify:core:movesets": "python scripts/core/compare-native.py --group kfm-classic --require-verified",
+    "benchmark:core:combat": "node scripts/core/benchmark-combat.mjs",
+    "benchmark:core:animation": "node scripts/core/benchmark-animation.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",

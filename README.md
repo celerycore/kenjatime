@@ -2,7 +2,7 @@
 
 Independent engine rewrite for imported fighting-game characters and stages. This branch builds the original Kenjatime combat runtime, a numeric WebAssembly compiler, and a direct Three.js GPU renderer. The browser and Android preview share the same UI and offline assets.
 
-**This is a compatibility preview. Full moveset and stage compatibility is unfinished.** Recorded interaction tests pass; the larger character comparison still reports differences. See [implementation and evidence](docs/core-rewrite.md).
+**This is a compatibility preview. Full moveset and stage compatibility is unfinished.** All 16 recorded interaction scenarios and 147 recorded KFM moveset scenarios pass the strict comparison. Broader character and stage verification remains unfinished. See [implementation and evidence](docs/core-rewrite.md).
 
 ```sh
 npm ci
@@ -18,7 +18,7 @@ ZIP, RAR4/5, 7z, TAR and compressed TAR imports use content detection. Tested en
 
 ```sh
 npm run verify:core:interactions   # strict captured interaction comparison
-npm run verify:core:movesets      # strict gate for 141 captured movesets
+npm run verify:core:movesets      # strict gate for 147 captured scenarios
 npm run diagnose:core:movesets    # reports all 147, including known differences
 npm run verify:core:browser       # built UI, input, audio and GPU lifecycle
 npm run verify:core:archives      # real picker/worker/store/download checks

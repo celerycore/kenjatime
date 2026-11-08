@@ -33,10 +33,12 @@ jobs:
       - run: npm run test:core
       - run: npm run test:core:compiled
       - run: npm run verify:core:interactions
-      - name: Gate verified movesets and record remaining gaps
+      - name: Verify all captured moveset scenarios
         run: npm run verify:core:movesets
       - name: Record authored CPU load metrics (not phone FPS)
         run: npm run benchmark:core:combat
+      - name: Record animation trigger metrics (not phone FPS)
+        run: npm run benchmark:core:animation
       - run: npm run build:core
       - run: python -m pip install playwright==1.56.0
       - run: python -m playwright install --with-deps chromium
@@ -52,6 +54,7 @@ jobs:
             work/core/*evidence.json
             work/core/*native-comparison.json
             work/core/combat-benchmark.json
+            work/core/animation-benchmark.json
             work/core/*.png
   android:
     runs-on: ubuntu-latest

@@ -1,0 +1,496 @@
+{
+  "reference": {
+    "kind": "native-observations",
+    "version": "1.0.0",
+    "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+    "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+    "method": "Unmodified official Linux executable; original KFM data with independently authored standing/air/lying state 0 position sweeps. Victim primary and state files both select its own authored states. Width overrides and an authored wide hurt box distinguish reciprocal push checks from mere rounding of axes. The first cycle is excluded to remove neutral-setup effects.",
+    "engine": "IKEMEN GO",
+    "releaseUrl": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/Ikemen_GO-v1.0.0-linux.zip"
+  },
+  "scope": "Float32 reciprocal body push in a fixed 320-wide viewport, facing 1, ground front/back 16/15, air front/back 12/12, standing player and standing/air/lying victim. Original KFM hurt boxes unless explicitly replaced by [-40,-90,40,0]. Does not establish all multi-actor ordering, camera or coordinate-width profiles.",
+  "runs": [
+    {
+      "stateType": "A",
+      "widthOverride": null,
+      "wideHurtBox": false,
+      "authoredStates": {
+        "player": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=0\nx=0\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=1\nx=31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=2\nx=63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=3\nx=127.85078430175781\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=4\nx=-63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=5\nx=-31.85078811645508\ny=0\n",
+        "opponent": "[Statedef 0]\ntype=A\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=0\nx=26.4\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=1\nx=58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=2\nx=90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=3\nx=154.2507781982422\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=4\nx=-90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 6=5\nx=-58.25078582763672\ny=0\n"
+      },
+      "rawCaptureSha256": "1995d42d8c396dc7701bf37cc5cb17d48112533bcf5bf708d4ca1bb4cb6c2164",
+      "samples": [
+        {
+          "input": [
+            0,
+            26.4
+          ],
+          "expected": [
+            -0.8000001907348633,
+            27.200000762939453
+          ]
+        },
+        {
+          "input": [
+            31.85078811645508,
+            58.25078582763672
+          ],
+          "expected": [
+            31.0507869720459,
+            59.05078887939453
+          ]
+        },
+        {
+          "input": [
+            63.85078811645508,
+            90.25078582763672
+          ],
+          "expected": [
+            63.050785064697266,
+            91.05078125
+          ]
+        },
+        {
+          "input": [
+            127.85078430175781,
+            154.2507781982422
+          ],
+          "expected": [
+            127.05078125,
+            155.05078125
+          ]
+        },
+        {
+          "input": [
+            -63.85078811645508,
+            -90.25078582763672
+          ],
+          "expected": [
+            -63.550785064697266,
+            -90.55078125
+          ]
+        },
+        {
+          "input": [
+            -31.85078811645508,
+            -58.25078582763672
+          ],
+          "expected": [
+            -31.5507869720459,
+            -58.55078887939453
+          ]
+        }
+      ]
+    },
+    {
+      "stateType": "S",
+      "widthOverride": null,
+      "wideHurtBox": false,
+      "authoredStates": {
+        "player": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=0\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=127.85078430175781\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=59.850772857666016\ny=0\n",
+        "opponent": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=26.4\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=154.2507781982422\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=87.85076904296875\ny=0\n"
+      },
+      "rawCaptureSha256": "5ea25686c5244f5062f1d98cd86519026c316aeecaa04d2d0520465283c31ca9",
+      "samples": [
+        {
+          "input": [
+            0,
+            26.4
+          ],
+          "expected": [
+            -2.3000001907348633,
+            28.700000762939453
+          ]
+        },
+        {
+          "input": [
+            31.85078811645508,
+            58.25078582763672
+          ],
+          "expected": [
+            29.5507869720459,
+            60.55078887939453
+          ]
+        },
+        {
+          "input": [
+            63.85078811645508,
+            90.25078582763672
+          ],
+          "expected": [
+            61.55078887939453,
+            92.55078125
+          ]
+        },
+        {
+          "input": [
+            127.85078430175781,
+            154.2507781982422
+          ],
+          "expected": [
+            125.55078125,
+            156.55078125
+          ]
+        },
+        {
+          "input": [
+            -63.85078811645508,
+            -90.25078582763672
+          ],
+          "expected": [
+            -61.55078887939453,
+            -92.55078125
+          ]
+        },
+        {
+          "input": [
+            -31.85078811645508,
+            -58.25078582763672
+          ],
+          "expected": [
+            -29.5507869720459,
+            -60.55078887939453
+          ]
+        },
+        {
+          "input": [
+            59.850772857666016,
+            87.85076904296875
+          ],
+          "expected": [
+            58.350772857666016,
+            89.35076904296875
+          ]
+        }
+      ]
+    },
+    {
+      "stateType": "L",
+      "widthOverride": null,
+      "wideHurtBox": false,
+      "authoredStates": {
+        "player": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=0\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=127.85078430175781\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=59.850772857666016\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n",
+        "opponent": "[Statedef 0]\ntype=L\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=26.4\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=154.2507781982422\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=87.85076904296875\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n"
+      },
+      "rawCaptureSha256": "83055c126b78f5e0c7b3efc21be999b977c772e6f079c153abb067b0174f14d3",
+      "samples": [
+        {
+          "input": [
+            0,
+            26.4
+          ],
+          "expected": [
+            -2.3000001907348633,
+            28.700000762939453
+          ]
+        },
+        {
+          "input": [
+            31.85078811645508,
+            58.25078582763672
+          ],
+          "expected": [
+            29.5507869720459,
+            60.55078887939453
+          ]
+        },
+        {
+          "input": [
+            63.85078811645508,
+            90.25078582763672
+          ],
+          "expected": [
+            61.55078887939453,
+            92.55078125
+          ]
+        },
+        {
+          "input": [
+            127.85078430175781,
+            154.2507781982422
+          ],
+          "expected": [
+            125.55078125,
+            156.55078125
+          ]
+        },
+        {
+          "input": [
+            -63.85078811645508,
+            -90.25078582763672
+          ],
+          "expected": [
+            -61.55078887939453,
+            -92.55078125
+          ]
+        },
+        {
+          "input": [
+            -31.85078811645508,
+            -58.25078582763672
+          ],
+          "expected": [
+            -29.5507869720459,
+            -60.55078887939453
+          ]
+        },
+        {
+          "input": [
+            59.850772857666016,
+            87.85076904296875
+          ],
+          "expected": [
+            58.350772857666016,
+            89.35076904296875
+          ]
+        }
+      ]
+    },
+    {
+      "stateType": "S",
+      "widthOverride": 12,
+      "wideHurtBox": false,
+      "authoredStates": {
+        "player": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=0\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=127.85078430175781\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=59.850772857666016\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n",
+        "opponent": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=26.4\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=154.2507781982422\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=87.85076904296875\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n"
+      },
+      "rawCaptureSha256": "c69e799d133d365b5e418250fcf98f22da262b55eca00493ad828a593e6c8bae",
+      "samples": [
+        {
+          "input": [
+            0,
+            26.4
+          ],
+          "expected": [
+            -0.8000001907348633,
+            27.200000762939453
+          ]
+        },
+        {
+          "input": [
+            31.85078811645508,
+            58.25078582763672
+          ],
+          "expected": [
+            31.0507869720459,
+            59.05078887939453
+          ]
+        },
+        {
+          "input": [
+            63.85078811645508,
+            90.25078582763672
+          ],
+          "expected": [
+            63.050785064697266,
+            91.05078125
+          ]
+        },
+        {
+          "input": [
+            127.85078430175781,
+            154.2507781982422
+          ],
+          "expected": [
+            127.05078125,
+            155.05078125
+          ]
+        },
+        {
+          "input": [
+            -63.85078811645508,
+            -90.25078582763672
+          ],
+          "expected": [
+            -63.550785064697266,
+            -90.55078125
+          ]
+        },
+        {
+          "input": [
+            -31.85078811645508,
+            -58.25078582763672
+          ],
+          "expected": [
+            -31.5507869720459,
+            -58.55078887939453
+          ]
+        },
+        {
+          "input": [
+            59.850772857666016,
+            87.85076904296875
+          ],
+          "expected": [
+            59.850772857666016,
+            87.85076904296875
+          ]
+        }
+      ]
+    },
+    {
+      "stateType": "A",
+      "widthOverride": 15,
+      "wideHurtBox": false,
+      "authoredStates": {
+        "player": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=0\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=127.85078430175781\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=59.850772857666016\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n",
+        "opponent": "[Statedef 0]\ntype=A\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=26.4\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=154.2507781982422\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=87.85076904296875\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n"
+      },
+      "rawCaptureSha256": "8606b9a744fcfce3a209cbff707c7bc042e274ec97ac0c821581de68be7e472b",
+      "samples": [
+        {
+          "input": [
+            0,
+            26.4
+          ],
+          "expected": [
+            -2.3000001907348633,
+            28.700000762939453
+          ]
+        },
+        {
+          "input": [
+            31.85078811645508,
+            58.25078582763672
+          ],
+          "expected": [
+            29.5507869720459,
+            60.55078887939453
+          ]
+        },
+        {
+          "input": [
+            63.85078811645508,
+            90.25078582763672
+          ],
+          "expected": [
+            61.55078887939453,
+            92.55078125
+          ]
+        },
+        {
+          "input": [
+            127.85078430175781,
+            154.2507781982422
+          ],
+          "expected": [
+            125.55078125,
+            156.55078125
+          ]
+        },
+        {
+          "input": [
+            -63.85078811645508,
+            -90.25078582763672
+          ],
+          "expected": [
+            -62.05078887939453,
+            -92.05078125
+          ]
+        },
+        {
+          "input": [
+            -31.85078811645508,
+            -58.25078582763672
+          ],
+          "expected": [
+            -30.0507869720459,
+            -60.05078887939453
+          ]
+        },
+        {
+          "input": [
+            59.850772857666016,
+            87.85076904296875
+          ],
+          "expected": [
+            58.350772857666016,
+            89.35076904296875
+          ]
+        }
+      ]
+    },
+    {
+      "stateType": "S",
+      "widthOverride": null,
+      "wideHurtBox": true,
+      "authoredStates": {
+        "player": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=0\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=127.85078430175781\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-63.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-31.85078811645508\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=59.850772857666016\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n",
+        "opponent": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\nvelset=0,0\n[State Facing]\ntype=Turn\ntrigger1=time=0 && facing!=1\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=0\nx=26.4\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=1\nx=58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=2\nx=90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=3\nx=154.2507781982422\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=4\nx=-90.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=5\nx=-58.25078582763672\ny=0\n[State Original position sweep]\ntype=PosSet\ntrigger1=time % 7=6\nx=87.85076904296875\ny=0\n[State Authored before push]\ntype=VarSet\ntrigger1=1\nfv=0\nvalue=Pos X\n"
+      },
+      "rawCaptureSha256": "217f4fa0330670217fd4c372b6196864d52c59925e46bee3c6f2a38fc3171348",
+      "samples": [
+        {
+          "input": [
+            0,
+            26.4
+          ],
+          "expected": [
+            -2.3000001907348633,
+            28.700000762939453
+          ]
+        },
+        {
+          "input": [
+            31.85078811645508,
+            58.25078582763672
+          ],
+          "expected": [
+            29.5507869720459,
+            60.55078887939453
+          ]
+        },
+        {
+          "input": [
+            63.85078811645508,
+            90.25078582763672
+          ],
+          "expected": [
+            61.550785064697266,
+            92.55078125
+          ]
+        },
+        {
+          "input": [
+            127.85078430175781,
+            154.2507781982422
+          ],
+          "expected": [
+            125.55078125,
+            156.55078125
+          ]
+        },
+        {
+          "input": [
+            -63.85078811645508,
+            -90.25078582763672
+          ],
+          "expected": [
+            -61.550785064697266,
+            -92.55078125
+          ]
+        },
+        {
+          "input": [
+            -31.85078811645508,
+            -58.25078582763672
+          ],
+          "expected": [
+            -29.5507869720459,
+            -60.55078887939453
+          ]
+        },
+        {
+          "input": [
+            59.850772857666016,
+            87.85076904296875
+          ],
+          "expected": [
+            58.350772857666016,
+            89.35076904296875
+          ]
+        }
+      ]
+    }
+  ]
+}

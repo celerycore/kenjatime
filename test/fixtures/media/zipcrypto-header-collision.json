@@ -1,0 +1,8 @@
+{
+  "file": "zipcrypto-header-collision.zip",
+  "sha256": "f086822de34235e6753ba9f0524011c99496b884c0260fa71e433546d3bae14f",
+  "password": "secret",
+  "wrongPassword": "wrong-1212",
+  "content": "[Info]\nname=Authored encrypted header collision fixture\n",
+  "provenance": "Independently authored text payload, generated with 7z-wasm ZipCrypto. The pinned incorrect password passes the short encryption header check and fails CRC verification with the original reader. No personal data or external credentials."
+}

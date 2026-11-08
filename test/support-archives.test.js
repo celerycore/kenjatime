@@ -7,6 +7,7 @@ import {unpackSevenArchive} from '../src/seven-archive.js';
 import {archiveVolumePlan,bundleArchiveVolumes} from '../src/archive-volumes.js';
 import {readArchiveFiles} from '../src/uploads.js';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {crc32,rar4Volumes} from './fixtures/rar-fixtures.js';
 
 const payload=strToU8('[Info]\nname=Encrypted fixture\n'+'0123456789'.repeat(1000));
@@ -21,6 +22,12 @@ for(const method of ['ZipCrypto','AES128','AES192','AES256'])test('encrypted ZIP
  await assert.rejects(()=>unpackArchiveBytes(p.bytes,{password:'incorrect'}),/password/i);
  const damaged=p.bytes.slice(),header=new DataView(damaged.buffer,damaged.byteOffset,damaged.byteLength),dataOffset=30+header.getUint16(26,true)+header.getUint16(28,true);damaged[dataOffset+32]^=1;
  await assert.rejects(()=>unpackArchiveBytes(damaged,{password:'secret'}),/password|damaged|signature|invalid/i);
+});
+test('ZipCrypto header collisions report password or damage errors and leave the next import usable',async()=>{
+ const root=new URL('./fixtures/media/',import.meta.url),proof=JSON.parse(readFileSync(new URL('zipcrypto-header-collision.json',root)));
+ const bytes=readFileSync(new URL(proof.file,root));assert.equal(createHash('sha256').update(bytes).digest('hex'),proof.sha256);
+ await assert.rejects(()=>unpackArchiveBytes(bytes,{password:proof.wrongPassword}),/password.*incorrect.*damaged/i);
+ assert.equal(new TextDecoder().decode((await unpackArchiveBytes(bytes,{password:proof.password}))['hero.def']),proof.content);
 });
 test('7z AES encrypted headers and split ZIP/7z volumes preserve bytes in arbitrary selection order',async()=>{
  for(const type of ['7z','zip']){

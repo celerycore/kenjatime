@@ -472,14 +472,23 @@ export class TrainingMatch {
       const aTop=a.pos.y-constant(a,'size.height',60)*baseScale(a),bTop=b.pos.y-constant(b,'size.height',60)*baseScale(b);
       if(aTop>=b.pos.y||bTop>=a.pos.y||!contactArea(transformedBoxes(a,'clsn2'),transformedBoxes(b,'clsn2')))continue;
       const [left,right]=a.pos.x<=b.pos.x?[a,b]:[b,a];
-      const overlap=left.pos.x+this.bodyWidth(left,1)-right.pos.x+this.bodyWidth(right,-1);
-      if(overlap<=0)continue;
-      const leftAvailable=left.screenBound===false?Infinity:Math.max(0,left.pos.x-limits.get(left).min);
-      const rightAvailable=right.screenBound===false?Infinity:Math.max(0,limits.get(right).max-right.pos.x);
-      const leftTravel=Math.min(overlap/2,leftAvailable),rightTravel=Math.min(overlap-leftTravel,rightAvailable);
-      left.pos.x-=Math.min(overlap-rightTravel,leftAvailable);right.pos.x+=rightTravel;
-      if(this.orderedPhases){left.pos.x=Math.fround(left.pos.x);right.pos.x=Math.fround(right.pos.x);}
-      clamp(left);clamp(right);pushed=true;
+      const leftWidth=this.bodyWidth(left,1),rightWidth=this.bodyWidth(right,-1);
+      // Projected float32 edges may retain a tiny penetration after rounding
+      // the first displacement. Recheck the reciprocal contact once, including
+      // Clsn2: a wider ground body can already have separated its hurt boxes.
+      for(let pass=0;pass<(this.orderedPhases?2:1);pass++){
+        const leftEdge=left.pos.x+leftWidth,rightEdge=right.pos.x-rightWidth;
+        const overlap=this.orderedPhases?Math.fround(Math.fround(leftEdge)-Math.fround(rightEdge)):left.pos.x+leftWidth-right.pos.x+rightWidth;
+        if(overlap<=0||pass&&!contactArea(transformedBoxes(a,'clsn2'),transformedBoxes(b,'clsn2')))break;
+        const leftAvailable=left.screenBound===false?Infinity:Math.max(0,left.pos.x-limits.get(left).min);
+        const rightAvailable=right.screenBound===false?Infinity:Math.max(0,limits.get(right).max-right.pos.x);
+        const leftTravel=Math.min(overlap/2,leftAvailable),rightTravel=Math.min(overlap-leftTravel,rightAvailable);
+        const oldLeft=left.pos.x,oldRight=right.pos.x;
+        left.pos.x-=Math.min(overlap-rightTravel,leftAvailable);right.pos.x+=rightTravel;
+        if(this.orderedPhases){left.pos.x=Math.fround(left.pos.x);right.pos.x=Math.fround(right.pos.x);}
+        clamp(left);clamp(right);pushed=true;
+        if(left.pos.x===oldLeft&&right.pos.x===oldRight)break;
+      }
     }
     return pushed;
   }

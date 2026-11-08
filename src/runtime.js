@@ -11,6 +11,7 @@ import {baseScale,bodyWidthWorld,edgeTriggerDistance,spatialConstant,spatialHitV
 import {allowsHitActivation,claimHitActivation,hitSourceId,recordHitContact} from './hit-rules.js';
 import {initialHitVariables,hitVariableNames,sampleRecoveryInput,advanceHitState} from './hit-state.js';
 import {scaledDamage,hitPower,koVelocity} from './combat-rules.js';
+import {animationTiming,animationElementTime,animationElementAt,animationRemaining,captureAnimationClock,restoreAnimationClock} from './animation-clock.js';
 
 // CNS sections are ordered and may repeat keys (especially trigger1).
 export function parseSections(text, source = '<script>') {
@@ -131,7 +132,7 @@ function controllerRules(controller){
 
 // Scalar reads must not build the expensive world/animation trigger snapshot.
 const simpleTriggerFields=new Map(Object.entries({
-  time:'time',stateno:'stateNo',prevstateno:'prevStateNo',anim:'anim',animtime:'animTime',
+  time:'time',stateno:'stateNo',prevstateno:'prevStateNo',anim:'scriptAnim',animtime:'animTime',
   ctrl:'ctrl',statetype:'stateType',movetype:'moveType',physics:'physics',
   life:'life',lifemax:'maxLife',power:'power',powermax:'maxPower',facing:'facing',
   hitpausetime:'hitPauseTime',movecontact:'moveContact',movehit:'moveHit',moveguarded:'moveGuarded',
@@ -261,7 +262,7 @@ export class FighterRuntime {
     this.vel = { x: 0, y: 0 }; this.facing = this.options.facing === -1 ? -1 : 1;
     this.ctrl = 1; this.stateType = 'S'; this.moveType = 'I'; this.physics = 'S';
     this.stateNo = 0; this.prevStateNo = 0; this.time = 0; this.gameTime = 0;
-    this.anim = 0; this.frameIndex = 0; this.frameTime = 0; this.animationTime = 0; this.animationCycleTime = 0; this.animationLooped = false; this.animationEnded = false;this._animationSerial=0;
+    this.anim = 0; this.frameIndex = 0; this.frameTime = 0; this.animationTime = 0; this.animationCycleTime = 0; this.animationLooped = false; this.animationEnded = false;this._animationSerial=0;this._pausedAnimation=null;this._inPausedAnimation=false;this._animationLoopReset=false;
     this.collisionFrame = null;this.collisionAnimationOwner=null;
     this.collisionAnimation=null;this.collisionFrameIndex=0;this.collisionFrameTime=0;
     this.hitDef = null; this.reversalDef = null; this.moveReversed = 0; this._hitSerial = 0; this.hitPauseTime = 0; this.hitTime = -1;
@@ -312,14 +313,13 @@ export class FighterRuntime {
   }
 
   get animation() { return (this.animationOwner || this).animations.get(this.anim); }
+  get scriptAnimationClock(){return !this._inPausedAnimation&&this._pausedAnimation?.logic||this;}
+  get scriptAnim(){return this.scriptAnimationClock.anim;}
+  get scriptAnimation(){const clock=this.scriptAnimationClock;return (clock.animationOwner||this).animations.get(clock.anim);}
   get currentFrame() { return this.animation?.frames[this.frameIndex] || null; }
   get animElemTime() { return this.frameTime; }
   get animTime() {
-    const frames = this.animation?.frames;
-    if (!frames?.length) return 0;
-    if (this.animationEnded) return 0;
-    if (frames.some(frame => frame.ticks < 0)) return -1;
-    return this.animationCycleTime - frames.reduce((sum, frame) => sum + Math.max(1, frame.ticks), 0);
+    return animationRemaining(this.scriptAnimation,this.scriptAnimationClock);
   }
   get alive() { return this.life > 0; }
   get paletteRemaps(){return this.parent&&!this.ownPal?this.parent.paletteRemaps:this._paletteRemaps;}
@@ -389,25 +389,12 @@ export class FighterRuntime {
       this._seed ^= this._seed << 13; this._seed ^= this._seed >>> 17; this._seed ^= this._seed << 5;
       return (this._seed >>> 0) % 1000;
     }
-    if (name === 'animexist' || name === 'selfanimexist') return +(name === 'selfanimexist' ? this : this.animationOwner).animations.has(integer(args[0]));
+    if (name === 'animexist' || name === 'selfanimexist') return +(name === 'selfanimexist' ? this : this.scriptAnimationClock.animationOwner).animations.has(integer(args[0]));
     if (name === 'animelemtime') {
-      const index = integer(args[0]) - 1, frames = this.animation?.frames || [];
-      if (index < 0 || index >= frames.length) { const error = new Error(`Animation element out of range: ${index + 1}`); error.bottom = true; throw error; }
-      const before = frames.slice(0, index).reduce((sum, frame) => sum + Math.max(1, frame.ticks), 0);
-      return this.animationTime - before;
+      return animationElementTime(this.scriptAnimation,this.scriptAnimationClock,integer(args[0]));
     }
     if (name === 'animelemno') {
-      let t = this.animationCycleTime + numeric(args[0] || 0), frames = this.animation?.frames || [];
-      if (!frames.length) { const error = new Error('Animation has no elements'); error.bottom = true; throw error; }
-      const durations = frames.map(frame => frame.ticks < 0 ? Infinity : Math.max(1, frame.ticks));
-      const duration = durations.reduce((sum, ticks) => sum + ticks, 0);
-      const loopStart = this.animation?.loopStart ?? 0;
-      const introTime = durations.slice(0, loopStart).reduce((sum, ticks) => sum + ticks, 0);
-      if (Number.isFinite(duration) && (this.animationLooped || this.frameIndex >= loopStart || t >= duration)) {
-        const loopDuration = duration - introTime;
-        t = introTime + ((t - introTime) % loopDuration + loopDuration) % loopDuration;
-      } else if (t < 0) { const error = new Error('Animation offset precedes its start'); error.bottom = true; throw error; }
-      for (let i = 0; i < frames.length; i++) { t -= durations[i]; if (t < 0) return i + 1; }
+      return animationElementAt(this.scriptAnimation,this.scriptAnimationClock,numeric(args[0]||0));
     }
     if (name === 'gethitvar') {
       const key = String(args[0]).toLowerCase();
@@ -422,7 +409,7 @@ export class FighterRuntime {
     const other = this.opponent;
     const flow=this.world?.roundFlow,side=this.root===this.world?.player?'player':'opponent',won=!!flow?.roundWinner&&flow.roundWinner===side,lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
     const values = {
-      animelem: this.frameIndex + 1,
+      animelem: this.scriptAnimationClock.frameIndex + 1,
       alive: +this.alive, gametime: this.world?.ticks??this.gameTime,
       hitshakeover: +((this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime)===0), hitover: +(this.hitTime < 0),
       movereversed: this.moveReversed || 0,
@@ -525,9 +512,19 @@ export class FighterRuntime {
     }
     const frames = owner.animations.get(number).frames;
     const requested=integer(element)-1,index=requested>=0&&requested<frames.length?requested:0;
+    if(!this._inPausedAnimation)this._pausedAnimation=null;
     this._animationSerial++;this.animationOwner = owner; this.anim = number; this.frameIndex = index; this.frameTime = 0; this.animationEnded = false;
-    this.animationTime = frames.slice(0, index).reduce((sum, frame) => sum + Math.max(1, frame.ticks), 0);
-    this.animationCycleTime = this.animationTime; this.animationLooped = false;
+    this.animationTime = animationTiming(owner.animations.get(number))?.offsets[index]||0;
+    this.animationCycleTime = this.animationTime; this.animationLooped = false;this._animationLoopReset=false;
+    if(this._inPausedAnimation){
+      const draw=captureAnimationClock(this);
+      this._pausedAnimation.draw=draw;
+      // A reset selects its sprite immediately. Its externally observed clock
+      // remains one tick before the requested element until hitpause ends.
+      this._pausedAnimation.visible={...draw,frameIndex:index-1,
+        frameTime:index>0?Math.max(1,frames[index-1].ticks)-1:-1,
+        animationTime:this.animationTime-1,animationCycleTime:this.animationCycleTime-1};
+    }
     return true;
   }
 
@@ -657,6 +654,11 @@ export class FighterRuntime {
 
   tick({ commands = new Set(), opponent = null, paused: worldPaused = false,input=null } = {}) {
     const ordered=this.world?.orderedPhases;
+    let resumedAnimation=false;
+    if(ordered&&!worldPaused&&this._pausedAnimation){
+      if(this._pausedAnimation.serial===this._animationSerial){restoreAnimationClock(this,this._pausedAnimation.logic);resumedAnimation=true;}
+      else this._pausedAnimation=null;
+    }
     if(!worldPaused)this._changeCount=0;
     if(ordered&&!worldPaused&&this._pendingHitTransform){const pending=this._pendingHitTransform;this._pendingHitTransform=null;if(pending.facing!==undefined)this.facing=pending.facing;for(const axis of ['x','y'])if(pending[axis]!==undefined)this.pos[axis]=pending[axis];}
     const animationSerial=this._animationSerial;
@@ -667,7 +669,19 @@ export class FighterRuntime {
     this._executing = null;
     const paused = this.hitPauseTime > 0;
     const shaking=ordered&&(this.getHitVars.hitshaketime||0)>0&&this.moveType==='H';
-    if(ordered&&animationSerial===this._animationSerial&&!paused&&!shaking)this.advanceAnimation();
+    if(ordered){
+      if(paused){
+        if(!this._pausedAnimation){
+          const visible=captureAnimationClock(this);
+          this._pausedAnimation={visible,draw:visible,logic:null,serial:this._animationSerial};
+          if(!resumedAnimation&&animationSerial===this._animationSerial&&!shaking)this.advanceAnimation();
+        }
+        this._inPausedAnimation=true;
+      }else{
+        this._pausedAnimation=null;
+        if(!resumedAnimation&&animationSerial===this._animationSerial&&!shaking)this.advanceAnimation();
+      }
+    }
     this.asserted = new Set();this.posFrozen=false;
     if(!paused){
       this.playerPush=!this.parent;this.screenBound=!this.parent;this.moveCamera={x:!this.parent,y:!this.parent};this._previousWidth=this.width;this.width=null;
@@ -684,7 +698,7 @@ export class FighterRuntime {
       this.runState(-2, paused, this);
     }
     if (this.keyCtrl && this.stateOwner === this&&!this._initializing) this.runState(-1, paused, this.parent ? this.root : this);
-    if(this.destroyed){this.gameTime++;return this.events;}
+    if(this.destroyed){this.finishPausedAnimation();this.gameTime++;return this.events;}
     if (!paused&&!this._initializing) this.automaticTransitions();
     if(!paused&&this.stateNo===5110&&this.time>=1&&this.alive&&(this.getHitVars.recovertime??1)<=0&&this.stateOwner.program.states.has(5120))this.changeState(5120);
     let serial;
@@ -693,10 +707,11 @@ export class FighterRuntime {
       else this.runState(this.stateNo, paused);
     }
     while (serial !== this._entrySerial && this._changeCount <= 64);
-    if(this.destroyed){this.gameTime++;return this.events;}
+    if(this.destroyed){this.finishPausedAnimation();this.gameTime++;return this.events;}
     if(!paused)this._initializing=false;
+    if(ordered&&!paused&&this._animationLoopReset){this.animationTime=this.animationCycleTime;this._animationLoopReset=false;}
     this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner;
-    if (paused) {advanceHitState(this,{hitPaused:true});if(!this.world)this.updateExplods({hitPaused:true});this.hitPauseTime = Math.max(0, this.hitPauseTime - 1); this.gameTime++; return this.events; }
+    if (paused) {if(ordered){this.finishPausedAnimation();this.syncAnimationFrame(this._pausedAnimation.draw);}advanceHitState(this,{hitPaused:true});if(!this.world)this.updateExplods({hitPaused:true});this.hitPauseTime = Math.max(0, this.hitPauseTime - 1); this.gameTime++; return this.events; }
     if (!this.posFrozen && !this.bound&&!shaking) {
       this.pos.x += this.vel.x * this.facing+(ordered?0:this.cornerPush); this.pos.y += this.vel.y;
       if(ordered){this.pos.x=Math.fround(this.pos.x);this.pos.y=Math.fround(this.pos.y);}
@@ -722,12 +737,26 @@ export class FighterRuntime {
         }
       }
     }
-    this.updateBinding(); this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner; this.collisionAnimation=this.animation;this.collisionFrameIndex=this.frameIndex;this.collisionFrameTime=this.frameTime;if(!ordered)this.advanceAnimation();if(!this.world)this.updateExplods();
+    this.updateBinding();this.syncAnimationFrame();if(!ordered)this.advanceAnimation();if(!this.world)this.updateExplods();
     if(shaking)this.getHitVars.hitshaketime=Math.max(0,this.getHitVars.hitshaketime-1);
     advanceHitState(this,{hitPaused:ordered&&(this.getHitVars.hitshaketime||0)>0});
     this.time++; this.gameTime++;
     this._previousUp = this.movementHeld('holdup');
     return this.events;
+  }
+
+  finishPausedAnimation(){
+    if(!this._inPausedAnimation)return;
+    const paused=this._pausedAnimation;
+    paused.logic=captureAnimationClock(this);paused.serial=this._animationSerial;
+    this._inPausedAnimation=false;restoreAnimationClock(this,paused.visible);
+  }
+
+  syncAnimationFrame(clock=this){
+    this.collisionAnimationOwner=clock.animationOwner;
+    this.collisionAnimation=(clock.animationOwner||this).animations.get(clock.anim);
+    this.collisionFrame=this.collisionAnimation?.frames[clock.frameIndex]||null;
+    this.collisionFrameIndex=clock.frameIndex;this.collisionFrameTime=clock.frameTime;
   }
 
   advanceAnimation() {
@@ -741,7 +770,8 @@ export class FighterRuntime {
       if (this.frameIndex >= animation.frames.length) {
         this.frameIndex = animation.loopStart ?? animation.loopstart ?? 0;
         this.animationEnded = true; this.animationLooped = true;
-        this.animationCycleTime = animation.frames.slice(0, this.frameIndex).reduce((sum, f) => sum + Math.max(1, f.ticks), 0);
+        this.animationCycleTime = animationTiming(animation).offsets[this.frameIndex]||0;
+        if(this.world?.orderedPhases)this._animationLoopReset=true;
       }
     }
   }

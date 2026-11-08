@@ -1,6 +1,6 @@
 {
   "engine": "Kenjatime Core",
-  "version": "0.5.4-core-preview",
+  "version": "0.5.5-core-preview",
   "independentRuntime": true,
   "universalCompatibility": false,
   "recoveryTags": [
@@ -9,8 +9,8 @@
     "recovery/pre-original-engine-android-0.4.5"
   ],
   "unitTests": {
-    "core": 46,
-    "compiledRegressionCorpus": 549,
+    "core": 50,
+    "compiledRegressionCorpus": 550,
     "skipped": 0,
     "suppliedCharacterAndStageArchivesPresent": true,
     "scope": "Existing regressions through the compiled backend use the original independent interpreter behavior, not native-engine certification."
@@ -137,257 +137,13 @@
   "movesets": {
     "engine": "Kenjatime Core",
     "group": "kfm-classic",
-    "matched": false,
+    "matched": true,
     "scenarios": 147,
     "comparedTicks": 12854,
     "comparedFields": 771240,
-    "differentFields": 458,
-    "fieldCounts": {
-      "x": 410,
-      "elementTime": 48
-    },
-    "firstDifferences": [
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 84,
-        "side": "opponent",
-        "field": "x",
-        "native": 90.25077819824219,
-        "core": 90.25079345703125
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 85,
-        "side": "player",
-        "field": "x",
-        "native": 61.45077896118164,
-        "core": 61.45079040527344
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 85,
-        "side": "opponent",
-        "field": "x",
-        "native": 89.45077514648438,
-        "core": 89.45079040527344
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 86,
-        "side": "player",
-        "field": "x",
-        "native": 60.65077590942383,
-        "core": 60.65079116821289
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 86,
-        "side": "opponent",
-        "field": "x",
-        "native": 88.65077209472656,
-        "core": 88.65078735351562
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 87,
-        "side": "player",
-        "field": "x",
-        "native": 59.850772857666016,
-        "core": 59.850791931152344
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 87,
-        "side": "opponent",
-        "field": "x",
-        "native": 87.85076904296875,
-        "core": 87.85079193115234
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 88,
-        "side": "player",
-        "field": "x",
-        "native": 58.350772857666016,
-        "core": 58.350791931152344
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 88,
-        "side": "opponent",
-        "field": "x",
-        "native": 89.35076904296875,
-        "core": 89.35079193115234
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 89,
-        "side": "player",
-        "field": "x",
-        "native": 58.350772857666016,
-        "core": 58.350791931152344
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 89,
-        "side": "opponent",
-        "field": "x",
-        "native": 89.35076904296875,
-        "core": 89.35079193115234
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 90,
-        "side": "player",
-        "field": "x",
-        "native": 58.350772857666016,
-        "core": 58.350791931152344
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 90,
-        "side": "opponent",
-        "field": "x",
-        "native": 89.35076904296875,
-        "core": 89.35079193115234
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 91,
-        "side": "player",
-        "field": "x",
-        "native": 58.350772857666016,
-        "core": 58.350791931152344
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 91,
-        "side": "opponent",
-        "field": "x",
-        "native": 89.35076904296875,
-        "core": 89.35079193115234
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 92,
-        "side": "player",
-        "field": "x",
-        "native": 57.750770568847656,
-        "core": 57.75079345703125
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 92,
-        "side": "opponent",
-        "field": "x",
-        "native": 88.75077819824219,
-        "core": 88.75079345703125
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 93,
-        "side": "player",
-        "field": "x",
-        "native": 57.15077590942383,
-        "core": 57.150794982910156
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 93,
-        "side": "opponent",
-        "field": "x",
-        "native": 88.15077209472656,
-        "core": 88.15079498291016
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 94,
-        "side": "player",
-        "field": "x",
-        "native": 56.55077362060547,
-        "core": 56.55079650878906
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 94,
-        "side": "opponent",
-        "field": "x",
-        "native": 87.55078125,
-        "core": 87.55079650878906
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 95,
-        "side": "player",
-        "field": "x",
-        "native": 55.95077896118164,
-        "core": 55.95079803466797
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 95,
-        "side": "opponent",
-        "field": "x",
-        "native": 86.95077514648438,
-        "core": 86.95079803466797
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 96,
-        "side": "player",
-        "field": "x",
-        "native": 55.35077667236328,
-        "core": 55.350799560546875
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 96,
-        "side": "opponent",
-        "field": "x",
-        "native": 86.35078430175781,
-        "core": 86.35079956054688
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 97,
-        "side": "player",
-        "field": "x",
-        "native": 54.75078201293945,
-        "core": 54.75080108642578
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 97,
-        "side": "opponent",
-        "field": "x",
-        "native": 85.75077819824219,
-        "core": 85.75080108642578
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 98,
-        "side": "player",
-        "field": "x",
-        "native": 54.150779724121094,
-        "core": 54.15080261230469
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 98,
-        "side": "opponent",
-        "field": "x",
-        "native": 85.15078735351562,
-        "core": 85.15080261230469
-      },
-      {
-        "case": "kfm-1020-0-1-near",
-        "tick": 99,
-        "side": "player",
-        "field": "x",
-        "native": 53.550785064697266,
-        "core": 53.550804138183594
-      }
-    ],
+    "differentFields": 0,
+    "fieldCounts": {},
+    "firstDifferences": [],
     "nativeCaptureSha256": "10680807361ae7544d6a9bc7fd9ad25006817774a2330dba7ce04cc78784fd84",
     "referenceProvenance": {
       "kind": "native-ikemen",
@@ -399,8 +155,8 @@
     },
     "scope": "Identical authored neutral setup and AssertInput CNS recipes; primary state/motion/contact fields only. Native common-state implementation is not loaded. Palette pixels, full helper/projectile field traces, and full native resource identity are not compared. Differences remain explicit; no certification is claimed.",
     "verifiedSubset": {
-      "required": 141,
-      "matched": 141,
+      "required": 147,
+      "matched": 147,
       "failures": []
     }
   },
@@ -552,105 +308,8 @@
     {
       "id": "kfm-1020-0-1-near",
       "ticks": 186,
-      "differences": 205,
-      "firstDifferences": [
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 84,
-          "side": "opponent",
-          "field": "x",
-          "native": 90.25077819824219,
-          "core": 90.25079345703125
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 85,
-          "side": "player",
-          "field": "x",
-          "native": 61.45077896118164,
-          "core": 61.45079040527344
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 85,
-          "side": "opponent",
-          "field": "x",
-          "native": 89.45077514648438,
-          "core": 89.45079040527344
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 86,
-          "side": "player",
-          "field": "x",
-          "native": 60.65077590942383,
-          "core": 60.65079116821289
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 86,
-          "side": "opponent",
-          "field": "x",
-          "native": 88.65077209472656,
-          "core": 88.65078735351562
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 87,
-          "side": "player",
-          "field": "x",
-          "native": 59.850772857666016,
-          "core": 59.850791931152344
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 87,
-          "side": "opponent",
-          "field": "x",
-          "native": 87.85076904296875,
-          "core": 87.85079193115234
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 88,
-          "side": "player",
-          "field": "x",
-          "native": 58.350772857666016,
-          "core": 58.350791931152344
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 88,
-          "side": "opponent",
-          "field": "x",
-          "native": 89.35076904296875,
-          "core": 89.35079193115234
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 89,
-          "side": "player",
-          "field": "x",
-          "native": 58.350772857666016,
-          "core": 58.350791931152344
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 89,
-          "side": "opponent",
-          "field": "x",
-          "native": 89.35076904296875,
-          "core": 89.35079193115234
-        },
-        {
-          "case": "kfm-1020-0-1-near",
-          "tick": 90,
-          "side": "player",
-          "field": "x",
-          "native": 58.350772857666016,
-          "core": 58.350791931152344
-        }
-      ]
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1020-0-1-far",
@@ -667,105 +326,8 @@
     {
       "id": "kfm-1020-0--1-near",
       "ticks": 186,
-      "differences": 205,
-      "firstDifferences": [
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 84,
-          "side": "opponent",
-          "field": "x",
-          "native": -90.25077819824219,
-          "core": -90.25079345703125
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 85,
-          "side": "player",
-          "field": "x",
-          "native": -61.45077896118164,
-          "core": -61.45079040527344
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 85,
-          "side": "opponent",
-          "field": "x",
-          "native": -89.45077514648438,
-          "core": -89.45079040527344
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 86,
-          "side": "player",
-          "field": "x",
-          "native": -60.65077590942383,
-          "core": -60.65079116821289
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 86,
-          "side": "opponent",
-          "field": "x",
-          "native": -88.65077209472656,
-          "core": -88.65078735351562
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 87,
-          "side": "player",
-          "field": "x",
-          "native": -59.850772857666016,
-          "core": -59.850791931152344
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 87,
-          "side": "opponent",
-          "field": "x",
-          "native": -87.85076904296875,
-          "core": -87.85079193115234
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 88,
-          "side": "player",
-          "field": "x",
-          "native": -58.350772857666016,
-          "core": -58.350791931152344
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 88,
-          "side": "opponent",
-          "field": "x",
-          "native": -89.35076904296875,
-          "core": -89.35079193115234
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 89,
-          "side": "player",
-          "field": "x",
-          "native": -58.350772857666016,
-          "core": -58.350791931152344
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 89,
-          "side": "opponent",
-          "field": "x",
-          "native": -89.35076904296875,
-          "core": -89.35079193115234
-        },
-        {
-          "case": "kfm-1020-0--1-near",
-          "tick": 90,
-          "side": "player",
-          "field": "x",
-          "native": -58.350772857666016,
-          "core": -58.350791931152344
-        }
-      ]
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-1000-0-1-near",
@@ -1166,105 +728,8 @@
     {
       "id": "kfm-210-0-1-near",
       "ticks": 40,
-      "differences": 12,
-      "firstDifferences": [
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 11,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 12,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 13,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 14,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 15,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 16,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 17,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 18,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 19,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 20,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 21,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-near",
-          "tick": 22,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        }
-      ]
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-210-0-1-far",
@@ -1275,208 +740,14 @@
     {
       "id": "kfm-210-0-1-guard",
       "ticks": 40,
-      "differences": 12,
-      "firstDifferences": [
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 11,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 12,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 13,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 14,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 15,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 16,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 17,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 18,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 19,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 20,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 21,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0-1-guard",
-          "tick": 22,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        }
-      ]
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-210-0--1-near",
       "ticks": 40,
-      "differences": 12,
-      "firstDifferences": [
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 11,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 12,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 13,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 14,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 15,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 16,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 17,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 18,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 19,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 20,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 21,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-210-0--1-near",
-          "tick": 22,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        }
-      ]
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-230-0-1-near",
@@ -1745,105 +1016,8 @@
     {
       "id": "kfm-chain",
       "ticks": 80,
-      "differences": 12,
-      "firstDifferences": [
-        {
-          "case": "kfm-chain",
-          "tick": 51,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 52,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 53,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 54,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 55,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 56,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 57,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 58,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 59,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 60,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 61,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        },
-        {
-          "case": "kfm-chain",
-          "tick": 62,
-          "side": "player",
-          "field": "elementTime",
-          "native": 1,
-          "core": 0
-        }
-      ]
+      "differences": 0,
+      "firstDifferences": []
     },
     {
       "id": "kfm-insufficient-power-1020",
@@ -1870,7 +1044,7 @@
       "firstDifferences": []
     }
   ],
-  "exactMovesetScenarios": 141,
+  "exactMovesetScenarios": 147,
   "benchmark": {
     "engine": "Kenjatime Core",
     "node": "v24.19.0",
@@ -1940,8 +1114,8 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 9259,
-          "interpreted": 2,
+          "wasm": 10120,
+          "interpreted": 4,
           "deoptimized": 0,
           "compiled": 486,
           "bytes": 16744,
@@ -1949,10 +1123,10 @@
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 83,
+          "frames": 54,
           "draws": 3,
-          "textureBytes": 135095,
-          "textures": 29,
+          "textureBytes": 130343,
+          "textures": 28,
           "width": 960,
           "height": 540
         },
@@ -1973,7 +1147,7 @@
             "peak": 0,
             "underruns": 0
           },
-          "voices": 0,
+          "voices": 1,
           "cacheBytes": 22004,
           "cachedSounds": 1,
           "decoding": 0,
@@ -1998,8 +1172,8 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 9163,
-          "interpreted": 2,
+          "wasm": 10075,
+          "interpreted": 3,
           "deoptimized": 0,
           "compiled": 486,
           "bytes": 16744,
@@ -2007,10 +1181,10 @@
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 83,
+          "frames": 44,
           "draws": 3,
-          "textureBytes": 135095,
-          "textures": 29,
+          "textureBytes": 124864,
+          "textures": 27,
           "width": 960,
           "height": 540
         },
@@ -2057,8 +1231,8 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 9546,
-          "interpreted": 2,
+          "wasm": 11361,
+          "interpreted": 8,
           "deoptimized": 0,
           "compiled": 486,
           "bytes": 16744,
@@ -2066,10 +1240,10 @@
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 79,
+          "frames": 41,
           "draws": 3,
-          "textureBytes": 135095,
-          "textures": 29,
+          "textureBytes": 128629,
+          "textures": 28,
           "width": 960,
           "height": 540
         },
@@ -2090,7 +1264,7 @@
             "peak": 0,
             "underruns": 0
           },
-          "voices": 1,
+          "voices": 0,
           "cacheBytes": 22004,
           "cachedSounds": 1,
           "decoding": 0,
@@ -2219,9 +1393,9 @@
   },
   "android": {
     "applicationId": "io.github.celerycore.kenjatime.core.preview",
-    "version": "0.5.4-core-preview",
-    "bytes": 7207442,
-    "sha256": "6612958f21cb631dc502f0b8d351c99e3410a9b77ec5efc6ff979ae9f443c564",
+    "version": "0.5.5-core-preview",
+    "bytes": 6988568,
+    "sha256": "9a295562b487d4c7f9fb8ae9b186bd231403e1f26a0bea8fe79aa40a71943377",
     "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
     "offlineAssetsMatchWebBuild": true,
     "bundledFiles": 36,
@@ -2237,120 +1411,27 @@
     "defaultBuildUsesSeparatePreviewId": true
   },
   "build": {
-    "bytes": 6617437,
+    "bytes": 6623573,
     "graphManifests": 4,
     "artifactManifest": "dist-core/provenance.json"
   },
   "physicalPhoneMeasured": false,
   "movesetImprovement": {
-    "baselineSource": "4a97df40086a68d4e754889c937085633e717a60",
+    "baselineSource": "9604143d36958d5d6dcf2e40a96329e71cfd4216",
     "sameAuthoredInputPlan": true,
     "inputPlanSha256": "309e60bc59e19f977271d5a7dabd56011a862f754c7c715e04ad8b6547295a6c",
     "unchangedNativeCapture": true,
-    "baselineExactScenarios": 132,
-    "currentExactScenarios": 141,
-    "baselineDifferentFields": 1195,
-    "currentDifferentFields": 458,
-    "reductionPercent": 61.67,
+    "baselineExactScenarios": 141,
+    "currentExactScenarios": 147,
+    "baselineDifferentFields": 458,
+    "currentDifferentFields": 0,
+    "reductionPercent": 100,
     "previouslyMatchingScenariosRegressed": 0,
     "scope": "Root combat trace fields across the same 147 captured scenarios in their original order; not a frame-rate benchmark or full compatibility claim."
   },
   "combatBenchmark": {
-    "baselineSource": "4a97df40086a68d4e754889c937085633e717a60",
+    "baselineSource": "9604143d36958d5d6dcf2e40a96329e71cfd4216",
     "baseline": {
-      "engine": "Kenjatime Core",
-      "version": "0.5.3-core-preview",
-      "node": "v24.19.0",
-      "platform": "linux",
-      "arch": "x64",
-      "combatSourceSha256": "ca7bd04e42d87fc146688284bb8261449a98792b7740a86628f32da505ba3339",
-      "simulationSources": {
-        "src/combat.js": "ca7bd04e42d87fc146688284bb8261449a98792b7740a86628f32da505ba3339",
-        "src/runtime.js": "eca0873a5f03d66eec95b56d3c254a098a197af0985945e79cb5a16f062b4668",
-        "src/common.js": "abb4d519c61a9b970d4546bc7675f0c8c4b3eb1d02ce91b8428666c6d07a173d",
-        "src/coordinates.js": "6ca870a1720be3b154d05313fff1e02b3456a532198c2fdd57792b7976405518",
-        "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
-        "src/expressions.js": "dcfab8e96748d520097816795c249f97ffcb82aa21f726d2fe3c528dd232f63f",
-        "src/hit-state.js": "a35f52ae114045a5bb6fb858b710db585a14ef441164636a07ec691388e1915c",
-        "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
-        "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
-        "src/cpu.js": "564266a9e8ea72990e6cf8104829b401aef81a1c58ff956d22ac3c72d879d729",
-        "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4"
-      },
-      "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
-      "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
-      "workloads": [
-        {
-          "name": "two-fighters",
-          "helpers": 0,
-          "attacking": true,
-          "projectiles": 0,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 23.16447499999998,
-          "timesMs": [
-            30.72954999999999,
-            24.12714600000001,
-            21.490721000000008,
-            23.16447499999998,
-            20.833290000000005
-          ],
-          "checksum": 3101414621
-        },
-        {
-          "name": "idle-helpers",
-          "helpers": 40,
-          "attacking": false,
-          "projectiles": 0,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 122.89109800000006,
-          "timesMs": [
-            125.46747900000003,
-            127.40948700000001,
-            118.45483200000001,
-            122.89109800000006,
-            107.91689799999995
-          ],
-          "checksum": 960736573
-        },
-        {
-          "name": "attacking-helpers",
-          "helpers": 40,
-          "attacking": true,
-          "projectiles": 0,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 1423.4147709999997,
-          "timesMs": [
-            1589.9988799999996,
-            1324.3108569999995,
-            1412.7866169999998,
-            1433.811948999999,
-            1423.4147709999997
-          ],
-          "checksum": 984608061
-        },
-        {
-          "name": "projectile-load",
-          "helpers": 16,
-          "attacking": true,
-          "projectiles": 32,
-          "ticks": 2000,
-          "samples": 5,
-          "medianMs": 880.673906,
-          "timesMs": [
-            880.673906,
-            878.6460719999995,
-            872.9105589999999,
-            896.2232059999988,
-            904.7797130000017
-          ],
-          "checksum": 2939807261
-        }
-      ]
-    },
-    "optimized": {
       "engine": "Kenjatime Core",
       "version": "0.5.4-core-preview",
       "node": "v24.19.0",
@@ -2368,7 +1449,8 @@
         "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
         "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
         "src/cpu.js": "564266a9e8ea72990e6cf8104829b401aef81a1c58ff956d22ac3c72d879d729",
-        "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4"
+        "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4",
+        "src/animation-clock.js": null
       },
       "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
       "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
@@ -2380,13 +1462,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 24.092670999999996,
+          "medianMs": 24.46335000000002,
           "timesMs": [
-            35.635902999999985,
-            32.462774000000024,
-            20.76797399999998,
-            24.092670999999996,
-            20.95759899999996
+            30.951823000000005,
+            24.46335000000002,
+            28.32867999999999,
+            18.901059000000004,
+            18.483582000000013
           ],
           "checksum": 3101414621
         },
@@ -2397,13 +1479,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 109.66999499999997,
+          "medianMs": 94.75515199999995,
           "timesMs": [
-            135.28249300000004,
-            107.10252700000001,
-            99.74757699999998,
-            110.74587900000006,
-            109.66999499999997
+            100.92391599999996,
+            93.150981,
+            94.75515199999995,
+            99.93410599999993,
+            93.432364
           ],
           "checksum": 960736573
         },
@@ -2414,13 +1496,13 @@
           "projectiles": 0,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 853.24613,
+          "medianMs": 800.5611200000001,
           "timesMs": [
-            871.1036959999997,
-            883.8594839999996,
-            853.24613,
-            771.2933400000002,
-            840.8047559999995
+            800.5611200000001,
+            848.7772620000001,
+            826.6772650000003,
+            789.2134999999998,
+            786.9840270000004
           ],
           "checksum": 984608061
         },
@@ -2431,13 +1513,107 @@
           "projectiles": 32,
           "ticks": 2000,
           "samples": 5,
-          "medianMs": 596.3470949999992,
+          "medianMs": 552.8098419999988,
           "timesMs": [
-            635.4929339999999,
-            596.3470949999992,
-            590.0379169999997,
-            573.539182999999,
-            631.2762399999992
+            575.357395,
+            595.3214889999999,
+            544.340252,
+            550.6183549999987,
+            552.8098419999988
+          ],
+          "checksum": 2939807261
+        }
+      ]
+    },
+    "optimized": {
+      "engine": "Kenjatime Core",
+      "version": "0.5.5-core-preview",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64",
+      "combatSourceSha256": "bb91c407eb83db9b6ed1a8abc70db74c4eb4f66277e6fe7f50dd7a503655ade4",
+      "simulationSources": {
+        "src/combat.js": "bb91c407eb83db9b6ed1a8abc70db74c4eb4f66277e6fe7f50dd7a503655ade4",
+        "src/runtime.js": "647a1914afffac471bdc3e27bab8681b49d3e8a040c221dd2d842b3d36036f20",
+        "src/common.js": "86ab2e401e7027fbfc1bd318b91d8688821cb5f0c6e69a6306dbaf14fdb9c37b",
+        "src/coordinates.js": "6ca870a1720be3b154d05313fff1e02b3456a532198c2fdd57792b7976405518",
+        "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
+        "src/expressions.js": "dcfab8e96748d520097816795c249f97ffcb82aa21f726d2fe3c528dd232f63f",
+        "src/hit-state.js": "a35f52ae114045a5bb6fb858b710db585a14ef441164636a07ec691388e1915c",
+        "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
+        "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
+        "src/cpu.js": "564266a9e8ea72990e6cf8104829b401aef81a1c58ff956d22ac3c72d879d729",
+        "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4",
+        "src/animation-clock.js": "f52b950774cce62243be29671f09599d8607eb451d04934ff3001265d2f0d665"
+      },
+      "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
+      "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
+      "workloads": [
+        {
+          "name": "two-fighters",
+          "helpers": 0,
+          "attacking": true,
+          "projectiles": 0,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 17.91505699999999,
+          "timesMs": [
+            30.129450000000006,
+            19.141573000000022,
+            17.91505699999999,
+            16.299824,
+            15.875471000000005
+          ],
+          "checksum": 3101414621
+        },
+        {
+          "name": "idle-helpers",
+          "helpers": 40,
+          "attacking": false,
+          "projectiles": 0,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 100.49274100000002,
+          "timesMs": [
+            100.179775,
+            98.96027500000002,
+            100.49274100000002,
+            113.96150599999999,
+            101.19133099999999
+          ],
+          "checksum": 960736573
+        },
+        {
+          "name": "attacking-helpers",
+          "helpers": 40,
+          "attacking": true,
+          "projectiles": 0,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 800.2291940000005,
+          "timesMs": [
+            793.1343979999999,
+            805.9673390000003,
+            814.9325250000002,
+            800.2291940000005,
+            798.3593059999994
+          ],
+          "checksum": 984608061
+        },
+        {
+          "name": "projectile-load",
+          "helpers": 16,
+          "attacking": true,
+          "projectiles": 32,
+          "ticks": 2000,
+          "samples": 5,
+          "medianMs": 536.055773,
+          "timesMs": [
+            533.5705900000003,
+            536.055773,
+            533.2653919999993,
+            542.6684399999995,
+            542.5477490000012
           ],
           "checksum": 2939807261
         }
@@ -2446,114 +1622,41 @@
     "comparison": [
       {
         "name": "two-fighters",
-        "baselineMs": 23.16447499999998,
-        "optimizedMs": 24.092670999999996,
-        "speedup": 0.9614739270710162,
-        "lessCpuPercent": -4.006980516502168,
+        "baselineMs": 24.46335000000002,
+        "optimizedMs": 17.91505699999999,
+        "speedup": 1.365518959833621,
+        "lessCpuPercent": 26.767768927804347,
         "identicalChecksums": true
       },
       {
         "name": "idle-helpers",
-        "baselineMs": 122.89109800000006,
-        "optimizedMs": 109.66999499999997,
-        "speedup": 1.1205535114686573,
-        "lessCpuPercent": 10.758389513290933,
+        "baselineMs": 94.75515199999995,
+        "optimizedMs": 100.49274100000002,
+        "speedup": 0.9429054383141956,
+        "lessCpuPercent": -6.055173654304391,
         "identicalChecksums": true
       },
       {
         "name": "attacking-helpers",
-        "baselineMs": 1423.4147709999997,
-        "optimizedMs": 853.24613,
-        "speedup": 1.668234664011895,
-        "lessCpuPercent": 40.05639484824483,
+        "baselineMs": 800.5611200000001,
+        "optimizedMs": 800.2291940000005,
+        "speedup": 1.0004147886661576,
+        "lessCpuPercent": 0.04146166878546964,
         "identicalChecksums": true
       },
       {
         "name": "projectile-load",
-        "baselineMs": 880.673906,
-        "optimizedMs": 596.3470949999992,
-        "speedup": 1.4767807429329411,
-        "lessCpuPercent": 32.28514085212385,
+        "baselineMs": 552.8098419999988,
+        "optimizedMs": 536.055773,
+        "speedup": 1.0312543392756237,
+        "lessCpuPercent": 3.0307110559726125,
         "identicalChecksums": true
       }
     ],
-    "scope": "Sequential host samples of authored stationary synthetic loads. Identical checksums; no graphics/audio/imports, phone FPS or full-engine comparison. A final source change to handle positive wall offsets required rerunning the optimized measurement; these are the final-source results."
+    "scope": "Sequential host samples with identical checksums. Shared independent JS interpreter. No browser or phone FPS or full-native-engine speed comparison."
   },
-  "previousVerifiedCheckpoint": "checkpoint/core-preview-0.5.3",
-  "remainingMovesetExamples": [
-    {
-      "id": "kfm-1020-0-1-near",
-      "differentFields": 205,
-      "firstDifference": {
-        "case": "kfm-1020-0-1-near",
-        "tick": 84,
-        "side": "opponent",
-        "field": "x",
-        "native": 90.25077819824219,
-        "core": 90.25079345703125
-      }
-    },
-    {
-      "id": "kfm-1020-0--1-near",
-      "differentFields": 205,
-      "firstDifference": {
-        "case": "kfm-1020-0--1-near",
-        "tick": 84,
-        "side": "opponent",
-        "field": "x",
-        "native": -90.25077819824219,
-        "core": -90.25079345703125
-      }
-    },
-    {
-      "id": "kfm-210-0-1-near",
-      "differentFields": 12,
-      "firstDifference": {
-        "case": "kfm-210-0-1-near",
-        "tick": 11,
-        "side": "player",
-        "field": "elementTime",
-        "native": 1,
-        "core": 0
-      }
-    },
-    {
-      "id": "kfm-210-0-1-guard",
-      "differentFields": 12,
-      "firstDifference": {
-        "case": "kfm-210-0-1-guard",
-        "tick": 11,
-        "side": "player",
-        "field": "elementTime",
-        "native": 1,
-        "core": 0
-      }
-    },
-    {
-      "id": "kfm-210-0--1-near",
-      "differentFields": 12,
-      "firstDifference": {
-        "case": "kfm-210-0--1-near",
-        "tick": 11,
-        "side": "player",
-        "field": "elementTime",
-        "native": 1,
-        "core": 0
-      }
-    },
-    {
-      "id": "kfm-chain",
-      "differentFields": 12,
-      "firstDifference": {
-        "case": "kfm-chain",
-        "tick": 51,
-        "side": "player",
-        "field": "elementTime",
-        "native": 1,
-        "core": 0
-      }
-    }
-  ],
+  "previousVerifiedCheckpoint": "checkpoint/core-preview-0.5.4",
+  "remainingMovesetExamples": [],
   "reversalRegression": {
     "originalDefectSource": "273c8214e7e232f69e1f301eab2636fef26a665f",
     "beforeReversals": 2,
@@ -2588,7 +1691,12 @@
     "recoilRegistryClearsDestroyedHelpersAndReset": true,
     "zeroWallOffsetReleasesTarget": true,
     "guardEndAndCrouchingBlockVerified": true,
-    "browserPauseAwaitsPublishedPausedSnapshot": true
+    "browserPauseAwaitsPublishedPausedSnapshot": true,
+    "animationScriptsUseLivePausedClock": true,
+    "pausedSpriteSelectionIsIndependentOfReportedClock": true,
+    "loopBoundariesAndFirstElementResetsMatchNative": true,
+    "worldPausePreservesBothAnimationClocks": true,
+    "reciprocalPushRechecksCurrentHurtBoxOverlap": true
   },
   "idleStopProbes": {
     "runs": 2,
@@ -2603,5 +1711,158 @@
       "releaseUrl": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/Ikemen_GO-v1.0.0-linux.zip"
     },
     "scope": "Default standing idle with no direction held, ground friction .85 and threshold 2, localcoord 320. Does not establish other common-state or physics profiles."
+  },
+  "capturedCombatBaselineComplete": true,
+  "animationBenchmark": {
+    "baselineSource": "9604143d36958d5d6dcf2e40a96329e71cfd4216",
+    "baseline": {
+      "engine": "Kenjatime Core",
+      "version": "0.5.4-core-preview",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64",
+      "sources": {
+        "src/runtime.js": "226b5101991364ff0d556604cf8db9df65097ea807dbd65ae93c9473e9dfbc1a",
+        "src/animation-clock.js": null
+      },
+      "workloads": [
+        {
+          "frameCount": 24,
+          "evaluations": 20000,
+          "readsPerSample": 60000,
+          "samples": 5,
+          "medianMs": 13.13534899999999,
+          "timesMs": [
+            17.963109999999993,
+            17.89956500000001,
+            13.13534899999999,
+            7.6252600000000115,
+            7.399821000000003
+          ],
+          "checksum": 2416700090
+        },
+        {
+          "frameCount": 1024,
+          "evaluations": 20000,
+          "readsPerSample": 60000,
+          "samples": 5,
+          "medianMs": 148.85353800000001,
+          "timesMs": [
+            150.10343600000002,
+            148.85353800000001,
+            149.33793100000003,
+            145.006082,
+            144.68500500000005
+          ],
+          "checksum": 3881714637
+        }
+      ],
+      "scope": "Authored headless animation trigger reads through the shared independent JS interpreter. Includes finite loop offsets and changing queried elements. Excludes match simulation, rendering, audio and loading; not browser or phone FPS."
+    },
+    "optimized": {
+      "engine": "Kenjatime Core",
+      "version": "0.5.5-core-preview",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64",
+      "sources": {
+        "src/runtime.js": "647a1914afffac471bdc3e27bab8681b49d3e8a040c221dd2d842b3d36036f20",
+        "src/animation-clock.js": "f52b950774cce62243be29671f09599d8607eb451d04934ff3001265d2f0d665"
+      },
+      "workloads": [
+        {
+          "frameCount": 24,
+          "evaluations": 20000,
+          "readsPerSample": 60000,
+          "samples": 5,
+          "medianMs": 3.6826870000000014,
+          "timesMs": [
+            6.182653999999999,
+            4.760732000000004,
+            3.558840999999987,
+            3.589238000000009,
+            3.6826870000000014
+          ],
+          "checksum": 2416700090
+        },
+        {
+          "frameCount": 1024,
+          "evaluations": 20000,
+          "readsPerSample": 60000,
+          "samples": 5,
+          "medianMs": 4.475133999999997,
+          "timesMs": [
+            9.369237999999996,
+            6.146008000000009,
+            4.432631000000001,
+            4.475133999999997,
+            4.205911999999998
+          ],
+          "checksum": 3881714637
+        }
+      ],
+      "scope": "Authored headless animation trigger reads through the shared independent JS interpreter. Includes finite loop offsets and changing queried elements. Excludes match simulation, rendering, audio and loading; not browser or phone FPS."
+    },
+    "comparison": [
+      {
+        "frameCount": 24,
+        "baselineMs": 13.13534899999999,
+        "optimizedMs": 3.6826870000000014,
+        "speedup": 3.5667839813701208,
+        "lessCpuPercent": 71.9635389969463,
+        "identicalChecksums": true
+      },
+      {
+        "frameCount": 1024,
+        "baselineMs": 148.85353800000001,
+        "optimizedMs": 4.475133999999997,
+        "speedup": 33.262364434227024,
+        "lessCpuPercent": 96.99359917128741,
+        "identicalChecksums": true
+      }
+    ],
+    "scope": "Sequential host samples with identical checksums. Shared independent JS interpreter. No browser or phone FPS or full-native-engine speed comparison."
+  },
+  "animationPauseProbes": {
+    "runs": 7,
+    "samples": 154,
+    "fixtureSha256": "f4b6988d546525f7a660c8e2e7ec513dacf21dc830fd91c2cffc161f7afbbc0d",
+    "reference": {
+      "kind": "native-observations",
+      "version": "1.0.0",
+      "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+      "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+      "method": "Unmodified official Linux executable with original KFM data, authored QA AssertInput, and independently authored ignorehitpause VarSet/ChangeAnim probes. Selected samples compare CNS reads with post-tick externally observable animation clocks.",
+      "engine": "IKEMEN GO",
+      "releaseUrl": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/Ikemen_GO-v1.0.0-linux.zip"
+    },
+    "scope": "Standing KFM attacks at localcoord 320; ordinary pause, same-action reset, different-action reset, repeated resets, loop boundaries and reset-to-first-element. External clocks, CNS reads and sprite dimensions/axis offsets are separate observations. No claim for every pause/controller combination."
+  },
+  "bodyPushProbes": {
+    "runs": 6,
+    "samples": 41,
+    "fixtureSha256": "6f0f1a15afc79cbd59931fd2ee7a25d286f0bc370d605d2f95aed8d111e7a652",
+    "reference": {
+      "kind": "native-observations",
+      "version": "1.0.0",
+      "releaseSha256": "cc533c1a2ab84d63cbf9126d9dcb3f2dcc1a41c6206f2da419b0c91084f193e4",
+      "executableSha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+      "method": "Unmodified official Linux executable; original KFM data with independently authored standing/air/lying state 0 position sweeps. Victim primary and state files both select its own authored states. Width overrides and an authored wide hurt box distinguish reciprocal push checks from mere rounding of axes. The first cycle is excluded to remove neutral-setup effects.",
+      "engine": "IKEMEN GO",
+      "releaseUrl": "https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0/Ikemen_GO-v1.0.0-linux.zip"
+    },
+    "scope": "Float32 reciprocal body push in a fixed 320-wide viewport, facing 1, ground front/back 16/15, air front/back 12/12, standing player and standing/air/lying victim. Original KFM hurt boxes unless explicitly replaced by [-40,-90,40,0]. Does not establish all multi-actor ordering, camera or coordinate-width profiles."
+  },
+  "archiveIntegrityRegression": {
+    "fixture": {
+      "file": "zipcrypto-header-collision.zip",
+      "sha256": "f086822de34235e6753ba9f0524011c99496b884c0260fa71e433546d3bae14f",
+      "password": "secret",
+      "wrongPassword": "wrong-1212",
+      "content": "[Info]\nname=Authored encrypted header collision fixture\n",
+      "provenance": "Independently authored text payload, generated with 7z-wasm ZipCrypto. The pinned incorrect password passes the short encryption header check and fails CRC verification with the original reader. No personal data or external credentials."
+    },
+    "wrongPasswordReportsPasswordOrDamage": true,
+    "correctPasswordImportAfterFailurePasses": true
   }
 }
