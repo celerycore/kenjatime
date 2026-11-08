@@ -14,5 +14,12 @@
   "sourceBranch": "source/independent-engine",
   "checkpoint": "checkpoint/core-preview-0.5.0",
   "webPreview": "https://celerycore.github.io/kenjatime/engine-preview/",
-  "compatibilityReport": "https://github.com/celerycore/kenjatime/blob/source/independent-engine/docs/core-rewrite.md"
+  "compatibilityReport": "https://github.com/celerycore/kenjatime/blob/source/independent-engine/docs/core-rewrite.md",
+  "verifiedCheckpoint": "checkpoint/core-preview-0.5.0-verified",
+  "verificationSourceCommit": "e12650522004ca6884958849832f8630f9ef33d7",
+  "verificationWorkflow": "https://github.com/celerycore/kenjatime/actions/runs/42475177178",
+  "browserCI": "success",
+  "androidCI": "success",
+  "pagesDeployment": "https://github.com/celerycore/kenjatime/actions/runs/42474733953",
+  "pagesCI": "success"
 }
