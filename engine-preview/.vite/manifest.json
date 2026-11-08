@@ -4,7 +4,7 @@
     "src": "../source-release/node_modules/7z-wasm/7zz.wasm"
   },
   "../source-release/node_modules/@capacitor/app/dist/esm/web.js": {
-    "file": "assets/web-BmsRYEPO.js",
+    "file": "assets/web-DMgCSJnp.js",
     "name": "web",
     "src": "../source-release/node_modules/@capacitor/app/dist/esm/web.js",
     "isDynamicEntry": true,
@@ -13,17 +13,17 @@
     ]
   },
   "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js": {
-    "file": "assets/web-Bloz9LdO.js",
+    "file": "assets/web-45GHJgKb.js",
     "name": "web",
     "src": "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
       "core/index.html",
-      "_native-export-DhbDE2bz.js"
+      "_native-export-jknQuGSr.js"
     ]
   },
   "../source-release/node_modules/@capacitor/share/dist/esm/web.js": {
-    "file": "assets/web-4bu4aFxY.js",
+    "file": "assets/web-C9I40Xa3.js",
     "name": "web",
     "src": "../source-release/node_modules/@capacitor/share/dist/esm/web.js",
     "isDynamicEntry": true,
@@ -40,8 +40,8 @@
     "name": "__vite-browser-external",
     "isDynamicEntry": true
   },
-  "_native-export-DhbDE2bz.js": {
-    "file": "assets/native-export-DhbDE2bz.js",
+  "_native-export-jknQuGSr.js": {
+    "file": "assets/native-export-jknQuGSr.js",
     "name": "native-export",
     "isDynamicEntry": true,
     "imports": [
@@ -53,13 +53,13 @@
     ]
   },
   "core/index.html": {
-    "file": "assets/core-BBE5LC7S.js",
+    "file": "assets/core-DsX713ta.js",
     "name": "core",
     "src": "core/index.html",
     "isEntry": true,
     "dynamicImports": [
       "../source-release/node_modules/@capacitor/app/dist/esm/web.js",
-      "_native-export-DhbDE2bz.js",
+      "_native-export-jknQuGSr.js",
       "src/seven-archive.js",
       "src/multi-archive.js",
       "src/zip-encrypted.js",
@@ -79,7 +79,7 @@
     "src": "public/kfm.zip"
   },
   "src/core/runtime.js": {
-    "file": "assets/runtime-D4hLmcG_.js",
+    "file": "assets/runtime-AECKrzmx.js",
     "name": "runtime",
     "src": "src/core/runtime.js",
     "isDynamicEntry": true,
@@ -100,7 +100,7 @@
     ]
   },
   "src/multi-archive.js": {
-    "file": "assets/multi-archive-_H1YkrjB.js",
+    "file": "assets/multi-archive-BcyT7lRy.js",
     "name": "multi-archive",
     "src": "src/multi-archive.js",
     "isDynamicEntry": true,
@@ -110,7 +110,7 @@
     ]
   },
   "src/rar-reader.js": {
-    "file": "assets/rar-reader-5ba9_w2a.js",
+    "file": "assets/rar-reader-DX0Aw7RD.js",
     "name": "rar-reader",
     "src": "src/rar-reader.js",
     "isDynamicEntry": true,
@@ -119,7 +119,7 @@
     ]
   },
   "src/seven-archive.js": {
-    "file": "assets/seven-archive-DGjvwcbi.js",
+    "file": "assets/seven-archive-CYT0YKV6.js",
     "name": "seven-archive",
     "src": "src/seven-archive.js",
     "isDynamicEntry": true,
@@ -134,7 +134,7 @@
     ]
   },
   "src/zip-encrypted.js": {
-    "file": "assets/zip-encrypted-BV-KThsW.js",
+    "file": "assets/zip-encrypted-DrG30_we.js",
     "name": "zip-encrypted",
     "src": "src/zip-encrypted.js",
     "isDynamicEntry": true,
@@ -143,7 +143,7 @@
     ]
   },
   "src/zip-lzma.js": {
-    "file": "assets/zip-lzma-C8oC5LkY.js",
+    "file": "assets/zip-lzma-D-RF89KE.js",
     "name": "zip-lzma",
     "src": "src/zip-lzma.js",
     "isDynamicEntry": true,
