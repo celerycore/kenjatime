@@ -696,7 +696,7 @@ export class FighterRuntime {
     if (!shaking&&this.physics === 'A') {
       this.vel.y += (ordered?Math.fround(this.constant('movement.yaccel')):this.constant('movement.yaccel')) * this.coordinateScale;
       if(ordered)this.vel.y=Math.fround(this.vel.y);
-      if (this.pos.y >= 0 && this.vel.y > 0) {
+      if (this.pos.y >= 0 && this.vel.y > 0 && !(ordered&&this.stateNo===105)) {
         this.pos.y = 0; this.vel.y = 0; this.airJumps = 0;
         if (this.program.states.has(52)) this.changeState(52);
       }
@@ -1149,7 +1149,7 @@ export class FighterRuntime {
     const hitScale=hit.coordinateScale??attacker?.coordinateScale??this.coordinateScale,factor=hitScale/this.coordinateScale;
     let xvel = (velocity?.[0] || 0) * factor*-impactFacing*hitFacing, yvel = (velocity?.[1] || 0) * factor;
     const knockout=projected<=0,boost=knockout?koVelocity(xvel,yvel,initialType,this.coordinateScale):{x:xvel,y:yvel,xadd:0,yadd:0};xvel=boost.x;yvel=boost.y;
-    const time = guarded ? hit.guardHitTime : downed&&yvel===0 ? hit['down.hittime']??20 : airborne||yvel!==0 ? hit.airHitTime??20 : hit.groundHitTime??0;
+    const time = guarded ? hit.guardHitTime : downed&&yvel===0 ? hit['down.hittime']??20 : airborne||yvel!==0||ordered&&hit.fall ? hit.airHitTime??20 : hit.groundHitTime??0;
     const animTypes = { light: 0, medium: 1, med:1, hard: 2, back: 3, up: 4, diagup: 5 };
     const groundTypes = { high: 1, low: 2, trip: 3, none: 0 };
     let groundType=groundTypes[String(hit['ground.type']||'high').toLowerCase()]??1;
@@ -1179,7 +1179,7 @@ export class FighterRuntime {
     this.hitTime = Math.max(0, time || 0)+(ordered&&!guarded&&time>0?1:0); this.hitPauseTime = ordered?0:Math.max(0, pause?.[1] || 0);
     this.ctrl = 0; this.moveType = 'H'; this.hitId = hit.id ?? 0;
     this.hitSourceId=hitSourceId(attacker);
-    this.vel = { x: 0, y: 0 };this.cornerPush=0;
+    if(!ordered)this.vel = { x: 0, y: 0 };this.cornerPush=0;
     if(attacker&&(!guarded||ordered)){
       const scale=hitScale;
       for(const [axis,index]of [['x',0],['y',1]]){

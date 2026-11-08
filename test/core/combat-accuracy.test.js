@@ -6,6 +6,7 @@ import { CoreSession } from "../../src/core/session.js";
 import { TrainingMatch } from "../../src/combat.js";
 import { commonStates } from "../../src/common.js";
 import { bodyWidthWorld } from "../../src/coordinates.js";
+import { parseStage, StageRuntime } from "../../src/stages.js";
 
 const encode = (text) => new TextEncoder().encode(text);
 const sampleFiles = () =>
@@ -34,9 +35,9 @@ function actor(script = "", name = "actor") {
     })),
   };
 }
-function match(script) {
+function match(script, victimScript = "") {
   return new TrainingMatch(actor(script), {
-    opponentCharacter: actor("", "victim"),
+    opponentCharacter: actor(victimScript, "victim"),
     initialize: false,
     orderedPhases: true,
     manageInputs: true,
@@ -90,6 +91,59 @@ test("Width offsets extend the authored body and edge widths, including negative
   assert.equal(bodyWidthWorld(m.player, 1, { edge: true }), 0);
 });
 
+test("Core screen limits use stage margins and Width edge offsets independently of body size", () => {
+  const m = match(),
+    a = m.player;
+  m.leftBound = -160;
+  m.rightBound = 160;
+  a.pos.x = 1000;
+  m.constrainPositions({ push: false });
+  assert.equal(a.pos.x, 160);
+  a.width = { edge: [20, 5] };
+  a.coordinateScale = 0.5;
+  assert.deepEqual(m.horizontalLimits(a), { min: -157.5, max: 150 });
+  a.facing = -1;
+  assert.deepEqual(m.horizontalLimits(a), { min: -150, max: 157.5 });
+  const text =
+    "[Info]\nname=Margins\n[Camera]\nboundleft=0\nboundright=0\n[Bound]\nscreenleft=12\nscreenright=8\n[PlayerInfo]\nleftbound=-1000\nrightbound=1000\n[BGDef]\n";
+  m.stage = new StageRuntime(
+    parseStage("stage.def", { "stage.def": encode(text) }),
+  );
+  m.leftBound = -1000;
+  m.rightBound = 1000;
+  assert.deepEqual(m.horizontalLimits(a), { min: -138, max: 149.5 });
+});
+
+test("contact geometry refreshes after movement, facing and animation changes", () => {
+  const m = match(
+    "[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nanim=200\nctrl=0\n" +
+      "[State Hit]\ntype=HitDef\ntrigger1=1\nattr=S,NA\ndamage=10\npausetime=0,0\nground.hittime=1\nground.velocity=0\n",
+    "[Statedef 900]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=201\n",
+  );
+  m.pushboxes = false;
+  m.player.pos.x = -16;
+  m.opponent.pos.x = 16;
+  m.player.changeState(200);
+  const helper = m.spawnHelper(m.player, { stateno: 200, keyctrl: 0 });
+  m.tick();
+  assert.equal(m.events.filter((e) => e.type === "hit").length, 2);
+  m.opponent.pos.x = 140;
+  m.tick();
+  assert.equal(m.events.length, 0);
+  m.opponent.pos.x = 16;
+  m.player.facing = helper.facing = -1;
+  m.tick();
+  assert.equal(m.events.length, 0);
+  m.player.facing = helper.facing = 1;
+  m.opponent.animations.set(201, {
+    id: 201,
+    frames: [{ group: 0, number: 0, ticks: -1, clsn2: [], clsn1: [] }],
+  });
+  m.opponent.changeState(900);
+  m.tick();
+  assert.equal(m.events.length, 0);
+});
+
 test("hit snap and facing are deferred together, while velocity uses the eventual facing", () => {
   const m = match(
     "[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nanim=200\nctrl=0\n" +
@@ -131,6 +185,52 @@ test("air-hit to fall transition applies gravity once and preserves the launch a
   assert.equal(a.time, 1);
   assert.equal(a.anim, 5051);
   s.close();
+});
+
+test("the hit-up animation handoff accelerates once on the transition tick", () => {
+  const s = new CoreSession(sampleFiles(), { mode: "training" }),
+    a = s.match.player;
+  Object.assign(a.getHitVars, {
+    fall: 1,
+    animtype: 2,
+    xvel: -1,
+    yvel: -4,
+    yaccel: Math.fround(0.35),
+  });
+  a.pos.y = -100;
+  a.hitTime = 100;
+  a.changeAnimation(5012);
+  a.changeState(5030);
+  let velocity = -4,
+    entered = false;
+  for (let i = 0; i < 30; i++) {
+    if (i) velocity = Math.fround(velocity + Math.fround(0.35));
+    s.tick();
+    assert.equal(a.vel.y, velocity, "gravity on tick " + (i + 1));
+    if (a.stateNo === 5035) {
+      entered = true;
+      break;
+    }
+  }
+  assert.ok(entered);
+  assert.equal(a.anim, 5035);
+  s.close();
+});
+
+test("a hit preserves contact-frame velocity until the deferred hit-state header runs", () => {
+  const m = match(
+    "[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nanim=200\nctrl=0\n" +
+      "[State Hit]\ntype=HitDef\ntrigger1=Time=0\nattr=S,NA\ndamage=10\npausetime=0,2\nground.hittime=10\nground.velocity=-2\n",
+  );
+  m.player.pos.x = -16;
+  m.opponent.pos.x = 16;
+  m.opponent.vel.x = -3;
+  m.player.changeState(200);
+  m.tick();
+  assert.equal(m.opponent.stateNo, 5000);
+  assert.equal(m.opponent.vel.x, -3);
+  m.tick();
+  assert.equal(m.opponent.vel.x, 0);
 });
 
 test("scripted inputs survive frozen ticks and are consumed on the first active tick", () => {

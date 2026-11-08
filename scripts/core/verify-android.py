@@ -9,7 +9,7 @@ signing = subprocess.check_output([str(tools / 'apksigner'), 'verify', '--print-
 certificate = re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-f]+)', signing).group(1)
 badging = subprocess.check_output([str(tools / 'aapt'), 'dump', 'badging', str(apk)], text=True)
 assert "name='io.github.celerycore.kenjatime.core.preview'" in badging
-assert "versionName='0.5.1-core-preview'" in badging and "versionCode='2'" in badging
+assert "versionName='0.5.2-core-preview'" in badging and "versionCode='3'" in badging
 assert "application-label:'Kenjatime Core Preview'" in badging
 assert "launchable-activity: name='io.github.celerycore.kenjatime.MainActivity'" in badging
 expected_config = json.loads((ROOT / 'capacitor.core.config.json').read_text())
@@ -34,7 +34,7 @@ with ZipFile(apk) as z:
     for name, item in proof['files'].items():
         assert hashlib.sha256(z.read('assets/public/' + name)).hexdigest() == item['sha256'], name
     assert z.read('assets/public/NOTICES.txt')
-report = {'applicationId': expected_config['appId'], 'version': '0.5.1-core-preview',
+report = {'applicationId': expected_config['appId'], 'version': '0.5.2-core-preview',
     'bytes': apk.stat().st_size, 'sha256': hashlib.sha256(apk.read_bytes()).hexdigest(),
     'certificateSha256': certificate, 'offlineAssetsMatchWebBuild': True, 'bundledFiles': len(files),
     'startupUrl': 'https://localhost/core/index.html', 'separateRecoveryInstallation': True,

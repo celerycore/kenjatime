@@ -39,7 +39,8 @@ export function commonStates({orderedPhases=false}={}){return [
   state(100, 'type = S\nmovetype = I\nphysics = '+(orderedPhases?'S':'N')+'\nctrl = 1',
     anim(100) + controller('VelSet', 'x = const(velocity.run.fwd.x)') + controller('AssertSpecial', 'flag = nowalk\nflag2 = noautoturn') + change(0, 'command != "holdfwd"')),
   state(105, 'type = A\nmovetype = I\nphysics = A\nctrl = 0',
-    anim(105) + controller('VelSet', 'x = const(velocity.run.back.x)\ny = const(velocity.run.back.y)', 'time = 0') + change(52, 'pos y >= 0 && vel y > 0', 0)),
+    anim(105) + (orderedPhases?controller('CtrlSet','value=1','time>=2'):'') + controller('VelSet', 'x = const(velocity.run.back.x)\ny = const(velocity.run.back.y)', 'time = 0') + change(orderedPhases?106:52, 'pos y >= 0 && vel y > 0', 0)),
+  ...(orderedPhases?[state(106,'type=S\nmovetype=I\nphysics=S\nctrl=0',anim(47)+controller('PosSet','y=0')+controller('VelSet','y=0')+controller('VelSet','x=0','abs(vel x)<const(movement.stand.friction.threshold)')+change(0,'time>=7'))]:[]),
   // Guard entry/hold states use ordinary CNS transitions; the combat layer
   // decides whether each HitDef may be guarded in the fighter's posture.
   ...[[120, 'S', orderedPhases?120:130], [130, 'S', 130], [131, 'C', 131], [132, 'A', 132], [140, 'S', 130]].map(([id, posture, action]) =>
@@ -67,18 +68,18 @@ export function commonStates({orderedPhases=false}={}){return [
     (orderedPhases?anim('anim+5','animtime=0 && (anim=[5000,5002] || anim=[5010,5012] || anim=[5020,5022])'):'')+
     controller('VelSet','x=0','hitover')+controller('DefenceMulSet','value=1','hitover')+change(0,'hitover'))),
   ...[5030,5035].map(id=>{
-    const accelerate=controller('VelAdd','y=gethitvar(yaccel)',id===5030?'time>0':'1');
+    const accelerate=controller('VelAdd','y=gethitvar(yaccel)',id===5030?'time>0':orderedPhases?'time>0 || prevstateno!=5030':'1');
     const transition=controller('ChangeState','value=ifelse(gethitvar(fall),5050,5040)\nctrl=0','hitover || (vel y>0 && pos y>=0)')+
-      (id===5030?(orderedPhases?controller('ChangeState','value=ifelse(gethitvar(fall),5050,5035)\nctrl=0','animtime=0'):change(5035,'animtime=0',0)):controller('ChangeState','value=ifelse(gethitvar(fall),5050,5040)\nctrl=0','animtime=0 || !selfanimexist(5035)'));
+      (id===5030?(orderedPhases?controller('ChangeState','value=ifelse(anim=[5050,5059],5050,5035)\nctrl=0','animtime=0'):change(5035,'animtime=0',0)):controller('ChangeState','value=ifelse(gethitvar(fall),5050,5040)\nctrl=0','animtime=0 || !selfanimexist(5035)'));
     return state(id,'type=A\nmovetype=H\nphysics=N\nctrl=0',
       (id===5030?(orderedPhases?anim('anim'):'')+controller('HitVelSet','x=1\ny=1','time=0'):anim(5035))+
       accelerate+transition);
   }),
   state(5040,'type=A\nmovetype=H\nphysics=N\nctrl=1',anim(5040)+controller('VelAdd','y=gethitvar(yaccel)')+
     change(5050,'!alive',0)+change(52,'pos y>=0 && vel y>0',0)+change(50,'animtime=0 || !selfanimexist(5040)')),
-  state(5050,'type=A\nmovetype=H\nphysics=N\nctrl=0',(orderedPhases?anim('5050+ifelse(gethitvar(animtype)>=3,gethitvar(animtype)-3,0)','time=0 && (anim<5050 || anim>5059)')+anim('anim+10','vel y>Const240p(-2) && anim=[5051,5052]'):anim(5050))+
+  state(5050,'type=A\nmovetype=H\nphysics=N\nctrl=0',(orderedPhases?anim('5050+ifelse(gethitvar(animtype)>=3,gethitvar(animtype)-3,0)','(time=0 && anim=5030) || (animtime=0 && (anim<5050 || anim>5069))')+anim('anim+10','vel y>Const240p(-2) && anim=[5051,5052]'):anim(5050))+
     controller('SelfState','value=5210','alive && CanRecover && command="recovery"')+
-    change(5100,'pos y>=0 && vel y>0',0)+controller('VelAdd','y=gethitvar(yaccel)',orderedPhases?'time>0 || (prevstateno!=5030 && prevstateno!=5035)':'1')),
+    change(5100,orderedPhases?'vel y>0 && pos y>=ifelse(anim=5050 || anim=5035,const(movement.air.gethit.groundlevel),0)':'pos y>=0 && vel y>0',0)+controller('VelAdd','y=gethitvar(yaccel)',orderedPhases?'time>0 || (prevstateno!=5030 && prevstateno!=5035)':'1')),
   state(5070,'type=A\nmovetype=H\nphysics=N\nctrl=0\nvelset=0,0',anim(5070)+change(5071,'hitshakeover',0)),
   state(5071,'type=A\nmovetype=H\nphysics=N\nctrl=0',
     controller('HitVelSet','x=1\ny=1','time=0')+controller('VelAdd','y=gethitvar(yaccel)')+change(5110,'vel y>0 && pos y>=const(movement.air.gethit.trip.groundlevel)',0)),

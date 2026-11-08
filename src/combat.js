@@ -294,35 +294,46 @@ export class TrainingMatch {
     for(const fighter of fighters)fighter.inGuardDistance=inGuardDistance(fighter,threats);
     const contacts = [];
     const reversed = new Set();
-    for (const defender of fighters) for (const attacker of fighters) {
-      if(this.roundFlow&&this.roundFlow.roundState!==2)continue;
-      const reversal = defender.reversalDef, hit = attacker.hitDef;
-      if (!reversal || !hit || attacker === defender || attacker.teamSide === defender.teamSide || frozen.has(defender) || paused.has(defender) || paused.has(attacker) || reversed.has(attacker)) continue;
-      if (!defender.attributeMatches(reversal['reversal.attr'],hit.attr) || this.usedHits.get(defender)?.get(attacker.id) === reversal.serial) continue;
-      const overlap = contactArea(transformedBoxes(defender),transformedBoxes(attacker),this.orderedPhases); if (!overlap) continue;
-      const result = attacker.receiveHit(reversal,defender); if (result.rejected) continue;
-      this.applyCornerPush(defender,attacker,result.cornerPush,reversal.coordinateScale);
-      attacker.moveContact=attacker.moveHit=attacker.moveGuarded=0;attacker.moveReversed = 1; attacker.hitDef = null; reversed.add(attacker);
-      if (!this.usedHits.has(defender)) this.usedHits.set(defender,new Map()); this.usedHits.get(defender).set(attacker.id,reversal.serial);
-      this.events.push({type:'reversal',attacker:defender,defender:attacker,hitDef:reversal,damage:result.damage,guarded:false,x:(overlap[0]+overlap[2])/2,y:(overlap[1]+overlap[3])/2,tick:this.ticks});
+    for (const defender of fighters) {
+      const reversal=defender.reversalDef;
+      if (!reversal || frozen.has(defender) || paused.has(defender) || this.roundFlow&&this.roundFlow.roundState!==2) continue;
+      for (const attacker of fighters) {
+        const hit=attacker.hitDef;
+        if (!hit || attacker === defender || attacker.teamSide === defender.teamSide || paused.has(attacker) || reversed.has(attacker)) continue;
+        if (!defender.attributeMatches(reversal['reversal.attr'],hit.attr) || this.usedHits.get(defender)?.get(attacker.id) === reversal.serial) continue;
+        const overlap = contactArea(transformedBoxes(defender),transformedBoxes(attacker),this.orderedPhases); if (!overlap) continue;
+        const result = attacker.receiveHit(reversal,defender); if (result.rejected) continue;
+        this.applyCornerPush(defender,attacker,result.cornerPush,reversal.coordinateScale);
+        attacker.moveContact=attacker.moveHit=attacker.moveGuarded=0;attacker.moveReversed = 1; attacker.hitDef = null; reversed.add(attacker);
+        if (!this.usedHits.has(defender)) this.usedHits.set(defender,new Map()); this.usedHits.get(defender).set(attacker.id,reversal.serial);
+        this.events.push({type:'reversal',attacker:defender,defender:attacker,hitDef:reversal,damage:result.damage,guarded:false,x:(overlap[0]+overlap[2])/2,y:(overlap[1]+overlap[3])/2,tick:this.ticks});
     }
-    for (const attacker of [...fighters,...projectiles]) for (const defender of [...fighters].sort((a,b)=>Math.abs(a.pos.x-attacker.pos.x)-Math.abs(b.pos.x-attacker.pos.x))) {
-      if (attacker === defender || this.winner ||this.roundFlow&&this.roundFlow.roundState!==2|| attacker.destroyed || frozen.has(attacker) || reversed.has(attacker)) continue;
-      const hit = attacker.hitDef;
-      if (attacker.isProjectile&&attacker.owner===defender)continue;
-      if (!hit || attacker.life <= 0 || defender.life <= 0 || paused.has(attacker) || paused.has(defender) || attacker.moveType !== 'A') continue;
-      if (!/^[SCA]\s*,\s*[NSH][ATP]$/i.test(String(hit.attr ?? '').trim()) || !allowsState(hit, defender)) continue;
-      const team = flagText(hit.affectteam ?? 'E'), friend = attacker.teamSide === defender.teamSide;
-      if (team === 'E' && friend || team === 'F' && !friend) continue;
-      if (typeof defender.canBeHit === 'function' && !defender.canBeHit(hit,attacker)) continue;
-      if(String(hit[defender.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()!=='none'&&!this.canJuggle(attacker,defender,hit))continue;
-      const activation = hit.serial ?? hit;
-      if (attacker instanceof ProjectileRuntime ? !attacker.canHit(defender,this.ticks) : this.usedHits.get(attacker)?.get(defender.id) === activation) continue;
-      const attackBoxes = transformedBoxes(attacker), hurtBoxes = transformedBoxes(defender, 'clsn2');
-      const overlap = contactArea(attackBoxes, hurtBoxes,this.orderedPhases);
-      if (!overlap) continue;
-      const guardCommands=this.manageInputs?defender.commands:defender.parent?defender.commands:defender===this.player?commands:opponentCommands;
-      contacts.push({attacker, defender, hit, activation, overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall, guarded: canGuard(hit, attacker, defender, guardCommands)});
+    }
+    // Geometry is immutable while candidates are collected. Keep this cache
+    // local to this pass: state changes, facing and positions may differ next tick.
+    const hurtGeometry=fighters.length>2?new Map():null;
+    for (const attacker of [...fighters,...projectiles]) {
+      if (this.winner || this.roundFlow&&this.roundFlow.roundState!==2 || attacker.destroyed || frozen.has(attacker) || reversed.has(attacker) || paused.has(attacker) || attacker.life<=0 || attacker.moveType!=='A') continue;
+      const hit=attacker.hitDef;
+      if (!hit || !/^[SCA]\s*,\s*[NSH][ATP]$/i.test(String(hit.attr??'').trim())) continue;
+      const team=flagText(hit.affectteam??'E'),activation=hit.serial??hit,used=this.usedHits.get(attacker);
+      let attackGeometry;
+      for (const defender of [...fighters].sort((a,b)=>Math.abs(a.pos.x-attacker.pos.x)-Math.abs(b.pos.x-attacker.pos.x))) {
+        if (attacker===defender || attacker.isProjectile&&attacker.owner===defender || defender.life<=0 || paused.has(defender) || !allowsState(hit,defender)) continue;
+        const friend=attacker.teamSide===defender.teamSide;
+        if (team==='E'&&friend || team==='F'&&!friend) continue;
+        if (typeof defender.canBeHit==='function'&&!defender.canBeHit(hit,attacker)) continue;
+        if (String(hit[defender.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()!=='none'&&!this.canJuggle(attacker,defender,hit)) continue;
+        if (attacker instanceof ProjectileRuntime?!attacker.canHit(defender,this.ticks):used?.get(defender.id)===activation) continue;
+        attackGeometry??=transformedBoxes(attacker);
+        if (!attackGeometry.length) break;
+        let hurt=hurtGeometry?.get(defender);
+        if (!hurt) { hurt=transformedBoxes(defender,'clsn2');hurtGeometry?.set(defender,hurt); }
+        const overlap=contactArea(attackGeometry,hurt,this.orderedPhases);
+        if (!overlap) continue;
+        const guardCommands=this.manageInputs?defender.commands:defender.parent?defender.commands:defender===this.player?commands:opponentCommands;
+        contacts.push({attacker,defender,hit,activation,overlap,wasFalling:defender.stateType==='L'||defender.stateType==='A'&&defender.moveType==='H'&&!!defender.getHitVars?.fall,guarded:canGuard(hit,attacker,defender,guardCommands)});
+      }
     }
     // Resolve from a shared snapshot so a simultaneous normal hit can trade.
     const accepted = contacts.filter(contact => {
@@ -403,8 +414,12 @@ export class TrainingMatch {
       return bodyWidthWorld(fighter,direction,{edge});
   }
   horizontalLimits(fighter){
-      let min = this.stage?Math.max(this.leftBound,this.view.left+Math.max(this.stage.definition.screenLeft,this.bodyWidth(fighter,-1,true))):this.leftBound+this.bodyWidth(fighter,-1,true);
-      let max = this.stage?Math.min(this.rightBound,this.view.right-Math.max(this.stage.definition.screenRight,this.bodyWidth(fighter,1,true))):this.rightBound-this.bodyWidth(fighter,1,true);
+      const edge=direction=>finite(fighter.width?.edge?.[fighter.facing===direction?0:1]) * fighter.coordinateScale;
+      const view=this.view;
+      let min=this.orderedPhases?Math.max(this.leftBound,view.left+(this.stage?.definition.screenLeft||0)+edge(-1)):
+        this.stage?Math.max(this.leftBound,view.left+Math.max(this.stage.definition.screenLeft,this.bodyWidth(fighter,-1,true))):this.leftBound+this.bodyWidth(fighter,-1,true);
+      let max=this.orderedPhases?Math.min(this.rightBound,view.right-(this.stage?.definition.screenRight||0)-edge(1)):
+        this.stage?Math.min(this.rightBound,view.right-Math.max(this.stage.definition.screenRight,this.bodyWidth(fighter,1,true))):this.rightBound-this.bodyWidth(fighter,1,true);
       if (min > max) min = max = (this.leftBound + this.rightBound) / 2;
       return{min,max};
   }
