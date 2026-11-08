@@ -1,0 +1,18 @@
+{
+  "applicationId": "io.github.celerycore.kenjatime.core.preview",
+  "version": "0.5.0-core-preview",
+  "bytes": 7199117,
+  "sha256": "124e824d216059a3c5a9b06ea5d4e38ed0005c900c26958b821bd16bece8be4e",
+  "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "offlineAssetsMatchWebBuild": true,
+  "bundledFiles": 36,
+  "startupUrl": "https://localhost/core/index.html",
+  "separateRecoveryInstallation": true,
+  "externalEnginePayloads": false,
+  "physicalPhoneTest": false,
+  "sourceCommit": "54ec778710b79281d261d34a4106449589fd4cca",
+  "sourceBranch": "source/independent-engine",
+  "checkpoint": "checkpoint/core-preview-0.5.0",
+  "webPreview": "https://celerycore.github.io/kenjatime/engine-preview/",
+  "compatibilityReport": "https://github.com/celerycore/kenjatime/blob/source/independent-engine/docs/core-rewrite.md"
+}
