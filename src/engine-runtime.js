@@ -5,7 +5,9 @@ import {createThreeSubmitter} from '../engine/three/submit.js';
 // One owner for the Go VM, resource filesystem, input state and GPU context.
 // This runs in a dedicated worker where OffscreenCanvas/WebGL2 is available.
 export function createEngineRuntime(emit){
- let stopped=false,audioPort,pendingAudio,ready=false;
+ let stopped=false,audioPort,pendingAudio,ready=false,videoSerial=0;
+ const videoFrames=new Map(),videoStates=new Map(),videoSources=new Set();
+ const dropVideo=id=>{const frame=videoFrames.get(id);frame?.bitmap?.close();videoFrames.delete(id);if(frame?.bitmap)emit({type:'video-ack',id});};
  globalThis.__kenjatimeCreateGPU=(...args)=>{const gpu=createThreeSubmitter(...args);globalThis.__kenjatimeGPUControl=gpu;return gpu;};
  globalThis.alert=message=>emit({type:'error',message:String(message).replace(/^I\.K\.E\.M\.E\.N Error\s*/,'')});
  globalThis.__kenjatimePublish=state=>{
@@ -21,6 +23,8 @@ export function createEngineRuntime(emit){
  };
  function control(data){
   if(stopped)return;
+  if(data.type==='video-frame'){dropVideo(data.id);videoFrames.set(data.id,{bitmap:data.bitmap,width:data.bitmap.width,height:data.bitmap.height});return;}
+  if(data.type==='video-ended'){dropVideo(data.id);videoFrames.set(data.id,{ended:true});return;}
   if(data.type==='quality')globalThis.__kenjatimeCreateGPUControl?.(data.value);
   if(data.type==='key')globalThis.kenjatimeEngineKey?.(data.code,data.down,data.mods||0,data.text||'');
   if(data.type==='pause')globalThis.kenjatimeEnginePause?.(data.value);
@@ -35,6 +39,13 @@ export function createEngineRuntime(emit){
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();if(!stopped)emit({type:'error',message:'The graphics device reset. Start the match again.'});},{once:true});
   globalThis.__kenjatimeCanvas=canvas;globalThis.__kenjatimeQuality=quality;
   globalThis.__kenjatimeCreateGPUControl=value=>{globalThis.__kenjatimeQuality=value;globalThis.__kenjatimeGPUControl?.quality(value);};
+  const videoControl=(id,action,value)=>{const key=id+':'+action;if(videoStates.get(key)===value)return;videoStates.set(key,value);if(action==='visible'&&!value)dropVideo(id);emit({type:'video-control',id,action,value});};
+  globalThis.__kenjatimeVideo={open(path,loop,scale,filter,width,height){
+   const normalized=[];for(const part of path.replaceAll('\\','/').split('/')){if(part==='..')normalized.pop();else if(part&&part!=='.')normalized.push(part);}
+   path=normalized.join('/').normalize('NFC').toLowerCase();const bytes=files[path];if(!bytes){emit({type:'progress',message:'A stage video file is missing.'});return 0;}
+   const id=++videoSerial;emit({type:'video-open',id,path,loop,scale,filter,width,height,...(!videoSources.has(path)?{bytes}: {})});videoSources.add(path);return id;
+  },frame:id=>videoFrames.get(id)||null,consume:dropVideo,playing:(id,value)=>videoControl(id,'playing',value),visible:(id,value)=>videoControl(id,'visible',value),volume:(id,value)=>videoControl(id,'volume',value),reset:id=>{dropVideo(id);emit({type:'video-control',id,action:'reset'});},close:id=>{dropVideo(id);emit({type:'video-control',id,action:'close'});}};
+  if(Object.keys(files).some(p=>/\.(mod|xm|it|s3m)$/i.test(p))){emit({type:'progress',message:'Preparing module music…'});const {createModuleMusic}=await import('./module-music.js');globalThis.__kenjatimeModuleMusic=await createModuleMusic();}
   files['save/config.ini']=files['data/kenjatime/config.ini'].slice();
   // Mix directly at the AudioContext's native rate; Android need not resample
   // a forced 44.1 kHz context into its usual 48 kHz output device.
@@ -57,5 +68,5 @@ export function createEngineRuntime(emit){
   emit({type:'progress',message:'Preparing fighters and stage…'});
   go.run(instance).then(()=>{if(!stopped)emit({type:'end'});}).catch(error=>{if(!stopped)emit({type:'error',message:error.message});});
  }
- return{start,control,stop(){stopped=true;audioPort?.close();}};
+ return{start,control,stop(){stopped=true;audioPort?.close();globalThis.__kenjatimeModuleMusic?.close();for(const id of videoFrames.keys())dropVideo(id);}};
 }

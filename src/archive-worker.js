@@ -4,17 +4,20 @@ import {stageDefinitions} from './stages.js';
 import {prepareStageSprites} from './stage-sprites.js';
 import rarWasmUrl from 'node-unrar-js/esm/js/unrar.wasm?url';
 import multiWasmUrl from 'libarchive-wasm/dist/libarchive.wasm?url';
+import sevenWasmUrl from '7z-wasm/7zz.wasm?url';
 
 self.onmessage=async({data})=>{
   const bytes=data.bytes||data,password=data.password||'';
   try{
     self.postMessage({progress:'Checking archive…'});
-    const files=await unpackArchiveBytes(bytes,{password,onProgress:progress=>self.postMessage({progress}),loadMultiWasm:async()=>{
+    const decoderOptions={password,onProgress:progress=>self.postMessage({progress}),loadSevenWasm:async()=>{const response=await fetch(sevenWasmUrl);if(!response.ok)throw Error('The archive decoder could not load.');return response.arrayBuffer();},loadMultiWasm:async()=>{
       const response=await fetch(multiWasmUrl);if(!response.ok)throw Error('The archive decoder could not load. Refresh and try again.');return response.arrayBuffer();
     },loadWasm:async()=>{
       if(typeof WebAssembly==='undefined')throw Error('This browser cannot decode RAR. Update your browser or use ZIP.');
       const response=await fetch(rarWasmUrl);if(!response.ok)throw Error('The RAR decoder could not load. Refresh the page and try again.');return response.arrayBuffer();
-    }});
+    }};
+    let files;if(data.parts){const {unpackSevenArchive}=await import('./seven-archive.js');files=await unpackSevenArchive(data.parts,{...decoderOptions,wasmBinary:await decoderOptions.loadSevenWasm()});}
+    else files=await unpackArchiveBytes(bytes,decoderOptions);
     self.postMessage({progress:'Checking character and stage definitions…'});
     const characters=charactersFromFiles(files),stages=stageDefinitions(files);
     if(!characters.length&&!stages.length)throw Error('No character or stage DEF found in the archive.');

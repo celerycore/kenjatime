@@ -30,3 +30,15 @@ export function rar5(entries){
   }
   parts.push(block(5,vint(0)));return join(parts);
 }
+
+// A stored RAR4 file split across actual native volume headers, followed by
+// any remaining ordinary entries on the final volume. No encoder executable.
+export function rar4Volumes(entries,pieces=3){
+ const [[name,raw],...rest]=entries,data=typeof raw==='string'?encode(raw):raw,filename=encode(name);
+ const block=(type,flags,body)=>{const header=join([new Uint8Array([type]),le(flags,2),le(7+body.length,2),body]);return join([le(crc32(header)&65535,2),header]);};
+ return Array.from({length:pieces},(_,i)=>{
+  const chunk=data.slice(Math.floor(data.length*i/pieces),Math.floor(data.length*(i+1)/pieces));
+  const head=join([le(chunk.length),le(data.length),new Uint8Array([0]),le(crc32(i===pieces-1?data:chunk)),le(0),new Uint8Array([20,0x30]),le(filename.length,2),le(0x20),filename]);
+  return{name:`fighter.part${i+1}.rar`,bytes:join([new Uint8Array([82,97,114,33,26,7,0]),block(0x73,1|16|(i===0?256:0),new Uint8Array(6)),block(0x74,0x8000|(i?1:0)|(i<pieces-1?2:0),head),chunk,...(i===pieces-1?[rar4(rest).subarray(20,-7)]:[]),block(0x7b,i<pieces-1?1:0,new Uint8Array())])};
+ });
+}

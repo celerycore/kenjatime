@@ -1,5 +1,14 @@
 import {MAX_ARCHIVE_BYTES,ARCHIVE_LIMIT_MB} from './archive-limits.js';
 import {archiveKind} from './archive-kind.js';
+import {archiveVolumePlan} from './archive-volumes.js';
+
+export async function readArchiveFiles(input,{onProgress=()=>{}}={}){
+ const files=Array.from(input||[]);if(!files.length)return[];
+ archiveVolumePlan(files);
+ if(files.length===1)return[{name:files[0].name,bytes:await readArchiveFile(files[0])}];
+ const parts=[];let total=0;for(const file of files){onProgress(`Reading archive part ${parts.length+1} of ${files.length}…`);let buffer;try{buffer=typeof file.arrayBuffer==='function'?await file.arrayBuffer():await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error);reader.readAsArrayBuffer(file);});}catch{throw Error('An archive part could not be read. Save every part to Downloads and select them again.');}if((total+=buffer.byteLength)>MAX_ARCHIVE_BYTES)throw Error('Archive parts together exceed the 128 MB limit.');parts.push({name:file.name,bytes:new Uint8Array(buffer)});}
+ archiveVolumePlan(parts);return parts;
+}
 
 export const archiveAccept='.zip,.rar,.7z,.tar,.tgz,.tar.gz,.tbz,.tbz2,.tar.bz2,.txz,.tar.xz,.tzst,.tar.zst,.cab,.cpio,.iso,.ar,.xar,application/zip,application/x-zip,application/x-zip-compressed,application/vnd.rar,application/x-rar,application/rar,application/x-rar-compressed,application/x-7z-compressed,application/x-tar,application/gzip,application/x-bzip2,application/x-xz,application/zstd,application/octet-stream';
 
@@ -26,7 +35,7 @@ export function unpackArchive(bytes,{onProgress=()=>{},password='',prepareStageD
     worker.onmessage=({data})=>{if(data.progress){onProgress(data.progress);return;}finish(data.error?Error(data.error):null,data.result);};
     worker.onerror=()=>finish(Error('The archive reader stopped. Close other browser tabs and try again, or import a smaller character package.'));
     worker.onmessageerror=()=>finish(Error('The browser could not receive the character package. Try again with fewer files.'));
-    try{worker.postMessage({bytes,password,prepareStageData},[bytes.buffer]);}catch(error){finish(error);}
+    try{const parts=Array.isArray(bytes)?bytes:null;worker.postMessage({...(parts?{parts}:{bytes}),password,prepareStageData},parts?[...new Set(parts.map(p=>p.bytes.buffer))]:[bytes.buffer]);}catch(error){finish(error);}
   });
 }
 

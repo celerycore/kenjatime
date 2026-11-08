@@ -1,18 +1,23 @@
 import {createEngineAudio} from './engine-audio.js';
+import {createVideoBackgrounds} from './video-background.js';
 const send=(type,data={})=>parent.postMessage({kenjatimeEngine:true,type,...data},location.origin);
 const asset=name=>new URL(name+'?v='+__KENJATIME_ENGINE_REVISION__,location.href).href;
 let started=false,stopped=false,worker,runtime,state=null,backend='pending',gamepadRAF,lastPads='[]',qualityValue='auto';
 const audio=createEngineAudio(status=>send('audio',status));
+const videos=createVideoBackgrounds({deliver:(message,transfer)=>control(message,transfer),audio,warn:message=>send('progress',{message})});
 function control(message,transfer=[]){if(stopped)return;if(worker)worker.postMessage(message,transfer);else runtime?.control(message);}
 function receive(data){
  if(stopped)return;
+ if(data.type==='video-open'){videos.open(data);return;}
+ if(data.type==='video-control'){videos.control(data);return;}
+ if(data.type==='video-ack'){videos.ack(data.id);return;}
  if(data.type==='state'){state=data.state;window.__kenjatimeGPU=data.gpu;}
  if(data.type==='audio-init'){audio.init(data.sampleRate,port=>control({type:'audio-port',port},[port])).catch(error=>send('error',{message:error.message}));return;}
  if(data.type==='rumble'){navigator.getGamepads?.()[data.index]?.vibrationActuator?.playEffect?.(data.kind,data.options)?.catch(()=>{});return;}
- if(data.type==='end'||data.type==='error'){worker?.terminate();runtime?.stop();audio.close();stopped=true;}
+ if(data.type==='end'||data.type==='error'){worker?.terminate();runtime?.stop();videos.close();audio.close();stopped=true;}
  send(data.type,data.type==='state'?{state}:data);
 }
-window.__kenjatimeFrame={snapshot:()=>state,audioStatus:audio.status,backend:()=>backend,audioProbeReset:audio.resetProbe,audio:audio.audio,quality:value=>{qualityValue=value;control({type:'quality',value});},pause:value=>{control({type:'pause',value});audio.pause(value);},key:(code,down,mods=0,text='')=>{if(down)audio.gesture();control({type:'key',code,down,mods,text});},dispose:()=>{stopped=true;worker?.terminate();runtime?.stop();audio.close();cancelAnimationFrame(gamepadRAF);state=null;}};
+window.__kenjatimeFrame={snapshot:()=>state,audioStatus:audio.status,backend:()=>backend,audioProbeReset:audio.resetProbe,audio:value=>{audio.audio(value);if(value)videos.gesture();},videoStatus:videos.status,quality:value=>{qualityValue=value;control({type:'quality',value});},pause:value=>{control({type:'pause',value});audio.pause(value);},key:(code,down,mods=0,text='')=>{if(down){audio.gesture();videos.gesture();}control({type:'key',code,down,mods,text});},dispose:()=>{stopped=true;worker?.terminate();runtime?.stop();videos.close();audio.close();cancelAnimationFrame(gamepadRAF);state=null;}};
 const held=new Set();
 for(const type of ['keydown','keyup'])window.addEventListener(type,event=>{
  if(event.repeat)return;const down=type==='keydown';down?held.add(event.code):held.delete(event.code);
@@ -20,7 +25,7 @@ for(const type of ['keydown','keyup'])window.addEventListener(type,event=>{
  window.__kenjatimeFrame.key(event.code,down,mods,down&&event.key.length===1?event.key:'');event.preventDefault();
 });
 window.addEventListener('blur',()=>{for(const code of held)control({type:'key',code,down:false});held.clear();});
-window.addEventListener('pointerdown',audio.gesture);
+window.addEventListener('pointerdown',()=>{audio.gesture();videos.gesture();});
 function gamepads(){
  if(stopped)return;
  const pads=Array.from(navigator.getGamepads?.()||[],p=>p?{index:p.index,id:p.id,mapping:p.mapping,rumble:typeof p.vibrationActuator?.playEffect==='function',axes:Array.from(p.axes),buttons:Array.from(p.buttons,b=>({pressed:b.pressed,value:b.value}))}:null),serialized=JSON.stringify(pads);

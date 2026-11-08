@@ -17,9 +17,8 @@ import (
 // Deliberate differences from the GL33 renderer:
 //   - The 3D model pipeline lives in render_webgl_model.go: glTF stages draw
 //     their models, with environment lighting where the browser can render
-//     into float targets. Model SHADOWS are not available (IsShadowEnabled is
-//     false): they need geometry shaders and cube map arrays, which WebGL2
-//     lacks. If the model pipeline cannot be set up, IsModelEnabled is false
+//     into float targets. Model shadows use a bounded depth atlas and explicit
+//     cube-face passes. If the model pipeline cannot be set up, IsModelEnabled is false
 //     and the engine skips the models, keeping the stages' 2D layers.
 //   - No MSAA (WebGL2 multisampled renderbuffers exist but the ping-pong
 //     postprocess path doesn't need them; sys.msaa is forced to 0).

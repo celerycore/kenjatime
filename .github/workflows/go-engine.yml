@@ -6,8 +6,16 @@ on:
     paths:
       - 'engine/**'
       - 'src/**'
+      - '*package*.json'
+      - 'test/support-archives.test.js'
+      - 'test/module-music.test.js'
       - 'public/engine/**'
       - 'native-android/ui/**'
+      - 'scripts/verify-media-support.py'
+      - 'scripts/verify-support-archives.py'
+      - 'scripts/generate-support-archives.mjs'
+      - 'test/fixtures/media/**'
+      - 'test/fixtures/support-rar/**'
       - 'scripts/verify-go-gpu.py'
       - 'test/go-gpu.test.js'
       - 'test/pcm.test.js'
@@ -55,6 +63,14 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - name: Compare ordered GPU commands against the pinned WebGL reference
         run: python scripts/verify-go-gpu.py
+      - name: Check multipart/encrypted installs, exact downloads and re-imports
+        run: python scripts/verify-support-archives.py
+      - name: Check tracker music, video pixels/audio and three light shadow types
+        run: python scripts/verify-media-support.py
+      - name: Check low quality shadows and main-thread media fallback
+        run: |
+          python scripts/verify-media-support.py --group shadow --quality low
+          python scripts/verify-media-support.py --group all --main-thread
       - name: Execute Go matches and verify no stock UI
         run: python scripts/verify-go-engine.py
       - name: Check fighter framing, HUD pixels, sparks and stage PCM output

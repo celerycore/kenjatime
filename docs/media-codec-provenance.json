@@ -1,0 +1,64 @@
+{
+  "runtimeCodecs": {
+    "7z-wasm": "1.2.0",
+    "sevenZip": "24.09",
+    "zip.js": "2.24.0",
+    "chiptune3": "0.8.10"
+  },
+  "libopenmpt": {
+    "library_version": "0.8.10+r25841.pkg",
+    "core_version": "1.32.12.00 https://source.openmpt.org/svn/openmpt/tags/libopenmpt-0.8.10@25841 (2026-10-31T18:27:32.287400Z) clean-pkg",
+    "source_url": "https://source.openmpt.org/svn/openmpt/tags/libopenmpt-0.8.10@25841",
+    "source_revision": "25841",
+    "source_date": "2026-10-31T18:27:32.287400Z"
+  },
+  "fixtureFiles": {
+    "colors.mp4": {
+      "bytes": 21352,
+      "sha256": "46d019a67d05b8c8a3073643012aac1ffd59a047df713a983579d4b3b37b0b8a"
+    },
+    "colors.webm": {
+      "bytes": 9613,
+      "sha256": "fdb115edb14ac68bc381329476841612d8c7aa1146c55a6b1fdc1fbc3aa786b1"
+    },
+    "mask.png": {
+      "bytes": 77,
+      "sha256": "3d1ecb1865f3e612db0c12b3c071dcde29254dc4ce7ab059d78b206710b17cfa"
+    },
+    "shadow.bin": {
+      "bytes": 304,
+      "sha256": "a2d440107de6d0cc2818ce86a8ac525373e1a65d63786f9de4102fe753fc1f37"
+    },
+    "shadow.gltf": {
+      "bytes": 2216,
+      "sha256": "04c49ca2d97a9ef1908c1c21fc43084f732b3443f35dd3045e31bd3599f54476"
+    },
+    "tone.it": {
+      "bytes": 422,
+      "sha256": "fd4f14cd08f0e98df2ca4d24f89f518ffdbaffbf0e5ef1e61c331bc181474db9"
+    },
+    "tone.mod": {
+      "bytes": 2172,
+      "sha256": "0d1efc34b3098e82ba55a49bbe7f6626f6b7f09dd922db84f0bc3fdbd00cedf0"
+    },
+    "tone.s3m": {
+      "bytes": 336,
+      "sha256": "85b33e2accd573cb2ab954a8ef6a7e33b7cb56d00fc2582e7ded8684fd17c890"
+    },
+    "tone.xm": {
+      "bytes": 1012,
+      "sha256": "156a5160a186b56e3e993ddb01ce4c76be3b212e1c5d837438b05e8f347f07dd"
+    },
+    "zip-aes-unicode.zip": {
+      "bytes": 205,
+      "sha256": "0c4f538383048fa0533fbad28397c7fff4b0ea7b2a763a60727a20ba7ff670c8"
+    }
+  },
+  "independentZipFixture": {
+    "generator": "pyzipper 0.3.6 / pycryptodomex 3.24.2",
+    "encryption": "WinZip AES-256",
+    "passwordEncoding": "UTF-8",
+    "password": "日本語 passphrase"
+  },
+  "physicalAndroidTested": false
+}

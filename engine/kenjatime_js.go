@@ -68,7 +68,12 @@ func kenjatimeSnapshot() interface{} {
 	if sys.fightScreen.round != nil {
 		roundState = sys.roundState()
 	}
-	return map[string]interface{}{"players": players, "ticks": sys.tickCount, "matchTime": sys.matchTime, "roundState": roundState, "paused": sys.paused, "camera": map[string]interface{}{"x": sys.cam.Pos[0], "zoom": sys.cam.Scale, "width": sys.gameWidth, "height": sys.gameHeight}, "effects": map[string]interface{}{"commonScale": fxScale, "commonAnimations": fxAnimations, "activeCommon": sparks}, "music": map[string]interface{}{"file": sys.bgm.filename, "streaming": sys.bgm.streamer != nil, "format": sys.bgm.format}}
+	graphics := map[string]interface{}{"modelEnabled": gfx.IsModelEnabled(), "shadowEnabled": gfx.IsShadowEnabled(), "stageModel": sys.stage != nil && sys.stage.model != nil}
+	if r, ok := gfx.(*Renderer_WebGL); ok {
+		graphics["shadowSize"] = r.model.shadow.size
+		graphics["shadowDraws"] = r.model.shadow.draws
+	}
+	return map[string]interface{}{"graphics": graphics, "players": players, "ticks": sys.tickCount, "matchTime": sys.matchTime, "roundState": roundState, "paused": sys.paused, "camera": map[string]interface{}{"x": sys.cam.Pos[0], "zoom": sys.cam.Scale, "width": sys.gameWidth, "height": sys.gameHeight}, "effects": map[string]interface{}{"commonScale": fxScale, "commonAnimations": fxAnimations, "activeCommon": sparks}, "music": map[string]interface{}{"file": sys.bgm.filename, "streaming": sys.bgm.streamer != nil, "format": sys.bgm.format}}
 }
 
 func init() {

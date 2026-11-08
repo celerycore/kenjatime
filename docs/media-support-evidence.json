@@ -1,0 +1,1782 @@
+{
+  "version": "0.4.5",
+  "physicalAndroidTested": false,
+  "nativeMugenCaptured": false,
+  "archives": {
+    "physicalAndroid": false,
+    "imports": [
+      {
+        "route": "",
+        "archive": "zip-aes128",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "",
+        "archive": "zip-aes192",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "",
+        "archive": "zip-aes256",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "",
+        "archive": "split-7z",
+        "parts": 9,
+        "downloadExact": true
+      },
+      {
+        "route": "",
+        "archive": "split-zip",
+        "parts": 10,
+        "downloadExact": true
+      },
+      {
+        "route": "",
+        "archive": "split-rar",
+        "parts": 3,
+        "downloadExact": true
+      },
+      {
+        "route": "",
+        "archive": "spanned-zip",
+        "parts": 5,
+        "downloadExact": true
+      },
+      {
+        "route": "arena/",
+        "archive": "zip-aes128",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "arena/",
+        "archive": "zip-aes192",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "arena/",
+        "archive": "zip-aes256",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "arena/",
+        "archive": "split-7z",
+        "parts": 9,
+        "downloadExact": true
+      },
+      {
+        "route": "arena/",
+        "archive": "split-zip",
+        "parts": 10,
+        "downloadExact": true
+      },
+      {
+        "route": "arena/",
+        "archive": "split-rar",
+        "parts": 3,
+        "downloadExact": true
+      },
+      {
+        "route": "arena/",
+        "archive": "spanned-zip",
+        "parts": 5,
+        "downloadExact": true
+      },
+      {
+        "route": "arena-classic/",
+        "archive": "zip-aes128",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "arena-classic/",
+        "archive": "zip-aes192",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "arena-classic/",
+        "archive": "zip-aes256",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "arena-classic/",
+        "archive": "split-7z",
+        "parts": 9,
+        "downloadExact": true
+      },
+      {
+        "route": "arena-classic/",
+        "archive": "split-zip",
+        "parts": 10,
+        "downloadExact": true
+      },
+      {
+        "route": "arena-classic/",
+        "archive": "split-rar",
+        "parts": 3,
+        "downloadExact": true
+      },
+      {
+        "route": "arena-classic/",
+        "archive": "spanned-zip",
+        "parts": 5,
+        "downloadExact": true
+      },
+      {
+        "route": "mobile/",
+        "archive": "zip-aes128",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "mobile/",
+        "archive": "zip-aes192",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "mobile/",
+        "archive": "zip-aes256",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "route": "mobile/",
+        "archive": "split-7z",
+        "parts": 9,
+        "downloadExact": true
+      },
+      {
+        "route": "mobile/",
+        "archive": "split-zip",
+        "parts": 10,
+        "downloadExact": true
+      },
+      {
+        "route": "mobile/",
+        "archive": "split-rar",
+        "parts": 3,
+        "downloadExact": true
+      },
+      {
+        "route": "mobile/",
+        "archive": "spanned-zip",
+        "parts": 5,
+        "downloadExact": true
+      }
+    ],
+    "bundleReimport": true,
+    "reloadPreservesImports": true,
+    "wrongPasswordPreservesLibrary": true,
+    "missingPartPreservesLibrary": true,
+    "errors": []
+  },
+  "media": {
+    "workerSharp": {
+      "physicalAndroid": false,
+      "quality": "high",
+      "mainThread": false,
+      "checks": [
+        {
+          "format": "mod",
+          "music": {
+            "format": "xmp",
+            "file": "stages/tone.mod",
+            "streaming": true
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 218,
+              "frames": 145536,
+              "peak": 0.20745959877967834,
+              "underruns": 1,
+              "queuedBlocks": 3,
+              "poolBlocks": 4,
+              "bufferedMs": 66.75736961451247,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "xm",
+          "music": {
+            "file": "stages/tone.xm",
+            "streaming": true,
+            "format": "xmp"
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 223,
+              "frames": 209792,
+              "peak": 0.07779735326766968,
+              "underruns": 1,
+              "queuedBlocks": 3,
+              "poolBlocks": 4,
+              "bufferedMs": 49.342403628117914,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "it",
+          "music": {
+            "file": "stages/tone.it",
+            "streaming": true,
+            "format": "xmp"
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 247,
+              "frames": 183680,
+              "peak": 0.10372979938983917,
+              "underruns": 1,
+              "queuedBlocks": 4,
+              "poolBlocks": 4,
+              "bufferedMs": 84.17233560090703,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "s3m",
+          "music": {
+            "streaming": true,
+            "format": "xmp",
+            "file": "stages/tone.s3m"
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 195,
+              "frames": 130816,
+              "peak": 0.16612975299358368,
+              "underruns": 1,
+              "queuedBlocks": 4,
+              "poolBlocks": 4,
+              "bufferedMs": 75.46485260770974,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "webm",
+          "colors": [
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ]
+          ],
+          "videoAudioPeak": 0.1280401349067688,
+          "video": {
+            "layers": 1,
+            "sources": 1,
+            "inFlight": 1,
+            "frames": 43,
+            "videos": [
+              {
+                "id": 1,
+                "time": 0.657054,
+                "paused": false,
+                "playing": true,
+                "visible": true,
+                "frames": 43,
+                "error": null
+              }
+            ]
+          },
+          "pauseStopsPlayback": true,
+          "group": "video",
+          "cleanup": true
+        },
+        {
+          "format": "mp4",
+          "colors": [
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              254,
+              0,
+              0
+            ]
+          ],
+          "videoAudioPeak": 0.13143321871757507,
+          "video": {
+            "layers": 1,
+            "sources": 1,
+            "inFlight": 1,
+            "frames": 41,
+            "videos": [
+              {
+                "id": 1,
+                "time": 1.436549,
+                "paused": false,
+                "playing": true,
+                "visible": true,
+                "frames": 41,
+                "error": null
+              }
+            ]
+          },
+          "pauseStopsPlayback": true,
+          "group": "video",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-off",
+          "screenshot": "directional-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1401,
+            "commandBytes": 581592,
+            "commandCopies": 0,
+            "vertexUploads": 228,
+            "vertexBytes": 321504,
+            "presents": 57,
+            "memoryViews": 6,
+            "vertexReallocations": 2,
+            "threeDraws": 1467,
+            "threeBatches": 283,
+            "goDraws": 1467,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "shadowDraws": 55,
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-on",
+          "screenshot": "directional-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1357,
+            "commandBytes": 477172,
+            "commandCopies": 0,
+            "vertexUploads": 184,
+            "vertexBytes": 256928,
+            "presents": 46,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1224,
+            "threeBatches": 272,
+            "goDraws": 1224,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 88
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "point-off",
+          "screenshot": "point-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1506,
+            "commandBytes": 469184,
+            "commandCopies": 0,
+            "vertexUploads": 176,
+            "vertexBytes": 246080,
+            "presents": 43,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1333,
+            "threeBatches": 427,
+            "goDraws": 1333,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 252
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "point-on",
+          "screenshot": "point-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 2005,
+            "commandBytes": 655644,
+            "commandCopies": 0,
+            "vertexUploads": 228,
+            "vertexBytes": 320448,
+            "presents": 56,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 2063,
+            "threeBatches": 887,
+            "goDraws": 2063,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 660,
+            "modelEnabled": true,
+            "shadowEnabled": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "spot-off",
+          "screenshot": "spot-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1336,
+            "commandBytes": 497768,
+            "commandCopies": 0,
+            "vertexUploads": 196,
+            "vertexBytes": 274240,
+            "presents": 48,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1254,
+            "threeBatches": 242,
+            "goDraws": 1254,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 47,
+            "modelEnabled": true,
+            "shadowEnabled": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "spot-on",
+          "screenshot": "spot-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1338,
+            "commandBytes": 455052,
+            "commandCopies": 0,
+            "vertexUploads": 176,
+            "vertexBytes": 245152,
+            "presents": 43,
+            "memoryViews": 6,
+            "vertexReallocations": 2,
+            "threeDraws": 1162,
+            "threeBatches": 259,
+            "goDraws": 1162,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 84,
+            "modelEnabled": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-alpha-off",
+          "screenshot": "directional-alpha-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1330,
+            "commandBytes": 492188,
+            "commandCopies": 0,
+            "vertexUploads": 192,
+            "vertexBytes": 268384,
+            "presents": 47,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1226,
+            "threeBatches": 237,
+            "goDraws": 1226,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 46,
+            "modelEnabled": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-alpha-on",
+          "screenshot": "directional-alpha-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1763,
+            "commandBytes": 970816,
+            "commandCopies": 0,
+            "vertexUploads": 364,
+            "vertexBytes": 517504,
+            "presents": 90,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 2435,
+            "threeBatches": 541,
+            "goDraws": 2435,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "sharp"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 178
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "group": "shadowPixels",
+          "light": "directional",
+          "changedPixels": 6972
+        },
+        {
+          "group": "shadowPixels",
+          "light": "point",
+          "changedPixels": 7346
+        },
+        {
+          "group": "shadowPixels",
+          "light": "spot",
+          "changedPixels": 6994
+        },
+        {
+          "group": "shadowPixels",
+          "light": "directional-alpha",
+          "changedPixels": 4852
+        }
+      ]
+    },
+    "workerLow": {
+      "physicalAndroid": false,
+      "quality": "low",
+      "mainThread": false,
+      "checks": [
+        {
+          "variant": "directional-off",
+          "screenshot": "directional-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1313,
+            "commandBytes": 465836,
+            "commandCopies": 0,
+            "vertexUploads": 184,
+            "vertexBytes": 256480,
+            "presents": 46,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1166,
+            "threeBatches": 228,
+            "goDraws": 1166,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 128,
+            "shadowDraws": 44
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-on",
+          "screenshot": "directional-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1366,
+            "commandBytes": 487448,
+            "commandCopies": 0,
+            "vertexUploads": 188,
+            "vertexBytes": 263328,
+            "presents": 47,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1244,
+            "threeBatches": 278,
+            "goDraws": 1244,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 128,
+            "shadowDraws": 90
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "point-off",
+          "screenshot": "point-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1649,
+            "commandBytes": 589008,
+            "commandCopies": 0,
+            "vertexUploads": 220,
+            "vertexBytes": 309184,
+            "presents": 54,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1681,
+            "threeBatches": 537,
+            "goDraws": 1681,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "shadowSize": 128,
+            "shadowDraws": 318,
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "point-on",
+          "screenshot": "point-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1720,
+            "commandBytes": 480048,
+            "commandCopies": 0,
+            "vertexUploads": 168,
+            "vertexBytes": 233568,
+            "presents": 41,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1508,
+            "threeBatches": 647,
+            "goDraws": 1508,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "shadowSize": 128,
+            "shadowDraws": 480,
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "spot-off",
+          "screenshot": "spot-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1648,
+            "commandBytes": 902932,
+            "commandCopies": 0,
+            "vertexUploads": 352,
+            "vertexBytes": 501504,
+            "presents": 87,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 2285,
+            "threeBatches": 437,
+            "goDraws": 2285,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 128,
+            "shadowDraws": 86
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "spot-on",
+          "screenshot": "spot-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1366,
+            "commandBytes": 487632,
+            "commandCopies": 0,
+            "vertexUploads": 188,
+            "vertexBytes": 263392,
+            "presents": 47,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1246,
+            "threeBatches": 278,
+            "goDraws": 1246,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 128,
+            "shadowDraws": 90
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-alpha-off",
+          "screenshot": "directional-alpha-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1283,
+            "commandBytes": 430716,
+            "commandCopies": 0,
+            "vertexUploads": 168,
+            "vertexBytes": 234560,
+            "presents": 42,
+            "memoryViews": 5,
+            "vertexReallocations": 2,
+            "threeDraws": 1075,
+            "threeBatches": 208,
+            "goDraws": 1075,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 128,
+            "shadowDraws": 40
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-alpha-on",
+          "screenshot": "directional-alpha-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 1808,
+            "commandBytes": 1026916,
+            "commandCopies": 0,
+            "vertexUploads": 384,
+            "vertexBytes": 547840,
+            "presents": 95,
+            "memoryViews": 6,
+            "vertexReallocations": 2,
+            "threeDraws": 2587,
+            "threeBatches": 571,
+            "goDraws": 2587,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 128,
+            "shadowDraws": 188
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "group": "shadowPixels",
+          "light": "directional",
+          "changedPixels": 7302
+        },
+        {
+          "group": "shadowPixels",
+          "light": "point",
+          "changedPixels": 6202
+        },
+        {
+          "group": "shadowPixels",
+          "light": "spot",
+          "changedPixels": 6545
+        },
+        {
+          "group": "shadowPixels",
+          "light": "directional-alpha",
+          "changedPixels": 4440
+        }
+      ]
+    },
+    "mainThread": {
+      "physicalAndroid": false,
+      "quality": "high",
+      "mainThread": true,
+      "checks": [
+        {
+          "format": "mod",
+          "music": {
+            "file": "stages/tone.mod",
+            "streaming": true,
+            "format": "xmp"
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 264,
+              "frames": 141312,
+              "peak": 0.20745959877967834,
+              "underruns": 1,
+              "queuedBlocks": 4,
+              "poolBlocks": 4,
+              "bufferedMs": 69.65986394557824,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "xm",
+          "music": {
+            "file": "stages/tone.xm",
+            "streaming": true,
+            "format": "xmp"
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 242,
+              "frames": 168448,
+              "peak": 0.07779735326766968,
+              "underruns": 2,
+              "queuedBlocks": 4,
+              "poolBlocks": 5,
+              "bufferedMs": 81.26984126984127,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "it",
+          "music": {
+            "streaming": true,
+            "format": "xmp",
+            "file": "stages/tone.it"
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 214,
+              "frames": 143360,
+              "peak": 0.10372979938983917,
+              "underruns": 2,
+              "queuedBlocks": 5,
+              "poolBlocks": 5,
+              "bufferedMs": 92.87981859410431,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "s3m",
+          "music": {
+            "file": "stages/tone.s3m",
+            "streaming": true,
+            "format": "xmp"
+          },
+          "audio": {
+            "enabled": true,
+            "paused": false,
+            "running": true,
+            "contexts": [
+              "running"
+            ],
+            "sink": "audio-worklet",
+            "sampleRate": 44100,
+            "baseLatency": 0.01,
+            "outputLatency": 0.032,
+            "pcm": {
+              "buffers": 326,
+              "frames": 160640,
+              "peak": 0.16612975299358368,
+              "underruns": 1,
+              "queuedBlocks": 4,
+              "poolBlocks": 4,
+              "bufferedMs": 72.56235827664399,
+              "bufferLimitMs": 185.75963718820861,
+              "resampling": false
+            }
+          },
+          "group": "module",
+          "cleanup": true
+        },
+        {
+          "format": "webm",
+          "colors": [
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              254,
+              0,
+              0
+            ]
+          ],
+          "videoAudioPeak": 0.12690457701683044,
+          "video": {
+            "layers": 1,
+            "sources": 1,
+            "inFlight": 0,
+            "frames": 47,
+            "videos": [
+              {
+                "id": 1,
+                "time": 0.955908,
+                "paused": false,
+                "playing": true,
+                "visible": true,
+                "frames": 47,
+                "error": null
+              }
+            ]
+          },
+          "pauseStopsPlayback": true,
+          "group": "video",
+          "cleanup": true
+        },
+        {
+          "format": "mp4",
+          "colors": [
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              254,
+              0,
+              0
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              1,
+              128,
+              1
+            ],
+            [
+              254,
+              0,
+              0
+            ]
+          ],
+          "videoAudioPeak": 0.1298760324716568,
+          "video": {
+            "layers": 1,
+            "sources": 1,
+            "inFlight": 0,
+            "frames": 45,
+            "videos": [
+              {
+                "id": 1,
+                "time": 0.901333,
+                "paused": false,
+                "playing": true,
+                "visible": true,
+                "frames": 45,
+                "error": null
+              }
+            ]
+          },
+          "pauseStopsPlayback": true,
+          "group": "video",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-off",
+          "screenshot": "directional-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 971,
+            "commandBytes": 20096,
+            "commandCopies": 0,
+            "vertexUploads": 12,
+            "vertexBytes": 6848,
+            "presents": 5,
+            "memoryViews": 4,
+            "vertexReallocations": 2,
+            "threeDraws": 31,
+            "threeBatches": 15,
+            "goDraws": 31,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 34
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-on",
+          "screenshot": "directional-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 971,
+            "commandBytes": 20132,
+            "commandCopies": 0,
+            "vertexUploads": 12,
+            "vertexBytes": 6848,
+            "presents": 4,
+            "memoryViews": 4,
+            "vertexReallocations": 2,
+            "threeDraws": 31,
+            "threeBatches": 15,
+            "goDraws": 31,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 84
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "point-off",
+          "screenshot": "point-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 946,
+            "commandBytes": 8272,
+            "commandCopies": 0,
+            "vertexUploads": 0,
+            "vertexBytes": 0,
+            "presents": 3,
+            "memoryViews": 4,
+            "vertexReallocations": 0,
+            "threeDraws": 3,
+            "threeBatches": 3,
+            "goDraws": 3,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 234
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "point-on",
+          "screenshot": "point-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 945,
+            "commandBytes": 8108,
+            "commandCopies": 0,
+            "vertexUploads": 0,
+            "vertexBytes": 0,
+            "presents": 2,
+            "memoryViews": 4,
+            "vertexReallocations": 0,
+            "threeDraws": 2,
+            "threeBatches": 2,
+            "goDraws": 2,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 432
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "spot-off",
+          "screenshot": "spot-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 945,
+            "commandBytes": 8108,
+            "commandCopies": 0,
+            "vertexUploads": 0,
+            "vertexBytes": 0,
+            "presents": 2,
+            "memoryViews": 4,
+            "vertexReallocations": 0,
+            "threeDraws": 2,
+            "threeBatches": 2,
+            "goDraws": 2,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "shadowSize": 512,
+            "shadowDraws": 31,
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "spot-on",
+          "screenshot": "spot-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 945,
+            "commandBytes": 8108,
+            "commandCopies": 0,
+            "vertexUploads": 0,
+            "vertexBytes": 0,
+            "presents": 2,
+            "memoryViews": 4,
+            "vertexReallocations": 0,
+            "threeDraws": 2,
+            "threeBatches": 2,
+            "goDraws": 2,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 84
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-alpha-off",
+          "screenshot": "directional-alpha-off.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 947,
+            "commandBytes": 8124,
+            "commandCopies": 0,
+            "vertexUploads": 0,
+            "vertexBytes": 0,
+            "presents": 2,
+            "memoryViews": 4,
+            "vertexReallocations": 0,
+            "threeDraws": 2,
+            "threeBatches": 2,
+            "goDraws": 2,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "shadowSize": 512,
+            "shadowDraws": 38,
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "variant": "directional-alpha-on",
+          "screenshot": "directional-alpha-on.png",
+          "gpu": {
+            "backend": "Three.js r187",
+            "submissions": 947,
+            "commandBytes": 8124,
+            "commandCopies": 0,
+            "vertexUploads": 0,
+            "vertexBytes": 0,
+            "presents": 2,
+            "memoryViews": 4,
+            "vertexReallocations": 0,
+            "threeDraws": 2,
+            "threeBatches": 2,
+            "goDraws": 2,
+            "mergedDraws": 0,
+            "renderWidth": 854,
+            "renderHeight": 480,
+            "renderScale": 1,
+            "quality": "auto"
+          },
+          "graphics": {
+            "modelEnabled": true,
+            "shadowEnabled": true,
+            "stageModel": true,
+            "shadowSize": 512,
+            "shadowDraws": 72
+          },
+          "group": "shadow",
+          "cleanup": true
+        },
+        {
+          "group": "shadowPixels",
+          "light": "directional",
+          "changedPixels": 6972
+        },
+        {
+          "group": "shadowPixels",
+          "light": "point",
+          "changedPixels": 7346
+        },
+        {
+          "group": "shadowPixels",
+          "light": "spot",
+          "changedPixels": 6994
+        },
+        {
+          "group": "shadowPixels",
+          "light": "directional-alpha",
+          "changedPixels": 4852
+        }
+      ]
+    }
+  },
+  "gpu": {
+    "native": {
+      "pixelChannels": 49152,
+      "differentChannels": 0,
+      "commandCopies": 0,
+      "memoryViews": 2,
+      "vertexUploads": 5,
+      "allOpcodes": true,
+      "backend": "Kenjatime WebGL2",
+      "threeDraws": 0,
+      "mergedDraws": 0,
+      "inactiveLocations": 0,
+      "invalidUniformReads": 0
+    },
+    "three": {
+      "pixelChannels": 49152,
+      "differentChannels": 0,
+      "commandCopies": 0,
+      "memoryViews": 2,
+      "vertexUploads": 5,
+      "allOpcodes": true,
+      "backend": "Three.js r187",
+      "threeDraws": 8,
+      "mergedDraws": 2,
+      "inactiveLocations": 0,
+      "invalidUniformReads": 0
+    },
+    "mobileUniformReflection": {
+      "pixelChannels": 49152,
+      "differentChannels": 0,
+      "commandCopies": 0,
+      "memoryViews": 2,
+      "vertexUploads": 5,
+      "allOpcodes": true,
+      "backend": "Three.js r187",
+      "threeDraws": 8,
+      "mergedDraws": 2,
+      "inactiveLocations": 2,
+      "invalidUniformReads": 0
+    },
+    "bindingReuse": {
+      "matched": true,
+      "reference": {
+        "left": [
+          255,
+          0,
+          0,
+          255
+        ],
+        "right": [
+          0,
+          255,
+          0,
+          255
+        ],
+        "error": 0
+      },
+      "three": {
+        "left": [
+          255,
+          0,
+          0,
+          255
+        ],
+        "right": [
+          0,
+          255,
+          0,
+          255
+        ],
+        "error": 0
+      }
+    },
+    "modelAttributes": [
+      {
+        "normalized": false,
+        "native": {
+          "pixel": [
+            0,
+            255,
+            0,
+            255
+          ],
+          "error": 0
+        },
+        "three": {
+          "pixel": [
+            0,
+            255,
+            0,
+            255
+          ],
+          "error": 0
+        }
+      },
+      {
+        "normalized": true,
+        "native": {
+          "pixel": [
+            0,
+            255,
+            0,
+            255
+          ],
+          "error": 0
+        },
+        "three": {
+          "pixel": [
+            0,
+            255,
+            0,
+            255
+          ],
+          "error": 0
+        }
+      }
+    ]
+  },
+  "scope": "Host Chromium/SwiftShader. Fixture counts and pixels do not certify every character, media codec, archive variant or physical phone.",
+  "repositoryTests": {
+    "passed": 547,
+    "failed": 0,
+    "skipped": 0
+  },
+  "isolatedNativeReplay": {
+    "scenarios": 316,
+    "comparedFrames": 26889,
+    "differences": 0,
+    "allGroupsPassed": true
+  },
+  "openFinding": "InGuardDist after projectile retirement remains frame-pacing sensitive under concurrent load; this isolated replay passed.",
+  "engineWasmSha256": "58281052cbc2986d5ea81c8cc999017906cbd3262330f8b9f687078f21427ddf",
+  "apk": {
+    "package": "io.github.celerycore.kenjatime",
+    "version": "0.4.5",
+    "versionCode": 13,
+    "startupUrl": "https://localhost/mobile/index.html",
+    "apkBytes": 13695411,
+    "apkSha256": "0ce4a7f3a5f841d088f0cf58b8b6184d3c4d36f912f9f880b606fd57202816b2",
+    "signatureVerified": true,
+    "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "minimumWebView": 107,
+    "bundledWebFilesMatchDist": 58,
+    "onlyBundledCharacterArchive": "kfm.zip",
+    "sharedEngineCoreArchive": "engine/core.zip",
+    "lint": {
+      "errors": 0,
+      "warnings": [
+        {
+          "id": "UnusedAttribute",
+          "severity": "Warning",
+          "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+        },
+        {
+          "id": "NewerVersionAvailable",
+          "severity": "Warning",
+          "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
+        },
+        {
+          "id": "UnusedResources",
+          "severity": "Warning",
+          "message": "The resource `R.xml.config` appears to be unused"
+        },
+        {
+          "id": "UsableSpace",
+          "severity": "Warning",
+          "message": "Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
+        }
+      ]
+    },
+    "deviceTesting": "Packaging checks do not execute Android or measure phone FPS.",
+    "noStaleWebAssets": true,
+    "apkContainerOverheadBytes": 87117
+  },
+  "mainThreadSharpProbe": {
+    "physicalAndroid": false,
+    "quality": "high",
+    "mainThread": true,
+    "checks": [
+      {
+        "variant": "directional-on",
+        "screenshot": "directional-on.png",
+        "gpu": {
+          "backend": "Three.js r187",
+          "submissions": 971,
+          "commandBytes": 20132,
+          "commandCopies": 0,
+          "vertexUploads": 12,
+          "vertexBytes": 6848,
+          "presents": 4,
+          "memoryViews": 4,
+          "vertexReallocations": 2,
+          "threeDraws": 31,
+          "threeBatches": 15,
+          "goDraws": 31,
+          "mergedDraws": 0,
+          "renderWidth": 854,
+          "renderHeight": 480,
+          "renderScale": 1,
+          "quality": "sharp"
+        },
+        "graphics": {
+          "stageModel": true,
+          "shadowSize": 512,
+          "shadowDraws": 64,
+          "modelEnabled": true,
+          "shadowEnabled": true
+        },
+        "group": "shadow",
+        "cleanup": true
+      }
+    ]
+  },
+  "packaging": {
+    "incrementalApkBytes": 19257271,
+    "cleanApkBytes": 13695411,
+    "removedUnusedBytes": 5561860
+  }
+}

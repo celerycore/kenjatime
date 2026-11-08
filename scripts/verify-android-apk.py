@@ -30,6 +30,12 @@ with ZipFile(apk) as z:
     # AAPT intentionally excludes the GitHub Pages marker; it is not a runtime asset.
     files=[p for p in Path('dist').rglob('*') if p.is_file() and not any(part.startswith('.') for part in p.relative_to('dist').parts)]
     for p in files:assert z.read('assets/public/'+p.relative_to('dist').as_posix())==p.read_bytes(),p
+    expected={p.relative_to('dist').as_posix() for p in files}
+    bundled={n.removeprefix('assets/public/') for n in z.namelist() if n.startswith('assets/public/') and not n.endswith('/')}
+    extras=bundled-expected-{'cordova.js','cordova_plugins.js'}
+    assert not extras, f'Stale or unexpected Web assets in APK: {sorted(extras)}'
+    container_overhead=apk.stat().st_size-sum(e.compress_size for e in z.infolist())
+    assert container_overhead<1024*1024, 'APK has excessive unused packaging space; make a clean Android build.'
     assert 'assets/public/mobile/index.html' in z.namelist()
     assert b'data-mobile-app="true"' in z.read('assets/public/mobile/index.html')
     assert any(n.endswith('.wasm') for n in z.namelist())
@@ -39,5 +45,6 @@ lint=Path('android/app/build/reports/lint-results-debug.xml')
 issues=[{'id':i.get('id'),'severity':i.get('severity'),'message':i.get('message')} for i in ET.parse(lint).getroot().findall('issue')]
 assert all(i['severity'] not in ['Error','Fatal'] for i in issues),issues
 result={'package':'io.github.celerycore.kenjatime','version':version,'versionCode':version_code,'startupUrl':startup_url,'apkBytes':apk.stat().st_size,'apkSha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signatureVerified':True,'signerSha256':signer,'minSdk':24,'targetSdk':36,'minimumWebView':107,'bundledWebFilesMatchDist':len(files),'onlyBundledCharacterArchive':'kfm.zip','sharedEngineCoreArchive':'engine/core.zip','lint':{'errors':0,'warnings':issues},'deviceTesting':'Packaging checks do not execute Android or measure phone FPS.'}
+result.update(noStaleWebAssets=True,apkContainerOverheadBytes=container_overhead)
 Path('work').mkdir(exist_ok=True);Path('work/mobile-apk-evidence.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result))

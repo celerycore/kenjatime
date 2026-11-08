@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 
 // Public engine payloads need the same cache revision as their frame/runtime.
 const engineRevision=createHash('sha256');
-for(const path of ['public/engine/core.zip','public/engine/ikemen.wasm.bin','public/engine/wasm_exec.js','engine/index.html','engine/webgl/submit.js','engine/three/submit.js','engine/webgl/render-target.js','src/engine-frame.js','src/engine-runtime.js','src/engine-worker.js','src/engine-audio.js','src/pcm-worklet.js','src/engine-fs.js','package-lock.json'])engineRevision.update(readFileSync(new URL(path,import.meta.url)));
+for(const path of ['public/engine/core.zip','public/engine/ikemen.wasm.bin','public/engine/wasm_exec.js','engine/index.html','engine/webgl/submit.js','engine/three/submit.js','engine/webgl/render-target.js','src/engine-frame.js','src/engine-runtime.js','src/module-music.js','src/video-background.js','src/engine-worker.js','src/engine-audio.js','src/pcm-worklet.js','src/engine-fs.js','package-lock.json'])engineRevision.update(readFileSync(new URL(path,import.meta.url)));
 const appVersion=readFileSync(new URL('android/app/build.gradle',import.meta.url),'utf8').match(/versionName\s+"([^"]+)"/)[1];
 const startupRevision=createHash('sha256');for(const path of ['src/startup-diagnostics.js','src/browser-engine-host.js','src/native-setup.js','src/library-recovery.js','src/main.js','src/mobile.js','android/app/build.gradle','android/app/src/main/java/io/github/celerycore/kenjatime/MainActivity.java','android/app/src/main/java/io/github/celerycore/kenjatime/ArenaDevicePlugin.java','android/app/src/main/java/io/github/celerycore/kenjatime/ArchiveWebChromeClient.java','capacitor.config.json'])startupRevision.update(readFileSync(new URL(path,import.meta.url)));
 

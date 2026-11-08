@@ -1,16 +1,17 @@
 # Kenjatime browser-runtime Android app
 
-Version 0.4.4 (version code 12) packages the current Three.js renderer and
+Version 0.4.5 (version code 13) packages the current Three.js renderer and
 Go/WASM combat engine in Capacitor 8. It starts at
 `https://localhost/mobile/index.html` from bundled assets and works offline.
 It retains Kenjatime’s UI, fixed-aspect match view, touch controls, lifebars,
 palettes and controller bridge. Stock IKEMEN menus and screenpacks are excluded.
 
-Version 0.4.4 fixes disappearing projectiles caused by a cached GPU index-buffer
-binding. The new [character verification suite](character-verification.md)
-compares the same browser assets with independent native IKEMEN captures, and
-records an unresolved projectile-retirement guard-distance timing difference
-under load.
+Version 0.4.5 adds multipart imports, ZIP AES variants and encrypted 7z/RAR,
+streamed MOD/XM/IT/S3M music, MP4/WebM backgrounds and model shadows. It also
+fixes the integer-backed vertex attributes that could hide 3D stage models.
+See [archive/media support, limits and verification](media-archive-support.md).
+The [character verification suite](character-verification.md) retains its
+independent native captures and unresolved loaded projectile guard-distance issue.
 
 ## Included
 
@@ -55,7 +56,7 @@ prototype and the website have their own storage. Uninstalling or clearing
 storage removes copies inside the affected app.
 
 Archive imports retain the existing 128 MB compressed, 512 MB expanded and
-5,000-entry limits. Multi-part volumes must first be combined. The password field
+5,000-entry limits. Select every multipart volume together. Save archive bundles the exact originals for download and re-import. The password field
 supports encrypted formats supported by the decoders; password-protected ZIP
 and original encrypted-byte export are tested. This does not certify every
 compression/encryption variant.
@@ -75,7 +76,7 @@ python scripts/verify-startup-diagnostics.py
 
 The APK is `android/app/build/outputs/apk/debug/app-debug.apk`. The verifier checks its signature, launch metadata and exact bundled build assets, including the compressed WASM payload and engine core. The browser suite executes Go matches, touch attacks, pause, archive imports and library migration; see [integration details](go-engine-integration.md) and [packaging evidence](android-app-evidence.json).
 
-Native bridge tests verify the local startup URL, asset server and actual document-picker intent/callbacks under Robolectric. Picker checks include ZIP/RAR/7z and extensionless content URIs with no MIME metadata, cancellation/retry, missing result data, multiple results, competing requests and activity destruction. Host browser tests use Chromium/SwiftShader; they do not measure Android phone FPS or execute physical device controllers. The OEM picker appearance still requires physical phone verification. Browser video-background support and some music decoders remain port limitations.
+Native bridge tests verify the local startup URL, asset server and actual document-picker intent/callbacks under Robolectric. Picker checks include ZIP/RAR/7z and extensionless content URIs with no MIME metadata, cancellation/retry, missing result data, multiple results, competing requests and activity destruction. Host browser tests use Chromium/SwiftShader; they do not measure Android phone FPS or execute physical device controllers. The OEM picker appearance still requires physical phone verification. Media codecs depend on WebView support; MP4/WebM and MOD/XM/IT/S3M have host browser coverage. See the support report for limits.
 
 See [document-picker evidence](android-picker-evidence.json) for the Android intent and regression cases.
 

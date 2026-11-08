@@ -1,7 +1,9 @@
 import {unzipSync} from 'fflate';
 import {charactersFromFiles} from './formats.js';
 import {stageDefinitions} from './stages.js';
-import {readArchiveFile,unpackArchive} from './uploads.js';
+import {readArchiveFiles,unpackArchive} from './uploads.js';
+import {archiveVolumePlan} from './archive-volumes.js';
+import {exportArchiveVolumes} from './archive-export.js';
 import {ArchiveLibrary} from './mobile-library.js';
 import {openGoBattle} from './go-battle.js';
 import {stageWithResolvedMusic} from './engine-stage.js';
@@ -40,14 +42,16 @@ async function catalog(){
  startup?.metrics({packages:saved.length,characters:saved.reduce((n,p)=>n+p.characters.length,0),stages:saved.reduce((n,p)=>n+p.stages.length,0),legacyPackages:old.length,invalidPackages:all.length-saved.length,knownArchiveBytes:saved.reduce((n,p)=>n+(Number.isFinite(p.archiveBytes)?p.archiveBytes:0),0),knownExpandedBytes:saved.reduce((n,p)=>n+(Number.isFinite(p.expandedBytes)?p.expandedBytes:0),0),knownFiles:saved.reduce((n,p)=>n+(Number.isFinite(p.fileCount)?p.fileCount:0),0),packagesWithoutSizes:saved.filter(p=>!Number.isFinite(p.archiveBytes)).length});
  return{characters:[...builtin.characters,...saved.flatMap(p=>p.characters)],stages:[...builtin.stages,...saved.flatMap(p=>p.stages)],packages:[...saved.map(p=>({id:p.id,name:p.name,downloadable:!!p.archiveSaved})),...old.map(p=>({id:'legacy:'+p.id,name:p.name,legacy:true}))],...(libraryUnavailable||legacyUnavailable||saved.length!==all.length?{warning:'Some saved library data could not load. Use Reset library to start fresh. The included fighter is ready.'}:{})};
 }
-async function pickFile(){return new Promise(resolve=>{const input=document.createElement('input');input.type='file';input.accept='*/*';input.hidden=true;input.id='engine-archive-file';input.onchange=()=>{const file=input.files?.[0];input.remove();resolve(file);};input.oncancel=()=>{input.remove();resolve(null);};document.body.append(input);input.click();});}
+async function pickFile(){return new Promise(resolve=>{const input=document.createElement('input');input.type='file';input.accept='*/*';input.multiple=true;input.hidden=true;input.id='engine-archive-file';input.onchange=()=>{const files=Array.from(input.files||[]);input.remove();resolve(files.length?files:null);};input.oncancel=()=>{input.remove();resolve(null);};document.body.append(input);input.click();});}
 async function resource(path){const builtin=await core();if(builtin[path])return new Blob([builtin[path]]);const db=await open(),row=await request(db.transaction('files').objectStore('files').get(path));if(!row)throw Error('The installed resource is missing.');return row.blob;}
 async function install(file,data,legacyId){
+ const originals=Array.isArray(file)?file:[file],plan=archiveVolumePlan(originals);file=originals.find(p=>p.name===plan.first);
  window.__kenjatimeNativeProgress?.(`Reading ${file.name}…`);
-   const {files,characters,stages}=await unpackArchive(await readArchiveFile(file),{password:data.password,prepareStageData:false,onProgress:m=>window.__kenjatimeNativeProgress?.(m)});
+ const parts=await readArchiveFiles(originals,{onProgress:m=>window.__kenjatimeNativeProgress?.(m)});
+   const {files,characters,stages}=await unpackArchive(parts.length===1?parts[0].bytes:parts,{password:data.password,prepareStageData:false,onProgress:m=>window.__kenjatimeNativeProgress?.(m)});
    if(data.kind==='stage'&&!stages.length)throw Error('No stage DEF found. Choose a stage archive.');if(!characters.length&&!stages.length)throw Error('No character or stage DEF found.');
-   const id=crypto.randomUUID(),prefix=`imports/${id}/`,meta={id,name:file.name,archiveSaved:true,archiveBytes:file.size,expandedBytes:Object.values(files).reduce((n,b)=>n+b.length,0),fileCount:Object.keys(files).length,...(legacyId?{legacyId}:{}),...entries(files,prefix,id,file.name)};
-   const db=await open(),tx=db.transaction(['packages','files','archives'],'readwrite'),finished=done(tx);tx.objectStore('packages').put(meta);tx.objectStore('archives').put({id,name:file.name,blob:file});
+   const id=crypto.randomUUID(),prefix=`imports/${id}/`,meta={id,name:file.name,archiveSaved:true,archiveBytes:originals.reduce((n,p)=>n+p.size,0),archiveParts:originals.length,expandedBytes:Object.values(files).reduce((n,b)=>n+b.length,0),fileCount:Object.keys(files).length,...(legacyId?{legacyId}:{}),...entries(files,prefix,id,file.name)};
+   const db=await open(),tx=db.transaction(['packages','files','archives'],'readwrite'),finished=done(tx);tx.objectStore('packages').put(meta);tx.objectStore('archives').put(originals.length===1?{id,name:file.name,blob:file}:{id,name:file.name,parts:originals.map(blob=>({name:blob.name,blob,size:blob.size}))});
    for(const [path,bytes]of Object.entries(files))tx.objectStore('files').put({path:prefix+path,packageId:id,blob:new Blob([bytes])});await finished;libraryUnavailable=false;return catalog();
 }
 export function createBrowserEngineHost(){
@@ -74,7 +78,8 @@ export function createBrowserEngineHost(){
   if(action==='downloadArchive'){
    const db=await open(),row=await request(db.transaction('archives').objectStore('archives').get(data.packageId));
    if(!row)throw Error('The original archive was not saved by this older app version. Import it again to enable Save archive.');
-   await exportFile(row.blob,row.name);return{};
+   if(row.parts){const bytes=await exportArchiveVolumes(row.parts);await exportFile(new Blob([bytes],{type:'application/zip'}),row.name+'-volumes.zip');}
+   else await exportFile(row.blob,row.name);return{};
   }
   if(action==='remove'){
    if(data.packageId.startsWith('legacy:')){await legacy.remove(data.packageId.slice(7));return catalog();}
@@ -93,7 +98,7 @@ export function createBrowserEngineHost(){
    // Go gets its own transferable copy of package bytes; the preview/library stays intact.
    await openGoBattle({files,args,onProgress:m=>window.__kenjatimeNativeProgress?.(m)});return{launching:true};
   }
-  if(action==='credits'){window.open(new URL('engine/LICENSE.txt',base),'_blank','noopener');return{};}
+  if(action==='credits'){window.open(new URL('engine/NOTICES.txt',base),'_blank','noopener');return{};}
   throw Error('Unknown app action.');
  }
 };}

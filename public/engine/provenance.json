@@ -6,19 +6,22 @@
     "GOARCH": "wasm",
     "CGO_ENABLED": "0"
   },
-  "hostBridgeSha256": "b57f8fda4db496a13c1026fda24ffc5accdee9a52b1f6bdf37c7082bb17dbd5b",
+  "hostBridgeSha256": "d25f0a79f8d6654cc48d0681c61e38db0e236f29eadcf578da8bb82edcda8b14",
   "browserSources": {
-    "audio_js.go": "f62d6deba4d27e0ba9d62bde755a58ff08cf122c0d116cf4f7d0e968c1ee7cb1",
+    "audio_js.go": "bdda1bcf762168f517f06e466c092ddd0de579e12e04471c1893bbd496581c5e",
+    "platform_js.go": "629d14d7c085c30b47a3ac51e85cb56d93571a506cb4af38e521ee84f7a9821a",
     "system_js.go": "d70a5140897ce92ad8a2f3a231626ebcb2d0882abc75e3cb1f6d7c9c84f19eec"
   },
   "threeVersion": "0.187.0",
   "threeSources": {
-    "submit.js": "7c58c382e1b1cd3fdf6aa3ef3ec862b104e755749296f0bdda52340ac27d83e5"
+    "submit.js": "d1f18c6fafd0ca1abdc01cbd0e140d7de769ba51d9cff197cfe9248dfc839a83"
   },
   "rendererSources": {
     "render-target.js": "0b36f649479d7b6440e74c9588347f17a8e4e406cabf0bd5b3732b69a86649e5",
-    "render_webgl.go": "6d67ae95f946b0078835907aa449e8ea9223bf14743fe406db008dfdda7af453",
+    "render_webgl.go": "fb28cc6c9ffa0296a918f939c4862672a37af38e00faa2937b32013b206c6469",
     "render_webgl_cmdbuf.go": "73a125d492a88d357890109996ae8f2b02f75aaf3b9ffc1c3d21dfebdb555277",
+    "render_webgl_model.go": "e9a93d64f4400b1434a768fc3e0738528e60904e9ea675b1a8a845409d3ef1d6",
+    "render_webgl_shadow.go": "a456320f0157f8ebff2582906841238ac5ad6b644d918604fdc3dcb9137f1e9e",
     "submit.js": "4007a81c446f78ea700308adfd18d95e6e1c7572a717e34e6d44b30fea674325"
   },
   "engine": "IKEMEN GO",
@@ -42,8 +45,8 @@
   ],
   "stockMenuAssets": false,
   "stockMenuScripts": false,
-  "wasmBytes": 24380644,
-  "wasmSha256": "c3d789fca51c85d4e70c4af177dd23dba6bfe8fd4a83de379e71652b13503abc",
+  "wasmBytes": 24466006,
+  "wasmSha256": "58281052cbc2986d5ea81c8cc999017906cbd3262330f8b9f687078f21427ddf",
   "files": {
     "wasm_exec.js": {
       "bytes": 16687,
@@ -57,6 +60,14 @@
       "bytes": 84936,
       "sha256": "4b79a3f637f72df7ed244971af9c4e6430b39f39589e8d260fc1e5a9dc1d2197"
     },
+    "MEDIA-NOTICES.txt": {
+      "bytes": 8830,
+      "sha256": "e575f41feab432fdbb623188c3f1091dcd20d32072793287aa0ebcf57e4fda27"
+    },
+    "NOTICES.txt": {
+      "bytes": 99114,
+      "sha256": "41d3f169b01c01966b50053dacdb01e2c32c0818ad1191406b3b0d9ae0bb251d"
+    },
     "GO-LICENSE.txt": {
       "bytes": 1479,
       "sha256": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
@@ -66,8 +77,8 @@
       "sha256": "30dd549c8be7fedd0ec076cd32febf13ad34a9b4a8de7079de3fbe910f57420f"
     },
     "ikemen.wasm.bin": {
-      "bytes": 5650007,
-      "sha256": "e8620df9dd8116607c1a1a150e4158532787c8bfa648d066fe473436b7d05424"
+      "bytes": 5666592,
+      "sha256": "aeaa7d7b1f760852ad6b2063c447afffd30e51aa8eb71daeeeccaaa2f1eb76f6"
     }
   }
 }

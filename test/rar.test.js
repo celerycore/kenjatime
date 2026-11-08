@@ -55,9 +55,9 @@ test('mobile RAR MIME/extension variations are identified from content',async()=
   assert.match(archiveAccept,/\.rar/);assert.match(archiveAccept,/application\/vnd.rar/);assert.equal(archiveKind(new Uint8Array([0x52,0x61,0x72,0x21,0x1a,7,1])),null);
 });
 
-test('password-protected and multipart RARs explain how to repackage them',async()=>{
+test('encrypted RAR needs its password; a complete single volume can use the multipart decoder',async()=>{
   await assert.rejects(()=>unpackArchiveBytes(rar4([['secret.txt','data',{encrypted:true}]])),/Password-protected/);
-  await assert.rejects(()=>unpackArchiveBytes(rar4(entries(),{volume:true})),/Multi-part/);
+  const files=await unpackArchiveBytes(rar4(entries(),{volume:true}));assert.equal(Object.keys(files).length,2);
 });
 
 test('damaged payloads and truncated RAR headers fail without blocking the next import',async()=>{

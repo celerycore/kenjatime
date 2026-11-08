@@ -5,7 +5,22 @@ import {createWebGLSubmitter} from '../webgl/submit.js';
 // Go owns MUGEN semantics and resource data. Its GL-shaped ABI is decoded into
 // ordered Three scene batches; it is never used to sort transparent effects.
 export function createThreeSubmitter(raw,memory,objects){
- const renderer=new WebGLRenderer({canvas:raw.canvas,context:raw,alpha:false,antialias:false});
+ // Native model IDs occupy integer VBOs but use vertexAttribPointer's float
+ // conversion. Three assumes an integer VBO means an integer shader input.
+ // Preserve the linked shader's actual input type when it prepares a VAO.
+ let nativeGeometry=null,threeProgram=null;
+ const inputTypes=new WeakMap(),contextMethods=new Map();
+ const rendererContext=new Proxy(raw,{get(target,name){
+  if(name==='useProgram')return p=>{threeProgram=p;raw.useProgram(p);};
+  if(name==='vertexAttribIPointer')return(index,size,type,stride,offset)=>{
+   let inputs=inputTypes.get(threeProgram);if(!inputs){inputs=new Map();for(let i=0;i<raw.getProgramParameter(threeProgram,raw.ACTIVE_ATTRIBUTES);i++){const a=raw.getActiveAttrib(threeProgram,i);inputs.set(raw.getAttribLocation(threeProgram,a.name),a);}inputTypes.set(threeProgram,inputs);}
+   const input=inputs.get(index),integer=input&&[raw.INT,raw.INT_VEC2,raw.INT_VEC3,raw.INT_VEC4,raw.UNSIGNED_INT,raw.UNSIGNED_INT_VEC2,raw.UNSIGNED_INT_VEC3,raw.UNSIGNED_INT_VEC4].includes(input.type);
+   if(integer)raw.vertexAttribIPointer(index,size,type,stride,offset);
+   else raw.vertexAttribPointer(index,size,type,nativeGeometry?.attributes[input?.name]?.normalized||false,stride,offset);
+  };
+  const value=target[name];if(typeof value!=='function')return value;if(!contextMethods.has(name))contextMethods.set(name,value.bind(target));return contextMethods.get(name);
+ },set(target,name,value){target[name]=value;return true;}});
+ const renderer=new WebGLRenderer({canvas:raw.canvas,context:rendererContext,alpha:false,antialias:false});
  renderer.debug.onShaderError=(gl,p,v,f)=>{throw Error('Three shader compilation failed: '+gl.getProgramInfoLog(p)+' '+gl.getShaderInfoLog(v)+' '+gl.getShaderInfoLog(f));};
  renderer.autoClear=false;renderer.sortObjects=false;renderer.info.autoReset=false;renderer.outputColorSpace=LinearSRGBColorSpace;renderer.toneMapping=NoToneMapping;renderer.resetState();
  const scene=new Scene(),camera=new Camera(),queue=[],slots=[],programs=new Map(),locations=new WeakMap(),shaders=new WeakMap(),vaos=new Map(),buffers=new Map(),textures=new WeakMap(),targets=new Map(),stripIndices=new Map();
@@ -109,7 +124,7 @@ export function createThreeSubmitter(raw,memory,objects){
    const material=new RawShaderMaterial({glslVersion:GLSL3,vertexShader:p.vertex,fragmentShader:p.fragment,uniforms:{},transparent:true,forceSinglePass:true,toneMapped:false});
    object=mode===raw.LINES?new LineSegments(geometry(p,a,mode,indexed),material):mode===raw.LINE_STRIP?new Line(geometry(p,a,mode,indexed),material):mode===raw.LINE_LOOP?new LineLoop(geometry(p,a,mode,indexed),material):mode===raw.POINTS?new Points(geometry(p,a,mode,indexed),material):new Mesh(geometry(p,a,mode,indexed),material);
    object.frustumCulled=false;object.matrixAutoUpdate=false;object.matrixWorldAutoUpdate=false;object.parent=scene;
-   object.onBeforeRender=()=>{renderer.setScissor(...object.userData.scissor);renderer.setScissorTest(object.userData.clip);object.material.uniformsNeedUpdate=true;};slot.set(key,object);
+   object.onBeforeRender=()=>{nativeGeometry=object.geometry;renderer.setScissor(...object.userData.scissor);renderer.setScissorTest(object.userData.clip);object.material.uniformsNeedUpdate=true;};slot.set(key,object);
   }
   const m=object.material;m.blending=state.caps.has(raw.BLEND)?CustomBlending:NoBlending;m.blendEquation=equations.get(state.equation);m.blendSrc=factors.get(state.src);m.blendDst=factors.get(state.dst);m.blendEquationAlpha=null;m.blendSrcAlpha=null;m.blendDstAlpha=null;m.premultipliedAlpha=false;
   m.depthTest=state.caps.has(raw.DEPTH_TEST);m.depthWrite=state.depthWrite;m.depthFunc=depths.get(state.depthFunc);m.side=state.caps.has(raw.CULL_FACE)?FrontSide:DoubleSide;

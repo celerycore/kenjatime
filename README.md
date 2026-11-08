@@ -2,7 +2,7 @@
 
 Import MUGEN fighters and stages, choose your match, and play through Kenjatime’s interface.
 
-The website executes **IKEMEN GO 1.0.0 compiled from Go to WebAssembly**, with a Three.js WebGL2 renderer and Web Audio. Android **Kenjatime 0.4.4** bundles that current renderer and engine for offline use, with adaptive audio, original-archive saving and [exportable startup diagnostics](docs/startup-diagnostics.md). The separate **Kenjatime Native 0.3.1** test build executes the ARM64 engine. All use Kenjatime’s setup, HUD and match-only Lua bootstrap. Stock title/select/options menus, screenpacks, startup logos and menu scripts are excluded. The previous JavaScript combat interpreter is retained in source and historical tests, and is not loaded by these application entries.
+The website executes **IKEMEN GO 1.0.0 compiled from Go to WebAssembly**, with a Three.js WebGL2 renderer and Web Audio. Android **Kenjatime 0.4.5** bundles that current renderer and engine for offline use, with adaptive audio, original-archive saving and [exportable startup diagnostics](docs/startup-diagnostics.md). The separate **Kenjatime Native 0.3.1** test build executes the ARM64 engine. All use Kenjatime’s setup, HUD and match-only Lua bootstrap. Stock title/select/options menus, screenpacks, startup logos and menu scripts are excluded. The previous JavaScript combat interpreter is retained in source and historical tests, and is not loaded by these application entries.
 
 - [Play](https://celerycore.github.io/kenjatime/arena-classic/) · [Android download](https://celerycore.github.io/kenjatime/android/)
 - [Three.js browser renderer and verification](docs/three-browser-renderer.md)
@@ -18,7 +18,7 @@ npm ci
 npm run dev
 ```
 
-ZIP, RAR4/5, 7z and common compressed TAR archives are identified from contents. Imported packages stay in the device’s private library. Older saved web archives remain available under **Saved on this device**; Open installs their contents into the Go engine library. Split volumes and unsupported encryption still require repackaging. Web imports allow 128 MiB compressed / 512 MiB expanded; native imports allow 512 MiB compressed / expanded. Both cap imports at 5,000 entries and reject escaping paths, links and conflicting duplicates.
+ZIP, RAR4/5, 7z and common compressed TAR archives are identified from contents. Imported packages stay in the device’s private library. Older saved web archives remain available under **Saved on this device**; Open installs their contents into the Go engine library. The website and current Android app accept multipart ZIP/RAR/7z sets when every volume is selected together, plus tested ZIP AES, 7z AES and RAR4/RAR5 encryption. Save archive preserves originals, bundling multipart sets for download and re-import. Web imports allow 128 MiB compressed / 512 MiB expanded; native imports allow 512 MiB compressed / expanded. Both cap imports at 5,000 entries and reject escaping paths, links and conflicting duplicates.
 
 The browser mounts all selected resources before starting a match. Gameplay does not make synchronous network file requests. The Go engine and shared resources are downloaded when needed. Native gameplay uses a separate SDL activity and destroys the setup WebView. Browser gamepads use the browser API; native gamepads use SDL.
 
@@ -38,4 +38,4 @@ The original Android entrypoint ignores command-line arguments. Kenjatime writes
 
 [Character verification](docs/character-verification.md) runs complete curated KFM movesets and interaction fixtures against independently captured native IKEMEN traces. Use `npm run test:characters` for the comparator tests and `npm run verify:characters -- --browser-only` for the shipping browser runtime.
 
-Host verification includes repository tests, native startup/import tests, real Go/WASM matches with touch damage and pause, archive imports on all four routes, old-library migration, and supplied Tomoka/Forest resources. Physical phone FPS is not measured here. The browser port currently omits video-background decoding and some native music decoders; the platform backends have different media capabilities. Passing tests do not certify every authored character or stage.
+Host verification includes repository tests, native startup/import tests, real Go/WASM matches with touch damage and pause, archive imports on all four routes, old-library migration, and supplied Tomoka/Forest resources. Physical phone FPS is not measured here. Version 0.4.5 adds multipart/encrypted imports, MOD/XM/IT/S3M music, browser-decoded video backgrounds and WebGL2 model shadows; see [support and limits](docs/media-archive-support.md). Passing tests do not certify every authored character or stage.

@@ -1,23 +1,23 @@
 {
-  "version": "0.4.4",
+  "version": "0.4.5",
   "repositoryTests": {
-    "passed": 525,
+    "passed": 547,
     "failed": 0,
     "skipped": 0
   },
   "apk": {
     "package": "io.github.celerycore.kenjatime",
-    "version": "0.4.4",
-    "versionCode": 12,
+    "version": "0.4.5",
+    "versionCode": 13,
     "startupUrl": "https://localhost/mobile/index.html",
-    "apkBytes": 12224424,
-    "apkSha256": "ddc412aaeda26717248ab9126ec7868c08beed9969e6b190992034480587bbeb",
+    "apkBytes": 13695411,
+    "apkSha256": "0ce4a7f3a5f841d088f0cf58b8b6184d3c4d36f912f9f880b606fd57202816b2",
     "signatureVerified": true,
     "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
     "minSdk": 24,
     "targetSdk": 36,
     "minimumWebView": 107,
-    "bundledWebFilesMatchDist": 49,
+    "bundledWebFilesMatchDist": 58,
     "onlyBundledCharacterArchive": "kfm.zip",
     "sharedEngineCoreArchive": "engine/core.zip",
     "lint": {
@@ -45,7 +45,9 @@
         }
       ]
     },
-    "deviceTesting": "Packaging checks do not execute Android or measure phone FPS."
+    "deviceTesting": "Packaging checks do not execute Android or measure phone FPS.",
+    "noStaleWebAssets": true,
+    "apkContainerOverheadBytes": 87117
   },
   "nativeTests": [
     {
@@ -241,10 +243,10 @@
     "cases": {
       "cold-1": {
         "status": "ready",
-        "elapsedMs": 396,
+        "elapsedMs": 488,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 191,
+          "longestTaskMs": 218,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -258,10 +260,10 @@
       },
       "cold-2": {
         "status": "ready",
-        "elapsedMs": 382,
+        "elapsedMs": 411,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 190,
+          "longestTaskMs": 218,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -275,10 +277,10 @@
       },
       "cold-3": {
         "status": "ready",
-        "elapsedMs": 393,
+        "elapsedMs": 363,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 185,
+          "longestTaskMs": 195,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -292,10 +294,10 @@
       },
       "upgrade-v1": {
         "status": "ready",
-        "elapsedMs": 407,
+        "elapsedMs": 393,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 198,
+          "longestTaskMs": 162,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -309,10 +311,10 @@
       },
       "warm-1": {
         "status": "ready",
-        "elapsedMs": 169,
+        "elapsedMs": 127,
         "metrics": {
           "longTasks": 1,
-          "longestTaskMs": 104,
+          "longestTaskMs": 82,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -326,10 +328,10 @@
       },
       "warm-2": {
         "status": "ready",
-        "elapsedMs": 132,
+        "elapsedMs": 170,
         "metrics": {
           "longTasks": 1,
-          "longestTaskMs": 68,
+          "longestTaskMs": 98,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -343,10 +345,10 @@
       },
       "blocked-upgrade": {
         "status": "degraded",
-        "elapsedMs": 317,
+        "elapsedMs": 329,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 160,
+          "longestTaskMs": 152,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -360,10 +362,10 @@
       },
       "unblocked-upgrade": {
         "status": "ready",
-        "elapsedMs": 180,
+        "elapsedMs": 137,
         "metrics": {
-          "longTasks": 2,
-          "longestTaskMs": 101,
+          "longTasks": 1,
+          "longestTaskMs": 99,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -377,10 +379,10 @@
       },
       "large-library": {
         "status": "ready",
-        "elapsedMs": 237,
+        "elapsedMs": 201,
         "metrics": {
-          "longTasks": 2,
-          "longestTaskMs": 103,
+          "longTasks": 3,
+          "longestTaskMs": 102,
           "packages": 200,
           "characters": 200,
           "stages": 0,
@@ -394,10 +396,10 @@
       },
       "malformed-metadata": {
         "status": "degraded",
-        "elapsedMs": 191,
+        "elapsedMs": 204,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 74,
+          "longestTaskMs": 110,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -411,10 +413,10 @@
       },
       "hung-storage": {
         "status": "degraded",
-        "elapsedMs": 8334,
+        "elapsedMs": 8319,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 185,
+          "longestTaskMs": 198,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -428,10 +430,10 @@
       },
       "recovered-storage": {
         "status": "ready",
-        "elapsedMs": 197,
+        "elapsedMs": 184,
         "metrics": {
           "longTasks": 1,
-          "longestTaskMs": 117,
+          "longestTaskMs": 114,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -445,10 +447,10 @@
       },
       "interrupted-startup": {
         "status": "ready",
-        "elapsedMs": 213,
+        "elapsedMs": 203,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 108,
+          "longestTaskMs": 110,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -465,7 +467,7 @@
         "elapsedMs": 342,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 197,
+          "longestTaskMs": 171,
           "packages": 0,
           "characters": 0,
           "stages": 0,
@@ -479,10 +481,10 @@
       },
       "storage-error-recovery": {
         "status": "ready",
-        "elapsedMs": 137,
+        "elapsedMs": 132,
         "metrics": {
           "longTasks": 1,
-          "longestTaskMs": 89,
+          "longestTaskMs": 96,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -496,18 +498,18 @@
       },
       "failed-resources": {
         "status": "failed",
-        "elapsedMs": 200,
+        "elapsedMs": 184,
         "metrics": {
           "longTasks": 1,
-          "longestTaskMs": 208
+          "longestTaskMs": 140
         }
       },
       "process-1": {
         "status": "ready",
-        "elapsedMs": 449,
+        "elapsedMs": 415,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 316,
+          "longestTaskMs": 191,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -521,10 +523,10 @@
       },
       "process-2": {
         "status": "ready",
-        "elapsedMs": 525,
+        "elapsedMs": 600,
         "metrics": {
           "longTasks": 2,
-          "longestTaskMs": 314,
+          "longestTaskMs": 433,
           "packages": 1,
           "characters": 1,
           "stages": 0,
@@ -541,27 +543,9 @@
       "packages": 200,
       "files": 20200,
       "logicalBytes": 303104000,
-      "sharedFixtureBlobs": true,
-      "physicalDiskSaturationTest": false
+      "sharedFixtureBlobs": true
     },
-    "exportDuringHang": true,
-    "build": {
-      "version": "0.4.3",
-      "startupRevision": "da8b42c3695d66cf",
-      "engineRevision": "c0b2d105781783e7"
-    },
-    "testEnvironment": "Host Chromium/SwiftShader; functional observations, not a phone benchmark.",
-    "bulkFileAndArchiveReadsDuringStartup": 0,
-    "repositoryTests": {
-      "passed": 522,
-      "failed": 0,
-      "skipped": 0
-    },
-    "nativeBridgeTests": {
-      "tests": 10,
-      "failures": 0,
-      "physicalAndroid": false
-    }
+    "exportDuringHang": true
   },
   "physicalAndroidExecution": false,
   "actualAndroidPackageUpgradeTested": false,
@@ -683,16 +667,130 @@
       "resetWorksDuringHungStartup": true,
       "hungStorageFallsBackToPlayableSample": true,
       "errors": []
-    }
+    },
+    "retainedFromVersion": "0.4.4"
   },
   "characterVerification": {
     "report": "character-verification-evidence.json",
     "quietReplay": {
       "scenarios": 316,
       "frames": 26889,
-      "differences": 0
+      "differences": 0,
+      "status": "passed"
     },
     "openFinding": "four InGuardDist timing differences after projectile retirement under concurrent load",
     "physicalAndroidExecution": false
+  },
+  "archiveMediaSupport": "media-archive-support.md",
+  "currentLibraryRecovery": {
+    "physicalPhone": false,
+    "purgesCurrentAndLegacyLibraries": true,
+    "sampleRestored": true,
+    "resetConsumedOnce": true,
+    "newImportsSurviveReload": true,
+    "unrelatedDataAndOriginalFilePreserved": true,
+    "resetWorksDuringHungStartup": true,
+    "hungStorageFallsBackToPlayableSample": true,
+    "errors": []
+  },
+  "currentMediaVerification": "media-support-evidence.json",
+  "currentBrowserEngineChecks": {
+    "engine": "IKEMEN GO 1.0.0 (Go/WASM)",
+    "phoneExecution": false,
+    "cases": {
+      "touchAttackDamage": 23,
+      "pauseFreezesFighters": true,
+      "menuReturnsToKenjatime": true,
+      "archiveImports": [
+        "fighter.zip",
+        "fighter.bzip2.zip",
+        "fighter.lzma.zip",
+        "fighter.7z",
+        "fighter.tar.gz",
+        "fighter-sfx.zip",
+        "arena/fighter.zip",
+        "arena/fighter.bzip2.zip",
+        "arena/fighter.lzma.zip",
+        "arena/fighter.7z",
+        "arena/fighter.tar.gz",
+        "arena/fighter-sfx.zip",
+        "arena-classic/fighter.zip",
+        "arena-classic/fighter.bzip2.zip",
+        "arena-classic/fighter.lzma.zip",
+        "arena-classic/fighter.7z",
+        "arena-classic/fighter.tar.gz",
+        "arena-classic/fighter-sfx.zip",
+        "mobile/fighter.zip",
+        "mobile/fighter.bzip2.zip",
+        "mobile/fighter.lzma.zip",
+        "mobile/fighter.7z",
+        "mobile/fighter.tar.gz",
+        "mobile/fighter-sfx.zip"
+      ],
+      "invalidImportPreservesLibrary": true,
+      "savedImportsSurviveReload": true,
+      "oldLibraryMigration": true,
+      "MUGEN_CNS_KFM_ZIP": {
+        "started": true,
+        "state": {
+          "effects": {
+            "commonScale": 1,
+            "commonAnimations": 19,
+            "activeCommon": 0
+          },
+          "music": {
+            "streaming": false,
+            "format": "",
+            "file": ""
+          },
+          "graphics": {
+            "stageModel": false,
+            "shadowSize": 0,
+            "shadowDraws": 0,
+            "modelEnabled": true,
+            "shadowEnabled": true
+          },
+          "matchTime": 96,
+          "roundState": 1,
+          "camera": {
+            "zoom": 1,
+            "width": 427,
+            "height": 240,
+            "x": 0
+          },
+          "players": [
+            {
+              "x": -67.44730377197266,
+              "screenY": 0.8166666626930237,
+              "power": 3000,
+              "powerMax": 3000,
+              "y": 0,
+              "screenX": 0.289227157831192,
+              "state": 0,
+              "time": 1,
+              "life": 1000,
+              "lifeMax": 1000
+            },
+            {
+              "screenX": 0.7107728123664856,
+              "screenY": 0.8166666626930237,
+              "time": 1,
+              "lifeMax": 1000,
+              "y": 0,
+              "powerMax": 3000,
+              "x": 67.44730377197266,
+              "state": 0,
+              "life": 1000,
+              "power": 3000
+            }
+          ],
+          "ticks": 96,
+          "paused": false
+        }
+      }
+    },
+    "coreContainsStockUi": false,
+    "errors": [],
+    "failedRequests": []
   }
 }

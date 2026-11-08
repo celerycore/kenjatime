@@ -20,12 +20,15 @@ Pause and app backgrounding clear held inputs and pause fighters. Menu disposes 
 
 ## Validation and limits
 
+The following records describe the initial integration. Current archive/media
+coverage and reproducible checks are in [the 0.4.5 report](media-archive-support.md).
+
 - 513 repository tests pass with the available supplied corpus, without skips. Most pre-existing combat tests describe the historical JS implementation; these alone are not evidence of the Go backend.
 - 25 native host tests cover private match/config handoff without relying on argv, invalid-selection rollback, actual asset preparation, removal of obsolete UI on upgrade, archive policy/registration, library persistence, picker and native launch, WebView lifecycle and audio permission handling.
 - The browser smoke suite executes real Go/WASM matches, records a 23-point touch punch, verifies paused fighter state, Menu return, 24 archive imports across the four routes, invalid-import preservation, restart persistence and old-library migration. It launches the ordinary CNS Kung Fu Man ZIP, Tomoka RAR and Forest RAR with the Go VM.
 - The APK verifier checks the original ten native libraries and 53 JNI signatures, versions, signatures, prepared files and absent stock UI paths. Both Android builds have lint checks. The Go build job reproduces the shipped WASM from pinned source.
 
-These are host/browser checks, including software WebGL. No physical Infinix X6725 execution or FPS result is claimed. Browser video-background decoding and some native music formats remain port limitations. The native and browser backends share the v1.0.0 engine family and game assets, with platform-specific rendering/audio implementations and source revisions.
+These are host/browser checks, including software WebGL. No physical Infinix X6725 execution or FPS result is claimed. The browser-runtime app and website now support streamed tracker music, browser-native MP4/WebM video and WebGL2 model shadows; see [coverage and limits](media-archive-support.md). The native and browser backends share the v1.0.0 engine family and game assets, with platform-specific rendering/audio implementations and source revisions.
 
 Build provenance is shipped at `engine/provenance.json`; source and dependency licenses are provided alongside it. Native library license notices and the matching FFmpeg source link remain available from the download page.
 
