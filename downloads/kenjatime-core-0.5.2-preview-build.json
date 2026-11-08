@@ -19,5 +19,14 @@
   "exactMovesetScenarios": 103,
   "totalMovesetScenarios": 147,
   "differentTraceFields": 5422,
-  "physicalPhoneMeasured": false
+  "physicalPhoneMeasured": false,
+  "verifiedCheckpoint": "checkpoint/core-preview-0.5.2",
+  "verificationSourceCommit": "d543cb55bbcacf7d140b37a12125d527e6133844",
+  "verificationWorkflow": "https://github.com/celerycore/kenjatime/actions/runs/42497624222",
+  "browserCI": "success",
+  "androidCI": "success",
+  "pagesDeployment": "https://github.com/celerycore/kenjatime/actions/runs/42497727962",
+  "pagesCI": "success",
+  "publishedDownloadSha256Verified": true,
+  "hostTests": 581
 }
