@@ -1,0 +1,154 @@
+{
+  "../source-release/node_modules/7z-wasm/7zz.wasm": {
+    "file": "assets/7zz-CgkXYLdN.wasm",
+    "src": "../source-release/node_modules/7z-wasm/7zz.wasm"
+  },
+  "../source-release/node_modules/@capacitor/app/dist/esm/web.js": {
+    "file": "assets/web-BmsRYEPO.js",
+    "name": "web",
+    "src": "../source-release/node_modules/@capacitor/app/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js": {
+    "file": "assets/web-Bloz9LdO.js",
+    "name": "web",
+    "src": "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html",
+      "_native-export-DhbDE2bz.js"
+    ]
+  },
+  "../source-release/node_modules/@capacitor/share/dist/esm/web.js": {
+    "file": "assets/web-4bu4aFxY.js",
+    "name": "web",
+    "src": "../source-release/node_modules/@capacitor/share/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "../source-release/node_modules/chiptune3/libopenmpt.worklet.js": {
+    "file": "assets/libopenmpt.worklet-X0cJA8Sf.js",
+    "src": "../source-release/node_modules/chiptune3/libopenmpt.worklet.js"
+  },
+  "___vite-browser-external-D7Ct-6yo.js": {
+    "file": "assets/__vite-browser-external-D7Ct-6yo.js",
+    "name": "__vite-browser-external",
+    "isDynamicEntry": true
+  },
+  "_native-export-DhbDE2bz.js": {
+    "file": "assets/native-export-DhbDE2bz.js",
+    "name": "native-export",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js",
+      "../source-release/node_modules/@capacitor/share/dist/esm/web.js"
+    ]
+  },
+  "core/index.html": {
+    "file": "assets/core-BBE5LC7S.js",
+    "name": "core",
+    "src": "core/index.html",
+    "isEntry": true,
+    "dynamicImports": [
+      "../source-release/node_modules/@capacitor/app/dist/esm/web.js",
+      "_native-export-DhbDE2bz.js",
+      "src/seven-archive.js",
+      "src/multi-archive.js",
+      "src/zip-encrypted.js",
+      "src/zip-lzma.js",
+      "src/rar-reader.js",
+      "src/core/runtime.js"
+    ],
+    "css": [
+      "assets/core-nykSQivM.css"
+    ],
+    "assets": [
+      "assets/kfm-CJEysBIf.zip"
+    ]
+  },
+  "public/kfm.zip": {
+    "file": "assets/kfm-CJEysBIf.zip",
+    "src": "public/kfm.zip"
+  },
+  "src/core/runtime.js": {
+    "file": "assets/runtime-D4hLmcG_.js",
+    "name": "runtime",
+    "src": "src/core/runtime.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "src/module-music.js"
+    ]
+  },
+  "src/module-music.js": {
+    "file": "assets/module-music-C2Wy91BT.js",
+    "name": "module-music",
+    "src": "src/module-music.js",
+    "isDynamicEntry": true,
+    "assets": [
+      "assets/libopenmpt.worklet-X0cJA8Sf.js"
+    ]
+  },
+  "src/multi-archive.js": {
+    "file": "assets/multi-archive-_H1YkrjB.js",
+    "name": "multi-archive",
+    "src": "src/multi-archive.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "___vite-browser-external-D7Ct-6yo.js",
+      "core/index.html"
+    ]
+  },
+  "src/rar-reader.js": {
+    "file": "assets/rar-reader-5ba9_w2a.js",
+    "name": "rar-reader",
+    "src": "src/rar-reader.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "src/seven-archive.js": {
+    "file": "assets/seven-archive-DGjvwcbi.js",
+    "name": "seven-archive",
+    "src": "src/seven-archive.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "___vite-browser-external-D7Ct-6yo.js"
+    ],
+    "assets": [
+      "assets/7zz-CgkXYLdN.wasm"
+    ]
+  },
+  "src/zip-encrypted.js": {
+    "file": "assets/zip-encrypted-BV-KThsW.js",
+    "name": "zip-encrypted",
+    "src": "src/zip-encrypted.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "src/zip-lzma.js": {
+    "file": "assets/zip-lzma-C8oC5LkY.js",
+    "name": "zip-lzma",
+    "src": "src/zip-lzma.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  }
+}
