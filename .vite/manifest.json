@@ -7,11 +7,11 @@
     "file": "assets/index-Dl1qKiz5.js",
     "name": "index"
   },
-  "_main-Dx8-8rMo.js": {
-    "file": "assets/main-Dx8-8rMo.js",
+  "_main-CD2QOwEt.js": {
+    "file": "assets/main-CD2QOwEt.js",
     "name": "main",
     "imports": [
-      "_native-setup-bXN5XoCS.js",
+      "_native-setup-KEby1YaS.js",
       "_browser-BrENwvay.js"
     ],
     "css": [
@@ -39,8 +39,8 @@
     "file": "assets/native-setup-DbH0cXs-.css",
     "src": "_native-setup-DbH0cXs-.css"
   },
-  "_native-setup-bXN5XoCS.js": {
-    "file": "assets/native-setup-bXN5XoCS.js",
+  "_native-setup-KEby1YaS.js": {
+    "file": "assets/native-setup-KEby1YaS.js",
     "name": "native-setup",
     "imports": [
       "_browser-BrENwvay.js",
@@ -58,7 +58,7 @@
     "name": "preload-helper"
   },
   "engine/index.html": {
-    "file": "assets/engine-DbWOB8Nh.js",
+    "file": "assets/engine-CoEz9wuz.js",
     "name": "engine",
     "src": "engine/index.html",
     "isEntry": true,
@@ -70,14 +70,14 @@
     ]
   },
   "mobile/index.html": {
-    "file": "assets/mobile-Cyz_DoFz.js",
+    "file": "assets/mobile-B0f1NXAo.js",
     "name": "mobile",
     "src": "mobile/index.html",
     "isEntry": true,
     "imports": [
       "_preload-helper-mg6Z-sIv.js",
-      "_main-Dx8-8rMo.js",
-      "_native-setup-bXN5XoCS.js",
+      "_main-CD2QOwEt.js",
+      "_native-setup-KEby1YaS.js",
       "_index-Dl1qKiz5.js",
       "_browser-BrENwvay.js"
     ],
@@ -86,13 +86,13 @@
     ]
   },
   "native-ui/index.html": {
-    "file": "assets/native-BhYq63dS.js",
+    "file": "assets/native-DrDDGjrm.js",
     "name": "native",
     "src": "native-ui/index.html",
     "isEntry": true,
     "imports": [
       "_preload-helper-mg6Z-sIv.js",
-      "_native-setup-bXN5XoCS.js",
+      "_native-setup-KEby1YaS.js",
       "_browser-BrENwvay.js"
     ]
   },
@@ -125,13 +125,30 @@
       "_index-Dl1qKiz5.js"
     ]
   },
+  "node_modules/chiptune3/libopenmpt.worklet.js": {
+    "file": "assets/libopenmpt.worklet-X0cJA8Sf.js",
+    "src": "node_modules/chiptune3/libopenmpt.worklet.js"
+  },
   "src/engine-runtime.js": {
-    "file": "assets/engine-runtime-DbIUFyGC.js",
+    "file": "assets/engine-runtime-DUcE1Nxe.js",
     "name": "engine-runtime",
     "src": "src/engine-runtime.js",
     "isDynamicEntry": true,
     "imports": [
+      "_preload-helper-mg6Z-sIv.js",
       "_browser-BrENwvay.js"
+    ],
+    "dynamicImports": [
+      "src/module-music.js"
+    ]
+  },
+  "src/module-music.js": {
+    "file": "assets/module-music-C2Wy91BT.js",
+    "name": "module-music",
+    "src": "src/module-music.js",
+    "isDynamicEntry": true,
+    "assets": [
+      "assets/libopenmpt.worklet-X0cJA8Sf.js"
     ]
   }
 }
