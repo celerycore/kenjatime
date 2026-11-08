@@ -39,5 +39,7 @@ report = {'applicationId': expected_config['appId'], 'version': '0.5.0-core-prev
     'certificateSha256': certificate, 'offlineAssetsMatchWebBuild': True, 'bundledFiles': len(files),
     'startupUrl': 'https://localhost/core/index.html', 'separateRecoveryInstallation': True,
     'externalEnginePayloads': False, 'physicalPhoneTest': False}
-(ROOT / 'work/core/android-evidence.json').write_text(json.dumps(report, indent=2) + '\n')
+output = Path(os.environ.get('CORE_EVIDENCE_DIR', ROOT / 'work/core'))
+output.mkdir(parents=True, exist_ok=True)
+(output / 'android-evidence.json').write_text(json.dumps(report, indent=2) + '\n')
 print(json.dumps(report, indent=2))
