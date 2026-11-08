@@ -68,7 +68,7 @@ export class CoreSession {
         c,
         parseProgram(c, {
           commonText: CORE_COMMON_STATES,
-          constantDefaults: { "movement.stand.friction.threshold": 1 },
+          constantsFromCnsOnly: true,
         }),
       ]),
     );

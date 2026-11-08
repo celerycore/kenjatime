@@ -59,6 +59,9 @@ function parseSymbol(source) {
     if (result.tolerant) throw Error(`The $ modifier is only valid on directions: ${source}.`);
     result.kind = 'button';
     result.keys = parts;
+  } else if(parts.filter(part=>DIRECTIONS.includes(part)).length===1&&parts.every(part=>DIRECTIONS.includes(part)||BUTTONS.includes(part))){
+    result.kind='chord';
+    result.keys=parts.map(part=>DIRECTIONS.includes(part)&&result.tolerant?'$'+part:part);
   } else {
     throw Error(`Unsupported command symbol ${source}. Directions are uppercase and buttons are lowercase.`);
   }
@@ -182,16 +185,23 @@ function matches(symbol, sample) {
   if (symbol.release) {
     return keys.every(key => sample.released.has(key) && (sample.previousDurations.get(key) ?? 0) >= symbol.charge);
   }
-  return keys.every(key => sample.pressed.has(key));
+  return keys.every(key => symbol.kind==='chord'&&!BUTTONS.includes(key)?sample.held.has(key):sample.pressed.has(key));
 }
 
 function signatures(symbol) {
   if (symbol.hold) return [];
   const edge = symbol.release ? 'release:' : 'press:';
+  if(symbol.kind==='chord')return symbol.keys.filter(key=>BUTTONS.includes(key)||symbol.release).map(key=>edge+(BUTTONS.includes(key)?key:'direction'));
   return symbol.kind === 'direction' ? [edge + 'direction'] : symbol.keys.map(key => edge + key);
 }
 
 function physicalKeysForSymbol(symbol, sample, remap) {
+  if(symbol.kind==='chord'){
+    const keys=new Set();for(const key of symbol.keys){
+      if(BUTTONS.includes(key)){for(const physical of BUTTONS)if(remap[physical]===key)keys.add(physical);}
+      else for(const direction of key.replace('$',''))keys.add(direction==='F'?(sample.facing<0?'L':'R'):direction==='B'?(sample.facing<0?'R':'L'):direction);
+    }return keys;
+  }
   if (symbol.kind === 'button') {
     return new Set(BUTTONS.filter(physical => symbol.keys.includes(remap[physical])));
   }
@@ -206,7 +216,7 @@ export class CommandBuffer {
     this.commands = parsed.commands ?? [];
     this.remap = parsed.remap ?? Object.fromEntries(BUTTONS.map(key => [key, key]));
     this.diagnostics = [...(parsed.diagnostics ?? [])];
-    this.historyLimit = Math.max(1, ...this.commands.map(command => command.time));
+    this.historyLimit = Math.max(1, ...this.commands.map(command => command.time + 1));
     this.reset();
   }
 
@@ -259,7 +269,7 @@ export class CommandBuffer {
 
   matchSequence(command, spend) {
     const lastIndex = this.history.length - 1;
-    const earliest = this.tick - command.time + 1;
+    const earliest = this.tick - command.time;
     let cursor = lastIndex;
     let nextMatch = null;
     let sameTickEvents = new Set();

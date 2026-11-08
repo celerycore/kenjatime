@@ -78,6 +78,41 @@ test('simultaneous button combinations require all button edges on the same tick
   assert.ok(input(engine, ['x', 'y']).has('move'));
 });
 
+test('direction and button chords accept a held direction and a fresh button press', () => {
+  const engine = buffer('F+x');
+  input(engine, ['R']);
+  assert.ok(input(engine, ['R', 'x']).has('move'));
+  assert.ok(!input(engine, ['R', 'x']).has('move'));
+  input(engine, ['R']);
+  assert.ok(input(engine, ['R', 'x']).has('move'));
+  const wrong = buffer('F+x');
+  assert.ok(!input(wrong, ['L', 'x']).has('move'));
+  const heldButton = buffer('F+x');
+  input(heldButton, ['x']);
+  assert.ok(!input(heldButton, ['R', 'x']).has('move'));
+});
+
+test('chords respect facing, tolerant directions, holds, remapping and strict sequences', () => {
+  const mirrored = buffer('x+F');
+  input(mirrored, ['L'], -1);
+  assert.ok(input(mirrored, ['L', 'x'], -1).has('move'));
+  assert.ok(!input(buffer('F+x'), ['D', 'R', 'x']).has('move'));
+  assert.ok(input(buffer('$F+x'), ['D', 'R', 'x']).has('move'));
+  const held = buffer('/$F+x');
+  assert.ok(input(held, ['D', 'R', 'x']).has('move'));
+  assert.ok(input(held, ['R', 'x']).has('move'));
+  assert.ok(!input(held, ['R']).has('move'));
+  const mapped = new CommandBuffer(parseCommands('[Remap]\na=x\nx=\n[Command]\nname="move"\ncommand=F+x'));
+  assert.ok(!input(mapped, ['R', 'x']).has('move'));
+  assert.ok(input(mapped, ['R', 'a']).has('move'));
+  const clean = buffer('a, >F+x');
+  input(clean, ['a']);
+  assert.ok(input(clean, ['a', 'R', 'x']).has('move'));
+  const dirty = buffer('a, >F+x');
+  input(dirty, ['a']);
+  assert.ok(!input(dirty, ['a', 'R', 'x', 'y']).has('move'));
+});
+
 test('a hold prefix must still be held when the final button is pressed', () => {
   const engine = buffer('/$D, a');
   input(engine, ['D']);
@@ -138,8 +173,14 @@ test('repeated button symbols cannot consume the same edge and expire by total t
   assert.ok(!input(engine, ['a']).has('move'));
   input(engine, []);
   assert.ok(input(engine, ['a']).has('move'));
+  const boundary = buffer('a, a', 'time=3');
+  input(boundary, ['a']);
+  input(boundary, []);
+  input(boundary, []);
+  assert.ok(input(boundary, ['a']).has('move'));
   const expired = buffer('a, a', 'time=3');
   input(expired, ['a']);
+  input(expired, []);
   input(expired, []);
   input(expired, []);
   assert.ok(!input(expired, ['a']).has('move'));
@@ -166,7 +207,7 @@ test('reset clears charge, sequence history and buffered commands', () => {
 });
 
 test('malformed and unsupported commands are diagnosed and never reduced to a partial motion', () => {
-  const parsed = parseCommands('[Command]\nname=unknown\ncommand=D, foo, x\n[Command]\nname=long\ncommand=x\ntime=9000\n[Command]\nname=badcombo\ncommand=D+x\n[Command]\nname=charge\ncommand=~9000B\n[Command]\nname=badmod\ncommand=/$x');
+  const parsed = parseCommands('[Command]\nname=unknown\ncommand=D, foo, x\n[Command]\nname=long\ncommand=x\ntime=9000\n[Command]\nname=badcombo\ncommand=D+F+x\n[Command]\nname=charge\ncommand=~9000B\n[Command]\nname=badmod\ncommand=/$x');
   assert.equal(parsed.commands.length, 0);
   assert.equal(parsed.diagnostics.length, 5);
   const engine = new CommandBuffer(parsed);

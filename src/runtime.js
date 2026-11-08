@@ -129,7 +129,7 @@ function controllerRules(controller){
   controllerMetadata.set(controller,rules);return rules;
 }
 
-export function parseProgram(character, { commonText = '',constantDefaults={} } = {}) {
+export function parseProgram(character, { commonText = '',constantDefaults={},constantsFromCnsOnly=false } = {}) {
   const program = { states: new Map(), constants: new Map(Object.entries({...DEFAULT_CONSTANTS,...constantDefaults})), quotes:new Map(), diagnostics: [], sources: [], controllerTypes: new Set() };
   const sourceTexts = [];
   if (commonText) sourceTexts.push(['<common states>', commonText]);
@@ -143,6 +143,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={} } 
     return [checked?.path, base + path, path, engineRoot + 'data/' + path, 'data/' + path].find(candidate => candidate && files[candidate]);
   };
   const reference = character.def?.files || {};
+  const constantsPath=reference.cns?lookup(reference.cns):(character.checks||[]).find(check=>check.key==='cns'&&check.ok)?.path;
   const common = reference.stcommon && lookup(reference.stcommon);
   if (common) sourceTexts.push([common, decode(files[common])]);
   else if (reference.stcommon && normalize(reference.stcommon).split('/').at(-1)!=='common1.cns') {
@@ -189,6 +190,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={} } 
           try{program.quotes.set(+match[1],decodeQuotedText(entry.value));}catch(error){program.diagnostics.push({source,line:entry.line,type:'quote',message:error.message});}
         }
       } else if (/^(data|size|velocity|movement)$/.test(section.name)) {
+        if(constantsFromCnsOnly&&source!==constantsPath)continue;
         for (const entry of section.entries) {
           const name = `${section.name}.${entry.key}`;
           const components = entry.value.split(',').map(value => Number(value.trim()));
@@ -260,6 +262,7 @@ export class FighterRuntime {
     this.events = []; this.commands = new Set(); this.asserted = new Set(); this.opponent = null;
     this.pendingAssertedInputs=new Set();
     this._pendingStateEntry=null;
+    this._pendingHitTransform=null;
     this.attackMultiplier = 1; this.defenceMultiplier = 1;
     this.sprPriority = 0; this.angle = 0; this.drawScale = { x: 1, y: 1 }; this.drawOffset = { x: 0, y: 0 };
     this.playerPush = !this.parent; this.screenBound = !this.parent;this.moveCamera={x:!this.parent,y:!this.parent}; this.posFrozen = false;
@@ -619,7 +622,7 @@ export class FighterRuntime {
     const down = this.movementHeld('holddown'), up = this.movementHeld('holdup');
     const moving = this.movementHeld('holdfwd') || this.movementHeld('holdback');
     const guarding = this.movementHeld('holdback') && !this.asserted.has('noautoguard') && !!this.resolveTrigger('inguarddist');
-    if(this.world?.orderedPhases&&guarding&&[120,130,131,132,140].includes(this.stateNo))return;
+    if (guarding && this.world?.orderedPhases && [120, 130, 131, 132, 140].includes(this.stateNo)) return;
     if (guarding && ![120, 130, 131, 132, 140].includes(this.stateNo)) {
       const forbidden = this.stateType === 'A' ? 'noairguard' : this.stateType === 'C' ? 'nocrouchguard' : 'nostandguard';
       const target = this.stateType === 'A' ? 132 : this.stateType === 'C' ? 131 : 120;
@@ -637,15 +640,16 @@ export class FighterRuntime {
     }
     if (up && !this.asserted.has('nojump') && this.program.states.has(40)) { this.changeState(40); return; }
     if (down && this.stateType === 'S' && !this.asserted.has('nocrouch') && this.program.states.has(10)) { this.changeState(10); return; }
-    if (!down && this.stateType === 'C' && [10, 11].includes(this.stateNo) && this.program.states.has(12)) { this.changeState(12); return; }
+    if (!down && this.stateType === 'C' && (this.world?.orderedPhases||[10, 11].includes(this.stateNo)) && this.program.states.has(12)) { this.changeState(12); return; }
     if (!this.asserted.has('nowalk') && this.stateType === 'S' && this.moveType === 'I') {
-      if (moving && (this.world?.orderedPhases?this.stateNo!==20:this.stateNo===0) && this.program.states.has(20)) this.changeState(20);
+      if (moving && (this.world?.orderedPhases?this.stateNo!==20&&this.stateNo!==100:this.stateNo===0) && this.program.states.has(20)) this.changeState(20);
       else if (!moving && this.stateNo === 20) this.changeState(0);
     }
   }
 
   tick({ commands = new Set(), opponent = null, paused: worldPaused = false,input=null } = {}) {
     const ordered=this.world?.orderedPhases;
+    if(ordered&&!worldPaused&&this._pendingHitTransform){const pending=this._pendingHitTransform;this._pendingHitTransform=null;if(pending.facing!==undefined)this.facing=pending.facing;for(const axis of ['x','y'])if(pending[axis]!==undefined)this.pos[axis]=pending[axis];}
     const entered=ordered&&!!this._pendingStateEntry&&!worldPaused;
     if(ordered&&this._pendingStateEntry&&!worldPaused){const pending=this._pendingStateEntry;this._pendingStateEntry=null;this.stateNo=pending.oldState;this.stateOwner=pending.oldOwner;this.changeState(pending.number,pending.ctrl,pending.owner);}
     this.events = []; this.commands = commands; this.opponent = opponent;
@@ -702,10 +706,10 @@ export class FighterRuntime {
         const friction=this.constant('movement.'+posture+'.friction');this.vel.x *= ordered?Math.fround(friction):friction;
         if(ordered)this.vel.x=Math.fround(this.vel.x);
         if(ordered){
-          // The default stop threshold is one local unit for standing motion.
-          // Explicit character constants always take precedence.
-          const threshold=this.constant('movement.'+posture+'.friction.threshold');
-          if(this.stateNo!==20&&Math.abs(this.vel.x)<threshold*this.coordinateScale)this.vel.x=0;
+          // Standing physics uses its intrinsic one-unit cutoff. The larger
+          // character idle threshold belongs to the common idle state.
+          const threshold=posture==='stand'?1:this.constant('movement.crouch.friction.threshold');
+          if(Math.abs(this.vel.x)<threshold*this.coordinateScale)this.vel.x=0;
         }
       }
     }
@@ -1137,12 +1141,13 @@ export class FighterRuntime {
     const damage = Math.max(0,scaledDamage(baseDamage,attacker,this));
     const ordered=this.world?.orderedPhases,minimum=(guarded?hit['guard.kill']:hit.kill)===0?1:0,projected=clamp((this._projectedLife??this.life)-damage,minimum,this.maxLife);
     if(ordered)this._projectedLife=projected;else this.life=projected;
-    if (attacker && hit.p2facing) this.facing = attacker.facing * (hit.p2facing < 0 ? -1 : 1);
-    if (attacker && hit.p1getp2facing) attacker.facing = this.facing * (hit.p1getp2facing < 0 ? -1 : 1);
+    const hitTransform={},hitFacing=attacker&&hit.p2facing?(ordered?-1:1)*impactFacing*(hit.p2facing<0?-1:1):this.facing;
+    if(attacker&&hit.p2facing){if(ordered)hitTransform.facing=hitFacing;else this.facing=hitFacing;}
+    if (attacker && hit.p1getp2facing) attacker.facing = hitFacing * (hit.p1getp2facing < 0 ? -1 : 1);
     else if (attacker && hit.p1facing === -1) attacker.facing *= -1;
     const velocity = guarded ? (airborne ? hit.airGuardVelocity : hit.guardVelocity) : downed&&hit['down.velocity']!==undefined ? (Array.isArray(hit['down.velocity'])?hit['down.velocity']:[hit['down.velocity'],0]) : (airborne ? hit.airVelocity : hit.groundVelocity);
     const hitScale=hit.coordinateScale??attacker?.coordinateScale??this.coordinateScale,factor=hitScale/this.coordinateScale;
-    let xvel = (velocity?.[0] || 0) * factor*-impactFacing*this.facing, yvel = (velocity?.[1] || 0) * factor;
+    let xvel = (velocity?.[0] || 0) * factor*-impactFacing*hitFacing, yvel = (velocity?.[1] || 0) * factor;
     const knockout=projected<=0,boost=knockout?koVelocity(xvel,yvel,initialType,this.coordinateScale):{x:xvel,y:yvel,xadd:0,yadd:0};xvel=boost.x;yvel=boost.y;
     const time = guarded ? hit.guardHitTime : downed&&yvel===0 ? hit['down.hittime']??20 : airborne||yvel!==0 ? hit.airHitTime??20 : hit.groundHitTime??0;
     const animTypes = { light: 0, medium: 1, med:1, hard: 2, back: 3, up: 4, diagup: 5 };
@@ -1162,8 +1167,8 @@ export class FighterRuntime {
       xvel, yvel, yaccel: hit.yaccel === undefined ? .35 / this.coordinateScale : hit.yaccel * factor, xoff: 0, yoff: 0,
       // MUGEN's documented velocity-add getters stay zero even on a KO.
       guarded: +guarded, fall,hitid:hit.id??0,chainid:Math.max(0,hit.id??0), isbound: 0,xveladd:0,yveladd:0,zoff:0,
-      recovertime:downed?Math.min(previous.recovertime??this.constant('data.liedown.time'),this.constant('data.liedown.time')):this.constant('data.liedown.time'),'fall.time':0,
-      'fall.damage': hit['fall.damage'] || 0, 'fall.xvel': hit['fall.xvelocity'] === undefined ? xvel : hit['fall.xvelocity'] * factor*-impactFacing*this.facing,
+      recovertime:downed?Math.min(previous.recovertime??this.constant('data.liedown.time'),this.constant('data.liedown.time')):this.constant('data.liedown.time'),'fall.time':ordered&&guarded?previous['fall.time']||0:0,
+      'fall.damage': hit['fall.damage'] || 0, 'fall.xvel': hit['fall.xvelocity'] === undefined ? xvel : hit['fall.xvelocity'] * factor*-impactFacing*hitFacing,
       'fall.yvel': downed&&!hit['down.bounce']&&yvel!==0?0:hit['fall.yvelocity'] === undefined ? -4.5 / this.coordinateScale : hit['fall.yvelocity'] * factor, 'fall.recover': knockout||ordered&&guarded?0:hit['fall.recover'] ?? 1,
       'fall.recovertime': hit['fall.recovertime'] ?? 4, 'fall.kill': hit['fall.kill'] ?? 1,
       'fall.envshake.time':hit['fall.envshake.time']||0,'fall.envshake.freq':hit['fall.envshake.freq']??60,
@@ -1175,18 +1180,21 @@ export class FighterRuntime {
     this.ctrl = 0; this.moveType = 'H'; this.hitId = hit.id ?? 0;
     this.hitSourceId=hitSourceId(attacker);
     this.vel = { x: 0, y: 0 };this.cornerPush=0;
-    if(attacker&&!guarded){
+    if(attacker&&(!guarded||ordered)){
       const scale=hitScale;
       for(const [axis,index]of [['x',0],['y',1]]){
         const direction=axis==='x'?attacker.facing:1;
         let distance=(this.pos[axis]-attacker.pos[axis])*direction/scale;
-        for(const key of ['mindist','maxdist','snap'])if(hit[key]!==undefined){
+        const offsets=guarded?(axis==='x'?['mindist','maxdist']:[]):['mindist','maxdist','snap'];
+        for(const key of offsets)if(hit[key]!==undefined){
           const amount=Array.isArray(hit[key])?hit[key][index]:index===0?hit[key]:undefined;if(amount===undefined)continue;
           distance=key==='mindist'?Math.max(distance,amount):key==='maxdist'?Math.min(distance,amount):amount;
         }
-        this.pos[axis]=attacker.pos[axis]+distance*direction*scale;
+        const value=attacker.pos[axis]+distance*direction*scale;
+        if(ordered){if(offsets.some(key=>hit[key]!==undefined))hitTransform[axis]=Math.fround(value);}else this.pos[axis]=value;
       }
     }
+    if(ordered&&Object.keys(hitTransform).length)this._pendingHitTransform=hitTransform;
     const state = override ? override.stateNo : !guarded && hit.p2stateno >= 0 ? hit.p2stateno : guarded&&!knockout ? (airborne ? 154 : this.stateType === 'C' ? 152 : 150) : downed?5080:!airborne&&this.getHitVars.groundtype===3?5070:airborne ? 5020 : this.stateType === 'C' ? 5010 : 5000;
     if (override?.forceAir) this.stateType = 'A';
     if (!this.changeState(state,undefined,!guarded && !override && hit.p2stateno >= 0 ? foreignOwner : this)) {

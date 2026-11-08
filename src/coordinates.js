@@ -9,8 +9,11 @@ export function baseScale(actor){
 export function bodyWidthWorld(actor,direction,{edge=false}={}){
   const front=actor.facing===direction,side=front?'front':'back';
   const override=edge?actor.width?.edge?.[front?0:1]:actor.width?.[side];
-  if(override!==undefined)return Math.max(0,Number(override)||0)*(actor.coordinateScale||baseScale(actor));
   const value=actor.program?.constants?.get(`size.${actor.stateType==='A'?'air':'ground'}.${side}`)??15;
+  if(override!==undefined){
+    const offset=(Number(override)||0)*(actor.coordinateScale||baseScale(actor));
+    return Math.max(0,offset+(actor.world?.orderedPhases?Math.max(0,Number(value)||0)*baseScale(actor):0));
+  }
   return Math.max(0,Number(value)||0)*baseScale(actor);
 }
 

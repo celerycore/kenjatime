@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { independentBuildBoundary } from "./scripts/core/build-isolation.mjs";
 
-const version = "0.5.0-core-preview",
+const version = "0.5.1-core-preview",
   revision = createHash("sha256");
 for (const path of [
   ...readdirSync('src',{recursive:true}).filter(p=>/\.(js|css)$/.test(p)).sort().map(p=>'src/'+p),

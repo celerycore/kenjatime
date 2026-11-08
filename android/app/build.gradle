@@ -12,8 +12,8 @@ android {
         versionCode 13
         versionName "0.4.5"
         if (corePreview) {
-            versionCode 1
-            versionName "0.5.0-core-preview"
+            versionCode 2
+            versionName "0.5.1-core-preview"
         }
         manifestPlaceholders = [kenjatimeAppLabel: corePreview ? 'Kenjatime Core Preview' : '@string/app_name',
                                 kenjatimeActivityLabel: corePreview ? 'Kenjatime Core Preview' : '@string/title_activity_main']

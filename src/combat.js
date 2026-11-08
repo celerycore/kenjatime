@@ -247,7 +247,7 @@ export class TrainingMatch {
       let input = fighter.root === this.player ? commands : opponentCommands;
       let physical=fighter.root===this.player?playerInput:opponentInput;
       if(this.manageInputs&&fighter.keyCtrl){
-        physical=new Set(physical||[]);for(const flag of fighter.pendingAssertedInputs){physical.add(flag==='F'?(fighter.facing===1?'R':'L'):flag==='B'?(fighter.facing===1?'L':'R'):flag);}fighter.pendingAssertedInputs.clear();
+        physical=new Set(physical||[]);for(const flag of fighter.pendingAssertedInputs){physical.add(flag==='F'?(fighter.facing===1?'R':'L'):flag==='B'?(fighter.facing===1?'L':'R'):flag);}if(!this.isFrozen(fighter))fighter.pendingAssertedInputs.clear();
         if(!this.inputBuffers.has(fighter))this.inputBuffers.set(fighter,new CommandBuffer(this.inputProfiles.get(fighter.root.character)));
         input=this.inputBuffers.get(fighter).update(physical,fighter.facing);
       }else if(fighter.parent&&fighter.keyCtrl&&physical!==null)input=this.helperCommands.get(fighter).update(physical,fighter.facing);
@@ -434,6 +434,7 @@ export class TrainingMatch {
       const rightAvailable=right.screenBound===false?Infinity:Math.max(0,limits.get(right).max-right.pos.x);
       const leftTravel=Math.min(overlap/2,leftAvailable),rightTravel=Math.min(overlap-leftTravel,rightAvailable);
       left.pos.x-=Math.min(overlap-rightTravel,leftAvailable);right.pos.x+=rightTravel;
+      if(this.orderedPhases){left.pos.x=Math.fround(left.pos.x);right.pos.x=Math.fround(right.pos.x);}
       clamp(left);clamp(right);pushed=true;
     }
     return pushed;
