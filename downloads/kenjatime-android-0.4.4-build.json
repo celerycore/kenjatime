@@ -1,0 +1,59 @@
+{
+  "package": "io.github.celerycore.kenjatime",
+  "version": "0.4.4",
+  "versionCode": 12,
+  "startupUrl": "https://localhost/mobile/index.html",
+  "apkBytes": 12224424,
+  "apkSha256": "ddc412aaeda26717248ab9126ec7868c08beed9969e6b190992034480587bbeb",
+  "signatureVerified": true,
+  "signerSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "minSdk": 24,
+  "targetSdk": 36,
+  "minimumWebView": 107,
+  "bundledWebFilesMatchDist": 49,
+  "onlyBundledCharacterArchive": "kfm.zip",
+  "sharedEngineCoreArchive": "engine/core.zip",
+  "lint": {
+    "errors": 0,
+    "warnings": [
+      {
+        "id": "UnusedAttribute",
+        "severity": "Warning",
+        "message": "Attribute `appCategory` is only used in API level 26 and higher (current min is 24)"
+      },
+      {
+        "id": "NewerVersionAvailable",
+        "severity": "Warning",
+        "message": "A newer version of org.robolectric:robolectric than 4.16.1 is available: 4.17"
+      },
+      {
+        "id": "UnusedResources",
+        "severity": "Warning",
+        "message": "The resource `R.xml.config` appears to be unused"
+      },
+      {
+        "id": "UsableSpace",
+        "severity": "Warning",
+        "message": "Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
+      }
+    ]
+  },
+  "deviceTesting": "Packaging checks do not execute Android or measure phone FPS.",
+  "sourceCommit": "db6822ec8229d505a967cd46f5540f4f350a5b27",
+  "characterVerification": {
+    "scenarios": 316,
+    "frames": 26889,
+    "quietReplayDifferences": 0,
+    "openFinding": "InGuardDist differs by four retirement frames under concurrent load; strict advisory interaction check retained",
+    "evidence": "https://github.com/celerycore/kenjatime/blob/db6822ec8229d505a967cd46f5540f4f350a5b27/docs/character-verification-evidence.json"
+  },
+  "nativeUnitTests": {
+    "passed": 10,
+    "failed": 0
+  },
+  "repositoryTests": {
+    "passed": 525,
+    "failed": 0,
+    "skipped": 0
+  }
+}
