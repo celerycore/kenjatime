@@ -1,0 +1,23 @@
+{
+  "applicationId": "io.github.celerycore.kenjatime.core.preview",
+  "version": "0.5.2-core-preview",
+  "bytes": 6957162,
+  "sha256": "7d286941677d5c6cb2a3178c651b1110b48fc754df2f955a0e71bd2425be2000",
+  "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "offlineAssetsMatchWebBuild": true,
+  "bundledFiles": 36,
+  "startupUrl": "https://localhost/core/index.html",
+  "separateRecoveryInstallation": true,
+  "externalEnginePayloads": false,
+  "physicalPhoneTest": false,
+  "sourceCommit": "273c8214e7e232f69e1f301eab2636fef26a665f",
+  "sourceBranch": "source/independent-engine",
+  "checkpoint": "checkpoint/core-preview-0.5.2",
+  "previousCheckpoint": "checkpoint/core-preview-0.5.1",
+  "webPreview": "https://celerycore.github.io/kenjatime/engine-preview/",
+  "compatibilityReport": "https://github.com/celerycore/kenjatime/blob/source/independent-engine/docs/core-rewrite.md",
+  "exactMovesetScenarios": 103,
+  "totalMovesetScenarios": 147,
+  "differentTraceFields": 5422,
+  "physicalPhoneMeasured": false
+}

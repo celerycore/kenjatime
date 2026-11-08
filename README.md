@@ -1,10 +1,10 @@
 # Kenjatime Android builds
 
-Independent rewrite preview: **[Kenjatime Core 0.5.1](downloads/kenjatime-core-0.5.1-preview.apk)** · [checksum](downloads/kenjatime-core-0.5.1-preview.apk.sha256) · [build evidence](downloads/kenjatime-core-0.5.1-preview-build.json) · [Web preview](https://celerycore.github.io/kenjatime/engine-preview/).
+Independent rewrite preview: **[Kenjatime Core 0.5.2](downloads/kenjatime-core-0.5.2-preview.apk)** · [checksum](downloads/kenjatime-core-0.5.2-preview.apk.sha256) · [build evidence](downloads/kenjatime-core-0.5.2-preview-build.json) · [Web preview](https://celerycore.github.io/kenjatime/engine-preview/).
 
-This preview uses the independently authored combat runtime, numeric Wasm compiler and Three.js renderer. It updates Core 0.5.0 in place and installs alongside the recovery app, with its own library. Fixes guard/command timing, hit positioning, collision widths and fall/recovery behavior. All 16 interaction scenarios and 77 of 147 wider moveset scenarios match the captured root trace fields; remaining differences are explicit. Phone FPS and audible audio quality have not been measured. Third-party libraries and imported content retain their credits.
+This preview uses the independently authored combat runtime, numeric Wasm compiler and Three.js renderer. It updates earlier Core previews in place and installs alongside the recovery app, with its own library. Optimizes collision scanning and fixes screen bounds, back-hop landing, hit velocity phases and fall/recovery animations. All 16 interaction scenarios and 103 of 147 wider moveset scenarios match the captured root trace fields; remaining differences are explicit. Host CPU helper/projectile workloads improved roughly 2× with identical state checksums; phone FPS and audible audio quality have not been measured. Third-party libraries and imported content retain their credits.
 
-[Original engine source and verification](https://github.com/celerycore/kenjatime/tree/source/independent-engine) · [Previous Core 0.5.0 preview](downloads/kenjatime-core-0.5.0-preview.apk).
+[Original engine source and verification](https://github.com/celerycore/kenjatime/tree/source/independent-engine) · [Core 0.5.1 recovery installer](downloads/kenjatime-core-0.5.1-preview.apk) · [Core 0.5.0](downloads/kenjatime-core-0.5.0-preview.apk).
 
 Recovery installer: **[Kenjatime 0.4.5](downloads/kenjatime-android-0.4.5-debug.apk)**. Android 7.0+, WebView 107+. Bundles the current Three.js renderer and Go/WASM engine, fixed-aspect same-view matches, adaptive audio, common MUGEN archive imports and native archive saving. Adds multipart ZIP/RAR/7z selection, ZIP AES variants, encrypted 7z/RAR, MOD/XM/IT/S3M music, MP4/WebM backgrounds and WebGL2 model shadows.
 
