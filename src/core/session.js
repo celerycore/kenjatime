@@ -65,7 +65,7 @@ export class CoreSession {
     this.files = files;
     this.selection = selection;
     this.characters = charactersFromFiles(files);
-    this.commonEffects = loadCommonEffects(files, {fightDef:selection.fightDef});
+    this.commonEffects = loadCommonEffects(files, {fightDef:selection.fightDef, character:selection.character, stage:selection.stage});
     const p1 =
         this.characters.find((c) => c.path === selection.character) ||
         this.characters[0],
