@@ -80,3 +80,10 @@ test('AssertSpecial globalnoshadow is accepted and exposed as a match-wide rende
   session.tick();assert.equal(session.frame().suppressCharacterShadows,false);
  }finally{session.close();}
 });
+test('Original common.snd path is resolved independently of character SND and kept in the effect package namespace',()=>{
+ const files=fx(base(),'imports/fxpack/');
+ files['imports/fxpack/data/common.snd']=files['kfm/kfm.snd'];
+ const loaded=loadCommonEffects(files,{effectsPackage:'imports/fxpack/'});
+ assert.equal(loaded.soundPath,'imports/fxpack/data/common.snd');
+ assert.equal(loaded.animations.has(60),true);
+});
