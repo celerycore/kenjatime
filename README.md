@@ -12,7 +12,7 @@ npm run compatibility
 npm test
 ```
 
-The 0.5.6 preview adds structured numeric ZSS scripting, named maps, GPU parallax and stage window clipping. Focus loss no longer auto-pauses a match; hidden rendering stops while timer-driven simulation continues when the browser/OS permits it. Lua, newer ZSS/global-state extensions, 3D/video stages and advanced camera parity remain unfinished.
+The 0.5.7 preview fixes repeated incoming-damage reads that could kill Rare Akuma after a single hit. It adds bounded Lua match hooks/modules, browser-decoded video backgrounds, glTF stages with animation and model shadows, legacy-stage cropping, and additional camera controls. [Measured results and limits](docs/core-stage-health-0.5.7-evidence.json) distinguish implemented features from full parity. Focus loss still leaves simulation running when the browser/OS permits it. Complete Lua API/dialect support, newer ZSS/global-state extensions and advanced moving-camera parity remain unfinished.
 
 The standalone output is `dist-core/`. Open `/core/index.html` with the development server. Worker graphics are preferred; unsupported worker graphics fall back to the main thread before character data is transferred. Fights stay in the current page.
 
@@ -25,6 +25,7 @@ npm run diagnose:core:movesets    # reports all 147, including known differences
 npm run verify:core:browser       # built UI, input, audio and GPU lifecycle
 npm run verify:core:archives      # real picker/worker/store/download checks
 npm run verify:core:stages        # production GPU vs authored native stage captures
+npm run verify:core:media         # Lua/video/models/shadows and native resolution captures; ffmpeg required
 npm run android:core:debug        # requires Android SDK 36 and JDK 21
 npm run benchmark:core:combat     # authored CPU simulation loads; not phone FPS
 ```

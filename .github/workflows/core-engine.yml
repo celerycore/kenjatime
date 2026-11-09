@@ -47,6 +47,10 @@ jobs:
       - run: CORE_WORKER_FAIL=1 npm run verify:core:browser
       - run: npm run verify:core:archives
       - run: npm run verify:core:stages
+      - name: Verify Lua, video, glTF shadows and stage resolution
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          npm run verify:core:media
       - uses: actions/upload-artifact@v4
         with:
           name: independent-web-preview-and-evidence
@@ -59,6 +63,8 @@ jobs:
             work/core/*.png
             work/core/stage-browser/evidence.json
             work/core/stage-browser/*.png
+            work/core/media-browser/evidence.json
+            work/core/media-browser/*.png
   android:
     runs-on: ubuntu-latest
     steps:

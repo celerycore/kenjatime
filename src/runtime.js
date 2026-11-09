@@ -43,7 +43,10 @@ export function parseSections(text, source = '<script>') {
     const key = line.slice(0, eq).trim().toLowerCase();
     const value = line.slice(eq + 1).trim();
     section.entries.push({ key, value, line: index + 1 });
-    section.values[key] = value;
+    // MUGEN consumes the first occurrence; repeated triggers still remain in
+    // entries for their AND/OR grouping. A later duplicate cannot rename a
+    // controller (e.g. StateTypeSet followed by an ignored type = L).
+    if (!Object.hasOwn(section.values,key)) section.values[key] = value;
   }
   return sections;
 }
@@ -787,7 +790,7 @@ export class FighterRuntime {
     if(!paused)this._initializing=false;
     if(ordered&&!paused&&this._animationLoopReset){this.animationTime=this.animationCycleTime;this._animationLoopReset=false;}
     this.collisionFrame = this.currentFrame;this.collisionAnimationOwner=this.animationOwner;
-    if (paused) {if(ordered){this.finishPausedAnimation();this.syncAnimationFrame(this._pausedAnimation.draw);}advanceHitState(this,{hitPaused:true});if(!this.world)this.updateExplods({hitPaused:true});this.hitPauseTime = Math.max(0, this.hitPauseTime - 1); this.gameTime++; return this.events; }
+    if (paused) {if(ordered){this.finishPausedAnimation();this.syncAnimationFrame(this._pausedAnimation.draw);}advanceHitState(this,{hitPaused:true});if(!this.world)this.updateExplods({hitPaused:true});this.getHitVars.damage=0;this.hitPauseTime = Math.max(0, this.hitPauseTime - 1); this.gameTime++; return this.events; }
     if (!this.posFrozen && !this.bound&&!shaking) {
       this.pos.x += this.vel.x * this.facing+(ordered?0:this.cornerPush); this.pos.y += this.vel.y;
       if(ordered){this.pos.x=Math.fround(this.pos.x);this.pos.y=Math.fround(this.pos.y);}
@@ -816,6 +819,9 @@ export class FighterRuntime {
     this.updateBinding();this.syncAnimationFrame();if(!ordered)this.advanceAnimation();if(!this.world)this.updateExplods();
     if(shaking)this.getHitVars.hitshaketime=Math.max(0,this.getHitVars.hitshaketime-1);
     advanceHitState(this,{hitPaused:ordered&&(this.getHitVars.hitshaketime||0)>0});
+    // Incoming damage is a one-evaluation pulse. Health-accounting scripts must
+    // not observe the same hit again on subsequent hitshake/recovery ticks.
+    this.getHitVars.damage=0;
     this.time++; this.gameTime++;
     this._previousUp = this.movementHeld('holdup');
     return this.events;

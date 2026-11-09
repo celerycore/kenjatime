@@ -28,6 +28,36 @@ export function createCoreRuntime(emit) {
     sentSounds = new Set(),
     soundKeys = new Map(),
     renderTimes = [];
+  const videoStates = new Map(),
+    failedVideos = new Set();
+  function syncVideos() {
+    const stage = session?.match.stage;
+    if (!stage) return;
+    const world = session.match,
+      bgPaused = !!(
+        world.superPause?.remaining > 0 ||
+        (world.pause?.remaining > 0 && world.pause.pausebg !== 0)
+      );
+    for (const e of stage.elements)
+      if (e.video) {
+        const value = {
+          type: "video-control",
+          id: e.video.key,
+          playing:
+            !paused && !bgPaused && e.enabled && !failedVideos.has(e.video.key),
+          visible: e.visible,
+          captureVisible: !hidden,
+          epoch: stage.generation || 0,
+        };
+        const signature = JSON.stringify(value),
+          previous = videoStates.get(value.id);
+        if (previous?.signature !== signature) {
+          value.reset = previous && previous.epoch !== value.epoch;
+          videoStates.set(value.id, { signature, epoch: value.epoch });
+          emit(value);
+        }
+      }
+  }
   const scheduler = new FrameScheduler(frame);
   const schedule = () =>
     scheduler.schedule({
@@ -101,6 +131,7 @@ export function createCoreRuntime(emit) {
         session.tick(inputs[0].sample(sample), inputs[1].sample(sample));
         soundEvents();
       });
+      syncVideos();
       if (
         !hidden &&
         clock.debt < 1 &&
@@ -156,6 +187,39 @@ export function createCoreRuntime(emit) {
     quality = value;
     if (!renderer) prepare(canvas);
     session = new CoreSession(files, selection);
+    await session.initializeScripts();
+    if (closed) return;
+    try {
+      session.modelReady = await renderer.loadStage(
+        session.match.stage?.definition,
+        files,
+      );
+    } catch (error) {
+      if (!closed) session.issue("stage-model", error.message);
+    }
+    if (closed) return;
+    let videoBytes = 0;
+    const videoPaths = new Set();
+    for (const e of session.match.stage?.elements || [])
+      if (e.video?.path) {
+        const bytes = videoPaths.has(e.video.path)
+          ? null
+          : files[e.video.path]?.slice();
+        if (bytes) videoBytes += bytes.length;
+        if (videoBytes > 64 * 1024 * 1024) {
+          failedVideos.add(e.video.key);
+          session.issue(
+            "stage-video",
+            "Stage video source budget (64 MiB) exceeded.",
+          );
+          continue;
+        }
+        videoPaths.add(e.video.path);
+        emit(
+          { type: "video-init", id: e.video.key, ...e.video, bytes },
+          bytes ? [bytes.buffer] : [],
+        );
+      }
     const music = session.match.stage?.definition.music;
     if (music?.path && files[music.path]) {
       if (/\.(mod|xm|it|s3m)$/i.test(music.path)) {
@@ -191,11 +255,38 @@ export function createCoreRuntime(emit) {
     schedule();
   }
   function control(data) {
-    if (closed) return;
+    if (closed) {
+      if (data.type === "video-frame") data.bitmap?.close();
+      return;
+    }
+    if (data.type === "video-frame") {
+      try {
+        if (renderer.updateVideo(data))
+          session.videoSprites.set(data.id, {
+            id: data.id,
+            w: data.sourceWidth,
+            h: data.sourceHeight,
+            x: 0,
+            y: 0,
+            indexed: false,
+          });
+        dirty = true;
+      } catch (error) {
+        failedVideos.add(data.id);
+        session.issue("stage-video", error.message);
+      }
+      emit({ type: "video-ack", id: data.id });
+      return;
+    }
+    if (data.type === "media-warning") {
+      session?.issue("stage-video", String(data.message));
+      return;
+    }
     if (data.type === "visibility") {
       hidden = !!data.hidden;
       focused = data.focused !== false;
       if (!hidden) dirty = true;
+      if (started) syncVideos();
       if (started) schedule();
       return;
     }

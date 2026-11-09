@@ -10,6 +10,8 @@ import {
   Mesh,
   RawShaderMaterial,
   DataTexture,
+  Texture,
+  LinearFilter,
   RedFormat,
   RGBAFormat,
   UnsignedByteType,
@@ -214,6 +216,57 @@ export class CoreThreeRenderer {
     this.slots[index] = mesh;
     return mesh;
   }
+  updateVideo(data) {
+    const bitmap = data.bitmap;
+    try {
+      if (this.closed || this.lost) return false;
+      const bytes = bitmap.width * bitmap.height * 4;
+      if (
+        bitmap.width < 1 ||
+        bitmap.height < 1 ||
+        bitmap.width > 1280 ||
+        bitmap.height > 720
+      )
+        throw Error("Invalid stage video frame dimensions.");
+      let texture = this.textures.get(data.id);
+      const old = texture?.userData.videoBytes || 0;
+      if (this.textureBytes - old + bytes > this.limit)
+        throw Error("GPU texture budget exceeded by stage video.");
+      if (!texture) {
+        texture = new Texture();
+        texture.generateMipmaps = false;
+        texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
+        texture.flipY = false;
+        this.textures.set(data.id, texture);
+      }
+      texture.minFilter = texture.magFilter =
+        data.filter === "neighbor" ? NearestFilter : LinearFilter;
+      texture.image = bitmap;
+      texture.needsUpdate = true;
+      this.renderer.initTexture(texture);
+      texture.userData.videoBytes = bytes;
+      this.textureBytes += bytes - old;
+      this.videoUploads = (this.videoUploads || 0) + 1;
+      return true;
+    } finally {
+      bitmap?.close();
+    }
+  }
+  async loadStage(definition, files) {
+    if (!definition?.model?.path || this.closed) return false;
+    const { ModelStage } = await import("./model-stage.js");
+    if (this.closed) return false;
+    const model = await ModelStage.load(definition, files, this.renderer, {
+      textureBudget: Math.min(32 * 1024 * 1024, this.limit - this.textureBytes),
+    });
+    if (this.closed) {
+      model?.close();
+      return false;
+    }
+    this.model = model;
+    this.textureBytes += model?.textureBytes || 0;
+    return !!model;
+  }
   render(frame, { width = 960, height = 540 } = {}) {
     if (this.closed) return;
     if (this.lost)
@@ -248,6 +301,7 @@ export class CoreThreeRenderer {
         mesh = this.slot(i),
         u = mesh.material.uniforms;
       mesh.visible = true;
+      mesh.layers.set((q.pass ?? 1) + 1);
       const image = this.textures.get(q.texture);
       if (!image) throw Error("GPU texture was not delivered: " + q.texture);
       u.image.value = image;
@@ -291,7 +345,22 @@ export class CoreThreeRenderer {
       }
     }
     this.renderer.setScissorTest(false);
-    this.renderer.render(this.scene, this.camera);
+    if (this.model && frame.model) {
+      this.renderer.autoClear = false;
+      this.renderer.clear();
+      this.model.update(frame.model);
+      for (const layer of [-1, 0, 1, 2]) {
+        if (layer < 1) this.model.render(layer);
+        if (layer === 2) this.model.render(1);
+        this.camera.layers.set(layer + 1);
+        this.renderer.render(this.scene, this.camera);
+        this.renderer.setScissorTest(false);
+      }
+      this.renderer.autoClear = true;
+    } else {
+      this.camera.layers.enableAll();
+      this.renderer.render(this.scene, this.camera);
+    }
     this.renderer.setScissorTest(false);
     this.frames++;
     this.stats = {
@@ -302,12 +371,16 @@ export class CoreThreeRenderer {
       textures: this.textures.size,
       width,
       height,
+      videoUploads: this.videoUploads || 0,
+      model: !!this.model,
+      shadowUpdates: this.model?.shadowUpdates || 0,
     };
     return this.stats;
   }
   close() {
     if (this.closed) return;
     this.closed = true;
+    this.model?.close();
     this.canvas.removeEventListener("webglcontextlost", this.contextLost);
     for (const texture of this.textures.values()) texture.dispose();
     for (const mesh of this.slots) mesh.material.dispose();

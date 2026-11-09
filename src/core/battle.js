@@ -1,6 +1,7 @@
 import { mountTouchControls } from "../touch-controls.js";
 import { gamepadKeys } from "../input-buffer.js";
 import { CoreAudio } from "./audio.js";
+import { CoreVideos } from "./video-source.js";
 import "./battle.css";
 import "./hud.css";
 let active;
@@ -90,6 +91,11 @@ export async function openCoreBattle({
       { requestSound: (key) => send({ type: "sound-request", key }) },
     ),
     sampleRate = audio.prepare();
+  const videos = new CoreVideos({
+    deliver: send,
+    audio: audio.output,
+    warn: (message) => send({ type: "media-warning", message }),
+  });
   let resolve, reject;
   const started = new Promise((yes, no) => {
     resolve = yes;
@@ -103,6 +109,18 @@ export async function openCoreBattle({
   touch.panel.hidden = false;
   function update(data) {
     if (closed) return;
+    if (data.type === "video-init") {
+      videos.open(data);
+      return;
+    }
+    if (data.type === "video-control") {
+      videos.control(data);
+      return;
+    }
+    if (data.type === "video-ack") {
+      videos.ack(data.id);
+      return;
+    }
     if (data.type === "audio-init") {
       audio.output
         .init(data.sampleRate, (port) =>
@@ -234,6 +252,7 @@ export async function openCoreBattle({
     cancelPrepare?.();
     worker?.terminate();
     runtime?.stop();
+    videos.close();
     audio.close();
     touch.dispose();
     cancelAnimationFrame(raf);
@@ -259,7 +278,10 @@ export async function openCoreBattle({
     if (!ready) reject(Error("Match cancelled."));
     if (active?.host === host) active = null;
   }
-  host.addEventListener("pointerdown", () => audio.output.gesture());
+  host.addEventListener("pointerdown", () => {
+    audio.output.gesture();
+    videos.gesture();
+  });
   host.querySelector("[data-menu]").onclick = close;
   host.querySelector("[data-pause]").onclick = () => pause();
   host.querySelector("[data-sound]").onclick = () => {
@@ -287,6 +309,7 @@ export async function openCoreBattle({
     gpu: () => gpu,
     backend: () => backend,
     audioStatus: () => audio.status(),
+    videoStatus: () => videos.status(),
   };
   active = api;
   window.__kenjatimeCoreBattle = api;

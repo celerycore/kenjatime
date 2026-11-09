@@ -22,6 +22,8 @@ import {
 import { stageDefinitions } from "../stages.js";
 import { WasmExpressions } from "./wasm-expressions.js";
 import { stageClip, stageDrawPlans } from "./stage-draw.js";
+import { luaModules, LuaMatch } from "./lua-match.js";
+import { videoScale } from "./video-source.js";
 
 export function programExpressions(programs) {
   const sources = new Set();
@@ -128,6 +130,11 @@ export class CoreSession {
     this.sparks = [];
     this.issues = new Map();
     this.closed = false;
+    this.videoSprites = new Map();
+    if (this.match.stage) this.match.stage.viewportAspect = 16 / 9;
+    this.modelReady = false;
+    this.lua = null;
+    this.luaModules = luaModules(files, selection);
     this.capabilities = {
       format: "kenjatime-core-coverage-v1",
       engine: "Kenjatime Core",
@@ -135,10 +142,13 @@ export class CoreSession {
       universalCompatibility: false,
       compiledNumericExpressions: true,
       scriptInterpreter: true,
+      luaMatchHooks: true,
+      stageVideo: true,
+      gltfStageModels: true,
       knownGaps: [
-        "Lua state scripts, extended global states and newer ZSS extensions",
-        "3D model stages and model shadows",
-        "Video background composition",
+        "Lua APIs beyond match hooks, extended global states and newer ZSS extensions",
+        "Compressed glTF extensions, animation pointers and cross-layer model shadows",
+        "Video codecs unavailable on the device",
         "Advanced stage camera offsets and mixed-coordinate camera parity",
         "Afterimage palette chains beyond eight layers",
         "Unverified character families and extended controller combinations",
@@ -149,6 +159,26 @@ export class CoreSession {
     const key = type + ":" + message;
     if (this.issues.size < 2000) this.issues.set(key, { type, message });
   }
+  async initializeScripts() {
+    if (
+      this.closed ||
+      this.lua ||
+      (!this.luaModules.length && !this.selection.lua)
+    )
+      return;
+    const lua = await LuaMatch.create(this);
+    if (this.closed) {
+      lua.close();
+      return;
+    }
+    try {
+      lua.load();
+      this.lua = lua;
+    } catch (error) {
+      lua.close();
+      throw error;
+    }
+  }
   tick(left = new Set(), right = new Set()) {
     if (this.closed) throw Error("Match is closed.");
     const match = this.match,
@@ -158,6 +188,7 @@ export class CoreSession {
       playerInput: left,
       opponentInput: right,
     });
+    this.lua?.step();
     this.commands = [
       match.inputBuffers.get(match.player),
       match.inputBuffers.get(match.opponent),
@@ -298,10 +329,13 @@ export class CoreSession {
       corners = null,
       axisX = null,
       warp = null,
+      sprite = null,
+      axisY = null,
+      pass = 1,
     } = {},
   ) {
     if (!frame || draws.length >= 8192) return;
-    const sp = this.asset(resource, frame, remaps);
+    const sp = sprite || this.asset(resource, frame, remaps);
     if (!sp) return;
     sx *= facing;
     const rot = spriteRotation((frame.angle || 0) + angle, xangle, yangle),
@@ -345,8 +379,8 @@ export class CoreSession {
         b,
         c,
         d,
-        x + (frame.x || 0) * sx - a * (axisX ?? sp.x) - c * sp.y,
-        y + (frame.y || 0) * sy - b * (axisX ?? sp.x) - d * sp.y,
+        x + (frame.x || 0) * sx - a * (axisX ?? sp.x) - c * (axisY ?? sp.y),
+        y + (frame.y || 0) * sy - b * (axisX ?? sp.x) - d * (axisY ?? sp.y),
       ],
       blend: blendCoefficients(blend),
       mask,
@@ -355,6 +389,7 @@ export class CoreSession {
       clip,
       corners,
       warp,
+      pass,
     });
     return sp;
   }
@@ -375,7 +410,7 @@ export class CoreSession {
     });
     const stageLayer = (layer) => {
       const stage = m.stage;
-      if (!stage?.definition.sprite) return;
+      if (!stage) return;
       const def = stage.definition,
         backgroundScale = def.backgroundScale || 1,
         factor = def.coordinateScale * backgroundScale,
@@ -388,16 +423,22 @@ export class CoreSession {
         }
         if (e.layer !== layer || !e.enabled || !e.visible || e.type === "dummy")
           continue;
-        const frame = e.animated
-            ? sampleAnimation(
-                stage.animations.get(e.anim),
-                e.drawFrameIndex ?? e.frameIndex,
-                e.drawFrameTime ?? e.frameTime,
-              )
-            : stage.frame(e),
+        const frame =
+            e.type === "video"
+              ? { x: 0, y: 0 }
+              : e.animated
+                ? sampleAnimation(
+                    stage.animations.get(e.anim),
+                    e.drawFrameIndex ?? e.frameIndex,
+                    e.drawFrameTime ?? e.frameTime,
+                  )
+                : stage.frame(e),
           position = stage.position(index);
         if (!frame) continue;
-        const sp = this.asset(def, frame);
+        const sp =
+          e.type === "video"
+            ? this.videoSprites.get(e.video.key)
+            : this.asset(def, frame);
         if (!sp) continue;
         const z = 1 + (camera.zoom - 1) * e.zoomDelta,
           sx =
@@ -428,6 +469,37 @@ export class CoreSession {
           cropTop: v.cropTop,
           displayHeight: v.displayHeight,
         });
+        if (e.type === "video") {
+          if (clip && !clip.length) continue;
+          const [vx, vy] = videoScale(
+            e.video.scaleMode,
+            sp.w,
+            sp.h,
+            e.window
+              ? e.window[2] - e.window[0] + (e.windowCentered ? 0 : 1)
+              : def.localcoord[0],
+            e.window
+              ? e.window[3] - e.window[1] + (e.windowCentered ? 0 : 1)
+              : def.localcoord[1],
+          );
+          this.quad(draws, null, frame, {
+            sprite: sp,
+            x: 480 + (position.x * factor - cameraX * position.delta[0]) * zoom,
+            y: 270 + (position.y * factor - cameraY * position.delta[1]) * zoom,
+            sx: sx * vx,
+            sy: sy * vy,
+            axisX: sp.w / 2,
+            axisY: sp.h / 2,
+            clip,
+            pass: layer === 1 ? 2 : layer,
+            angle: e.angle,
+            xangle: e.xangle,
+            yangle: e.yangle,
+            palette: this.effects.backgroundPalette,
+            mask: false,
+          });
+          continue;
+        }
         for (const plan of stageDrawPlans(e, sp, frame, {
           x,
           y,
@@ -446,6 +518,10 @@ export class CoreSession {
           }
           this.quad(draws, def, frame, {
             ...plan,
+            pass: layer === 1 ? 2 : layer,
+            angle: e.angle,
+            xangle: e.xangle,
+            yangle: e.yangle,
             mask: e.mask,
             trans: e.transSpecified ? { mode: e.trans, alpha: e.alpha } : null,
             palette: this.effects.backgroundPalette,
@@ -453,6 +529,7 @@ export class CoreSession {
         }
       }
     };
+    stageLayer(-1);
     stageLayer(0);
     const layers = [];
     for (const actor of [...m.renderEntities, ...m.drawProjectiles]) {
@@ -563,8 +640,20 @@ export class CoreSession {
       draws,
       assets: this.assets,
       sparks,
+      model: this.modelReady
+        ? {
+            time: m.stage.time / 60,
+            camera: { ...camera },
+            coordinateScale: m.stage.definition.coordinateScale,
+            start: m.stage.definition.camera,
+          }
+        : null,
       ground,
-      grid: !m.stage,
+      grid:
+        !m.stage ||
+        (!m.stage.definition.sprite &&
+          !this.modelReady &&
+          !this.videoSprites.size),
       players: [m.player, m.opponent].map((a) => ({
         id: a.id,
         name: a.name,
@@ -613,6 +702,7 @@ export class CoreSession {
     return events;
   }
   close() {
+    this.lua?.close();
     this.closed = true;
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();

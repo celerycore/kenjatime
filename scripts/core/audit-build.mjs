@@ -39,6 +39,7 @@ const notices = [
   "The included sample character belongs to its credited authors; character scripts are input data, not the engine implementation.",
 ];
 for (const [pkg, file] of [
+  ["wasmoon", "LICENSE"],
   ["three", "LICENSE"],
   ["fflate", "LICENSE"],
   ["fzstd", "LICENSE"],
@@ -62,6 +63,7 @@ for (const [pkg, file] of [
   notices.push("\n" + pkg + "\n" + text);
 }
 notices.push(
+  readFileSync("core/lua-LICENSE.txt", "utf8"),
   readFileSync("public/third-party-archives.txt", "utf8"),
   readFileSync("public/licenses/unrar-license.txt", "utf8"),
 );

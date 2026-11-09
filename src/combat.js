@@ -267,7 +267,7 @@ export class TrainingMatch {
     if(this.stage){for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));this.stage.updateCamera(this.entities);this.syncEnvironment();this.stage.tick({paused:backgroundPaused});}
     if(this.orderedPhases)this.advanceCornerPush(frozen);
     const pushed=this.constrainPositions();
-    if(pushed&&this.stage){this.stage.updateCamera(this.entities);this.syncEnvironment();this.constrainPositions({push:false});}
+    if(pushed&&this.stage){this.stage.updateCamera(this.entities,{advance:false});this.syncEnvironment();this.constrainPositions({push:false});}
     const fighters = this.entities;
     for(const defender of fighters)if(defender.moveType!=='H'&&defender.stateType!=='L')for(const records of this.juggles.values())records.delete(defender.id);
     const projectiles = this.projectiles.filter(p=>!p.removed && !p.removing);

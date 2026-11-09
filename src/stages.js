@@ -5,7 +5,7 @@ const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const number=(v,fallback=0)=>v===undefined||v===''?fallback:Number(v);
 const vector=(v,fallback=[0,0])=>v===undefined?[...fallback]:String(v).split(',').map((n,i)=>number(n.trim(),fallback[i]??0));
 const words=v=>String(v??'').replace(/^"(.*)"$/,'$1');
-const BG_TYPES=new Set(['normal','anim','parallax','dummy']);
+const BG_TYPES=new Set(['normal','anim','parallax','dummy','video']);
 const CTRL_TYPES=new Set(['null','anim','visible','enable','posset','posadd','velset','veladd','sinx','siny']);
 
 export function stageDefinitions(files){
@@ -24,7 +24,7 @@ export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)
   const resolve=value=>{
     // Native engine references may keep a sound/stages prefix after the author
     // packs the actual resource beside its DEF. Prefer every exact path first.
-    const roots=[...new Set([base,engineRoot,''])],filename=String(value).replaceAll('\\','/').split('/').at(-1);
+    const roots=[...new Set([base,engineRoot,'',engineRoot+'video/','video/'])],filename=String(value).replaceAll('\\','/').split('/').at(-1);
     const candidates=roots.map(root=>{try{return packagePath(value,root,true);}catch{return null;}});
     const exact=candidates.find(p=>p&&files[p]);if(exact)return exact;
     // Only an adjacent file can satisfy a relocated reference; never search
@@ -41,6 +41,9 @@ export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)
     high:read(c,'boundhigh',-25)*coordinateScale,low:read(c,'boundlow',0)*coordinateScale,
     tension:Math.max(0,read(c,'tension',60)*coordinateScale),floorTension:read(c,'floortension',0)*coordinateScale,
     verticalFollow:clamp(read(c,'verticalfollow',.2),0,1),zoomIn:read(c,'zoomin',1),zoomOut:read(c,'zoomout',1),startZoom:read(c,'startzoom',1)};
+  Object.assign(camera,{autoCenter:read(c,'autocenter',0)!==0,zoomInDelay:Math.max(0,Math.trunc(read(c,'zoomindelay',0))),zoomInSpeed:clamp(read(c,'zoominspeed',1),0,1),zoomOutSpeed:clamp(read(c,'zoomoutspeed',1),0,1),tensionVelocity:clamp(read(c,'tensionvel',1),0,1),yScrollSpeed:clamp(read(c,'yscrollspeed',1),0,1),boundHighZoomDelta:Math.max(0,read(c,'boundhighzoomdelta',0)),verticalFollowZoomDelta:Math.max(0,read(c,'verticalfollowzoomdelta',0)),zoomAnchor:words(c.zoomanchor||'center').toLowerCase()});
+  if(!['center','bottom'].includes(camera.zoomAnchor))throw Error('Invalid camera zoomanchor.');
+  if(camera.boundHighZoomDelta)report('Camera boundhighzoomdelta curve is not implemented.',null,'unsupported-stage-camera');
   if(camera.left>camera.right||camera.high>camera.low||camera.zoomOut<=0||camera.zoomIn<camera.zoomOut)throw Error('Invalid stage camera bounds or zoom limits.');
   const spritePath=def.bgdef.spr?resolve(def.bgdef.spr):null;if(!spritePath)report(`Stage sprite file is missing: ${def.bgdef.spr||'(unspecified)'}`);
   const music=def.music||{},musicVolume=music.bgmvolume!==undefined?read(music,'bgmvolume',100):100*(1+clamp(read(music,'bgvolume',0),-255,255)/256);
@@ -55,10 +58,21 @@ export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)
     music:{path:music.bgmusic?resolve(music.bgmusic):null,requested:music.bgmusic||'',volume:musicVolume,loop:read(music,'bgmloop',1)!==0,loopStart:read(music,'bgmloopstart',0),loopEnd:read(music,'bgmloopend',0)}};
   stage.shadow={intensity:clamp(read(def.shadow||{},'intensity',128),0,256),color:vector(def.shadow?.color,[0,0,0]),yscale:read(def.shadow||{},'yscale',.4),fade:def.shadow?.['fade.range']?vector(def.shadow['fade.range']):null};
   stage.reflection=clamp(read(def.reflection||{},'intensity',0),0,256);
+  if(def.bgdef.model){
+    const m=def.model||{},bg=def.bgdef;
+    const vec3=(value,fallback)=>{const v=vector(value,fallback);if(v.length!==3||v.some(n=>!Number.isFinite(n)))throw Error('Invalid model transform.');return v;};
+    stage.model={path:resolve(bg.model),requested:bg.model,scene:Math.max(0,Math.trunc(read(bg,'scenenumber',0))),
+      offset:vec3(bg.modeloffset??m.offset,[0,0,0]),rotation:vec3(bg.modelrotate??m.rotate,[0,0,0]),scale:vec3(bg.modelscale??m.scale,[1,1,1]),
+      camera:{fov:read(bg,'fov',read(c,'fov',0)),near:read(bg,'near',read(c,'near',0)),far:read(bg,'far',read(c,'far',0)),yShift:read(c,'yshift',0)},
+      environment:m.environment?resolve(m.environment):null,environmentRequested:m.environment||'',environmentIntensity:Math.max(0,read(m,'environmentintensity',1))};
+    if(!stage.model.path)report(`Stage model is missing: ${bg.model}`,null,'stage-model');
+    if(stage.model.environmentRequested&&!stage.model.environment)report(`Model environment is missing: ${m.environment}`,null,'stage-model');
+    if(stage.model.camera.fov<0||stage.model.camera.fov>=180||stage.model.camera.near<0||stage.model.camera.far<0)throw Error('Invalid model camera configuration.');
+  }
   if(stage.leftBound>=stage.rightBound)throw Error('Invalid stage player bounds.');
   if(stage.music.requested&&!stage.music.path)report(`Stage music is missing: ${stage.music.requested}`);
   let group={ids:null,loop:-1};
-  const known=new Set(['type','spriteno','actionno','id','layerno','start','delta','trans','alpha','mask','velocity','tile','tilespacing','positionlink','sin.x','sin.y','window','maskwindow','windowdelta','xscale','width','yscalestart','yscaledelta','scalestart','scaledelta','zoomdelta']);
+  const known=new Set(['type','spriteno','actionno','id','layerno','start','delta','trans','alpha','mask','velocity','tile','tilespacing','positionlink','sin.x','sin.y','window','maskwindow','windowdelta','xscale','width','yscalestart','yscaledelta','scalestart','scaledelta','zoomdelta','path','loop','volume','scalemode','scalefilter','angle','xangle','yangle']);
   for(const section of parseSections(text,path)){
     const v=section.values;
     if(/^bgctrldef(?:\s|$)/.test(section.name))group={ids:v.ctrlid===undefined?null:vector(v.ctrlid,[]),loop:read(v,'looptime',-1)};
@@ -76,6 +90,13 @@ export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)
         xscale:vector(v.xscale,[1,1]),width:v.width===undefined?null:vector(v.width),yScaleStart:read(v,'yscalestart',100)/100,yScaleDelta:read(v,'yscaledelta',0)/100,
         scaleStart:vector(v.scalestart,[1,1]),scaleDelta:vector(v.scaledelta),zoomDelta:read(v,'zoomdelta',1),
         window:v.maskwindow?vector(v.maskwindow,[]):v.window?vector(v.window,[]):null,windowCentered:!!v.maskwindow,windowDelta:vector(v.windowdelta),transSpecified:v.trans!==undefined,line:section.line};
+      element.angle=read(v,'angle',0);element.xangle=read(v,'xangle',0);element.yangle=read(v,'yangle',0);
+      if(type==='video'){
+        const scaleMode=words(v.scalemode||'none').toLowerCase();
+        if(!['none','fit','fitwidth','fitheight','zoomfill','stretch'].includes(scaleMode))throw Error(`Invalid video scalemode at line ${section.line}.`);
+        element.video={path:v.path?resolve(v.path):null,requested:v.path||'',loop:read(v,'loop',0)!==0,volume:clamp(read(v,'volume',100),0,200),scaleMode,filter:words(v.scalefilter||'fastbilinear').toLowerCase(),key:'@video/'+stage.elements.length};
+        if(!element.video.path)report(`Stage video is missing: ${v.path||'(unspecified)'}`,section,'stage-video');
+      }
       for(const [key,value]of Object.entries(element))if(Array.isArray(value)&&value.some(n=>!Number.isFinite(n)))throw Error(`Invalid background ${key} at line ${section.line}.`);
       for(const key of ['start','delta','velocity','spriteno','alpha','tile','spacing','xscale','scaleStart','scaleDelta','windowDelta'])if(element[key].length!==2)throw Error(`Invalid background ${key} at line ${section.line}.`);
       if(element.width&&element.width.length!==2||element.window&&element.window.length!==4)throw Error(`Invalid background dimensions at line ${section.line}.`);
@@ -87,6 +108,8 @@ export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)
     }
   }
   if(stage.elements.length>2048||stage.controllers.length>4096)throw Error('Stage background/controller limit exceeded.');
+  if(!def.bgdef.spr&&(stage.model||stage.elements.some(e=>e.type==='video')))stage.diagnostics=diagnostics.filter(d=>!d.message.startsWith('Stage sprite file is missing:'));
+  if(stage.elements.filter(e=>e.type==='video').length>4)throw Error('Stage video-layer limit (4) exceeded.');
   return stage;
 }
 
@@ -95,26 +118,37 @@ function sine(spec,t){return spec[1]>0?spec[0]*Math.sin(2*Math.PI*t/spec[1]+(spe
 export class StageRuntime{
   constructor(definition){if(definition.invalid)throw Error(definition.diagnostics[0].message);this.definition=definition;this.animations=new Map(definition.animations.map(a=>[a.id,a]));this.diagnostics=[...definition.diagnostics];this.reset();}
   reset({backgrounds=true}={}){
+    if(backgrounds||!this.elements)this.generation=(this.generation||0)+1;
     const d=this.definition;this.camera={x:clamp(d.camera.startX,d.camera.left,d.camera.right),y:clamp(d.camera.startY,d.camera.high,d.camera.low),zoom:clamp(d.camera.startZoom,d.camera.zoomOut,d.camera.zoomIn)};
+    this.zoomWait=0;
     if(backgrounds||!this.elements){this.time=0;this.elements=d.elements.map(base=>({...base,start:[...base.start],motion:[0,0],velocity:[...base.velocity],sinX:[...base.sinX],sinY:[...base.sinY],sinStartX:0,sinStartY:0,anim:base.anim,frameIndex:0,frameTime:0,visible:true,enabled:true}));}
   }
-  updateCamera(players){
+  updateCamera(players,{advance=true}={}){
     players=players.filter(p=>!p.destroyed&&!p.isProjectile);
     const d=this.definition,c=d.camera,xPlayers=players.filter(p=>p.moveCamera?.x!==false),yPlayers=players.filter(p=>p.moveCamera?.y!==false);
     if(xPlayers.length){
       const low=Math.min(...xPlayers.map(p=>p.pos.x)),high=Math.max(...xPlayers.map(p=>p.pos.x));
-      this.camera.zoom=clamp(320/Math.max(1,high-low+2*c.tension),c.zoomOut,c.zoomIn);
+      const target=clamp(320/Math.max(1,high-low+2*c.tension),c.zoomOut,c.zoomIn);
+      if(advance){
+        if(target>this.camera.zoom){if(this.zoomWait++>=c.zoomInDelay)this.camera.zoom+=(target-this.camera.zoom)*c.zoomInSpeed;}
+        else{this.zoomWait=0;this.camera.zoom+=(target-this.camera.zoom)*c.zoomOutSpeed;}
+      }
       const half=Math.max(1,160/this.camera.zoom-c.tension),left=high-half,right=low+half;
-      this.camera.x=clamp(left<=right?clamp(this.camera.x,left,right):(low+high)/2,c.left,c.right);
+      const x=c.autoCenter?(low+high)/2:left<=right?clamp(this.camera.x,left,right):(low+high)/2;
+      if(advance||c.tensionVelocity===1)this.camera.x=clamp(this.camera.x+(x-this.camera.x)*c.tensionVelocity,c.left,c.right);
     }
-    if(yPlayers.length)this.camera.y=clamp(Math.min(0,Math.min(...yPlayers.map(p=>p.pos.y))+c.floorTension)*c.verticalFollow,c.high,c.low);
+    if(yPlayers.length&&advance){const follow=c.verticalFollow+Math.max(0,this.camera.zoom-c.zoomOut)*c.verticalFollowZoomDelta;
+      const y=clamp(Math.min(0,Math.min(...yPlayers.map(p=>p.pos.y))+c.floorTension)*follow,c.high,c.low);this.camera.y+=(y-this.camera.y)*c.yScrollSpeed;}
   }
-  view(aspect=16/9){
-    const d=this.definition,height=d.cropHigh+d.cropLow?320/aspect:d.localcoord[1]*d.coordinateScale,crop=Math.max(0,d.localcoord[1]*d.coordinateScale-height),weight=d.cropHigh+d.cropLow?d.cropHigh/(d.cropHigh+d.cropLow):.5;
+  view(aspect=this.viewportAspect){
+    const d=this.definition,height=aspect||d.cropHigh+d.cropLow?320/(aspect||16/9):d.localcoord[1]*d.coordinateScale,crop=Math.max(0,d.localcoord[1]*d.coordinateScale-height);
     let ground=d.zoffset;
     if(d.zoffsetlink!==null){const index=this.elements.findIndex(e=>e.id===d.zoffsetlink);if(index>=0)ground=this.position(index).y*d.coordinateScale;}
-    const groundY=ground-crop*weight,width=320/this.camera.zoom,worldHeight=height/this.camera.zoom;
-    return{left:this.camera.x-width/2,right:this.camera.x+width/2,top:this.camera.y-groundY/this.camera.zoom,bottom:this.camera.y+(height-groundY)/this.camera.zoom,width,height:worldHeight,displayHeight:height,groundY,zoffset:ground,cropTop:crop*weight,zoom:this.camera.zoom};
+    // Explicit crop guidelines retain their authored ratio. Without guidelines,
+    // keep a small strip below the floor rather than shrinking legacy fighters.
+    const cropTop=d.cropHigh+d.cropLow?crop*d.cropHigh/(d.cropHigh+d.cropLow):clamp(ground-height+12,0,crop);
+    const groundY=ground-cropTop,width=320/this.camera.zoom,worldHeight=height/this.camera.zoom,anchor=d.camera.zoomAnchor==='bottom'?height-(height-groundY)*this.camera.zoom:groundY;
+    return{left:this.camera.x-width/2,right:this.camera.x+width/2,top:this.camera.y-anchor/this.camera.zoom,bottom:this.camera.y+(height-anchor)/this.camera.zoom,width,height:worldHeight,displayHeight:height,groundY:anchor,zoffset:ground,cropTop,zoom:this.camera.zoom};
   }
   position(index){
     let x=0,y=0,delta=[1,1],depth=0;

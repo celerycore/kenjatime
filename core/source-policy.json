@@ -17,6 +17,7 @@
     "src/pixi-renderer.js"
   ],
   "allowedPackages": [
+    "wasmoon",
     "three",
     "fflate",
     "fzstd",

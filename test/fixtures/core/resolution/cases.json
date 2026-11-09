@@ -1,0 +1,345 @@
+{
+  "provenance": {
+    "kind": "unchanged-native-black-box",
+    "binarySha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+    "scope": "Original two-color 16x32 actors, fixed camera, 320x180 framebuffer; HUD excluded. Default automatic cropping is approximate."
+  },
+  "cases": [
+    {
+      "id": "standard",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,240\nzoffset=192.0\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "36038d81028fa42a4d080521b2c79f5fa2f86dd3215844cdfc42a1cf1df4d40b",
+      "captureSha256": "ae46f9e8b99cd801238a390b36b82adf5d2cd78f8912b85654c4ec1973847d43",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 120,
+          "screenY": 223.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -70,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 306.6666564941406,
+          "screenY": 223.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 70,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "wide",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,180\nzoffset=144.0\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "90f7e3b5a6e1ab12ec230ed74a0decd12a492896c6e205ddefb1a5727a20a98d",
+      "captureSha256": "c7688cda2437484bbfed702b3675c96932fc68791a93d63a54f86da25aebfbd4",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 120,
+          "screenY": 192,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -70,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 306.6666564941406,
+          "screenY": 192,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 70,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "hd",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=1280,720\nzoffset=576.0\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "0e441172e730a11f604157b64e40f962288cf79aa2b310bfd105dc85166215d0",
+      "captureSha256": "c47622bb97a1ade816705a5d5c56fdc449abb38148e1a9564c498220b03a9208",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 190,
+          "screenY": 192,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -17.5,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 236.66665649414062,
+          "screenY": 192,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 17.5,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "offset",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=20\nboundleft=20\nboundright=20\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,180\nzoffset=144.0\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "f378d41d552afa3250533b49d36d642bf62afccd407304fe9ca180f81794c79b",
+      "captureSha256": "334fdaabddeaeeebca5463a43aa2cbe01c3436b8a1ee8bbb27741618edc77af1",
+      "observations": [
+        {
+          "cameraX": 26.75,
+          "facing": 1,
+          "height": 180,
+          "screenX": 93.25,
+          "screenY": 192,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -96.75,
+          "y": 0
+        },
+        {
+          "cameraX": 26.75,
+          "facing": -1,
+          "height": 180,
+          "screenX": 279.9166564941406,
+          "screenY": 192,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 43.25,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "s100",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,240\nzoffset=100\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "4c22aae955565db6144d26f20b5aed5dfe3ab5c2996f02b7fd1c7ac8ed74ebca",
+      "captureSha256": "e81aa87517d6127623512a271a9c12049a68a4b7bcd5a1be8f60b9b071a308a0",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 120,
+          "screenY": 133.3333282470703,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -70,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 306.6666564941406,
+          "screenY": 133.3333282470703,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 70,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "s200",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,240\nzoffset=200\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "935b19f08dd82dfeb64f426f5747447fb93cea85277d92b9f0ff6fce38ac2c9a",
+      "captureSha256": "33625aebff578b6fe840e6f6167e1be68c7f5a13c3ad0a0c439beae75190cf3e",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 120,
+          "screenY": 224.66665649414062,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -70,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 306.6666564941406,
+          "screenY": 224.66665649414062,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 70,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "crop",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\ncuthigh=45\ncutlow=15\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,240\nzoffset=150\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "245d8820a76b12ec4224aaa0e6420645b7f59b1e1bedff5ecc545ed60f928830",
+      "captureSha256": "919b72b7b33aabcc3bf7301c3afdb8f9ff775a02393644d9329837d37c14d8ee",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 120,
+          "screenY": 139.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -70,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 306.6666564941406,
+          "screenY": 139.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 70,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "top",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\ncuthigh=60\ncutlow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,240\nzoffset=150\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "9a5cbafd93ad3a57f0764fa7dff5e1d279f3af9c7fb3942aa966560b41aecc0e",
+      "captureSha256": "2d6f13800e258d4d9a8ddb456ef976461d2b619bf809bb2f201992bb21fb9746",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 120,
+          "screenY": 119.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -70,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 306.6666564941406,
+          "screenY": 119.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 70,
+          "y": 0
+        }
+      ]
+    },
+    {
+      "id": "bottom",
+      "definition": "[Info]\nname=Resolution fixture\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\ncuthigh=0\ncutlow=60\n[PlayerInfo]\np1startx=-70\np2startx=70\np1facing=1\np2facing=-1\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,240\nzoffset=150\n[BGDef]\nspr=kenjatime-grid.sff\n",
+      "imageSha256": "cbc036cbbb9b8f5c97cadfd41a03cee5d1c1ded69454485f8397274c4d5ee6b1",
+      "captureSha256": "fccfad4c7d834ff446389a4dc624fc274bd2faa36e4e21246833e0a7fed460ed",
+      "observations": [
+        {
+          "cameraX": 0,
+          "facing": 1,
+          "height": 180,
+          "screenX": 120,
+          "screenY": 199.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": -70,
+          "y": 0
+        },
+        {
+          "cameraX": 0,
+          "facing": -1,
+          "height": 180,
+          "screenX": 306.6666564941406,
+          "screenY": 199.99998474121094,
+          "sprite": [
+            16,
+            32
+          ],
+          "width": 320,
+          "x": 70,
+          "y": 0
+        }
+      ]
+    }
+  ],
+  "files": {
+    "chars/verification-actor/fighter.air": "W0JlZ2luIEFjdGlvbiAwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDVdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAyMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAyMV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0MV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0Ml0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0M10KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0NF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0NV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0Nl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0N10KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1Ml0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMDBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTA1XQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDEyMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMzBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTMxXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDEzMl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxNDBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTUwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDE1MV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxNTJdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTAwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDAxXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwMDJdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTAwNV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDEwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwMTFdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTAxMl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDIwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwMzBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTA0MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDUwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwNjBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTA3MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDgwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwOTBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTEwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MTEwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUxMjBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTIwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MjEwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDIwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKQ2xzbjFEZWZhdWx0OiAxCkNsc24xWzBdPTAsLTI4LDI4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA3MDBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCkNsc24xRGVmYXVsdDogMQpDbHNuMVswXT0wLC0yOCwyOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTAwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKQ2xzbjFEZWZhdWx0OiAxCkNsc24xWzBdPTAsLTI4LDI4LDAKMCwyLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMTAwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMApDbHNuMURlZmF1bHQ6IDEKQ2xzbjFbMF09MCwtMjgsMjgsMAowLDEsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDExMDFdCjAsMSwwLDAsMwoKW0JlZ2luIEFjdGlvbiAxMTAyXQowLDEsMCwwLC0xCg==",
+    "chars/verification-actor/fighter.cmd": "W0NvbW1hbmRdCm5hbWU9InB1c2hlciIKY29tbWFuZD1hK2MKdGltZT0xCltDb21tYW5kXQpuYW1lPSJvcnBoYW4iCmNvbW1hbmQ9YStiCnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0ibGF1bmNoZXIiCmNvbW1hbmQ9RCx4CnRpbWU9OApbQ29tbWFuZF0KbmFtZT0icmVjb3ZlcnkiCmNvbW1hbmQ9eCt5CnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iZngiCmNvbW1hbmQ9eCt5CnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iY2xhc2giCmNvbW1hbmQ9YitjCnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iaGl0Igpjb21tYW5kPXgKdGltZT0xCltDb21tYW5kXQpuYW1lPSJ0aHJvdyIKY29tbWFuZD15CnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iaGVscGVyIgpjb21tYW5kPWEKdGltZT0xCltDb21tYW5kXQpuYW1lPSJzaG90Igpjb21tYW5kPWIKdGltZT0xCltDb21tYW5kXQpuYW1lPSJkb3VibGUiCmNvbW1hbmQ9egp0aW1lPTEKW0NvbW1hbmRdCm5hbWU9InBhdXNlIgpjb21tYW5kPXMKdGltZT0xCltTdGF0ZWRlZiAtMV0KW1N0YXRlIEJvZHkgcHVzaGluZyBoZWxwZXJdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcmFsbD1jdHJsCnRyaWdnZXIxPWNvbW1hbmQ9InB1c2hlciIKdmFsdWU9MjIyCltTdGF0ZSBPcnBoYW4gcHJvamVjdGlsZV0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcjE9Y29tbWFuZD0ib3JwaGFuIgp2YWx1ZT0yODAKW1N0YXRlIExhdW5jaGVyXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJsYXVuY2hlciIKdmFsdWU9MjkwCltTdGF0ZSBGWF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcmFsbD1zdGF0ZXR5cGUhPUEKdHJpZ2dlcjE9Y29tbWFuZD0iZngiCnZhbHVlPTI0MApbU3RhdGUgQ2xhc2hdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcmFsbD1jdHJsCnRyaWdnZXIxPWNvbW1hbmQ9ImNsYXNoIgp2YWx1ZT0yNzAKW1N0YXRlIEhpdF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcjE9Y29tbWFuZD0iaGl0Igp2YWx1ZT0yMDAKW1N0YXRlIFRocm93XQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJ0aHJvdyIKdmFsdWU9MjEwCltTdGF0ZSBIZWxwZXJdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcmFsbD1jdHJsCnRyaWdnZXIxPWNvbW1hbmQ9ImhlbHBlciIKdmFsdWU9MjIwCltTdGF0ZSBTaG90XQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJzaG90Igp2YWx1ZT0yMzAKW1N0YXRlIERvdWJsZV0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcjE9Y29tbWFuZD0iZG91YmxlIgp2YWx1ZT0yNTAKW1N0YXRlIFBhdXNlXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJwYXVzZSIKdmFsdWU9MjYwCg==",
+    "chars/verification-actor/fighter.cns": "OyBJbmRlcGVuZGVudGx5IGF1dGhvcmVkIGNvbWJhdCBmaXh0dXJlLCBub3QgYSByZXBsYWNlbWVudCBmb3IgYSByZWFsIG1vdmVzZXQuCltEYXRhXQpsaWZlPTEwMDAKcG93ZXI9MzAwMAphdHRhY2s9MTAwCmRlZmVuY2U9MTAwCmZhbGwuZGVmZW5jZV91cD01MApsaWVkb3duLnRpbWU9MTUKYWlyanVnZ2xlPTE1CkludFBlcnNpc3RJbmRleD02MApGbG9hdFBlcnNpc3RJbmRleD00MApbU2l6ZV0KeHNjYWxlPTEKeXNjYWxlPTEKZ3JvdW5kLmJhY2s9OApncm91bmQuZnJvbnQ9OAphaXIuYmFjaz04CmFpci5mcm9udD04CmhlaWdodD0zMgphdHRhY2suZGlzdD04MApwcm9qLmF0dGFjay5kaXN0PTgwCltWZWxvY2l0eV0Kd2Fsay5md2Q9Mgp3YWxrLmJhY2s9LTIKcnVuLmZ3ZD00LDAKcnVuLmJhY2s9LTMsLTQKanVtcC5uZXU9MCwtNwpqdW1wLmJhY2s9LTIsLTcKanVtcC5md2Q9MiwtNwphaXJqdW1wLm5ldT0wLC02CmFpcmp1bXAuYmFjaz0tMiwtNgphaXJqdW1wLmZ3ZD0yLC02CltNb3ZlbWVudF0KYWlyanVtcC5udW09MQphaXJqdW1wLmhlaWdodD0zNQp5YWNjZWw9LjQ1CnN0YW5kLmZyaWN0aW9uPS44NQpjcm91Y2guZnJpY3Rpb249Ljg1CmFpci5nZXRoaXQuZ3JvdW5kbGV2ZWw9MTAKYWlyLmdldGhpdC5haXJyZWNvdmVyLnRocmVzaG9sZD0tMjAKYWlyLmdldGhpdC5haXJyZWNvdmVyLnlhY2NlbD0uMzUKYWlyLmdldGhpdC50cmlwLmdyb3VuZGxldmVsPTE1CmFpci5nZXRoaXQuYWlycmVjb3Zlci5ncm91bmQudGhyZXNob2xkPS0xMApkb3duLmJvdW5jZS5vZmZzZXQ9MCwwCmRvd24uYm91bmNlLnlhY2NlbD0uNApkb3duLmJvdW5jZS5ncm91bmRsZXZlbD0wCmRvd24uZnJpY3Rpb24udGhyZXNob2xkPS4wNQpbU3RhdGVkZWYgMF0KdHlwZT1TCm1vdmV0eXBlPUkKcGh5c2ljcz1TCmFuaW09MApjdHJsPTEKW1N0YXRlZGVmIDE5MF0KdHlwZT1TCm1vdmV0eXBlPUkKcGh5c2ljcz1TCmFuaW09MApbU3RhdGUgU2tpcCBpbnRyb10KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyMT0xCnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAyMDBdCnR5cGU9Uwptb3ZldHlwZT1BCnBoeXNpY3M9UwphbmltPTIwMApjdHJsPTAKW1N0YXRlIEhpdF0KdHlwZT1IaXREZWYKdHJpZ2dlcjE9VGltZT0wCmF0dHI9UyxOQQpkYW1hZ2U9NjAsNgpndWFyZGZsYWc9TUEKaGl0ZmxhZz1NQUYKcGF1c2V0aW1lPTQsNgpncm91bmQuaGl0dGltZT0xNgpncm91bmQuc2xpZGV0aW1lPTEyCmdyb3VuZC52ZWxvY2l0eT0tMiwwCmFpci52ZWxvY2l0eT0tMiwtMwpzcGFya25vPS0xCmd1YXJkLnNwYXJrbm89LTEKW1N0YXRlIEVuZF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyMT1UaW1lPTE4CnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAyMTBdCnR5cGU9Uwptb3ZldHlwZT1BCnBoeXNpY3M9UwphbmltPTIwMApjdHJsPTAKW1N0YXRlIFRocm93XQp0eXBlPUhpdERlZgp0cmlnZ2VyMT1UaW1lPTAKYXR0cj1TLE5UCmhpdGZsYWc9TS0KbnVtaGl0cz0wCnByaW9yaXR5PTEsTWlzcwpkYW1hZ2U9MCwwCnBhdXNldGltZT0wLDAKcDFzdGF0ZW5vPTIxMQpwMnN0YXRlbm89NzAwCnAyZ2V0cDFzdGF0ZT0xCmdyb3VuZC52ZWxvY2l0eT0wLDAKc3Bhcmtubz0tMQpbU3RhdGUgTWlzc10KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyMT1UaW1lPTEyCnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAyMTFdCnR5cGU9Uwptb3ZldHlwZT1BCnBoeXNpY3M9TgphbmltPTAKY3RybD0wCltTdGF0ZSBCaW5kXQp0eXBlPVRhcmdldEJpbmQKdHJpZ2dlcjE9VGltZTw2CnRpbWU9MQpwb3M9MjAsMApbU3RhdGUgRGFtYWdlIG9uY2VdCnR5cGU9VGFyZ2V0TGlmZUFkZAp0cmlnZ2VyMT1UaW1lPTMKdmFsdWU9LTYwCmtpbGw9MApbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9MTIKdmFsdWU9MApjdHJsPTEKW1N0YXRlZGVmIDcwMF0KdHlwZT1TCm1vdmV0eXBlPUgKcGh5c2ljcz1OCmN0cmw9MApbU3RhdGUgRm9yZWlnbiBhbmltYXRpb25dCnR5cGU9Q2hhbmdlQW5pbTIKdHJpZ2dlcjE9VGltZT0wCnZhbHVlPTcwMApbU3RhdGUgUmVzb3VyY2Ugb3duZXJzaGlwIG1hc2tdCnR5cGU9VmFyU2V0CnRyaWdnZXIxPVRpbWU9MAp2PTMKdmFsdWU9QW5pbUV4aXN0KDcwMCkqMTArU2VsZkFuaW1FeGlzdCg3MDApCltTdGF0ZSBSZXN0b3JlIG93biBzdGF0ZSBhbmQgYW5pbWF0aW9uXQp0eXBlPVNlbGZTdGF0ZQp0cmlnZ2VyMT1UaW1lPTgKdmFsdWU9MApjdHJsPTEKYW5pbT0wCltTdGF0ZWRlZiAyMjBdCnR5cGU9Uwptb3ZldHlwZT1BCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBIZWxwZXJdCnR5cGU9SGVscGVyCnRyaWdnZXIxPVRpbWU9MAppZD0xMDAwCnN0YXRlbm89MTAwMApoZWxwZXJ0eXBlPW5vcm1hbApwb3M9MTIsLTQKb3ducGFsPTAKa2V5Y3RybD0wCnBhdXNlbW92ZXRpbWU9MwpzdXBlcm1vdmV0aW1lPTQKW1N0YXRlIEVuZF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyMT1UaW1lPTgKdmFsdWU9MApjdHJsPTEKW1N0YXRlZGVmIDEwMDBdCnR5cGU9Uwptb3ZldHlwZT1BCnBoeXNpY3M9TgphbmltPTEwMDAKdmVsc2V0PTEuNSwwCltTdGF0ZSBIaXRdCnR5cGU9SGl0RGVmCnRyaWdnZXIxPVRpbWU9MAphdHRyPVMsTkEKZGFtYWdlPTI1LDIKZ3VhcmRmbGFnPU1BCmhpdGZsYWc9TUFGCnBhdXNldGltZT0yLDEKZ3JvdW5kLmhpdHRpbWU9MTIKZ3JvdW5kLnZlbG9jaXR5PS0xLDAKc3Bhcmtubz0tMQpndWFyZC5zcGFya25vPS0xCltTdGF0ZSBCb2R5IHB1c2hpbmddCnR5cGU9UGxheWVyUHVzaAp0cmlnZ2VyMT0xCnZhbHVlPTEKW1N0YXRlIENhbWVyYV0KdHlwZT1TY3JlZW5Cb3VuZAp0cmlnZ2VyMT0xCnZhbHVlPTEKbW92ZWNhbWVyYT0xLDAKW1N0YXRlIEVuZF0KdHlwZT1EZXN0cm95U2VsZgp0cmlnZ2VyMT1UaW1lPTYwCltTdGF0ZWRlZiAyMzBdCnR5cGU9Uwptb3ZldHlwZT1BCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBQcm9qZWN0aWxlXQp0eXBlPVByb2plY3RpbGUKdHJpZ2dlcjE9VGltZT0wCnByb2ppZD0yMDAwCnByb2phbmltPTExMDAKcHJvamhpdGFuaW09MTEwMQpwcm9qcmVtYW5pbT0xMTAxCnByb2pjYW5jZWxhbmltPTExMDEKcHJvamhpdHM9Mgpwcm9qbWlzc3RpbWU9OApwcm9qcmVtb3ZldGltZT00NQpwcm9qcmVtb3ZlPTEKcGF1c2Vtb3ZldGltZT00Cm9mZnNldD0xNiwtMTgKdmVsb2NpdHk9NCwwCmF0dHI9UyxTUApkYW1hZ2U9MzAsMwpndWFyZGZsYWc9TUEKaGl0ZmxhZz1NQUZECnBhdXNldGltZT0yLDIKZ3JvdW5kLmhpdHRpbWU9MTQKZ3JvdW5kLnZlbG9jaXR5PS0xLDAKYWlyLnZlbG9jaXR5PS0xLC0zCnNwYXJrbm89LTEKZ3VhcmQuc3Bhcmtubz0tMQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9OAp2YWx1ZT0wCmN0cmw9MQpbU3RhdGVkZWYgMjUwXQp0eXBlPVMKbW92ZXR5cGU9QQpwaHlzaWNzPVMKYW5pbT0wCmN0cmw9MApbU3RhdGUgU2ltdWx0YW5lb3VzIHNob3QgQV0KdHlwZT1Qcm9qZWN0aWxlCnRyaWdnZXIxPVRpbWU9MApwcm9qaWQ9MjAwMQpwcm9qYW5pbT0xMTAwCnByb2poaXRhbmltPTExMDEKcHJvanJlbWFuaW09MTEwMQpwcm9qY2FuY2VsYW5pbT0xMTAxCnByb2pyZW1vdmV0aW1lPTQwCm9mZnNldD0xMiwtMTgKdmVsb2NpdHk9MywwCmF0dHI9UyxTUApkYW1hZ2U9MjAsMgpndWFyZGZsYWc9TUEKaGl0ZmxhZz1NQUYKcGF1c2V0aW1lPTAsMApncm91bmQuaGl0dGltZT0xMgpncm91bmQudmVsb2NpdHk9MCwwCnNwYXJrbm89LTEKZ3VhcmQuc3Bhcmtubz0tMQpbU3RhdGUgU2ltdWx0YW5lb3VzIHNob3QgQl0KdHlwZT1Qcm9qZWN0aWxlCnRyaWdnZXIxPVRpbWU9MApwcm9qaWQ9MjAwMgpwcm9qYW5pbT0xMTAwCnByb2poaXRhbmltPTExMDEKcHJvanJlbWFuaW09MTEwMQpwcm9qY2FuY2VsYW5pbT0xMTAxCnByb2pyZW1vdmV0aW1lPTQwCm9mZnNldD0xMiwtMTgKdmVsb2NpdHk9MywwCmF0dHI9UyxTUApkYW1hZ2U9MjAsMgpndWFyZGZsYWc9TUEKaGl0ZmxhZz1NQUYKcGF1c2V0aW1lPTAsMApncm91bmQuaGl0dGltZT0xMgpncm91bmQudmVsb2NpdHk9MCwwCnNwYXJrbm89LTEKZ3VhcmQuc3Bhcmtubz0tMQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9OAp2YWx1ZT0wCmN0cmw9MQpbU3RhdGVkZWYgMjYwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPVMKYW5pbT0wCmN0cmw9MApbU3RhdGUgSGVscGVyIGR1cmluZyBwYXVzZV0KdHlwZT1IZWxwZXIKdHJpZ2dlcjE9VGltZT0wCmlkPTEwMDAKc3RhdGVubz0xMDAwCnBvcz0xMiwtNApvd25wYWw9MQpwYXVzZW1vdmV0aW1lPTMKW1N0YXRlIFByb2plY3RpbGUgZHVyaW5nIHBhdXNlXQp0eXBlPVByb2plY3RpbGUKdHJpZ2dlcjE9VGltZT0wCnByb2ppZD0yMDAwCnByb2phbmltPTExMDAKcHJvanJlbWFuaW09MTEwMQpwcm9qcmVtb3ZldGltZT0xOApwYXVzZW1vdmV0aW1lPTQKb2Zmc2V0PTE2LC0xOAp2ZWxvY2l0eT0zLDAKYXR0cj1TLFNQCmRhbWFnZT0xMApoaXRmbGFnPU1BRgpzcGFya25vPS0xCltTdGF0ZSBQYXVzZV0KdHlwZT1QYXVzZQp0cmlnZ2VyMT1UaW1lPTAKdGltZT0xMAptb3ZldGltZT0wCnBhdXNlYmc9MQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9NQp2YWx1ZT0wCmN0cmw9MQpbU3RhdGVkZWYgMjcwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPVMKYW5pbT0wCmN0cmw9MApbU3RhdGUgQ2xhc2ggcHJvamVjdGlsZV0KdHlwZT1Qcm9qZWN0aWxlCnRyaWdnZXIxPVRpbWU9MApwcm9qaWQ9MjAwMApwcm9qYW5pbT0xMTAwCnByb2poaXRhbmltPTExMDEKcHJvanJlbWFuaW09MTEwMQpwcm9qY2FuY2VsYW5pbT0xMTAxCnByb2pyZW1vdmV0aW1lPTQ1Cm9mZnNldD0xNiwtMTgKdmVsb2NpdHk9NCwwCmF0dHI9UyxTUApkYW1hZ2U9MzAKaGl0ZmxhZz1NQUYKc3Bhcmtubz0tMQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9OAp2YWx1ZT0wCmN0cmw9MQpbU3RhdGVkZWYgMjQwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPVMKYW5pbT0wCmN0cmw9MApbU3RhdGUgSW5kZXBlbmRlbnQgaGVscGVyXQp0eXBlPUhlbHBlcgp0cmlnZ2VyMT1UaW1lPTAKaWQ9MTAwMQpzdGF0ZW5vPTEwMTAKcG9zPS0yNiwtNApvd25wYWw9MQpbU3RhdGUgU2hhcmVkIGhlbHBlcl0KdHlwZT1IZWxwZXIKdHJpZ2dlcjE9VGltZT0wCmlkPTEwMDIKc3RhdGVubz0xMDEwCnBvcz0yNiwtNApvd25wYWw9MApbU3RhdGUgSW5kZXBlbmRlbnQgc2hvdF0KdHlwZT1Qcm9qZWN0aWxlCnRyaWdnZXIxPVRpbWU9MApwcm9qaWQ9MjAxMApwcm9qYW5pbT0xMTAyCnByb2pyZW1hbmltPTExMDEKcHJvanJlbW92ZXRpbWU9MzUKb2Zmc2V0PTcwLC0xOAp2ZWxvY2l0eT0wLDAKb3ducGFsPTEKYXR0cj1TLFNQCmhpdGZsYWc9SApzcGFya25vPS0xCltTdGF0ZSBTaGFyZWQgc2hvdF0KdHlwZT1Qcm9qZWN0aWxlCnRyaWdnZXIxPVRpbWU9MApwcm9qaWQ9MjAxMQpwcm9qYW5pbT0xMTAyCnByb2pyZW1hbmltPTExMDEKcHJvanJlbW92ZXRpbWU9MzUKb2Zmc2V0PTEwMCwtMTgKdmVsb2NpdHk9MCwwCm93bnBhbD0wCmF0dHI9UyxTUApoaXRmbGFnPUgKc3Bhcmtubz0tMQpbU3RhdGUgUmVtYXBdCnR5cGU9UmVtYXBQYWwKdHJpZ2dlcjE9VGltZT0wCnNvdXJjZT0xLDEKZGVzdD0xLDMKW1N0YXRlIFRpbnRdCnR5cGU9UGFsRlgKdHJpZ2dlcjE9VGltZT0wCnRpbWU9MjAKYWRkPTMyLC04LDAKbXVsPTI1NiwxMjgsMjU2CmNvbG9yPTEKW1N0YXRlIEVuZF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyMT1UaW1lPTQwCnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAxMDEwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPU4KYW5pbT0xMDAwCltTdGF0ZSBFbmRdCnR5cGU9RGVzdHJveVNlbGYKdHJpZ2dlcjE9VGltZT00MApbU3RhdGVkZWYgMjgwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPVMKYW5pbT0wCmN0cmw9MApbU3RhdGUgU2hvcnQgbGl2ZWQgY3JlYXRvcl0KdHlwZT1IZWxwZXIKdHJpZ2dlcjE9VGltZT0wCmlkPTEwMTUKc3RhdGVubz0xMDE1CnBvcz0xMiwtMgpvd25wYWw9MQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9OAp2YWx1ZT0wCmN0cmw9MQpbU3RhdGVkZWYgMTAxNV0KdHlwZT1TCm1vdmV0eXBlPUkKcGh5c2ljcz1OCmFuaW09MTAwMApbU3RhdGUgT3JwaGFuIHNob3RdCnR5cGU9UHJvamVjdGlsZQp0cmlnZ2VyMT1UaW1lPTAKcHJvamlkPTIwMjAKcHJvamFuaW09MTEwMApwcm9qcmVtYW5pbT0xMTAxCnByb2poaXRhbmltPTExMDEKcHJvanJlbW92ZXRpbWU9NDUKb2Zmc2V0PTEyLC0xNgp2ZWxvY2l0eT0zLDAKYXR0cj1TLFNQCmRhbWFnZT0yMCwyCmd1YXJkZmxhZz1NQQpoaXRmbGFnPU1BRgpncm91bmQuaGl0dGltZT0xMgpncm91bmQudmVsb2NpdHk9LTEsMApzcGFya25vPS0xCmd1YXJkLnNwYXJrbm89LTEKW1N0YXRlIENyZWF0b3IgZW5kcyBmaXJzdF0KdHlwZT1EZXN0cm95U2VsZgp0cmlnZ2VyMT1UaW1lPTUKW1N0YXRlZGVmIDI5MF0KdHlwZT1TCm1vdmV0eXBlPUEKcGh5c2ljcz1TCmFuaW09MjAwCmN0cmw9MApbU3RhdGUgUmVjb3ZlcmFibGUgbGF1bmNoZXJdCnR5cGU9SGl0RGVmCnRyaWdnZXIxPVRpbWU9MAphdHRyPVMsU0EKZGFtYWdlPTQwCmd1YXJkZmxhZz1NQQpoaXRmbGFnPU1BRgpwYXVzZXRpbWU9MCwwCmdyb3VuZC50eXBlPUhpZ2gKZ3JvdW5kLmhpdHRpbWU9OApncm91bmQudmVsb2NpdHk9LTIsLTUKYWlyLnZlbG9jaXR5PS0yLC01CmZhbGw9MQpmYWxsLnJlY292ZXI9MQpmYWxsLnJlY292ZXJ0aW1lPTEyCnNwYXJrbm89LTEKW1N0YXRlIEVuZF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyMT1UaW1lPTE2CnZhbHVlPTAKY3RybD0xCgpbU3RhdGVkZWYgMjIyXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPVMKYW5pbT0wCmN0cmw9MApbU3RhdGUgSW5lcnQgYm9keV0KdHlwZT1IZWxwZXIKdHJpZ2dlcjE9VGltZT0wCmlkPTEwMjAKc3RhdGVubz0xMDIwCnBvcz0xMiwwCm93bnBhbD0xCltTdGF0ZSBFbmRdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcjE9VGltZT04CnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAxMDIwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPU4KYW5pbT0xMDAwCnZlbHNldD0xLjUsMApbU3RhdGUgQm9keSBwdXNoXQp0eXBlPVBsYXllclB1c2gKdHJpZ2dlcjE9MQp2YWx1ZT0xCltTdGF0ZSBFbmRdCnR5cGU9RGVzdHJveVNlbGYKdHJpZ2dlcjE9VGltZT01MAo=",
+    "chars/verification-actor/fighter.def": "W0luZm9dCm5hbWU9IlZlcmlmaWNhdGlvbiBhY3RvciIKbXVnZW52ZXJzaW9uPTEuMQpsb2NhbGNvb3JkPTMyMCwyNDAKW0ZpbGVzXQoKY21kPWZpZ2h0ZXIuY21kCmNucz1maWdodGVyLmNucwpzdD1maWdodGVyLmNucwpzdGNvbW1vbj1jb21tb24xLmNucwpzcHJpdGU9ZmlnaHRlci5zZmYKYW5pbT1maWdodGVyLmFpcgpbUGFsZXR0ZSBLZXltYXBdCng9MQp5PTIKej0zCmE9NApiPTUKYz02CngyPTcKeTI9OAp6Mj05CmEyPTEwCmIyPTExCmMyPTEyCg==",
+    "chars/verification-actor/fighter.sff": "RWxlY2J5dGVTcHIAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAARAAAAAMAAACYAAAADAAAAFgBAAAAAAAAAAAAAAAAAAAAAAAAEAAgAAgAIAAAAAAIAAAAAAACAAAAAAAAAAABAAgACAAEAAQAAAAACAACAABAAAAAAAAAAAAAAgAMABAABgAQAAAAAAhAAgAAwAAAAAAAAAABAAEAAgAAAAADAAAIAAAAAQACAAIAAAAIAwAACAAAAAEAAwACAAAAEAMAAAgAAAABAAQAAgAAABgDAAAIAAAAAQAFAAIAAAAgAwAACAAAAAEABgACAAAAKAMAAAgAAAABAAcAAgAAADADAAAIAAAAAQAIAAIAAAA4AwAACAAAAAEACQACAAAAQAMAAAgAAAABAAoAAgAAAEgDAAAIAAAAAQALAAIAAABQAwAACAAAAAEADAACAAAAWAMAAAgAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAA0iIz/wAAAAAkvlH/AAAAACpH1f8AAAAAwIQl/wAAAACSK7H/AAAAACGvtf8AAAAAz0yE/wAAAABwmSr/AAAAAEwrxv8AAAAAxFwj/wAAAAAmdKT/AAAAAJBGXP8=",
+    "chars/verification-victim/fighter.air": "W0JlZ2luIEFjdGlvbiAwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDVdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAyMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAyMV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0MV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0Ml0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0M10KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0NF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0NV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0Nl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA0N10KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1Ml0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMDBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTA1XQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDEyMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMzBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTMxXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDEzMl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxNDBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTUwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDE1MV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxNTJdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTAwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDAxXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwMDJdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTAwNV0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDEwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwMTFdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTAxMl0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDIwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwMzBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTA0MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDUwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwNjBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTA3MF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MDgwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUwOTBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTEwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MTEwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDUxMjBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCjAsMCwwLDAsLTEKCltCZWdpbiBBY3Rpb24gNTIwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiA1MjEwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMAowLDAsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDIwMF0KQ2xzbjJEZWZhdWx0OiAxCkNsc24yWzBdPS04LC0zMiw4LDAKQ2xzbjFEZWZhdWx0OiAxCkNsc24xWzBdPTAsLTI4LDI4LDAKMCwwLDAsMCwtMQoKW0JlZ2luIEFjdGlvbiAxMDAwXQpDbHNuMkRlZmF1bHQ6IDEKQ2xzbjJbMF09LTgsLTMyLDgsMApDbHNuMURlZmF1bHQ6IDEKQ2xzbjFbMF09MCwtMjgsMjgsMAowLDIsMCwwLC0xCgpbQmVnaW4gQWN0aW9uIDExMDBdCkNsc24yRGVmYXVsdDogMQpDbHNuMlswXT0tOCwtMzIsOCwwCkNsc24xRGVmYXVsdDogMQpDbHNuMVswXT0wLC0yOCwyOCwwCjAsMSwwLDAsLTEKCltCZWdpbiBBY3Rpb24gMTEwMV0KMCwxLDAsMCwzCgpbQmVnaW4gQWN0aW9uIDExMDJdCjAsMSwwLDAsLTEK",
+    "chars/verification-victim/fighter.cmd": "W0NvbW1hbmRdCm5hbWU9InB1c2hlciIKY29tbWFuZD1hK2MKdGltZT0xCltDb21tYW5kXQpuYW1lPSJvcnBoYW4iCmNvbW1hbmQ9YStiCnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0ibGF1bmNoZXIiCmNvbW1hbmQ9RCx4CnRpbWU9OApbQ29tbWFuZF0KbmFtZT0icmVjb3ZlcnkiCmNvbW1hbmQ9eCt5CnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iZngiCmNvbW1hbmQ9eCt5CnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iY2xhc2giCmNvbW1hbmQ9YitjCnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iaGl0Igpjb21tYW5kPXgKdGltZT0xCltDb21tYW5kXQpuYW1lPSJ0aHJvdyIKY29tbWFuZD15CnRpbWU9MQpbQ29tbWFuZF0KbmFtZT0iaGVscGVyIgpjb21tYW5kPWEKdGltZT0xCltDb21tYW5kXQpuYW1lPSJzaG90Igpjb21tYW5kPWIKdGltZT0xCltDb21tYW5kXQpuYW1lPSJkb3VibGUiCmNvbW1hbmQ9egp0aW1lPTEKW0NvbW1hbmRdCm5hbWU9InBhdXNlIgpjb21tYW5kPXMKdGltZT0xCltTdGF0ZWRlZiAtMV0KW1N0YXRlIEJvZHkgcHVzaGluZyBoZWxwZXJdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcmFsbD1jdHJsCnRyaWdnZXIxPWNvbW1hbmQ9InB1c2hlciIKdmFsdWU9MjIyCltTdGF0ZSBPcnBoYW4gcHJvamVjdGlsZV0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcjE9Y29tbWFuZD0ib3JwaGFuIgp2YWx1ZT0yODAKW1N0YXRlIExhdW5jaGVyXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJsYXVuY2hlciIKdmFsdWU9MjkwCltTdGF0ZSBGWF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcmFsbD1zdGF0ZXR5cGUhPUEKdHJpZ2dlcjE9Y29tbWFuZD0iZngiCnZhbHVlPTI0MApbU3RhdGUgQ2xhc2hdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcmFsbD1jdHJsCnRyaWdnZXIxPWNvbW1hbmQ9ImNsYXNoIgp2YWx1ZT0yNzAKW1N0YXRlIEhpdF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcjE9Y29tbWFuZD0iaGl0Igp2YWx1ZT0yMDAKW1N0YXRlIFRocm93XQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJ0aHJvdyIKdmFsdWU9MjEwCltTdGF0ZSBIZWxwZXJdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcmFsbD1jdHJsCnRyaWdnZXIxPWNvbW1hbmQ9ImhlbHBlciIKdmFsdWU9MjIwCltTdGF0ZSBTaG90XQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJzaG90Igp2YWx1ZT0yMzAKW1N0YXRlIERvdWJsZV0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyYWxsPWN0cmwKdHJpZ2dlcjE9Y29tbWFuZD0iZG91YmxlIgp2YWx1ZT0yNTAKW1N0YXRlIFBhdXNlXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXJhbGw9Y3RybAp0cmlnZ2VyMT1jb21tYW5kPSJwYXVzZSIKdmFsdWU9MjYwCg==",
+    "chars/verification-victim/fighter.cns": "OyBJbmRlcGVuZGVudGx5IGF1dGhvcmVkIGNvbWJhdCBmaXh0dXJlLCBub3QgYSByZXBsYWNlbWVudCBmb3IgYSByZWFsIG1vdmVzZXQuCltEYXRhXQpsaWZlPTEwMDAKcG93ZXI9MzAwMAphdHRhY2s9MTAwCmRlZmVuY2U9MTAwCmZhbGwuZGVmZW5jZV91cD01MApsaWVkb3duLnRpbWU9MTUKYWlyanVnZ2xlPTE1CkludFBlcnNpc3RJbmRleD02MApGbG9hdFBlcnNpc3RJbmRleD00MApbU2l6ZV0KeHNjYWxlPTEKeXNjYWxlPTEKZ3JvdW5kLmJhY2s9OApncm91bmQuZnJvbnQ9OAphaXIuYmFjaz04CmFpci5mcm9udD04CmhlaWdodD0zMgphdHRhY2suZGlzdD04MApwcm9qLmF0dGFjay5kaXN0PTgwCltWZWxvY2l0eV0Kd2Fsay5md2Q9Mgp3YWxrLmJhY2s9MApydW4uZndkPTQsMApydW4uYmFjaz0tMywtNApqdW1wLm5ldT0wLC03Cmp1bXAuYmFjaz0tMiwtNwpqdW1wLmZ3ZD0yLC03CmFpcmp1bXAubmV1PTAsLTYKYWlyanVtcC5iYWNrPS0yLC02CmFpcmp1bXAuZndkPTIsLTYKW01vdmVtZW50XQphaXJqdW1wLm51bT0xCmFpcmp1bXAuaGVpZ2h0PTM1CnlhY2NlbD0uNDUKc3RhbmQuZnJpY3Rpb249Ljg1CmNyb3VjaC5mcmljdGlvbj0uODUKYWlyLmdldGhpdC5ncm91bmRsZXZlbD0xMAphaXIuZ2V0aGl0LmFpcnJlY292ZXIudGhyZXNob2xkPS0yMAphaXIuZ2V0aGl0LmFpcnJlY292ZXIueWFjY2VsPS4zNQphaXIuZ2V0aGl0LnRyaXAuZ3JvdW5kbGV2ZWw9MTUKYWlyLmdldGhpdC5haXJyZWNvdmVyLmdyb3VuZC50aHJlc2hvbGQ9LTEwCmRvd24uYm91bmNlLm9mZnNldD0wLDAKZG93bi5ib3VuY2UueWFjY2VsPS40CmRvd24uYm91bmNlLmdyb3VuZGxldmVsPTAKZG93bi5mcmljdGlvbi50aHJlc2hvbGQ9LjA1CltTdGF0ZWRlZiAwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPVMKYW5pbT0wCmN0cmw9MQpbU3RhdGVkZWYgMTkwXQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPVMKYW5pbT0wCltTdGF0ZSBTa2lwIGludHJvXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPTEKdmFsdWU9MApjdHJsPTEKW1N0YXRlZGVmIDIwMF0KdHlwZT1TCm1vdmV0eXBlPUEKcGh5c2ljcz1TCmFuaW09MjAwCmN0cmw9MApbU3RhdGUgSGl0XQp0eXBlPUhpdERlZgp0cmlnZ2VyMT1UaW1lPTAKYXR0cj1TLE5BCmRhbWFnZT02MCw2Cmd1YXJkZmxhZz1NQQpoaXRmbGFnPU1BRgpwYXVzZXRpbWU9NCw2Cmdyb3VuZC5oaXR0aW1lPTE2Cmdyb3VuZC5zbGlkZXRpbWU9MTIKZ3JvdW5kLnZlbG9jaXR5PS0yLDAKYWlyLnZlbG9jaXR5PS0yLC0zCnNwYXJrbm89LTEKZ3VhcmQuc3Bhcmtubz0tMQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9MTgKdmFsdWU9MApjdHJsPTEKW1N0YXRlZGVmIDIxMF0KdHlwZT1TCm1vdmV0eXBlPUEKcGh5c2ljcz1TCmFuaW09MjAwCmN0cmw9MApbU3RhdGUgVGhyb3ddCnR5cGU9SGl0RGVmCnRyaWdnZXIxPVRpbWU9MAphdHRyPVMsTlQKaGl0ZmxhZz1NLQpudW1oaXRzPTAKcHJpb3JpdHk9MSxNaXNzCmRhbWFnZT0wLDAKcGF1c2V0aW1lPTAsMApwMXN0YXRlbm89MjExCnAyc3RhdGVubz03MDAKcDJnZXRwMXN0YXRlPTEKZ3JvdW5kLnZlbG9jaXR5PTAsMApzcGFya25vPS0xCltTdGF0ZSBNaXNzXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9MTIKdmFsdWU9MApjdHJsPTEKW1N0YXRlZGVmIDIxMV0KdHlwZT1TCm1vdmV0eXBlPUEKcGh5c2ljcz1OCmFuaW09MApjdHJsPTAKW1N0YXRlIEJpbmRdCnR5cGU9VGFyZ2V0QmluZAp0cmlnZ2VyMT1UaW1lPDYKdGltZT0xCnBvcz0yMCwwCltTdGF0ZSBEYW1hZ2Ugb25jZV0KdHlwZT1UYXJnZXRMaWZlQWRkCnRyaWdnZXIxPVRpbWU9Mwp2YWx1ZT0tNjAKa2lsbD0wCltTdGF0ZSBFbmRdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcjE9VGltZT0xMgp2YWx1ZT0wCmN0cmw9MQpbU3RhdGVkZWYgNzAwXQp0eXBlPVMKbW92ZXR5cGU9SApwaHlzaWNzPU4KY3RybD0wCltTdGF0ZSBGb3JlaWduIGFuaW1hdGlvbl0KdHlwZT1DaGFuZ2VBbmltMgp0cmlnZ2VyMT1UaW1lPTAKdmFsdWU9NzAwCltTdGF0ZSBSZXNvdXJjZSBvd25lcnNoaXAgbWFza10KdHlwZT1WYXJTZXQKdHJpZ2dlcjE9VGltZT0wCnY9Mwp2YWx1ZT1BbmltRXhpc3QoNzAwKSoxMCtTZWxmQW5pbUV4aXN0KDcwMCkKW1N0YXRlIFJlc3RvcmUgb3duIHN0YXRlIGFuZCBhbmltYXRpb25dCnR5cGU9U2VsZlN0YXRlCnRyaWdnZXIxPVRpbWU9OAp2YWx1ZT0wCmN0cmw9MQphbmltPTAKW1N0YXRlZGVmIDIyMF0KdHlwZT1TCm1vdmV0eXBlPUEKcGh5c2ljcz1TCmFuaW09MApjdHJsPTAKW1N0YXRlIEhlbHBlcl0KdHlwZT1IZWxwZXIKdHJpZ2dlcjE9VGltZT0wCmlkPTEwMDAKc3RhdGVubz0xMDAwCmhlbHBlcnR5cGU9bm9ybWFsCnBvcz0xMiwtNApvd25wYWw9MAprZXljdHJsPTAKcGF1c2Vtb3ZldGltZT0zCnN1cGVybW92ZXRpbWU9NApbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9OAp2YWx1ZT0wCmN0cmw9MQpbU3RhdGVkZWYgMTAwMF0KdHlwZT1TCm1vdmV0eXBlPUEKcGh5c2ljcz1OCmFuaW09MTAwMAp2ZWxzZXQ9MS41LDAKW1N0YXRlIEhpdF0KdHlwZT1IaXREZWYKdHJpZ2dlcjE9VGltZT0wCmF0dHI9UyxOQQpkYW1hZ2U9MjUsMgpndWFyZGZsYWc9TUEKaGl0ZmxhZz1NQUYKcGF1c2V0aW1lPTIsMQpncm91bmQuaGl0dGltZT0xMgpncm91bmQudmVsb2NpdHk9LTEsMApzcGFya25vPS0xCmd1YXJkLnNwYXJrbm89LTEKW1N0YXRlIEJvZHkgcHVzaGluZ10KdHlwZT1QbGF5ZXJQdXNoCnRyaWdnZXIxPTEKdmFsdWU9MQpbU3RhdGUgQ2FtZXJhXQp0eXBlPVNjcmVlbkJvdW5kCnRyaWdnZXIxPTEKdmFsdWU9MQptb3ZlY2FtZXJhPTEsMApbU3RhdGUgRW5kXQp0eXBlPURlc3Ryb3lTZWxmCnRyaWdnZXIxPVRpbWU9NjAKW1N0YXRlZGVmIDIzMF0KdHlwZT1TCm1vdmV0eXBlPUEKcGh5c2ljcz1TCmFuaW09MApjdHJsPTAKW1N0YXRlIFByb2plY3RpbGVdCnR5cGU9UHJvamVjdGlsZQp0cmlnZ2VyMT1UaW1lPTAKcHJvamlkPTIwMDAKcHJvamFuaW09MTEwMApwcm9qaGl0YW5pbT0xMTAxCnByb2pyZW1hbmltPTExMDEKcHJvamNhbmNlbGFuaW09MTEwMQpwcm9qaGl0cz0yCnByb2ptaXNzdGltZT04CnByb2pyZW1vdmV0aW1lPTQ1CnByb2pyZW1vdmU9MQpwYXVzZW1vdmV0aW1lPTQKb2Zmc2V0PTE2LC0xOAp2ZWxvY2l0eT00LDAKYXR0cj1TLFNQCmRhbWFnZT0zMCwzCmd1YXJkZmxhZz1NQQpoaXRmbGFnPU1BRkQKcGF1c2V0aW1lPTIsMgpncm91bmQuaGl0dGltZT0xNApncm91bmQudmVsb2NpdHk9LTEsMAphaXIudmVsb2NpdHk9LTEsLTMKc3Bhcmtubz0tMQpndWFyZC5zcGFya25vPS0xCltTdGF0ZSBFbmRdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcjE9VGltZT04CnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAyNTBdCnR5cGU9Uwptb3ZldHlwZT1BCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBTaW11bHRhbmVvdXMgc2hvdCBBXQp0eXBlPVByb2plY3RpbGUKdHJpZ2dlcjE9VGltZT0wCnByb2ppZD0yMDAxCnByb2phbmltPTExMDAKcHJvamhpdGFuaW09MTEwMQpwcm9qcmVtYW5pbT0xMTAxCnByb2pjYW5jZWxhbmltPTExMDEKcHJvanJlbW92ZXRpbWU9NDAKb2Zmc2V0PTEyLC0xOAp2ZWxvY2l0eT0zLDAKYXR0cj1TLFNQCmRhbWFnZT0yMCwyCmd1YXJkZmxhZz1NQQpoaXRmbGFnPU1BRgpwYXVzZXRpbWU9MCwwCmdyb3VuZC5oaXR0aW1lPTEyCmdyb3VuZC52ZWxvY2l0eT0wLDAKc3Bhcmtubz0tMQpndWFyZC5zcGFya25vPS0xCltTdGF0ZSBTaW11bHRhbmVvdXMgc2hvdCBCXQp0eXBlPVByb2plY3RpbGUKdHJpZ2dlcjE9VGltZT0wCnByb2ppZD0yMDAyCnByb2phbmltPTExMDAKcHJvamhpdGFuaW09MTEwMQpwcm9qcmVtYW5pbT0xMTAxCnByb2pjYW5jZWxhbmltPTExMDEKcHJvanJlbW92ZXRpbWU9NDAKb2Zmc2V0PTEyLC0xOAp2ZWxvY2l0eT0zLDAKYXR0cj1TLFNQCmRhbWFnZT0yMCwyCmd1YXJkZmxhZz1NQQpoaXRmbGFnPU1BRgpwYXVzZXRpbWU9MCwwCmdyb3VuZC5oaXR0aW1lPTEyCmdyb3VuZC52ZWxvY2l0eT0wLDAKc3Bhcmtubz0tMQpndWFyZC5zcGFya25vPS0xCltTdGF0ZSBFbmRdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcjE9VGltZT04CnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAyNjBdCnR5cGU9Uwptb3ZldHlwZT1JCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBIZWxwZXIgZHVyaW5nIHBhdXNlXQp0eXBlPUhlbHBlcgp0cmlnZ2VyMT1UaW1lPTAKaWQ9MTAwMApzdGF0ZW5vPTEwMDAKcG9zPTEyLC00Cm93bnBhbD0xCnBhdXNlbW92ZXRpbWU9MwpbU3RhdGUgUHJvamVjdGlsZSBkdXJpbmcgcGF1c2VdCnR5cGU9UHJvamVjdGlsZQp0cmlnZ2VyMT1UaW1lPTAKcHJvamlkPTIwMDAKcHJvamFuaW09MTEwMApwcm9qcmVtYW5pbT0xMTAxCnByb2pyZW1vdmV0aW1lPTE4CnBhdXNlbW92ZXRpbWU9NApvZmZzZXQ9MTYsLTE4CnZlbG9jaXR5PTMsMAphdHRyPVMsU1AKZGFtYWdlPTEwCmhpdGZsYWc9TUFGCnNwYXJrbm89LTEKW1N0YXRlIFBhdXNlXQp0eXBlPVBhdXNlCnRyaWdnZXIxPVRpbWU9MAp0aW1lPTEwCm1vdmV0aW1lPTAKcGF1c2ViZz0xCltTdGF0ZSBFbmRdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcjE9VGltZT01CnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAyNzBdCnR5cGU9Uwptb3ZldHlwZT1JCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBDbGFzaCBwcm9qZWN0aWxlXQp0eXBlPVByb2plY3RpbGUKdHJpZ2dlcjE9VGltZT0wCnByb2ppZD0yMDAwCnByb2phbmltPTExMDAKcHJvamhpdGFuaW09MTEwMQpwcm9qcmVtYW5pbT0xMTAxCnByb2pjYW5jZWxhbmltPTExMDEKcHJvanJlbW92ZXRpbWU9NDUKb2Zmc2V0PTE2LC0xOAp2ZWxvY2l0eT00LDAKYXR0cj1TLFNQCmRhbWFnZT0zMApoaXRmbGFnPU1BRgpzcGFya25vPS0xCltTdGF0ZSBFbmRdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcjE9VGltZT04CnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAyNDBdCnR5cGU9Uwptb3ZldHlwZT1JCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBJbmRlcGVuZGVudCBoZWxwZXJdCnR5cGU9SGVscGVyCnRyaWdnZXIxPVRpbWU9MAppZD0xMDAxCnN0YXRlbm89MTAxMApwb3M9LTI2LC00Cm93bnBhbD0xCltTdGF0ZSBTaGFyZWQgaGVscGVyXQp0eXBlPUhlbHBlcgp0cmlnZ2VyMT1UaW1lPTAKaWQ9MTAwMgpzdGF0ZW5vPTEwMTAKcG9zPTI2LC00Cm93bnBhbD0wCltTdGF0ZSBJbmRlcGVuZGVudCBzaG90XQp0eXBlPVByb2plY3RpbGUKdHJpZ2dlcjE9VGltZT0wCnByb2ppZD0yMDEwCnByb2phbmltPTExMDIKcHJvanJlbWFuaW09MTEwMQpwcm9qcmVtb3ZldGltZT0zNQpvZmZzZXQ9NzAsLTE4CnZlbG9jaXR5PTAsMApvd25wYWw9MQphdHRyPVMsU1AKaGl0ZmxhZz1ICnNwYXJrbm89LTEKW1N0YXRlIFNoYXJlZCBzaG90XQp0eXBlPVByb2plY3RpbGUKdHJpZ2dlcjE9VGltZT0wCnByb2ppZD0yMDExCnByb2phbmltPTExMDIKcHJvanJlbWFuaW09MTEwMQpwcm9qcmVtb3ZldGltZT0zNQpvZmZzZXQ9MTAwLC0xOAp2ZWxvY2l0eT0wLDAKb3ducGFsPTAKYXR0cj1TLFNQCmhpdGZsYWc9SApzcGFya25vPS0xCltTdGF0ZSBSZW1hcF0KdHlwZT1SZW1hcFBhbAp0cmlnZ2VyMT1UaW1lPTAKc291cmNlPTEsMQpkZXN0PTEsMwpbU3RhdGUgVGludF0KdHlwZT1QYWxGWAp0cmlnZ2VyMT1UaW1lPTAKdGltZT0yMAphZGQ9MzIsLTgsMAptdWw9MjU2LDEyOCwyNTYKY29sb3I9MQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9NDAKdmFsdWU9MApjdHJsPTEKW1N0YXRlZGVmIDEwMTBdCnR5cGU9Uwptb3ZldHlwZT1JCnBoeXNpY3M9TgphbmltPTEwMDAKW1N0YXRlIEVuZF0KdHlwZT1EZXN0cm95U2VsZgp0cmlnZ2VyMT1UaW1lPTQwCltTdGF0ZWRlZiAyODBdCnR5cGU9Uwptb3ZldHlwZT1JCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBTaG9ydCBsaXZlZCBjcmVhdG9yXQp0eXBlPUhlbHBlcgp0cmlnZ2VyMT1UaW1lPTAKaWQ9MTAxNQpzdGF0ZW5vPTEwMTUKcG9zPTEyLC0yCm93bnBhbD0xCltTdGF0ZSBFbmRdCnR5cGU9Q2hhbmdlU3RhdGUKdHJpZ2dlcjE9VGltZT04CnZhbHVlPTAKY3RybD0xCltTdGF0ZWRlZiAxMDE1XQp0eXBlPVMKbW92ZXR5cGU9SQpwaHlzaWNzPU4KYW5pbT0xMDAwCltTdGF0ZSBPcnBoYW4gc2hvdF0KdHlwZT1Qcm9qZWN0aWxlCnRyaWdnZXIxPVRpbWU9MApwcm9qaWQ9MjAyMApwcm9qYW5pbT0xMTAwCnByb2pyZW1hbmltPTExMDEKcHJvamhpdGFuaW09MTEwMQpwcm9qcmVtb3ZldGltZT00NQpvZmZzZXQ9MTIsLTE2CnZlbG9jaXR5PTMsMAphdHRyPVMsU1AKZGFtYWdlPTIwLDIKZ3VhcmRmbGFnPU1BCmhpdGZsYWc9TUFGCmdyb3VuZC5oaXR0aW1lPTEyCmdyb3VuZC52ZWxvY2l0eT0tMSwwCnNwYXJrbm89LTEKZ3VhcmQuc3Bhcmtubz0tMQpbU3RhdGUgQ3JlYXRvciBlbmRzIGZpcnN0XQp0eXBlPURlc3Ryb3lTZWxmCnRyaWdnZXIxPVRpbWU9NQpbU3RhdGVkZWYgMjkwXQp0eXBlPVMKbW92ZXR5cGU9QQpwaHlzaWNzPVMKYW5pbT0yMDAKY3RybD0wCltTdGF0ZSBSZWNvdmVyYWJsZSBsYXVuY2hlcl0KdHlwZT1IaXREZWYKdHJpZ2dlcjE9VGltZT0wCmF0dHI9UyxTQQpkYW1hZ2U9NDAKZ3VhcmRmbGFnPU1BCmhpdGZsYWc9TUFGCnBhdXNldGltZT0wLDAKZ3JvdW5kLnR5cGU9SGlnaApncm91bmQuaGl0dGltZT04Cmdyb3VuZC52ZWxvY2l0eT0tMiwtNQphaXIudmVsb2NpdHk9LTIsLTUKZmFsbD0xCmZhbGwucmVjb3Zlcj0xCmZhbGwucmVjb3ZlcnRpbWU9MTIKc3Bhcmtubz0tMQpbU3RhdGUgRW5kXQp0eXBlPUNoYW5nZVN0YXRlCnRyaWdnZXIxPVRpbWU9MTYKdmFsdWU9MApjdHJsPTEKCltTdGF0ZWRlZiAyMjJdCnR5cGU9Uwptb3ZldHlwZT1JCnBoeXNpY3M9UwphbmltPTAKY3RybD0wCltTdGF0ZSBJbmVydCBib2R5XQp0eXBlPUhlbHBlcgp0cmlnZ2VyMT1UaW1lPTAKaWQ9MTAyMApzdGF0ZW5vPTEwMjAKcG9zPTEyLDAKb3ducGFsPTEKW1N0YXRlIEVuZF0KdHlwZT1DaGFuZ2VTdGF0ZQp0cmlnZ2VyMT1UaW1lPTgKdmFsdWU9MApjdHJsPTEKW1N0YXRlZGVmIDEwMjBdCnR5cGU9Uwptb3ZldHlwZT1JCnBoeXNpY3M9TgphbmltPTEwMDAKdmVsc2V0PTEuNSwwCltTdGF0ZSBCb2R5IHB1c2hdCnR5cGU9UGxheWVyUHVzaAp0cmlnZ2VyMT0xCnZhbHVlPTEKW1N0YXRlIEVuZF0KdHlwZT1EZXN0cm95U2VsZgp0cmlnZ2VyMT1UaW1lPTUwCg==",
+    "chars/verification-victim/fighter.def": "W0luZm9dCm5hbWU9IlZlcmlmaWNhdGlvbiB2aWN0aW0iCm11Z2VudmVyc2lvbj0xLjEKbG9jYWxjb29yZD0zMjAsMjQwCltGaWxlc10KCmNtZD1maWdodGVyLmNtZApjbnM9ZmlnaHRlci5jbnMKc3Q9ZmlnaHRlci5jbnMKc3Rjb21tb249Y29tbW9uMS5jbnMKc3ByaXRlPWZpZ2h0ZXIuc2ZmCmFuaW09ZmlnaHRlci5haXIKW1BhbGV0dGUgS2V5bWFwXQp4PTEKeT0yCno9MwphPTQKYj01CmM9Ngp4Mj03CnkyPTgKejI9OQphMj0xMApiMj0xMQpjMj0xMgo=",
+    "chars/verification-victim/fighter.sff": "RWxlY2J5dGVTcHIAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAARAAAAAMAAACYAAAADAAAAFgBAAAAAAAAAAAAAAAAAAAAAAAAEAAgAAgAIAAAAAAIAAAAAAACAAAAAAAAAAABAAgACAAEAAQAAAAACAACAABAAAAAAAAAAAAAAgAMABAABgAQAAAAAAhAAgAAwAAAAAAAAAABAAEAAgAAAAADAAAIAAAAAQACAAIAAAAIAwAACAAAAAEAAwACAAAAEAMAAAgAAAABAAQAAgAAABgDAAAIAAAAAQAFAAIAAAAgAwAACAAAAAEABgACAAAAKAMAAAgAAAABAAcAAgAAADADAAAIAAAAAQAIAAIAAAA4AwAACAAAAAEACQACAAAAQAMAAAgAAAABAAoAAgAAAEgDAAAIAAAAAQALAAIAAABQAwAACAAAAAEADAACAAAAWAMAAAgAAAABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAAAAA0iIz/wAAAAAkvlH/AAAAACpH1f8AAAAAwIQl/wAAAACSK7H/AAAAACGvtf8AAAAAz0yE/wAAAABwmSr/AAAAAEwrxv8AAAAAxFwj/wAAAAAmdKT/AAAAAJBGXP8="
+  }
+}

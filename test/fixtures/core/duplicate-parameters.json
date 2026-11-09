@@ -1,0 +1,27 @@
+{
+  "oracle": {
+    "binarySha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+    "rawObservationSha256": "6931ee18827f6f86df7dc2bd3b565ade7fe911176469b3c112b1243d3899286c"
+  },
+  "source": "[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\n[State Duplicate type]\ntype=StateTypeSet\ntrigger1=1\ntype=L\nphysics=C\n[State Life]\ntype=LifeSet\ntrigger1=1\nvalue=900\nvalue=700\n",
+  "samples": [
+    {
+      "tick": 1,
+      "stateType": "S",
+      "physics": "C",
+      "life": 900
+    },
+    {
+      "tick": 2,
+      "stateType": "S",
+      "physics": "C",
+      "life": 900
+    },
+    {
+      "tick": 3,
+      "stateType": "S",
+      "physics": "C",
+      "life": 900
+    }
+  ]
+}
