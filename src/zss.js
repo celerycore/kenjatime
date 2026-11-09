@@ -149,10 +149,10 @@ class Parser {
     const entries = [],
       values = {};
     for (const part of splitTop(text, ";").filter(Boolean)) {
-      const m = /^([a-z_][a-z0-9_.]*)\s*:\s*([\s\S]+)$/i.exec(part);
+      const m = /^([a-z_][a-z0-9_.]*)\s*:\s*([\s\S]*)$/i.exec(part);
       if (!m) this.fail("Expected parameter: value.");
       const key = m[1].toLowerCase(),
-        value = this.expr(m[2], false);
+        value = m[2].trim() ? this.expr(m[2], false) : '';
       entries.push({ key, value, line });
       values[key] = value;
     }
