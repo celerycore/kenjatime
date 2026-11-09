@@ -87,3 +87,43 @@ test('Original common.snd path is resolved independently of character SND and ke
  assert.equal(loaded.soundPath,'imports/fxpack/data/common.snd');
  assert.equal(loaded.animations.has(60),true);
 });
+
+test('Core uses original common HitDef spark sprite and sound rather than generic GPU spark',()=>{
+ const session=new CoreSession(fx(base()),{character:'kfm/kfm.def',opponent:'kfm/kfm.def',mode:'training'});
+ try {
+  const player=session.match.player;
+  const original=session.match.tick.bind(session.match);
+  session.match.tick=(...args)=>{
+   original(...args);
+   session.match.events.push({type:'hit',attacker:player,defender:session.match.opponent,
+     hitDef:{sparkno:60,sparkCommon:true,sparkxy:[0,-6],hitsound:[7,2],hitSoundCommon:true},
+     x:player.pos.x,y:player.pos.y,guarded:false,typeNone:false});
+  };
+  session.tick();
+  assert.equal(session.gameEffects.length,1);
+  assert.equal(session.gameEffects[0].animation.id,60);
+  assert.equal(session.sparks.length,0);
+  assert.ok(session.frame().draws.some(draw=>draw.texture.startsWith('2:')));
+  assert.ok(session.events.some(e=>e.type==='playsnd'&&e.common===true&&e.group===7&&e.number===2));
+  session.match.tick=original;
+  for(let i=0;i<121;i++)session.tick();
+  assert.equal(session.gameEffects.length,0,'Infinite source action must not retain impact sparks forever');
+ }finally{session.close();}
+});
+test('Core draws authored local S sparks and reports missing shared effects rather than silently inventing original pixels',()=>{
+ const session=new CoreSession(base(),{character:'kfm/kfm.def',opponent:'kfm/kfm.def',mode:'training'});
+ try {
+  const player=session.match.player;
+  const original=session.match.tick.bind(session.match);
+  let contact={type:'guard',attacker:player,defender:session.match.opponent,
+    hitDef:{'guard.sparkno':0,guardSparkCommon:false,sparkxy:[0,0]},x:0,y:0,guarded:true};
+  session.match.tick=(...args)=>{original(...args);session.match.events.push(contact);};
+  session.tick();
+  assert.equal(session.gameEffects.length,1);
+  assert.equal(session.sparks.length,0);
+  contact={...contact,hitDef:{'guard.sparkno':60,guardSparkCommon:true}};
+  session.tick();
+  assert.equal(session.sparks.length,1,'Preserve fallback flash when original F sprite unavailable');
+  assert.ok(session.snapshot().diagnostics.some(d=>d.type==='missing-animation'));
+ }finally{session.close();}
+});
