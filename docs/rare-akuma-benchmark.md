@@ -20,7 +20,7 @@ It contains **Rare Akuma/Rare Akuma.def** (spaces are significant). Its original
 
 All 60 controller names occur in the Core supported-controller registry. That does not prove all parameters, triggers, redirects or timing are correct.
 
-The author's AIR references **492 SFF sprite pairs missing from this archive**, repeats action IDs 1330 and 7101, and directly references undefined action 5111. These are source-archive observations, not necessarily engine bugs. Capture native rendering before implementing a fallback; do not invent sprites.
+The author's raw AIR references **492 missing SFF sprite instances** (480 in the 307 effective last-wins AIR actions), repeats action IDs 1330 and 7101, and directly references undefined character actions 4128, 4210, 5111, 6051 and 6052. These are source-archive observations, not necessarily engine bugs. Capture native rendering before implementing a fallback; do not invent sprites.
 
 ## Run the Core smoke benchmark
 
@@ -36,7 +36,7 @@ Run the isolated one-hit health-ledger regression as well:
 
     MUGEN_RARE_AKUMA="/absolute/path/Rare Akuma.zip" npm run verify:core:rare-akuma-health
 
-The latter deliberately skips intro and attack filters for one controlled 100-point attack reduced to 50 by defence. The previous Core 0.5.8 evidence expects one damage-ledger charge and 1,961 final life after regeneration at tick 140. It does not simulate Dark Donald.
+The latter deliberately skips intro and attack filters for one controlled 100-point attack. This exact archive has defence=100; the contact deals 100 and Rare Akuma finishes at 1,911 life after regeneration at tick 140, with one damage-ledger charge. It does not simulate Dark Donald.
 
 ## Coverage levels and limitations
 
@@ -50,3 +50,21 @@ The latter deliberately skips intro and attack filters for one controlled 100-po
 Promotion to full compatibility requires original MUGEN or IKEMEN GO captures using this exact ZIP, with both facings, command paths, hit/guard/KO, reversals, helper ownership, projectile collisions, sprite/palette identity, and cleanup compared tick by tick against Core.
 
 The existing website and recovery engine remain untouched until this review branch is validated.
+
+## Rare Akuma Core 0.5.8 compatibility fixes (review branch)
+
+- Pre-2002 HitDef `sprpriority` aliases `p1sprpriority`. Explicit modern p1sprpriority wins, and drawing priority changes on a successful hit or guard.
+- Rare Akuma's nonstandard Helper `bindtime` is an opt-in timed P1/P2 spawn-anchor attachment: `0` disables binding, `-1` is indefinite, and a destroyed anchor releases the helper. Native parity for nonstandard Helper bindtime remains unverified.
+- Nonstandard Explod `under=1` draws behind fighter layers unless `ontop=1` is also set. Official MUGEN specifies under for GameMakeAnim, not Explod; this is a compatibility extension.
+- AssertSpecial `nomusic` suppresses stage BGM each asserted tick, including module streaming, without pausing sound effects or overriding the user pause switch.
+- Duplicate AIR IDs resolve last-wins in the benchmark, matching runtime. Controlled health check expects 100 damage and 1,911 life after scripted regeneration.
+
+## Original character asset audit
+
+Run `MUGEN_RARE_AKUMA="/absolute/path/Rare Akuma.zip" npm run audit:core:rare-akuma-assets`.
+
+The report `work/core/rare-akuma-assets.json` separates 244 actions with at least one SFF sprite, 20 invisible actions using negative sprite groups, and 43 actions with no source SFF pair. There are 290 distinct missing sprite pairs and 480 missing references across the effective AIR definitions. The raw AIR count including duplicate actions is 492. None of these 43 actions has a *direct fixed* controller animation reference, but some may still be reached dynamically.
+
+Five statically referenced character animations are undefined: 4128 (Explod), 4210 (Explod), 5111 (ChangeAnim), 6051 (Explod), 6052 (Explod). Common HitDef sparks, GameMakeAnim, and other fightfx effects require separate MUGEN common-effect resources. Those assets are not included in the supplied character or KFM archives and the Core preview currently lacks a bundled common fightfx bank.
+
+Do not invent substitute source images or claim native visual parity. The engine's Core compatibility changes were tested under Node 22 with a local test-only decompression adapter because npm dependencies could not be installed here; GitHub CI is the authoritative standard-dependency test gate.
