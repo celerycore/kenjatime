@@ -45,3 +45,20 @@ test('Missing source fightfx SFF reports an unavailable resource instead of inve
   assert.equal(loaded.animations.size,0);
   assert.equal(loaded.issues[0].type,'fightfx-missing');
 });
+test('GameMakeAnim uses common AIR, renders behind fighters and retires at the end of its finite action',()=>{
+  const files=fx(base());
+  files['data/fightfx.air']=encode('[Begin Action 61]\n0,0,0,0,1\n0,1,0,0,1\n');
+  files['kfm/kfm.cns']=encode(new TextDecoder().decode(files['kfm/kfm.cns'])+
+    '\n[Statedef 9998]\ntype=S\nmovetype=I\nphysics=N\nanim=0\n'+
+    '[State Sprite]\ntype=GameMakeAnim\ntrigger1=Time = 0\nvalue=61\nunder=1\npos=0,-10\n');
+  const session=new CoreSession(files,{character:'kfm/kfm.def',opponent:'kfm/kfm.def',mode:'training'});
+  try{
+    assert.equal(session.match.player.changeState(9998),true);
+    session.tick();
+    assert.equal(session.gameEffects.length,1);
+    assert.equal(session.gameEffects[0].frameIndex,0);
+    assert.ok(session.frame().draws.some(draw=>draw.texture.startsWith('2:')));
+    session.tick();assert.equal(session.gameEffects[0].frameIndex,1);
+    session.tick();assert.equal(session.gameEffects.length,0);
+  }finally{session.close();}
+});
