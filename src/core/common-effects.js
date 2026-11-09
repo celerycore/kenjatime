@@ -40,10 +40,11 @@ export function loadCommonEffects(files, {fightDef, character, stage, effectsPac
   };
   const airPath=reference(definition?.files?.['fightfx.air'],'fightfx.air');
   const sffPath=reference(definition?.files?.['fightfx.sff'],'fightfx.sff');
-  if(!airPath && !sffPath)return {animations:new Map(),resource:null,issues,paths:null,scale:1};
+  const soundPath=reference(definition?.files?.['common.snd'],'common.snd')||null;
+  if(!airPath && !sffPath)return {animations:new Map(),resource:null,soundPath,issues,paths:null,scale:1};
   if(!airPath || !sffPath){
     issues.push({type:'fightfx-missing',message:`Common effects require both AIR and SFF; available AIR: ${airPath||'none'}, SFF: ${sffPath||'none'}.`});
-    return {animations:new Map(),resource:null,issues,paths:{air:airPath,sff:sffPath},scale:1};
+    return {animations:new Map(),resource:null,soundPath,issues,paths:{air:airPath,sff:sffPath},scale:1};
   }
   let actions=[];
   try{actions=animations(decodeText(files[airPath]));}
@@ -52,6 +53,7 @@ export function loadCommonEffects(files, {fightDef, character, stage, effectsPac
   const scale=Number(definition?.fightfx?.scale||1),localX=Number(definition?.info?.localcoord?.split(',')[0]||320);
   return {
     animations:catalog,
+    soundPath,
     resource:catalog.size ? {files,sprite:{path:sffPath}} : null,
     paths:{air:airPath,sff:sffPath,definition:defPath||null},
     scale:Number.isFinite(scale)&&Number.isFinite(localX)&&scale>0&&localX>0 ? scale*320/localX : 1,
