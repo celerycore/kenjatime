@@ -68,3 +68,22 @@ test('IKEMEN GO builtin tag state constants resolve without inventing tag-team g
  assert.equal(a.evaluate('const(StateTagJumpingIn)'),6565620);
  assert.equal(a.evaluate('const(StateTagLanding)'),6565621);
 });
+
+test('Shared ground fall-recovery states 5200 and 5201 enter safely and return to landing',()=>{
+ const bytes=packageFiles(readFileSync(new URL('../../public/kfm.zip',import.meta.url)));
+ const session=new CoreSession(bytes,{character:'kfm/kfm.def',opponent:'kfm/kfm.def',mode:'training'});
+ try{
+  const player=session.match.player;
+  assert.ok(player.program.states.has(5200));
+  assert.ok(player.program.states.has(5201));
+  player.pos.y=11;player.vel.y=2;
+  player.changeState(5200);
+  for(let tick=0;tick<3;tick++)session.tick();
+  assert.ok([5201,52,0].includes(player.stateNo),`unexpected ground recovery state: ${player.stateNo}`);
+  for(let tick=0;tick<30;tick++){
+   session.tick();
+   assert.ok([player.pos.x,player.pos.y,player.vel.x,player.vel.y,player.life].every(Number.isFinite));
+  }
+  assert.ok([0,52,5201].includes(player.stateNo));
+ }finally{session.close();}
+});
