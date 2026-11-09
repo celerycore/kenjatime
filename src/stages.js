@@ -22,6 +22,7 @@ export function parseStage(path,files,text=decodeText(files[path]),def=ini(text)
   const diagnostics=[],report=(message,section,type='stage')=>diagnostics.push({source:path,line:section?.line||0,type,message});
   const base=path.slice(0,path.lastIndexOf('/')+1),marker=path.indexOf('/stages/'),engineRoot=marker>=0?path.slice(0,marker+1):'';
   const resolve=value=>{
+    value=words(value);
     // Native engine references may keep a sound/stages prefix after the author
     // packs the actual resource beside its DEF. Prefer every exact path first.
     const roots=[...new Set([base,engineRoot,'',engineRoot+'video/','video/'])],filename=String(value).replaceAll('\\','/').split('/').at(-1);

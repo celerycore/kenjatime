@@ -7,7 +7,7 @@ import { modelFixture } from "../fixtures/core/advanced-stage.js";
 const encode = (s) => new TextEncoder().encode(s);
 test("video and model stages resolve archive resources, validate transforms and preserve reset epochs", () => {
   const text =
-    "[StageInfo]\nlocalcoord=1280,720\n[BGDef]\nmodel=scene.gltf\nmodelscale=2,2,2\n[Model]\noffset=1,2,3\n[BG movie]\ntype=video\npath=clip.webm\nscalemode=zoomfill\nloop=1\nvolume=40\n";
+    "[StageInfo]\nlocalcoord=1280,720\n[BGDef]\nmodel=scene.gltf\nmodelscale=2,2,2\n[Model]\noffset=1,2,3\n[BG movie]\ntype=video\npath=\"clip.webm\"\nscalemode=zoomfill\nloop=1\nvolume=40\n";
   const files = {
     "stages/probe.def": encode(text),
     "stages/scene.gltf": encode("{}"),

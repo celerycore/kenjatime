@@ -1,0 +1,1413 @@
+{
+  "version": "0.5.8-core-preview",
+  "engine": "Kenjatime Core",
+  "independentRuntime": true,
+  "universalCompatibility": false,
+  "baselineSource": "5b6aedae0a94898f9c45e6d0c7f0944fe32634e6",
+  "recoveryTags": [
+    "checkpoint/core-preview-0.5.6",
+    "checkpoint/core-preview-web-0.5.6",
+    "checkpoint/core-preview-android-0.5.6",
+    "checkpoint/core-preview-0.5.7",
+    "checkpoint/core-preview-web-0.5.7",
+    "checkpoint/core-preview-android-0.5.7"
+  ],
+  "tests": {
+    "core": 69,
+    "compiledRegressionCorpus": 550,
+    "skipped": 0,
+    "suppliedArchivesPresent": true,
+    "androidStartupAndPicker": 10,
+    "androidLintPassed": true
+  },
+  "damagePulse": {
+    "fixture": "test/fixtures/core/incoming-damage.json",
+    "nativeObservations": 55,
+    "compiledAndInterpretedMatch": true
+  },
+  "duplicateParameters": {
+    "fixture": "test/fixtures/core/duplicate-parameters.json",
+    "nativeObservations": 3,
+    "firstOccurrenceWins": true
+  },
+  "rareAkuma": {
+    "archiveSha256": "c16ff95db793e5322f12073f9376fef86e5bfb7a240972aebb46a7626144ee7c",
+    "scope": "Unmodified character scripts; training intro skipped at tick 6 and filters cleared for one controlled hit. Dark Donald unavailable; no matchup certification.",
+    "controlledDamage": 50,
+    "baselineFinalLife": 0,
+    "fixedFinalLife": 1961,
+    "baselineChargedTicks": 121,
+    "fixedChargedTicks": 1,
+    "sampleTicks": [
+      {
+        "tick": 19,
+        "life": 2000,
+        "ledger": 2000,
+        "damageDelta": 0,
+        "damage": 0,
+        "alive": true
+      },
+      {
+        "tick": 20,
+        "life": 2000,
+        "ledger": 2000,
+        "damageDelta": -50,
+        "damage": 0,
+        "alive": true
+      },
+      {
+        "tick": 21,
+        "life": 1950,
+        "ledger": 1950,
+        "damageDelta": 0,
+        "damage": 0,
+        "alive": true
+      },
+      {
+        "tick": 22,
+        "life": 1950,
+        "ledger": 1950,
+        "damageDelta": 0,
+        "damage": 0,
+        "alive": true
+      },
+      {
+        "tick": 40,
+        "life": 1951,
+        "ledger": 1951,
+        "damageDelta": 0,
+        "damage": 0,
+        "alive": true
+      },
+      {
+        "tick": 60,
+        "life": 1953,
+        "ledger": 1953,
+        "damageDelta": 0,
+        "damage": 0,
+        "alive": true
+      },
+      {
+        "tick": 100,
+        "life": 1957,
+        "ledger": 1957,
+        "damageDelta": 0,
+        "damage": 0,
+        "alive": true
+      },
+      {
+        "tick": 140,
+        "life": 1961,
+        "ledger": 1961,
+        "damageDelta": 0,
+        "damage": 0,
+        "alive": true
+      }
+    ],
+    "exactDarkDonaldMatchVerified": false,
+    "blocker": "Attached RAR exceeds the transfer tool 32 MiB maximum; workspace proxy blocks andersonkenya1.net."
+  },
+  "lua": {
+    "vm": "Lua 5.4 via wasmoon 1.16.0",
+    "adapterAuthorship": "Original Kenjatime match API adapter",
+    "tested": "Modules/hooks, archive require, redirect/query/setter APIs, memory limit, protected infinite loops, cleanup and subsequent VM creation; actual browser Wasm execution on worker and main backends.",
+    "memoryLimitBytes": 33554432,
+    "instructionsPerCall": 100000,
+    "sourceBytesPerModule": 262144,
+    "completeDialectAndApiParity": false
+  },
+  "media": {
+    "physicalPhone": false,
+    "scope": "Original fixtures; no native 3D/video pixel parity claimed.",
+    "cases": [
+      {
+        "backend": "worker",
+        "kind": "video",
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 21,
+          "draws": 3,
+          "textureBytes": 85680,
+          "textures": 10,
+          "width": 960,
+          "height": 540,
+          "videoUploads": 4,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "media": {
+          "layers": 1,
+          "frames": 5,
+          "inFlight": 0,
+          "videos": [
+            {
+              "id": "@video/0",
+              "time": 0.617243,
+              "paused": false,
+              "frames": 5,
+              "error": null
+            }
+          ]
+        },
+        "luaPower": 123
+      },
+      {
+        "backend": "worker",
+        "kind": "model",
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 15,
+          "draws": 2,
+          "textureBytes": 28080,
+          "textures": 9,
+          "width": 960,
+          "height": 540,
+          "videoUploads": 0,
+          "model": true,
+          "shadowUpdates": 1
+        },
+        "media": {
+          "layers": 0,
+          "frames": 0,
+          "inFlight": 0,
+          "videos": []
+        },
+        "luaPower": 123
+      },
+      {
+        "backend": "main",
+        "kind": "video",
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 19,
+          "draws": 3,
+          "textureBytes": 85680,
+          "textures": 10,
+          "width": 960,
+          "height": 540,
+          "videoUploads": 5,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "media": {
+          "layers": 1,
+          "frames": 5,
+          "inFlight": 0,
+          "videos": [
+            {
+              "id": "@video/0",
+              "time": 0.565503,
+              "paused": false,
+              "frames": 5,
+              "error": null
+            }
+          ]
+        },
+        "luaPower": 123
+      },
+      {
+        "backend": "main",
+        "kind": "model",
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 14,
+          "draws": 2,
+          "textureBytes": 28080,
+          "textures": 9,
+          "width": 960,
+          "height": 540,
+          "videoUploads": 0,
+          "model": true,
+          "shadowUpdates": 1
+        },
+        "media": {
+          "layers": 0,
+          "frames": 0,
+          "inFlight": 0,
+          "videos": []
+        },
+        "luaPower": 123
+      },
+      {
+        "modelAnimationChangesPixels": true,
+        "resetRestoresPixels": true,
+        "warmShadowUpdates": 0
+      },
+      {
+        "shadowPixels": 964,
+        "lights": [
+          {
+            "type": "DirectionalLight",
+            "cast": true,
+            "map": true,
+            "layers": -1
+          }
+        ]
+      },
+      {
+        "resolution": "standard",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      },
+      {
+        "resolution": "wide",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      },
+      {
+        "resolution": "hd",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      },
+      {
+        "resolution": "offset",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      },
+      {
+        "resolution": "s100",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      },
+      {
+        "resolution": "s200",
+        "testedPixels": 1056,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 64
+      },
+      {
+        "resolution": "crop",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      },
+      {
+        "resolution": "top",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      },
+      {
+        "resolution": "bottom",
+        "testedPixels": 1024,
+        "interiorDifferences": 0,
+        "rasterEdgePixels": 0
+      }
+    ]
+  },
+  "resolutionSummary": {
+    "scenarios": 9,
+    "testedPixels": 9248,
+    "interiorDifferences": 0,
+    "rasterEdgePixels": 64,
+    "scope": "Original colored 16x32 actors; fixed cameras and explicit/default crops. Bidirectional one-pixel raster allowance; complete automatic crop and moving-camera curves unverified."
+  },
+  "advancedCamera": {
+    "implemented": [
+      "autocenter",
+      "zoomindelay",
+      "zoominspeed",
+      "zoomoutspeed",
+      "tensionvel",
+      "yscrollspeed",
+      "verticalfollowzoomdelta",
+      "zoomanchor"
+    ],
+    "nativeCurveParityCertified": false,
+    "explicitGap": [
+      "boundhighzoomdelta"
+    ]
+  },
+  "interactions": {
+    "scenarios": 16,
+    "comparedTicks": 1130,
+    "comparedFields": 67800,
+    "differentFields": 0,
+    "nativeCaptureSha256": "a38f87abf783fe7a66447196a7b043e2c0248fcb0e751e55817611d3c8389811"
+  },
+  "movesets": {
+    "scenarios": 147,
+    "comparedTicks": 12854,
+    "comparedFields": 771240,
+    "differentFields": 0,
+    "nativeCaptureSha256": "10680807361ae7544d6a9bc7fd9ad25006817774a2330dba7ce04cc78784fd84",
+    "verifiedSubset": {
+      "required": 147,
+      "matched": 147,
+      "failures": []
+    }
+  },
+  "browser": {
+    "worker": {
+      "physicalPhone": false,
+      "backendTest": "worker",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 9634,
+          "interpreted": 8,
+          "deoptimized": 0,
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 85,
+          "draws": 3,
+          "textureBytes": 135095,
+          "textures": 29,
+          "width": 960,
+          "height": 540,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 0,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "blurReleasesAllInputs": true,
+        "blurKeepsRunning": true,
+        "hiddenKeepsSimulating": true,
+        "hiddenGpuStops": true,
+        "appInactiveDoesNotAutoPause": true,
+        "pause": true,
+        "focusPreservesManualPause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3
+      }
+    },
+    "main": {
+      "physicalPhone": false,
+      "backendTest": "main",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 10600,
+          "interpreted": 4,
+          "deoptimized": 0,
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 31,
+          "draws": 3,
+          "textureBytes": 124449,
+          "textures": 27,
+          "width": 960,
+          "height": 540,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 1,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "blurReleasesAllInputs": true,
+        "blurKeepsRunning": true,
+        "hiddenKeepsSimulating": true,
+        "hiddenGpuStops": true,
+        "appInactiveDoesNotAutoPause": true,
+        "pause": true,
+        "focusPreservesManualPause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3,
+        "contextLossReturnsToLibrary": true
+      }
+    },
+    "worker-fallback": {
+      "physicalPhone": false,
+      "backendTest": "worker-fallback",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 12284,
+          "interpreted": 3,
+          "deoptimized": 0,
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 22,
+          "draws": 3,
+          "textureBytes": 105278,
+          "textures": 23,
+          "width": 960,
+          "height": 540,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 1,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "blurReleasesAllInputs": true,
+        "blurKeepsRunning": true,
+        "hiddenKeepsSimulating": true,
+        "hiddenGpuStops": true,
+        "appInactiveDoesNotAutoPause": true,
+        "pause": true,
+        "focusPreservesManualPause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3
+      }
+    }
+  },
+  "archives": {
+    "physicalAndroid": false,
+    "imports": [
+      {
+        "archive": "zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "bzip2.zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "lzma.zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "7z",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.gz",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.bz2",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.xz",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "tar.zst",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "cpio",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "sfx.zip",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "rar4",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "rar5",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "zip-aes128",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "zip-aes192",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "zip-aes256",
+        "parts": 1,
+        "downloadExact": true
+      },
+      {
+        "archive": "split-7z",
+        "parts": 9,
+        "downloadExact": true
+      },
+      {
+        "archive": "split-zip",
+        "parts": 10,
+        "downloadExact": true
+      },
+      {
+        "archive": "split-rar",
+        "parts": 3,
+        "downloadExact": true
+      }
+    ],
+    "errors": [],
+    "bundleReimport": true,
+    "reloadPreservesImports": true,
+    "wrongPasswordPreservesLibrary": true,
+    "missingPartPreservesLibrary": true,
+    "independentResetPreservesRecoveryLibrary": true,
+    "arbitraryMimePicker": true
+  },
+  "nativeStagePixels": {
+    "physicalPhone": false,
+    "cases": [
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              0,
+              64,
+              -32,
+              96
+            ],
+            "clip": null
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 1,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "id": "width",
+        "testedPixels": 4608,
+        "rasterEdgePixels": 15,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              -192,
+              -128,
+              -416,
+              -288
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              -128,
+              -64,
+              -288,
+              -160
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              -64,
+              0,
+              -160,
+              -32
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              0,
+              64,
+              -32,
+              96
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              64,
+              128,
+              96,
+              224
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              128,
+              192,
+              224,
+              352
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              192,
+              256,
+              352,
+              480
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 7,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "id": "width-tiles-window",
+        "testedPixels": 9432,
+        "rasterEdgePixels": 141,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              -192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              0,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              576,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              768,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              960,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 7,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "id": "normal-window",
+        "testedPixels": 9432,
+        "rasterEdgePixels": 72,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              -192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              0,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              576,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              768,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              960,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 7,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "id": "normal-maskwindow",
+        "testedPixels": 7035,
+        "rasterEdgePixels": 70,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              0,
+              64,
+              0,
+              64
+            ],
+            "clip": null
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 1,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180,
+          "videoUploads": 0,
+          "model": false,
+          "shadowUpdates": 0
+        },
+        "id": "xscale-camera-0",
+        "testedPixels": 3072,
+        "rasterEdgePixels": 0,
+        "differentPixels": 0
+      }
+    ]
+  },
+  "android": {
+    "applicationId": "io.github.celerycore.kenjatime.core.preview",
+    "version": "0.5.8-core-preview",
+    "bytes": 7295917,
+    "sha256": "ec12e55d1ad36cd3e4b5f1b4bde8247b160237c3dc3adc3d8de9c5298363d12c",
+    "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+    "offlineAssetsMatchWebBuild": true,
+    "bundledFiles": 41,
+    "startupUrl": "https://localhost/core/index.html",
+    "separateRecoveryInstallation": true,
+    "externalEnginePayloads": false,
+    "physicalPhoneTest": false
+  },
+  "build": {
+    "engine": "Kenjatime Core",
+    "independentRuntime": true,
+    "externalEnginePayloads": false,
+    "universalCompatibility": false,
+    "thirdPartyLibraries": true,
+    "files": {
+      "assets/7zz-CgkXYLdN.wasm": {
+        "bytes": 1651931,
+        "sha256": "e16c6997e2eaa89575c0dd1f305074be629c3f4d87246244d37fd19debc8a285"
+      },
+      "assets/__vite-browser-external-B_rT5RHW.js": {
+        "bytes": 110433,
+        "sha256": "0b388e58d58ed37f0e476931f9ad12984677e290436cbb2cf24ec27a9baae6e7"
+      },
+      "assets/__vite-browser-external-Ckx8KI8k.js": {
+        "bytes": 69,
+        "sha256": "f7848e5d5fec2aaf2928f1cab46b7db3636e8b9071841a04b7235a3bf50424cb"
+      },
+      "assets/__vite-browser-external-D7Ct-6yo.js": {
+        "bytes": 130,
+        "sha256": "18c7eb5102634686ac6062381a09b4ddb18933678e599ba74a2e33d690f97134"
+      },
+      "assets/archive-export-worker-YBu993QQ.js": {
+        "bytes": 10751,
+        "sha256": "5a23036698eb2cf52d696c7cfc82098266f99e3be70c96f4f09816c711add707"
+      },
+      "assets/archive-worker-DCeG_k2U.js": {
+        "bytes": 47016,
+        "sha256": "3956a94ebef56a8e429fe8b0164f47b6705ee1b04000c0a13a818ab85d7df1ef"
+      },
+      "assets/core-1MrTJpFd.js": {
+        "bytes": 254778,
+        "sha256": "8ec69ce68c36f7ca9a253ac4e6ff59f7a4aed404cacdb8efee0518862a8bad5f"
+      },
+      "assets/core-nykSQivM.css": {
+        "bytes": 20695,
+        "sha256": "4f40f280ba300cd1aa30e1cc8f901a68e2cd5d292621e23f450279226289d3bc"
+      },
+      "assets/glue-Dlydm7r2.wasm": {
+        "bytes": 271581,
+        "sha256": "95f3f19ddb740125883bc41d5ec670cd0828e7b58c8bdad385323cbff497b55c"
+      },
+      "assets/index-TM4miuBl.js": {
+        "bytes": 110600,
+        "sha256": "c101066d2d3936e8a572a5d99ff28601a3ed72ab298a18349d4ee75107367f55"
+      },
+      "assets/kfm-CJEysBIf.zip": {
+        "bytes": 303491,
+        "sha256": "f526ddbe96c36b9bcd23cf995fc587e21e82c69e041a0be0cfe535cb148c9df4"
+      },
+      "assets/libarchive-CvbwXclq.wasm": {
+        "bytes": 613235,
+        "sha256": "99889a4e7c3d1968303ef334a0ca89efffaf8867eb7cbd7c265602d8e0b50e63"
+      },
+      "assets/libopenmpt.worklet-X0cJA8Sf.js": {
+        "bytes": 1538505,
+        "sha256": "a4dc170ba5f5904d2c22af57b002287bee77c4f0cf29bdeab2846f2f7c7eadf2"
+      },
+      "assets/model-stage-BWiVNiZ8.js": {
+        "bytes": 59805,
+        "sha256": "3d8dbbe54bfca1be179956ce13d3c8f8f7563871d8b5ddc8439d7ab1089a586f"
+      },
+      "assets/model-stage-DyOAY2fJ.js": {
+        "bytes": 59836,
+        "sha256": "69cd2c8da991d272559f5cf52f52c2e8e2ff2d6659db5524dc8fdf797b9df844"
+      },
+      "assets/module-music-C2Wy91BT.js": {
+        "bytes": 1581,
+        "sha256": "342b68d1c0f1dceb2740826bf0cb70fbad6beb59efe3b788dd16a03166d38524"
+      },
+      "assets/multi-archive-D-OTbgiP.js": {
+        "bytes": 76515,
+        "sha256": "6a9114e0a96292023b952b2de7391a90d321047d09087a5aa4eca37965559eda"
+      },
+      "assets/multi-archive-DNAzx7kI.js": {
+        "bytes": 76515,
+        "sha256": "f89c92940cb42d6e1d817b1f21d4ebaa196124fcaf5404447209cd52060bc5bf"
+      },
+      "assets/native-export-DmMz5sj5.js": {
+        "bytes": 2270,
+        "sha256": "171c464f349f254b79c1d62d5632f50e26f34eeabcd86617f8a042df10e6d55c"
+      },
+      "assets/rar-reader-DJ2LGk3D.js": {
+        "bytes": 43999,
+        "sha256": "ea7bfaca3ecddbb7e1a6179270bc35d853f430016a914fca5f7081f2701e90a5"
+      },
+      "assets/rar-reader-M56-gZgY.js": {
+        "bytes": 43989,
+        "sha256": "1e7994abcdc39a8b605fc8064baf5f1d995a5bd4dbd71955710fc9f92be496bf"
+      },
+      "assets/runtime-3nl5XXQz.js": {
+        "bytes": 711582,
+        "sha256": "a6e29ea22322b5da44840d8cbd02ab82f4121bbf202f929b9447d7f4543022d6"
+      },
+      "assets/seven-archive-CB3WxD15.js": {
+        "bytes": 58428,
+        "sha256": "568b50bf6aad4204cc79cd7b855168824c046dd801c04e199bb307238684fc4c"
+      },
+      "assets/seven-archive-DHmv_4eG.js": {
+        "bytes": 58436,
+        "sha256": "9eeba83226ea3ccefc412f174a897ae77c8d7d9d0667ed319300008d184060d1"
+      },
+      "assets/unrar-De7VYsPt.wasm": {
+        "bytes": 207593,
+        "sha256": "c7d79f869196e3c79c053ba74a8f629116de8293a94f60cc851bbcd7977d0c2b"
+      },
+      "assets/web-BtifGQaa.js": {
+        "bytes": 360,
+        "sha256": "382ab92ad4473a73fbf059d6d36a389830a9375bb094011d3de8888bfbae81f1"
+      },
+      "assets/web-CvFCgCM0.js": {
+        "bytes": 8768,
+        "sha256": "34ee45b0057996efe1c2505ac8df50eebc724921339f11cf3db1b7a89775956c"
+      },
+      "assets/web-OubTXcMC.js": {
+        "bytes": 841,
+        "sha256": "c441e9e6a0095eec52a55bfc13a3563e63faa4993432a8891ee9cb9bb7eb893f"
+      },
+      "assets/worker-BGAKRbmO.js": {
+        "bytes": 877809,
+        "sha256": "6ddb648719b1ff59e41868976b6121ddc61f088bfaa72129fed43ce8a37e2063"
+      },
+      "assets/zip-encrypted-B1Iktgj3.js": {
+        "bytes": 66013,
+        "sha256": "97d0172b2acdd8d323dceb59250354a997b04ad9d80c3d70310edae54b9fcdf3"
+      },
+      "assets/zip-encrypted-CHpjKwNp.js": {
+        "bytes": 66003,
+        "sha256": "0d2f87b0a51d8dfce67b5376b49a50cd6731e194fe72d7f4cfbbe7d706b4c6d4"
+      },
+      "assets/zip-lzma-B12ykCnK.js": {
+        "bytes": 11661,
+        "sha256": "c748bef4be74036e4a860a694e44613a19f59472d22c52ee3063d500913f88e8"
+      },
+      "assets/zip-lzma-CiOOD1Gu.js": {
+        "bytes": 11651,
+        "sha256": "1f6c58c5bc0d840cd67f0a22ce0560e60bbd1688caf84c0347d37ce8bc46f256"
+      },
+      "core/index.html": {
+        "bytes": 458,
+        "sha256": "2dd9febe1ca4220eaea31fce5a0d5eedb348e79209f779a57579d7071492b65b"
+      },
+      "index.html": {
+        "bytes": 303,
+        "sha256": "9bb627fb6ce049a8cfea124a0665bd27caa3737f4a57111920be37c701f99f4e"
+      },
+      "provenance/modules-307370f3c3d9.json": {
+        "bytes": 4148,
+        "sha256": "307370f3c3d930a8f1357d8939a24bec383369afa73f853e3a7fe62e2fac8755"
+      },
+      "provenance/modules-8f599a1f3c17.json": {
+        "bytes": 3190,
+        "sha256": "8f599a1f3c175dc4700e4a66dca8bc7f88155a877d478e10b83bc160f28af15e"
+      },
+      "provenance/modules-e88017445297.json": {
+        "bytes": 7024,
+        "sha256": "e88017445297d6001dcb148f850aaada7c026e3788e003c068b6098ad1dacb4b"
+      },
+      "provenance/modules-efa1243bf0b7.json": {
+        "bytes": 580,
+        "sha256": "efa1243bf0b7164f30396c5b9324d2c8edf1db0538a239b588400402ac79b818"
+      },
+      "NOTICES.txt": {
+        "bytes": 82232,
+        "sha256": "ba87ce525c7a677261c69274b3ca279c3aa673303bbbfcaebf0f13bc3ce251dd"
+      }
+    },
+    "scope": "Build-isolation audit; does not establish behavioral parity or originality of imported character data."
+  },
+  "performanceScope": "Bounded video uploads and cached static shadow maps are resource measurements, not phone FPS measurements. No physical Infinix/Brave execution.",
+  "releasePatch": "Quoted video resources now resolve before archive lookup; tested in Node and on worker/main browser backends.",
+  "baseFeatureCI": {
+    "run": 42564778403,
+    "sourceCommit": "6bc046eb52701646a68c908a728efe8dcf0ef476",
+    "browser": "success",
+    "android": "success"
+  }
+}

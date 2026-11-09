@@ -1,4 +1,4 @@
-# Independent engine rewrite: 0.5.7 preview
+# Independent engine rewrite: 0.5.8 preview
 
 This branch's default build now produces Kenjatime Core, an independently authored engine with a direct Three.js sprite renderer. It does not load the previous engine VM, GL command bridge, Go runtime, shared engine ZIP or stock engine interface. The original Kenjatime setup and battle interface are used on both platforms. Third-party graphics, codecs, platform libraries and character data retain their notices; see [authorship boundary](../core/ORIGIN.md).
 
@@ -21,13 +21,13 @@ The 0.5.7 update adds an original match API adapter around the third-party Lua 5
 
 Lua has a 32 MiB VM allocation limit, 256 KiB source limit per module, 32 entry modules and a 100,000-instruction budget per call. An exhausted per-frame script is disabled with a diagnostic while the CNS fight continues. Nested protected loops cannot evade the tested budget. File access is confined to the imported virtual archive; host IO and OS libraries are unavailable. Lua VM and binding licenses are included in the distribution.
 
-Video backgrounds support the documented center pivot, six fit modes, archive-relative/default-video-directory paths, looping, volume, transforms, stage windows and normal background layer order. The browser decodes supported media; only one resized bitmap per video layer can be in flight. There are at most four layers, 64 MiB of source media and 1280×720 uploaded frames. Hidden matches keep media playback time while suppressing bitmap capture and GPU drawing. Pause and stage-reset controls stop or rewind media. Browser codec availability and high-quality scaler equivalence remain device-dependent.
+The 0.5.8 patch also resolves quoted video filenames. Video backgrounds support the documented center pivot, six fit modes, archive-relative/default-video-directory paths, looping, volume, transforms, stage windows and normal background layer order. The browser decodes supported media; only one resized bitmap per video layer can be in flight. There are at most four layers, 64 MiB of source media and 1280×720 uploaded frames. Hidden matches keep media playback time while suppressing bitmap capture and GPU drawing. Pause and stage-reset controls stop or rewind media. Browser codec availability and high-quality scaler equivalence remain device-dependent.
 
 glTF 2.0/GLB stages load through Three's public loader and scene API. The adapter implements scene selection, model transforms, embedded/fallback perspective cameras, standard animation clips, punctual lighting, HDR environments, model layer ordering and mesh shadows. GPU sprite passes remain single-pass for ordinary 2D stages. Model stages use separate composition passes; static models reuse their shadow maps instead of regenerating them every frame. Model source/geometry and texture budgets, node/material/accessor limits and cyclic-hierarchy checks reject excessive content. Compressed mesh/texture extensions, animation pointers, outlines and exact cross-layer shadows remain incomplete. Image decoding can allocate memory before the post-load texture budget check.
 
 Imported stages now use the arena's 320×180 logical view, preserving fighter size on 320×240 stages instead of shrinking the whole scene into a narrow viewport. Explicit `cuthigh`/`cutlow` preserve their ratio; omitted guidelines use an original floor-preserving crop heuristic. Nine immutable native captures cover legacy/wide/HD coordinates, nonzero camera origin, low floors and explicit crop ratios. The comparison checks 9,248 sprite pixels with zero interior differences and 64 pixels within the existing bidirectional one-pixel raster allowance. This does not certify all automatic cropping or moving/mixed-coordinate camera behavior. `autocenter`, zoom-in delay/speeds, tension damping, vertical speed, vertical-follow zoom adjustment and bottom zoom anchoring are also implemented and covered by authored behavior tests; their full native curves remain unverified. `boundhighzoomdelta` reports a remaining gap.
 
-The [0.5.7 evidence](core-stage-health-0.5.7-evidence.json) records worker/main browser runs, visible shadow pixels, animated-model reset pixels, native resolution comparisons and the supplied character replay. The 0.5.6 source, web and APK checkpoints remain available.
+The [0.5.8 evidence](core-stage-health-0.5.8-evidence.json) records worker/main browser runs, visible shadow pixels, animated-model reset pixels, native resolution comparisons and the supplied character replay. The 0.5.6 source, web and APK checkpoints remain available.
 
 The 0.5.6 preview adds an independently authored ZSS parser and bounded interpreter. It supports structured `if`/`else`, blocks, integer `for` loops, `while`, `switch`, `break`/`continue`, numeric locals, functions with numeric arguments/returns, named maps, `persistent` blocks and hitpause inheritance. CNS and ZSS files can be mixed, including the `.cns.zss` fallback. Existing numeric expressions still use the original Wasm compiler where supported, with the independent interpreter for other paths. Map reads preserve float32 semantics; `MapSet` and `MapAdd` also work in CNS.
 
@@ -61,7 +61,7 @@ Encrypted ZIP imports also report the correct password-or-damage error when a Zi
 
 ## Verification and measurements
 
-[Current update evidence](core-stage-health-0.5.7-evidence.json) and the [0.5.6 baseline evidence](core-rewrite-evidence.json) record results and their limits.
+[Current update evidence](core-stage-health-0.5.8-evidence.json) and the [0.5.6 baseline evidence](core-rewrite-evidence.json) record results and their limits.
 
 | Check | Result | Scope |
 | --- | --- | --- |

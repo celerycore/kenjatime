@@ -12,7 +12,7 @@ npm run compatibility
 npm test
 ```
 
-The 0.5.7 preview fixes repeated incoming-damage reads that could kill Rare Akuma after a single hit. It adds bounded Lua match hooks/modules, browser-decoded video backgrounds, glTF stages with animation and model shadows, legacy-stage cropping, and additional camera controls. [Measured results and limits](docs/core-stage-health-0.5.7-evidence.json) distinguish implemented features from full parity. Focus loss still leaves simulation running when the browser/OS permits it. Complete Lua API/dialect support, newer ZSS/global-state extensions and advanced moving-camera parity remain unfinished.
+The 0.5.8 preview fixes repeated incoming-damage reads that could kill Rare Akuma after a single hit. It adds bounded Lua match hooks/modules, browser-decoded video backgrounds with quoted archive paths, glTF stages with animation and model shadows, legacy-stage cropping, and additional camera controls. [Measured results and limits](docs/core-stage-health-0.5.8-evidence.json) distinguish implemented features from full parity. Focus loss still leaves simulation running when the browser/OS permits it. Complete Lua API/dialect support, newer ZSS/global-state extensions and advanced moving-camera parity remain unfinished.
 
 The standalone output is `dist-core/`. Open `/core/index.html` with the development server. Worker graphics are preferred; unsupported worker graphics fall back to the main thread before character data is transferred. Fights stay in the current page.
 

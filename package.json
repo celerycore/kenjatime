@@ -1,6 +1,6 @@
 {
   "name": "kenjatime-core",
-  "version": "0.5.7-core-preview",
+  "version": "0.5.8-core-preview",
   "type": "module",
   "scripts": {
     "dev": "npm run dev:core",

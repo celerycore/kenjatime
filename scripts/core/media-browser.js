@@ -16,7 +16,7 @@ globalThis.mediaStart = async function (kind) {
     base +
       (kind === "model"
         ? "model=scene.gltf\n"
-        : "\n[BG movie]\ntype=video\npath=clip.webm\nloop=1\nvolume=0\nscalemode=stretch\n"),
+        : "\n[BG movie]\ntype=video\npath=\"clip.webm\"\nloop=1\nvolume=0\nscalemode=stretch\n"),
   );
   if (kind === "model")
     files["stage/scene.gltf"] = encode(JSON.stringify(modelFixture()));
