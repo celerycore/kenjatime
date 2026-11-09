@@ -1,0 +1,10 @@
+{
+  "version": "0.5.7-core-preview",
+  "sourceCommit": "6bc046eb52701646a68c908a728efe8dcf0ef476",
+  "webPath": "/kenjatime/engine-preview/",
+  "independentRuntime": true,
+  "universalCompatibility": false,
+  "externalEnginePayloads": false,
+  "scope": "Build isolation and recorded fixtures; complete advanced parity and physical phone FPS unverified.",
+  "provenanceSha256": "e7335a5d4ce9372af901ad539b2f51678173679aa83f5786d9500b78dc595d2c"
+}

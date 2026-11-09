@@ -1,71 +1,102 @@
 {
-  "../source-release/node_modules/7z-wasm/7zz.wasm": {
+  "../../tmp/kenjatime-deps/node_modules/7z-wasm/7zz.wasm": {
     "file": "assets/7zz-CgkXYLdN.wasm",
-    "src": "../source-release/node_modules/7z-wasm/7zz.wasm"
+    "src": "../../tmp/kenjatime-deps/node_modules/7z-wasm/7zz.wasm"
   },
-  "../source-release/node_modules/@capacitor/app/dist/esm/web.js": {
-    "file": "assets/web-CPuAFeOX.js",
+  "../../tmp/kenjatime-deps/node_modules/@capacitor/app/dist/esm/web.js": {
+    "file": "assets/web-CZYvvzmr.js",
     "name": "web",
-    "src": "../source-release/node_modules/@capacitor/app/dist/esm/web.js",
+    "src": "../../tmp/kenjatime-deps/node_modules/@capacitor/app/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
       "core/index.html"
     ]
   },
-  "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js": {
-    "file": "assets/web-C9mgeBOZ.js",
+  "../../tmp/kenjatime-deps/node_modules/@capacitor/filesystem/dist/esm/web.js": {
+    "file": "assets/web-CMghSR1A.js",
     "name": "web",
-    "src": "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js",
+    "src": "../../tmp/kenjatime-deps/node_modules/@capacitor/filesystem/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
       "core/index.html",
-      "_native-export-DmKuNvoe.js"
+      "_native-export-CmQu5uhY.js"
     ]
   },
-  "../source-release/node_modules/@capacitor/share/dist/esm/web.js": {
-    "file": "assets/web-7RR3h7Jm.js",
+  "../../tmp/kenjatime-deps/node_modules/@capacitor/share/dist/esm/web.js": {
+    "file": "assets/web-X-8sAsJN.js",
     "name": "web",
-    "src": "../source-release/node_modules/@capacitor/share/dist/esm/web.js",
+    "src": "../../tmp/kenjatime-deps/node_modules/@capacitor/share/dist/esm/web.js",
     "isDynamicEntry": true,
     "imports": [
       "core/index.html"
     ]
   },
-  "../source-release/node_modules/chiptune3/libopenmpt.worklet.js": {
+  "../../tmp/kenjatime-deps/node_modules/chiptune3/libopenmpt.worklet.js": {
     "file": "assets/libopenmpt.worklet-X0cJA8Sf.js",
-    "src": "../source-release/node_modules/chiptune3/libopenmpt.worklet.js"
+    "src": "../../tmp/kenjatime-deps/node_modules/chiptune3/libopenmpt.worklet.js"
+  },
+  "../../tmp/kenjatime-deps/node_modules/wasmoon/dist/glue.wasm": {
+    "file": "assets/glue-Dlydm7r2.wasm",
+    "src": "../../tmp/kenjatime-deps/node_modules/wasmoon/dist/glue.wasm"
   },
   "___vite-browser-external-D7Ct-6yo.js": {
     "file": "assets/__vite-browser-external-D7Ct-6yo.js",
     "name": "__vite-browser-external",
     "isDynamicEntry": true
   },
-  "_native-export-DmKuNvoe.js": {
-    "file": "assets/native-export-DmKuNvoe.js",
+  "_index-Bv0yEXNY.js": {
+    "file": "assets/index-Bv0yEXNY.js",
+    "name": "index",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "___vite-browser-external-D7Ct-6yo.js"
+    ]
+  },
+  "_native-export-CmQu5uhY.js": {
+    "file": "assets/native-export-CmQu5uhY.js",
     "name": "native-export",
     "isDynamicEntry": true,
     "imports": [
       "core/index.html"
     ],
     "dynamicImports": [
-      "../source-release/node_modules/@capacitor/filesystem/dist/esm/web.js",
-      "../source-release/node_modules/@capacitor/share/dist/esm/web.js"
+      "../../tmp/kenjatime-deps/node_modules/@capacitor/filesystem/dist/esm/web.js",
+      "../../tmp/kenjatime-deps/node_modules/@capacitor/share/dist/esm/web.js"
+    ]
+  },
+  "_runtime-92HSZ-Gr.js": {
+    "file": "assets/runtime-92HSZ-Gr.js",
+    "name": "runtime",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "_index-Bv0yEXNY.js",
+      "src/core/model-stage.js",
+      "src/module-music.js"
+    ],
+    "assets": [
+      "assets/glue-Dlydm7r2.wasm"
     ]
   },
   "core/index.html": {
-    "file": "assets/core-C_sJ2-x5.js",
+    "file": "assets/core-CtqjxSMp.js",
     "name": "core",
     "src": "core/index.html",
     "isEntry": true,
     "dynamicImports": [
-      "../source-release/node_modules/@capacitor/app/dist/esm/web.js",
-      "_native-export-DmKuNvoe.js",
+      "../../tmp/kenjatime-deps/node_modules/@capacitor/app/dist/esm/web.js",
+      "_native-export-CmQu5uhY.js",
       "src/seven-archive.js",
       "src/multi-archive.js",
       "src/zip-encrypted.js",
       "src/zip-lzma.js",
       "src/rar-reader.js",
-      "src/core/runtime.js"
+      "_runtime-92HSZ-Gr.js"
     ],
     "css": [
       "assets/core-nykSQivM.css"
@@ -78,16 +109,14 @@
     "file": "assets/kfm-CJEysBIf.zip",
     "src": "public/kfm.zip"
   },
-  "src/core/runtime.js": {
-    "file": "assets/runtime-CzWL13j2.js",
-    "name": "runtime",
-    "src": "src/core/runtime.js",
+  "src/core/model-stage.js": {
+    "file": "assets/model-stage-B-h9bypP.js",
+    "name": "model-stage",
+    "src": "src/core/model-stage.js",
     "isDynamicEntry": true,
     "imports": [
+      "_runtime-92HSZ-Gr.js",
       "core/index.html"
-    ],
-    "dynamicImports": [
-      "src/module-music.js"
     ]
   },
   "src/module-music.js": {
@@ -100,7 +129,7 @@
     ]
   },
   "src/multi-archive.js": {
-    "file": "assets/multi-archive-BGUff0DI.js",
+    "file": "assets/multi-archive-CbA0uaNn.js",
     "name": "multi-archive",
     "src": "src/multi-archive.js",
     "isDynamicEntry": true,
@@ -110,7 +139,7 @@
     ]
   },
   "src/rar-reader.js": {
-    "file": "assets/rar-reader-B8M2UVkO.js",
+    "file": "assets/rar-reader-E2pE01VJ.js",
     "name": "rar-reader",
     "src": "src/rar-reader.js",
     "isDynamicEntry": true,
@@ -119,7 +148,7 @@
     ]
   },
   "src/seven-archive.js": {
-    "file": "assets/seven-archive-DAZri_b1.js",
+    "file": "assets/seven-archive-9gQ8m4uF.js",
     "name": "seven-archive",
     "src": "src/seven-archive.js",
     "isDynamicEntry": true,
@@ -134,7 +163,7 @@
     ]
   },
   "src/zip-encrypted.js": {
-    "file": "assets/zip-encrypted-DSfe3qa9.js",
+    "file": "assets/zip-encrypted-Bi_dFRjE.js",
     "name": "zip-encrypted",
     "src": "src/zip-encrypted.js",
     "isDynamicEntry": true,
@@ -143,7 +172,7 @@
     ]
   },
   "src/zip-lzma.js": {
-    "file": "assets/zip-lzma-DO-jMQvh.js",
+    "file": "assets/zip-lzma-D07K0AFD.js",
     "name": "zip-lzma",
     "src": "src/zip-lzma.js",
     "isDynamicEntry": true,
