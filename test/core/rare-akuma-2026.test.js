@@ -59,3 +59,12 @@ test('RedirectId evaluates p2, ID as an expression, not two scalar parameters',(
  const c=parseSections('[State Probe]\ntype=PalFX\ntrigger1=1\nredirectid=p2, ID\ntime=3')[0];
  assert.equal(a.effectParameters(c).redirectid,27);
 });
+
+test('IKEMEN GO builtin tag state constants resolve without inventing tag-team gameplay',()=>{
+ const a=fighter('[Statedef 0]\ntype=S\nphysics=N\n');
+ assert.equal(a.evaluate('const(StateTagEnteringScreen)'),6565600);
+ assert.equal(a.evaluate('const(StateTagLeavingScreen)'),6565610);
+ assert.equal(a.evaluate('const(StateTagWaitingOutside)'),6565611);
+ assert.equal(a.evaluate('const(StateTagJumpingIn)'),6565620);
+ assert.equal(a.evaluate('const(StateTagLanding)'),6565621);
+});
