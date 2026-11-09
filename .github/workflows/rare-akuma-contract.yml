@@ -1,7 +1,7 @@
 name: Rare Akuma compatibility contract
 on:
   pull_request:
-    branches: [source/independent-engine]
+    branches: [source/independent-engine, qa/rare-akuma-coverage-20261109]
     paths:
       - 'src/**'
       - 'scripts/core/verify-rare-akuma*'
@@ -24,7 +24,8 @@ jobs:
       - run: node --check scripts/core/verify-rare-akuma-coverage.mjs
       - run: node --check scripts/core/verify-rare-akuma.mjs
       - run: node --check scripts/core/verify-rare-akuma-assets.mjs
-      - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js
+      - run: node --check scripts/core/verify-rare-akuma-2026.mjs
+      - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js
       - run: npm run test:core
       - run: npm run test:core:compiled
       - name: Explain opt-in full package replay
