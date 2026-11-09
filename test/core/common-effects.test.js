@@ -1,0 +1,47 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {packageFiles} from '../../src/formats.js';
+import {parseSections} from '../../src/runtime.js';
+import {CoreSession} from '../../src/core/session.js';
+import {loadCommonEffects} from '../../src/core/common-effects.js';
+const encode=text=>new TextEncoder().encode(text);
+const base=()=>packageFiles(readFileSync(new URL('../../public/kfm.zip',import.meta.url)));
+const fx=(files,prefix='')=>{
+  files[prefix+'data/fight.def']=encode('[Info]\nlocalcoord = 1280,720\n[Files]\nfightfx.air = fightfx.air\nfightfx.sff = fightfx.sff\n[FightFx]\nscale = 4\n');
+  files[prefix+'data/fightfx.air']=encode('[Begin Action 60]\n0,0,0,0,-1\n');
+  files[prefix+'data/fightfx.sff']=files['kfm/kfm.sff'];
+  return files;
+};
+test('Core loads AIR + SFF from fight.def and renders an F-prefixed Explod',()=>{
+  const files=fx(base());
+  const session=new CoreSession(files,{character:'kfm/kfm.def',opponent:'kfm/kfm.def',mode:'training'});
+  try{
+    assert.equal(session.commonEffects.animations.has(60),true);
+    assert.equal(session.commonEffects.scale,1);
+    assert.equal(session.match.player.commonAnimations.get(60).frames.length,1);
+    const ctrl=parseSections('[State Fx]\ntype=Explod\ntrigger1=1\nanim=F60\nid=88\nremovetime=-1\n')[0];
+    session.match.player.execute({...ctrl,type:'explod'});
+    assert.equal(session.match.player.explods[0].common,true);
+    session.tick();
+    const frame=session.frame();
+    assert.ok(frame.draws.some(draw=>draw.texture.startsWith('2:')),'common bank sprite should emit a draw');
+    assert.ok(!session.snapshot().diagnostics.some(d=>d.type==='common-effects'));
+  }finally{session.close();}
+});
+test('Active imported motif package takes precedence over unrelated library resources',()=>{
+  const files=fx(base(),'imports/stage1/');
+  files['data/fightfx.air']=encode('[Begin Action 99]\n0,0,0,0,-1\n');
+  files['data/fightfx.sff']=files['kfm/kfm.sff'];
+  const loaded=loadCommonEffects(files,{stage:'imports/stage1/stage.def'});
+  assert.equal(loaded.paths.air,'imports/stage1/data/fightfx.air');
+  assert.equal(loaded.animations.has(60),true);
+  assert.equal(loaded.animations.has(99),false);
+});
+test('Missing source fightfx SFF reports an unavailable resource instead of inventing an image',()=>{
+  const files=fx(base());delete files['data/fightfx.sff'];
+  const loaded=loadCommonEffects(files);
+  assert.equal(loaded.resource,null);
+  assert.equal(loaded.animations.size,0);
+  assert.equal(loaded.issues[0].type,'fightfx-missing');
+});
