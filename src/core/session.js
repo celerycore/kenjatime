@@ -190,7 +190,7 @@ export class CoreSession {
       paused = (e) => match.isFrozen(e) || e.hitPauseTime > 0;
     this.effects.advance({ paused });
     this.gameEffects = this.gameEffects.filter(fx=>{
-      if (fx.owner?.destroyed || !fx.animation.frames.length) return false;
+      if (!fx.animation.frames.length) return false;
       if (fx.owner && paused(fx.owner)) return true;
       const frame=fx.animation.frames[fx.frameIndex];
       if(frame.ticks<0) return true;
@@ -684,6 +684,8 @@ export class CoreSession {
           }
         : null,
       ground,
+      // Expose IKEMEN match-wide shadow suppression until sprite shadows are implemented.
+      suppressCharacterShadows:m.entities.some(a=>a.asserted.has('globalnoshadow')),
       grid:
         !m.stage ||
         (!m.stage.definition.sprite &&
