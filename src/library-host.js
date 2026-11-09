@@ -137,6 +137,7 @@ function entries(
       id: prefix + c.path,
       name: c.def.info?.displayname || c.def.info?.name || c.path,
       author: c.def.info?.author || "",
+      version: c.def.info?.versiondate || "",
       fileName: c.path.split("/").at(-1),
       packageName,
       ...(packageId ? { packageId } : {}),
