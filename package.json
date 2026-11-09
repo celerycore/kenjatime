@@ -33,7 +33,9 @@
     "dev:reference": "vite --host 0.0.0.0",
     "verify:core:movesets": "python scripts/core/compare-native.py --group kfm-classic --require-verified",
     "benchmark:core:combat": "node scripts/core/benchmark-combat.mjs",
-    "benchmark:core:animation": "node scripts/core/benchmark-animation.mjs"
+    "benchmark:core:animation": "node scripts/core/benchmark-animation.mjs",
+    "benchmark:core:rare-akuma": "node scripts/core/verify-rare-akuma-coverage.mjs",
+    "verify:core:rare-akuma-health": "node scripts/core/verify-rare-akuma.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",
