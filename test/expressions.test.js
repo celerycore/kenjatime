@@ -147,7 +147,7 @@ test('old AnimElem and TimeMod clauses retain their literal argument syntax', ()
   assert.throws(() => evaluate('HitDefAttr = S, MADEUP', context), /attack attributes/);
 });
 
-test('redirection sends entity selectors to the runtime and only redirects one trigger', () => {
+test('redirection passes entity selector chains to the runtime without leaking to adjacent triggers', () => {
   const { context, calls } = fixture();
   assert.equal(evaluate('enemyNear, life', context), 725);
   assert.equal(evaluate('helper(42), var(0)', context), 6);
@@ -157,7 +157,10 @@ test('redirection sends entity selectors to the runtime and only redirects one t
   assert.equal(evaluate('enemynear, stateno = 9 && time = 11', context), 1);
   assert.deepEqual(calls.find(call => call.name === 'var')?.redirect, { name: 'helper', args: [42] });
   assert.throws(() => evaluate('helper(99), life', context), /does not exist/);
-  assert.throws(() => evaluate('root, helper, life', context), /Recursive/);
+  assert.throws(() => evaluate('root, helper, life', context), /does not exist/);
+  let chain;
+  assert.equal(evaluate('root, helper(42), life', {resolve:(name,args,redirect)=>{chain={name,args,redirect};return 123;}}),123);
+  assert.deepEqual(chain,{name:'life',args:[],redirect:{name:'root',args:[],child:{name:'helper',args:[42]}}});
 });
 
 test('controller argument lists preserve strings and nested expressions', () => {
