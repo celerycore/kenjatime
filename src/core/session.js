@@ -190,7 +190,7 @@ export class CoreSession {
       paused = (e) => match.isFrozen(e) || e.hitPauseTime > 0;
     this.effects.advance({ paused });
     this.gameEffects = this.gameEffects.filter(fx=>{
-      if (!fx.animation.frames.length) return false;
+      if (!fx.animation.frames.length || ++fx.age > (fx.maxAge||3600)) return false;
       if (fx.owner && paused(fx.owner)) return true;
       const frame=fx.animation.frames[fx.frameIndex];
       if(frame.ticks<0) return true;
@@ -201,7 +201,7 @@ export class CoreSession {
           else return false;
         }
       }
-      return ++fx.age<3600;
+      return true;
     });
     match.tick(new Set(), new Set(), {
       playerInput: left,
@@ -231,8 +231,37 @@ export class CoreSession {
     }
     for (const event of match.presentationEvents)
       this.effects.consume([event], { entity: event.entity || event.owner });
-    for (const hit of match.events)
-      this.sparks.push({ x: hit.x, y: hit.y, age: 0, guarded: hit.guarded });
+    // Use the exact HitDef hit/guard spark AIR & SFF action rather than a
+    // generic GPU flash whenever the authored resources are available.
+    for (const hit of match.events) {
+      if(hit.typeNone)continue;
+      const attacker=hit.attacker?.isProjectile ? hit.attacker.owner : hit.attacker;
+      const definition=hit.hitDef||{},guarded=!!hit.guarded;
+      const no=Number(guarded?definition['guard.sparkno']:definition.sparkno),
+        common=guarded?definition.guardSparkCommon!==false:definition.sparkCommon!==false,
+        catalog=common?this.commonEffects.animations:attacker?.animations,
+        resource=common?this.commonEffects.resource:attacker?.character,
+        animation=catalog?.get(no),
+        offset=Array.isArray(definition.sparkxy)?definition.sparkxy:[0,0],
+        factor=definition.coordinateScale??attacker?.coordinateScale??1;
+      let rendered=false;
+      if(Number.isFinite(no)&&no>=0&&animation?.frames?.length&&resource&&attacker){
+        if(this.gameEffects.length>=256)this.gameEffects.shift();
+        this.gameEffects.push({animation,resource,scale:common?this.commonEffects.scale:baseScale(attacker),
+          frameIndex:0,frameTime:0,age:0,maxAge:120,owner:attacker,under:false,
+          pos:{x:hit.x+(offset[0]||0)*factor*attacker.facing,
+            y:attacker.pos.y+(offset[1]||0)*factor},facing:attacker.facing});
+        rendered=true;
+      }else if(Number.isFinite(no)&&no>=0)
+        this.issue('missing-animation',`HitDef ${guarded?'guard ':''}spark ${common?'F':''}${no} is unavailable from imported assets.`);
+      if(!rendered)this.sparks.push({x:hit.x,y:hit.y,age:0,guarded});
+      const snd=guarded?definition.guardsound:definition.hitsound;
+      const pair=Array.isArray(snd)?snd:[snd,0];
+      if(attacker&&pair[0]!==undefined&&Number.isFinite(Number(pair[0]))&&Number(pair[0])>=0)
+        this.events.push({type:'playsnd',group:Number(pair[0]),number:Number(pair[1]||0),
+          common:guarded?definition.guardSoundCommon!==false:definition.hitSoundCommon!==false,
+          channel:-1,character:attacker.character.path,entity:attacker.id});
+    }
     this.sparks = this.sparks.filter((s) => ++s.age < 12);
     if (this.sparks.length > 256)
       this.sparks.splice(0, this.sparks.length - 256);
@@ -574,8 +603,8 @@ export class CoreSession {
     layers.sort((a, b) => a.priority - b.priority);
     for (const { actor, effect, gameEffect } of layers) {
       if(gameEffect){
-        const pos=world(gameEffect.pos),unit=zoom*this.commonEffects.scale;
-        this.quad(draws,this.commonEffects.resource,sampleAnimation(gameEffect.animation,gameEffect.frameIndex,gameEffect.frameTime),{
+        const pos=world(gameEffect.pos),unit=zoom*(gameEffect.scale??this.commonEffects.scale);
+        this.quad(draws,gameEffect.resource||this.commonEffects.resource,sampleAnimation(gameEffect.animation,gameEffect.frameIndex,gameEffect.frameTime),{
           ...pos,sx:unit,sy:unit,facing:gameEffect.facing,remaps:null,palette:this.effects.paletteFor(gameEffect.owner)
         });
         continue;
