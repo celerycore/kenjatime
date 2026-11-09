@@ -86,7 +86,7 @@ async function drawPreview(step){
 function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,fxPackage:$('#effects-select').value,mode:$('#arena-mode').value}));}catch{}}
 function choose(id){
  selected=catalog.characters.find(c=>c.id===id)||catalog.characters[0];if(!selected)return;
- $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent='SFF / AIR';$('#viewtitle').textContent='MATCH PREVIEW · P1 / P2';
+ $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent=selected.version||'SFF / AIR';$('#viewtitle').textContent='MATCH PREVIEW · P1 / P2';
  $('#metadata').innerHTML=`<div class="meta"><span>Definition</span><b>${escape(selected.fileName)}</b></div><div class="meta"><span>Package</span><b>${escape(selected.packageName)}</b></div>`;
  $('#checks').innerHTML=['sprite','anim'].map(key=>`<div><span class="${selected[key]?'ok':'bad'}">${selected[key]?'✓':'!'}</span><b>${key.toUpperCase()}</b><span>${escape(selected[key]||'Not found')}</span></div>`).join('');$('#score').textContent=selected.sprite&&selected.anim?'INSTALLED':'CHECK FILES';
  $('#cards').querySelectorAll('.card').forEach(card=>card.classList.toggle('selected',card.dataset.id===selected.id));remember();void preview();
@@ -94,8 +94,12 @@ function choose(id){
 function drawCatalog(data){
  catalog=data;const old=selected?.id;let saved={};try{saved=JSON.parse(localStorage.getItem(selectionKey)||'{}');}catch{}
  $('#count').textContent=String(catalog.characters.length).padStart(2,'0');$('#cards').replaceChildren();
- for(const entry of catalog.characters){const button=document.createElement('button');button.className='card';button.dataset.id=entry.id;button.innerHTML=`<span class="mini">拳</span><span><b>${escape(entry.name)}</b><small>${escape(entry.author||'MUGEN character')}</small></span><span class="card-arrow">↗</span>`;button.onclick=()=>choose(entry.id);$('#cards').append(button);}
- const options=(list,first)=>first+list.map(e=>`<option value="${escape(e.id)}">${escape(e.name)}</option>`).join('');
+ const counts=new Map();for(const entry of catalog.characters)counts.set(entry.name,(counts.get(entry.name)||0)+1);
+ const label=entry=>counts.get(entry.name)>1
+   ? entry.name+' · '+((entry.version||'').match(/(?:19|20)\d{2}/)?.[0]||entry.packageName||entry.fileName)
+   : entry.name;
+ for(const entry of catalog.characters){const button=document.createElement('button');button.className='card';button.dataset.id=entry.id;button.innerHTML=`<span class="mini">拳</span><span><b>${escape(label(entry))}</b><small>${escape(entry.author||'MUGEN character')}</small></span><span class="card-arrow">↗</span>`;button.onclick=()=>choose(entry.id);$('#cards').append(button);}
+ const options=(list,first)=>first+list.map(e=>`<option value="${escape(e.id)}">${escape(list===catalog.characters?label(e):e.name)}</option>`).join('');
  $('#opponent-select').innerHTML=options(catalog.characters,'<option value="">Mirror character</option>');$('#stage-select').innerHTML=options(catalog.stages,'');
  $('#effects-select').innerHTML='<option value="">From chosen stage / fighter (if included)</option>'+catalog.packages.filter(p=>p.commonEffects).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('');
  if(catalog.stages.some(s=>s.id===saved.stage))$('#stage-select').value=saved.stage;if(catalog.characters.some(c=>c.id===saved.opponent))$('#opponent-select').value=saved.opponent;if(catalog.packages.some(p=>p.id===saved.fxPackage&&p.commonEffects))$('#effects-select').value=saved.fxPackage;

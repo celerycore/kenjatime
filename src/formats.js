@@ -340,23 +340,51 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  }
  const cache=new MemoryLRU({maxBytes:cacheBytes,sizeOf:sp=>sp.rgba.byteLength+(sp.indices?.byteLength||0)});
  function recolor(original,rgba){return{...original,rgba:expandIndexedRgba(original.indices,rgba)};}
- function decode(index,seen=new Set()){
-  if(cache.has(index))return cache.get(index);
+ function decode(index,seen=new Set(),{allowTruncated=false}={}){
+  if(!allowTruncated&&cache.has(index))return cache.get(index);
   if(!Number.isInteger(index)||index<0||index>=sprites.length||seen.has(index))throw Error('Invalid SFF v1 sprite link');seen.add(index);const sp=sprites[index];
-  if(!sp.length){const source=decode(sp.link,seen);sp.palette=source.palette;const linked={...source,...sp,w:source.w,h:source.h};cache.set(index,linked);return linked;}
+  if(!sp.length){const source=decode(sp.link,seen,{allowTruncated});sp.palette=source.palette;
+   const linked={...source,...sp,w:source.w,h:source.h};
+   if(!allowTruncated)cache.set(index,linked);
+   return linked;}
   const data=bytes.subarray(sp.offset,sp.offset+sp.length);if(data.length<128||data[0]!==10||data[2]!==1||data[3]!==8||data[65]!==1)throw Error('Only indexed 8-bit PCX sprites are supported');
   const d=new DataView(data.buffer,data.byteOffset,data.byteLength),w=d.getUint16(8,true)-d.getUint16(4,true)+1,height=d.getUint16(10,true)-d.getUint16(6,true)+1,stride=d.getUint16(66,true);
   if(w<=0||height<=0||w*height>4e6||stride*height>8e6||stride<w)throw Error('Invalid PCX dimensions');
   const palette=colors[sp.palette];if(!palette)throw Error('PCX palette missing');
   const end=data.length>=897&&data[data.length-769]===12?data.length-769:data.length,pixels=new Uint8Array(stride*height);let pos=128,cursor=0;
-  while(cursor<pixels.length){if(pos>=end)throw Error('Truncated PCX');let value=data[pos++],run=1;if((value&192)===192){run=value&63;if(pos>=end)throw Error('Truncated PCX run');value=data[pos++];}if(!run||cursor+run>pixels.length)throw Error('Invalid PCX run');pixels.fill(value,cursor,cursor+run);cursor+=run;}
+  while(cursor<pixels.length){
+   if(pos>=end){if(allowTruncated)break;throw Error('Truncated PCX');}
+   let value=data[pos++],run=1;
+   if((value&192)===192){
+     run=value&63;
+     if(pos>=end){if(allowTruncated)break;throw Error('Truncated PCX run');}
+     value=data[pos++];
+   }if(!run||cursor+run>pixels.length)throw Error('Invalid PCX run');pixels.fill(value,cursor,cursor+run);cursor+=run;}
   const indices=new Uint8Array(w*height);for(let y=0;y<height;y++)indices.set(pixels.subarray(y*stride,y*stride+w),y*w);
-  const result=recolor({...sp,w,h:height,indices},palette);cache.set(index,result);return result;
+  const incomplete=cursor<pixels.length;
+  // Only the valid PCX prefix is retained; absent source pixels remain index
+  // zero, which is transparent in indexed PCX palettes.
+  const result=recolor({...sp,w,h:height,indices,
+    ...(incomplete?{sourceIncomplete:true,decodedPrefixPixels:cursor,totalSourcePixels:pixels.length}:{})},palette);
+  // Never permit the presentation-only partial decode to enter the strict cache.
+  if(!allowTruncated)cache.set(index,result);
+  return result;
  }
  function decodeWithPalette(index,group,number){const original=decode(index),target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return recolor(original,colors[target.index]);}
  const paletteColors=(group,number)=>{const target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return colors[target.index].slice();};
  const decodeIndexed=index=>{const sprite=decode(index);return {...sprite,colors:colors[sprite.palette]};};
- return{sprites,palettes,decode,decodeIndexed,decodeWithPalette,paletteColors,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
+ // Display-only recovery for valid PCX prefixes with missing trailing bytes.
+ // Strict decode/decodeIndexed remain unchanged for validation and export.
+ const decodeForDisplay=index=>{
+   try{return decodeIndexed(index);}
+   catch(error){
+     if(error.message!=='Truncated PCX'&&error.message!=='Truncated PCX run')throw error;
+     const sprite=decode(index,new Set(),{allowTruncated:true});
+     if(!sprite.sourceIncomplete)throw error;
+     return {...sprite,colors:colors[sprite.palette]};
+   }
+ };
+ return{sprites,palettes,decode,decodeIndexed,decodeForDisplay,decodeWithPalette,paletteColors,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
 export function decodeAct(bytes){

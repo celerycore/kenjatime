@@ -70,3 +70,26 @@ test('Palette remapping leaves indexed sprites with a different color depth unch
   bytes.set([1,0],128);bytes.set([255,0,0,255],134);bytes.set([0,255,0,255],262);
   const bank=sff(bytes),original=bank.decode(0);assert.equal(original.rgba[0],255);assert.equal(bank.decodeWithPalette(0,1,2),original);
 });
+
+test('PCX display-only recovery preserves encoded prefix and transparently marks absent source pixels',()=>{
+  const bytes=sff1([{palette:colors([255,0,0]),pixels:[0,1]}]);
+  new DataView(bytes.buffer).setUint16(512+32+10,1,true); // PCX header claims an extra row.
+  const bank=sff(bytes);
+  assert.throws(()=>bank.decodeIndexed(0),/Truncated PCX/);
+  const image=bank.decodeForDisplay(0);
+  assert.equal(image.sourceIncomplete,true);
+  assert.equal(image.decodedPrefixPixels,2);
+  assert.equal(image.totalSourcePixels,4);
+  assert.deepEqual([...image.indices],[0,1,0,0]);
+  assert.equal(image.rgba[7],255);
+  assert.equal(image.rgba[11],0);
+  assert.equal(image.rgba[15],0);
+  assert.throws(()=>bank.decode(0),/Truncated PCX/,'display recovery must not poison strict cache');
+});
+test('PCX display recovery rejects corrupted run lengths and is not a decoder bypass',()=>{
+  const bytes=sff1([{pixels:[0,1]}]);
+  bytes[512+32+128]=0xff;
+  const bank=sff(bytes);
+  assert.throws(()=>bank.decodeForDisplay(0),/Invalid PCX run/);
+  assert.throws(()=>bank.decode(0),/Invalid PCX run/);
+});

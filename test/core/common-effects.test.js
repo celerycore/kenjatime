@@ -127,3 +127,39 @@ test('Core draws authored local S sparks and reports missing shared effects rath
   assert.ok(session.snapshot().diagnostics.some(d=>d.type==='missing-animation'));
  }finally{session.close();}
 });
+
+test('Explicit effects package never pairs its AIR with unrelated SFF resources',()=>{
+  const files=fx(base(),'imports/active/');
+  delete files['imports/active/data/fightfx.sff'];
+  files['imports/unrelated/data/fightfx.sff']=files['kfm/kfm.sff'];
+  files['data/fightfx.sff']=files['kfm/kfm.sff'];
+  const loaded=loadCommonEffects(files,{effectsPackage:'imports/active/'});
+  assert.equal(loaded.resource,null);
+  assert.equal(loaded.animations.size,0);
+  assert.equal(loaded.issues.at(-1).type,'fightfx-missing');
+  assert.equal(loaded.paths.air,'imports/active/data/fightfx.air');
+  assert.equal(loaded.paths.sff,null);
+});
+test('Explicit effects package takes priority over stage effects without borrowing sound',()=>{
+  const files=fx(base(),'imports/stage/');
+  fx(files,'imports/selected/');
+  files['imports/stage/data/fightfx.air']=encode('[Begin Action 11]\n0,0,0,0,-1\n');
+  files['imports/selected/data/fightfx.air']=encode('[Begin Action 88]\n0,0,0,0,-1\n');
+  files['imports/stage/data/common.snd']=files['kfm/kfm.snd'];
+  const selected=loadCommonEffects(files,{effectsPackage:'imports/selected/',stage:'imports/stage/some.def'});
+  assert.equal(selected.animations.has(88),true);
+  assert.equal(selected.animations.has(11),false);
+  assert.equal(selected.soundPath,null);
+  assert.equal(selected.paths.scope,'imports/selected/');
+});
+test('An incomplete stage FX package cannot contaminate the complete fighter FX package',()=>{
+  const files=fx(base(),'imports/char/');
+  fx(files,'imports/stage/');
+  delete files['imports/stage/data/fightfx.sff'];
+  files['imports/char/data/fightfx.air']=encode('[Begin Action 71]\n0,0,0,0,-1\n');
+  const chosen=loadCommonEffects(files,{stage:'imports/stage/stage.def',character:'imports/char/char.def'});
+  assert.equal(chosen.paths.scope,'imports/char/');
+  assert.equal(chosen.paths.air,'imports/char/data/fightfx.air');
+  assert.equal(chosen.paths.sff,'imports/char/data/fightfx.sff');
+  assert.equal(chosen.animations.has(71),true);
+});
