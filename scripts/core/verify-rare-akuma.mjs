@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { packageFiles } from "../../src/formats.js";
+import { packageFiles, charactersFromFiles } from "../../src/formats.js";
 if (!process.env.MUGEN_RARE_AKUMA)
   throw Error("Set MUGEN_RARE_AKUMA to the supplied RareAkuma.zip path.");
 const source = resolve(process.env.CORE_BASELINE || ".");
@@ -16,7 +16,9 @@ const bytes = readFileSync(process.env.MUGEN_RARE_AKUMA),
     ...packageFiles(bytes),
     ...packageFiles(readFileSync("public/kfm.zip")),
   };
-const character = Object.keys(files).find((p) => p.endsWith("rareakuma.def"));
+const character = charactersFromFiles(files).find((c) =>
+  String(c.def.info?.name || "").replace(/[^a-z0-9]/gi, "").toLowerCase() === "rareakuma"
+)?.path;
 if (!character) throw Error("RareAkuma.def is missing.");
 const session = new CoreSession(files, {
     character,
