@@ -1068,7 +1068,7 @@ export class FighterRuntime {
       const edge=vec('edge',common);this.width={front:integer(front),back:integer(back),edge:[integer(edge[0]??0),integer(edge[1]??0)]}; return;
     }
     if (type === 'assertspecial') {
-      const supported = new Set(['nowalk', 'nojump', 'nocrouch', 'noautoturn', 'invisible', 'noshadow', 'unguardable', 'noairguard', 'nostandguard', 'nocrouchguard','nojugglecheck','intro','roundnotover','timerfreeze','noko','nobardisplay','nobg','nofg','nomusic','animfreeze']);
+      const supported = new Set(['nowalk', 'nojump', 'nocrouch', 'noautoturn', 'invisible', 'noshadow', 'unguardable', 'noairguard', 'nostandguard', 'nocrouchguard','nojugglecheck','intro','roundnotover','timerfreeze','noko','nobardisplay','nobg','nofg','nomusic','animfreeze','globalnoshadow']);
       for (const key of ['flag', 'flag2', 'flag3']) if (controller.values[key]) {
         const flag = text(key).toLowerCase(); this.asserted.add(flag);
         if (!supported.has(flag)) this.diagnostic('unsupported-flag', `AssertSpecial flag ${flag} is not implemented.`, controller);
