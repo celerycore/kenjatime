@@ -25,6 +25,8 @@ jobs:
       - run: node --check scripts/core/verify-rare-akuma.mjs
       - run: node --check scripts/core/verify-rare-akuma-assets.mjs
       - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js
+      - run: npm run test:core
+      - run: npm run test:core:compiled
       - name: Explain opt-in full package replay
         run: |
           echo "The uploaded third-party Rare Akuma ZIP is intentionally not in Git."
