@@ -359,7 +359,11 @@ function execute(ast, context, source) {
       case 'redirect': {
         
         const args = node.target.args?.map(arg => number(run(arg))) || [];
-        return run(node.value, { name: node.target.name, args, child: redirect });
+        const next = { name: node.target.name, args };
+        if (!redirect) return run(node.value, next);
+        // IKEMEN redirect chains resolve each selector relative to its predecessor.
+        const append = (prior, item) => ({ ...prior, child: prior.child ? append(prior.child, item) : item });
+        return run(node.value, append(redirect,next));
       }
       case 'assign': {
         if (redirect) throw new ExpressionError('Variable assignment cannot be redirected.', source);
