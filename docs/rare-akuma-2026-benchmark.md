@@ -115,3 +115,27 @@ The seven truncated PCX records and three absent source animation sprites
 are unchanged original-archive findings. The new loader does not and cannot
 repair those character-specific pixels. A real IKEMEN GO 0.99+ reference
 capture is still required for frame-by-frame collision, effects and audio parity.
+
+## Additional native-behavior bridge
+
+- HitDef contact sparks now select the original common `fightfx` or local
+  character AIR action and SFF sprite for hit and guard separately, respecting
+  `sparkno`, `guard.sparkno`, local `S` selectors and `sparkxy`. When missing,
+  the engine emits a specific diagnostic; its legacy GPU flash is fallback
+  presentation **not** native sprite parity.
+- HitDef's explicit hit and guard sound pairs are routed to the same character
+  or original common sound bank as regular `PlaySnd`.
+- `GameMakeAnim` and HitDef impact effects have bounded lifetimes, including
+  effects whose AIR actions contain indefinite frames, to avoid an unbounded
+  long-fight renderer allocation.
+- Standard MUGEN ground-fall recovery states 5200/5201 are included as
+  independently authored common states, rather than incorrectly treating
+  every fall recovery as the airborne 5210 state. Native per-frame
+  compatibility still requires a reference capture.
+- The standard IKEMEN tag `StateTag*` values are now available via `Const`
+  as constants. This does **not** implement full tag-team gameplay.
+
+The Core test suite, compiled-expression test suite, build and browser
+verification run on GitHub Actions for this review branch. These checks are
+independent of the opt-in original RareAkuma.zip replay; they do not assert
+100% native IKEMEN GO compatibility.
