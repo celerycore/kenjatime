@@ -26,6 +26,7 @@ $('#lab').textContent='◈ Character preview';$('#training').textContent='⚔ Ar
 $('.aside-bottom small').textContent='Your character files stay on this device.';$('.stage-badge').textContent='YOUR ARENA';
 $('#upload').textContent='＋ Import character / archive';$('#add-stage').textContent='＋ Add stage';$('#file').remove();$('#stage-file').remove();
 $('.heading').insertAdjacentHTML('afterend','<section class="stage-library" aria-label="Stage setup"><label>Stage <select id="stage-select"></select></label><span id="stage-summary"></span></section>');
+$('.stage-library').insertAdjacentHTML('afterend','<section class="stage-library" aria-label="Common effects"><label>Common effects <select id="effects-select"><option value="">From chosen stage / fighter (if included)</option></select></label><span>Optional original fightfx AIR/SFF pack</span></section>');
 $('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" aria-label="Match setup"><label>Play mode <select id="arena-mode"><option value="solo">Player vs CPU</option><option value="versus">Two players</option><option value="cpu">Watch CPU match</option><option value="training">Training</option></select></label><button type="button" class="primary" id="fight-now">Fight now</button><span>Choose your fighter in the roster and your rival under Opponent.</span></section>');
 $('.transport').insertAdjacentHTML('afterend','<div id="training-tools" class="training-tools"><label>Opponent <select id="opponent-select"></select></label><label>CPU level <select id="cpu-level">'+Array.from({length:8},(_,i)=>`<option value="${i+1}" ${i===3?'selected':''}>${i+1}</option>`).join('')+'</select></label><label>P1 palette <select id="palette-select"></select></label><label>P2 palette <select id="opponent-palette-select"></select></label></div>');
 $('.roster').insertAdjacentHTML('beforebegin','<section class="mobile-library"><details open><summary>Saved on this device <span id="library-count">0</span></summary><p id="library-status">Imported archives are installed here and stay available after restarting the app.</p><div id="library-items"></div></details></section>');
@@ -82,7 +83,7 @@ async function drawPreview(step){
   else{ctx.font='15px system-ui';ctx.fillText('Preview unavailable',center,280);ctx.fillText('Ready to use in a match',center,305);}
  });canvas.dataset.previewCount=String(images.filter(Boolean).length);canvas.setAttribute('aria-label',`Match preview: Player 1 ${selected.name}, Player 2 ${rival.name}`);
 }
-function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,mode:$('#arena-mode').value}));}catch{}}
+function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,fxPackage:$('#effects-select').value,mode:$('#arena-mode').value}));}catch{}}
 function choose(id){
  selected=catalog.characters.find(c=>c.id===id)||catalog.characters[0];if(!selected)return;
  $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent='SFF / AIR';$('#viewtitle').textContent='MATCH PREVIEW · P1 / P2';
@@ -96,7 +97,8 @@ function drawCatalog(data){
  for(const entry of catalog.characters){const button=document.createElement('button');button.className='card';button.dataset.id=entry.id;button.innerHTML=`<span class="mini">拳</span><span><b>${escape(entry.name)}</b><small>${escape(entry.author||'MUGEN character')}</small></span><span class="card-arrow">↗</span>`;button.onclick=()=>choose(entry.id);$('#cards').append(button);}
  const options=(list,first)=>first+list.map(e=>`<option value="${escape(e.id)}">${escape(e.name)}</option>`).join('');
  $('#opponent-select').innerHTML=options(catalog.characters,'<option value="">Mirror character</option>');$('#stage-select').innerHTML=options(catalog.stages,'');
- if(catalog.stages.some(s=>s.id===saved.stage))$('#stage-select').value=saved.stage;if(catalog.characters.some(c=>c.id===saved.opponent))$('#opponent-select').value=saved.opponent;
+ $('#effects-select').innerHTML='<option value="">From chosen stage / fighter (if included)</option>'+catalog.packages.filter(p=>p.commonEffects).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('');
+ if(catalog.stages.some(s=>s.id===saved.stage))$('#stage-select').value=saved.stage;if(catalog.characters.some(c=>c.id===saved.opponent))$('#opponent-select').value=saved.opponent;if(catalog.packages.some(p=>p.id===saved.fxPackage&&p.commonEffects))$('#effects-select').value=saved.fxPackage;
  if(['solo','versus','cpu','training'].includes(saved.mode))$('#arena-mode').value=saved.mode;
  $('#stage-summary').textContent='Your stage selection is used for the next match.';$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';
  $('#library-count').textContent=catalog.packages.length;$('#library-items').replaceChildren();
@@ -120,10 +122,10 @@ if(engineHost.importFile){
  $('#drop').addEventListener('drop',event=>{event.preventDefault();const files=Array.from(event.dataTransfer.files);if(files.length)void run('Reading archive…',async()=>{applyInstalled(await engineHost.importFile(files,{password:$('#archive-password').value}));$('#archive-password').value='';status('Archive installed. Your fighters and stages are ready to select.');});});
 }
 $('#sample').onclick=()=>choose(catalog.characters.find(c=>!c.packageId)?.id);$('#lab').onclick=()=>{$('.viewer').scrollIntoView({block:'start'});};$('#training').onclick=()=>{$('.arena-launch').scrollIntoView({block:'start'});};
-for(const id of ['stage-select','opponent-select','arena-mode','palette-select','opponent-palette-select'])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
+for(const id of ['stage-select','effects-select','opponent-select','arena-mode','palette-select','opponent-palette-select'])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
 $('#fight-now').onclick=()=>void run('Preparing your match…',async()=>{
  if(!selected)throw Error('Import a character before starting a match.');
- const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value};remember();disposePreview();await native('launch',match);
+ const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value,fightfxPackageId:$('#effects-select').value};remember();disposePreview();await native('launch',match);
 });
 window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview();status('Ready when you are.');}});
 grid();void run('Opening your library…',async()=>{try{const data=await native('catalog');if(startup)startup.measure('catalog-render',()=>drawCatalog(data));else drawCatalog(data);startup?.finish(data.warning?'degraded':'ready');status(data.warning||'Ready when you are.');}catch(error){startup?.finish('failed');throw error;}});
