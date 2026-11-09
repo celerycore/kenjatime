@@ -1,12 +1,14 @@
 name: Rare Akuma compatibility contract
 on:
   pull_request:
-    branches: [source/independent-engine, qa/rare-akuma-coverage-20261109]
+    branches: [source/independent-engine, qa/rare-akuma-coverage-20261109, qa/rare-akuma-2026-ikemen-20261110]
     paths:
       - 'src/**'
       - 'scripts/core/verify-rare-akuma*'
       - 'test/core/rare-akuma*'
       - 'test/core/common-effects.test.js'
+      - 'test/core/rare-akuma-dual.test.js'
+      - 'test/palettes.test.js'
       - 'test/fixtures/core/rare-akuma*'
       - '.github/workflows/rare-akuma-contract.yml'
   workflow_dispatch:
@@ -26,7 +28,8 @@ jobs:
       - run: node --check scripts/core/verify-rare-akuma.mjs
       - run: node --check scripts/core/verify-rare-akuma-assets.mjs
       - run: node --check scripts/core/verify-rare-akuma-2026.mjs
-      - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/common-effects.test.js
+      - run: node --check scripts/core/verify-rare-akuma-duel.mjs
+      - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/common-effects.test.js test/core/rare-akuma-dual.test.js test/palettes.test.js
       - run: npm run test:core
       - run: npm run test:core:compiled
       - run: npm run build:core
