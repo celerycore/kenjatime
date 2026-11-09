@@ -21,7 +21,8 @@ export function createCoreRuntime(emit) {
     moduleDecoder,
     moduleStream,
     moduleVolume = 1,
-    musicLoop = true;
+    musicLoop = true,
+    musicSuppressed = false;
   const clock = new FrameClock(),
     inputs = [new TickInputBuffer(), new TickInputBuffer()],
     sounds = new Map(),
@@ -68,7 +69,7 @@ export function createCoreRuntime(emit) {
   function audio(buffer) {
     const data = new Float32Array(buffer);
     data.fill(0);
-    if (moduleStream && !paused) {
+    if (moduleStream && !paused && !musicSuppressed) {
       let filled = 0;
       while (filled < data.length / 2) {
         let n = moduleStream.read(Math.min(2048, data.length / 2 - filled));
@@ -123,12 +124,23 @@ export function createCoreRuntime(emit) {
       emit({ type: "sound", event }, event.bytes ? [event.bytes.buffer] : []);
     }
   }
+  function syncMusicSuppression() {
+    // AssertSpecial flags are recreated each simulation tick. Send an edge
+    // rather than a constant stream of messages to the browser audio sink.
+    const suppressed = session.match.entities.some(actor =>
+      !actor.destroyed && actor.asserted.has('nomusic'));
+    if (suppressed !== musicSuppressed) {
+      musicSuppressed = suppressed;
+      emit({ type: 'music-suppression', value: suppressed });
+    }
+  }
   function frame(time) {
     if (closed) return;
     try {
       const absolute = performance.timeOrigin + time;
       clock.advance(absolute, { running: !paused }, (sample) => {
         session.tick(inputs[0].sample(sample), inputs[1].sample(sample));
+        syncMusicSuppression();
         soundEvents();
       });
       syncVideos();
