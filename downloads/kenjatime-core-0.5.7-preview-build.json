@@ -1,0 +1,16 @@
+{
+  "applicationId": "io.github.celerycore.kenjatime.core.preview",
+  "version": "0.5.7-core-preview",
+  "bytes": 7295893,
+  "sha256": "e8e4536dba2edbc13e043d6329988583e499d0d46673781ee7ab9f86810f88b6",
+  "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
+  "offlineAssetsMatchWebBuild": true,
+  "bundledFiles": 41,
+  "startupUrl": "https://localhost/core/index.html",
+  "separateRecoveryInstallation": true,
+  "externalEnginePayloads": false,
+  "physicalPhoneTest": false,
+  "sourceCommit": "6bc046eb52701646a68c908a728efe8dcf0ef476",
+  "checkpoint": "checkpoint/core-preview-0.5.7",
+  "webURL": "https://celerycore.github.io/kenjatime/engine-preview/"
+}
