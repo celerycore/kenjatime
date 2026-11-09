@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {packageFiles} from '../../src/formats.js';
 import {parseSections} from '../../src/runtime.js';
 import {CoreSession} from '../../src/core/session.js';
-import {loadCommonEffects} from '../../src/core/common-effects.js';
+import {loadCommonEffects,hasCommonEffects} from '../../src/core/common-effects.js';
 const encode=text=>new TextEncoder().encode(text);
 const base=()=>packageFiles(readFileSync(new URL('../../public/kfm.zip',import.meta.url)));
 const fx=(files,prefix='')=>{
@@ -61,4 +61,22 @@ test('GameMakeAnim uses common AIR, renders behind fighters and retires at the e
     session.tick();assert.equal(session.gameEffects[0].frameIndex,1);
     session.tick();assert.equal(session.gameEffects.length,0);
   }finally{session.close();}
+});
+
+test('Common-effect-only archives are recognized without character or stage files',()=>{
+ const files=fx(base(),'imports/fxpack/');
+ assert.equal(hasCommonEffects(files),true);
+ const loaded=loadCommonEffects(files,{effectsPackage:'imports/fxpack/'});
+ assert.equal(loaded.paths.sff,'imports/fxpack/data/fightfx.sff');
+ assert.equal(loaded.animations.has(60),true);
+});
+test('AssertSpecial globalnoshadow is accepted and exposed as a match-wide render flag',()=>{
+ const session=new CoreSession(base(),{character:'kfm/kfm.def',opponent:'kfm/kfm.def',mode:'training'});
+ try{
+  const ctrl=parseSections('[State Flag]\ntype=AssertSpecial\ntrigger1=1\nflag=globalnoshadow')[0];
+  session.match.player.execute({...ctrl,type:'assertspecial'});
+  assert.equal(session.frame().suppressCharacterShadows,true);
+  assert.ok(!session.match.player.diagnostics.some(d=>d.type==='unsupported-flag'));
+  session.tick();assert.equal(session.frame().suppressCharacterShadows,false);
+ }finally{session.close();}
 });
