@@ -291,13 +291,21 @@ export class CoreSession {
         index = this.indices
           .get(resource)
           .get(frame.group + "," + frame.number);
-      if (index === undefined) return null;
+      if (index === undefined) {
+        this.issue('missing-sprite', (resource?.sprite?.path||resource?.path||'unidentified bank')+
+          ': AIR sprite '+frame.group+','+frame.number+' is absent from source SFF.');
+        return null;
+      }
       const bankId = this.bankIds.get(resource),
         id = bankId + ":" + index;
       let sprite = this.spriteMetadata.get(id);
       if (!sprite) {
-        const decoded = bank.decodeIndexed?.(index) || bank.decode(index),
+        const decoded = bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) || bank.decode(index),
           indexed = !!decoded.indices;
+        if(decoded.sourceIncomplete)this.issue('sprite-incomplete',
+          (resource?.sprite?.path||resource?.path||'SFF')+' sprite '+frame.group+','+frame.number+
+          ': original PCX contains '+decoded.decodedPrefixPixels+'/'+decoded.totalSourcePixels+
+          ' encoded pixels. Remaining pixels are transparent; replace source art for native parity.');
         sprite = {
           w: decoded.w,
           h: decoded.h,
