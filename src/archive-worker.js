@@ -1,6 +1,7 @@
 import {charactersFromFiles} from './formats.js';
 import {unpackArchiveBytes} from './archive-reader.js';
 import {stageDefinitions} from './stages.js';
+import {hasCommonEffects} from './core/common-effects.js';
 import {prepareStageSprites} from './stage-sprites.js';
 import rarWasmUrl from 'node-unrar-js/esm/js/unrar.wasm?url';
 import multiWasmUrl from 'libarchive-wasm/dist/libarchive.wasm?url';
@@ -20,7 +21,7 @@ self.onmessage=async({data})=>{
     else files=await unpackArchiveBytes(bytes,decoderOptions);
     self.postMessage({progress:'Checking character and stage definitions…'});
     const characters=charactersFromFiles(files),stages=stageDefinitions(files);
-    if(!characters.length&&!stages.length)throw Error('No character or stage DEF found in the archive.');
+    if(!characters.length&&!stages.length&&!hasCommonEffects(files))throw Error('No character, stage, or complete fightfx AIR/SFF resource set found in the archive.');
     const prepared=data.prepareStageData===false?[]:prepareStageSprites(stages,{onProgress:progress=>self.postMessage({progress})});
     const buffers=[...new Set([...Object.values(files).map(file=>file.buffer),...prepared])];
     self.postMessage({result:{files,characters,stages}},buffers);
