@@ -22,14 +22,16 @@
   "capturedCombatBaselineComplete": true,
   "hostTests": 610,
   "physicalPhoneMeasured": false,
-  "verificationStatus": "browser CI passed; Android CI running; local Android build, tests, lint and APK audit passed",
+  "verificationStatus": "passed",
   "zssNativeSamples": 30,
   "stageNativeScenarios": 5,
   "automaticFocusPause": false,
   "verificationWorkflow": "https://github.com/celerycore/kenjatime/actions/runs/42553003838",
   "verificationSourceCommit": "5b6aedae0a94898f9c45e6d0c7f0944fe32634e6",
   "browserCI": "success",
-  "androidCI": "in_progress",
+  "androidCI": "success",
   "pagesDeployment": "https://github.com/celerycore/kenjatime/actions/runs/42553111061",
-  "pagesCI": "success"
+  "pagesCI": "success",
+  "verifiedCheckpoint": "checkpoint/core-preview-0.5.6",
+  "publishedDownloadSha256Verified": true
 }
