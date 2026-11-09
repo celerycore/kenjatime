@@ -45,3 +45,15 @@ test('Same-display-name MUGEN versions isolate states, sprites and inputs in bot
     }finally{session.close()}
   }
 });
+
+test('AIR -1 invisible frames do not count as missing sprites; absent positive pairs do',()=>{
+  const session=new CoreSession(kfm(),{character:'kfm/kfm.def',mode:'training'});
+  try{
+    const character=session.match.player.character;
+    assert.equal(session.asset(character,{group:-1,number:-1}),null);
+    assert.ok(!session.snapshot().diagnostics.some(d=>d.type==='missing-sprite'));
+    assert.equal(session.asset(character,{group:61233,number:2}),null);
+    assert.ok(session.snapshot().diagnostics.some(d=>d.type==='missing-sprite'&&
+      d.message.includes('61233,2')));
+  }finally{session.close();}
+});
