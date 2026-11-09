@@ -47,7 +47,7 @@ const comparisons = new Set(['=', '!=', '<', '<=', '>', '>=']);
 const redirects = new Set(['parent', 'root', 'helper', 'target', 'partner', 'enemy', 'enemynear', 'playerid', 'p2']);
 const axes = new Set(['pos', 'vel', 'p2dist', 'p2bodydist', 'parentdist', 'rootdist', 'screenpos', 'hitvel', 'camerapos']);
 const enums = new Set(['s', 'c', 'a', 'h', 'l', 'i', 'n', 'v', 'u']);
-const symbolArguments = new Set(['const', 'gethitvar','stagevar','map']);
+const symbolArguments = new Set(['const', 'gethitvar','stagevar','map','inputtime']);
 const floatHitVars=new Set(['xveladd','yveladd','xoff','yoff','zoff','xvel','yvel','yaccel','fall.xvel','fall.yvel','fall.envshake.freq','fall.envshake.phase']);
 const floatTriggers = /^(?:fvar|sysfvar|const240p|const480p|const720p|pos [xy]|vel [xy]|p2dist [xy]|p2bodydist [xy]|parentdist [xy]|rootdist [xy]|screenpos [xy]|hitvel [xy]|camerapos [xy]|camerazoom|gamewidth|gameheight|screenwidth|screenheight|leftedge|rightedge|topedge|bottomedge|(?:front|back)edge(?:body)?dist|frontedge|backedge)$/;
 const floatConstant=name=>/^(?:velocity\.|movement\.(?!airjump\.)|size\.[xy]scale$|data\.fall\.defence_mul$)/.test(name);
@@ -213,7 +213,7 @@ class Parser {
       this.expect(',');
       return { kind: 'legacytime', op, divisor, remainder: this.signedInteger() };
     }
-    if (name === 'hitdefattr' && ['=', '!='].includes(this.peek().value)) {
+    if (['hitdefattr', 'reversaldefattr'].includes(name) && ['=', '!='].includes(this.peek().value)) {
       const op = this.take().value, state = this.take();
       if (state.type !== 'name' || !/^[sca]+$/.test(state.value)) this.fail('HitDefAttr requires state letters S, C or A');
       const attributes = [state.value.toUpperCase()];
@@ -223,7 +223,7 @@ class Parser {
         if (attribute.type !== 'name' || !/^[nsha][atp]$/.test(attribute.value)) this.fail('HitDefAttr requires attack attributes such as NA or ST');
         attributes.push(attribute.value.toUpperCase());
       } while (this.peek().value === ',' && this.peek(1).type === 'name' && /^[nsha][atp]$/.test(this.peek(1).value) && this.accept(','));
-      return { kind: 'legacyattribute', op, attributes };
+      return { kind: 'legacyattribute', name, op, attributes };
     }
     let node;
     if (this.accept('(')) {
@@ -234,7 +234,7 @@ class Parser {
       }
       if((oneArgument.has(name)||optionalArgument.has(name))&&args.length!==1)this.fail(`${name} requires one argument`);
       if(noArguments.has(name)&&args.length)this.fail(`${name} requires no arguments`);
-      const arity=Object.hasOwn(mathFunctions,name)?mathFunctions[name][0]:['cond','ifelse'].includes(name)?3:null;
+      const arity=Object.hasOwn(mathFunctions,name)?mathFunctions[name][0]:['cond','ifelse','fifelse'].includes(name)?3:null;
       if(arity!==null&&args.length!==arity)this.fail(`${name} requires ${arity} argument(s)`);
       node = { kind: 'call', name, args };
     } else {
@@ -357,9 +357,13 @@ function execute(ast, context, source) {
         return integer(~n);
       }
       case 'redirect': {
-        if (redirect) throw new UnsupportedExpressionError('Recursive trigger redirection is unsupported by MUGEN 1.1.', source);
+        
         const args = node.target.args?.map(arg => number(run(arg))) || [];
-        return run(node.value, { name: node.target.name, args });
+        const next = { name: node.target.name, args };
+        if (!redirect) return run(node.value, next);
+        // IKEMEN redirect chains resolve each selector relative to its predecessor.
+        const append = (prior, item) => ({ ...prior, child: prior.child ? append(prior.child, item) : item });
+        return run(node.value, append(redirect,next));
       }
       case 'assign': {
         if (redirect) throw new ExpressionError('Variable assignment cannot be redirected.', source);
@@ -389,7 +393,7 @@ function execute(ast, context, source) {
         return integer(Number(node.expected ? matched : !matched));
       }
       case 'legacyattribute': {
-        const matches = boolean(resolve('hitdefattr', node.attributes, redirect));
+        const matches = boolean(resolve(node.name || 'hitdefattr', node.attributes, redirect));
         return integer(Number(node.op === '=' ? matches : !matches));
       }
       case 'command': {
@@ -397,7 +401,7 @@ function execute(ast, context, source) {
         return integer(Number(node.op === '=' ? active : !active));
       }
       case 'call': {
-        if (node.name === 'cond' || node.name === 'ifelse') {
+        if (node.name === 'cond' || node.name === 'ifelse' || node.name === 'fifelse') {
           if (node.args.length !== 3) throw new ExpressionError(`${node.name} requires three arguments.`, source);
           const condition = run(node.args[0], redirect);
           if (node.name === 'cond') return run(node.args[boolean(condition) ? 1 : 2], redirect);
@@ -405,7 +409,7 @@ function execute(ast, context, source) {
           const values=[run(node.args[1],redirect),run(node.args[2],redirect)];
           for(const value of values)if(value.bottom)context.onWarning?.(value.error);
           const chosen = boolean(condition) ? 0 : 1;
-          return values[chosen];
+          return node.name === 'fifelse' ? numeric(number(values[chosen]),true) : values[chosen];
         }
         if (Object.hasOwn(mathFunctions, node.name)) {
           const [arity, fn] = mathFunctions[node.name];

@@ -103,7 +103,7 @@ export class TrainingMatch {
     this.initialize=initialize;this.skipIntro=skipIntro;
     this.playerPalette=playerPalette;this.opponentPalette=opponentPalette;
     this.playerAILevel=normalizeAILevel(playerAILevel);this.opponentAILevel=normalizeAILevel(opponentAILevel);
-    this.stage=stage?new StageRuntime(stage):null;this.rules=rules;
+    this.stage=stage?new StageRuntime(stage):null;this.rules=rules;this.gameMode=rules?'versus':'training';
     if(this.stage){this.leftBound=stage.leftBound;this.rightBound=stage.rightBound;}
     this.reset();
   }

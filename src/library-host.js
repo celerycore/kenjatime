@@ -1,5 +1,6 @@
 import { charactersFromFiles } from "./formats.js";
 import { stageDefinitions } from "./stages.js";
+import {hasCommonEffects} from "./core/common-effects.js";
 import { readArchiveFiles, unpackArchive } from "./uploads.js";
 import { archiveVolumePlan } from "./archive-volumes.js";
 import { exportArchiveVolumes } from "./archive-export.js";
@@ -223,6 +224,7 @@ async function catalog() {
         id: p.id,
         name: p.name,
         downloadable: !!p.archiveSaved,
+        commonEffects: !!p.commonEffects,
       })),
     ],
     ...(libraryUnavailable || saved.length !== all.length
@@ -280,8 +282,9 @@ async function install(file, data) {
   );
   if (data.kind === "stage" && !stages.length)
     throw Error("No stage DEF found. Choose a stage archive.");
-  if (!characters.length && !stages.length)
-    throw Error("No character or stage DEF found.");
+  const commonEffects=hasCommonEffects(files);
+  if (!characters.length && !stages.length && !commonEffects)
+    throw Error("No character, stage, or complete fightfx AIR/SFF resource set found.");
   const id = crypto.randomUUID(),
     prefix = `imports/${id}/`,
     meta = {
@@ -292,6 +295,7 @@ async function install(file, data) {
       archiveParts: originals.length,
       expandedBytes: Object.values(files).reduce((n, b) => n + b.length, 0),
       fileCount: Object.keys(files).length,
+      commonEffects,
       ...entries(files, prefix, id, file.name),
     };
   const db = await open(),
@@ -444,12 +448,17 @@ export function createLibraryHost(options) {
           throw Error("Select installed fighters and a stage.");
         if (!["solo", "versus", "cpu", "training"].includes(data.mode))
           throw Error("Unknown play mode.");
+        const fxPackage = data.fightfxPackageId
+          ? (await packages()).find(p=>p.id===data.fightfxPackageId&&p.commonEffects)
+          : null;
+        if (data.fightfxPackageId && !fxPackage)
+          throw Error("Selected common-effects package is unavailable.");
         const files = Object.fromEntries(
             Object.entries(await core()).map(([p, b]) => [p, b.slice()]),
           ),
           ids = [
             ...new Set(
-              [p1.packageId, p2.packageId, stage.packageId].filter(Boolean),
+              [p1.packageId, p2.packageId, stage.packageId, fxPackage?.id].filter(Boolean),
             ),
           ],
           db = ids.length ? await open() : null;
@@ -474,6 +483,7 @@ export function createLibraryHost(options) {
             level: data.level || 4,
             palette: data.palette || 1,
             opponentPalette: data.opponentPalette || 1,
+            effectsPackage: fxPackage ? `imports/${fxPackage.id}/` : undefined,
           },
           onProgress: (m) => window.__kenjatimeNativeProgress?.(m),
         });

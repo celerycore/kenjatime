@@ -2,6 +2,7 @@
  * Rendering, archive codecs and platform input are separate adapters.
  */
 import { charactersFromFiles, decodeText, sff } from "../formats.js";
+import {loadCommonEffects} from "./common-effects.js";
 import { parseProgram } from "../runtime.js";
 import { TrainingMatch } from "../combat.js";
 import { commonStates } from "../common.js";
@@ -64,6 +65,7 @@ export class CoreSession {
     this.files = files;
     this.selection = selection;
     this.characters = charactersFromFiles(files);
+    this.commonEffects = loadCommonEffects(files, {fightDef:selection.fightDef, effectsPackage:selection.effectsPackage, character:selection.character, stage:selection.stage});
     const p1 =
         this.characters.find((c) => c.path === selection.character) ||
         this.characters[0],
@@ -99,6 +101,7 @@ export class CoreSession {
     this.match = new TrainingMatch(p1, {
       opponentCharacter: p2,
       commonText: CORE_COMMON_STATES,
+      commonAnimations: this.commonEffects.animations,
       programs,
       manageInputs: true,
       orderedPhases: true,
@@ -129,7 +132,8 @@ export class CoreSession {
     this.assets = [];
     this.events = [];
     this.sparks = [];
-    this.issues = new Map();
+    this.gameEffects = [];
+    this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
     this.videoSprites = new Map();
     if (this.match.stage) this.match.stage.viewportAspect = 16 / 9;
@@ -185,6 +189,20 @@ export class CoreSession {
     const match = this.match,
       paused = (e) => match.isFrozen(e) || e.hitPauseTime > 0;
     this.effects.advance({ paused });
+    this.gameEffects = this.gameEffects.filter(fx=>{
+      if (!fx.animation.frames.length || ++fx.age > (fx.maxAge||3600)) return false;
+      if (fx.owner && paused(fx.owner)) return true;
+      const frame=fx.animation.frames[fx.frameIndex];
+      if(frame.ticks<0) return true;
+      if(++fx.frameTime>=Math.max(1,frame.ticks)){
+        fx.frameTime=0;
+        if(++fx.frameIndex>=fx.animation.frames.length){
+          if(fx.animation.loopStart>0) fx.frameIndex=fx.animation.loopStart;
+          else return false;
+        }
+      }
+      return true;
+    });
     match.tick(new Set(), new Set(), {
       playerInput: left,
       opponentInput: right,
@@ -196,17 +214,54 @@ export class CoreSession {
     ];
     for (const entity of match.eventEntities) {
       this.effects.consume(entity.events, { entity });
-      for (const event of entity.events)
+      for (const event of entity.events) {
+        if (event.type === 'gameanim') {
+          const animation=this.commonEffects.animations.get(event.anim);
+          if (animation && this.commonEffects.resource){
+            if(this.gameEffects.length>=256)this.gameEffects.shift();
+            this.gameEffects.push({animation,frameIndex:0,frameTime:0,age:0,owner:entity,pos:event.pos,facing:event.facing,under:event.under});
+          }else this.issue('common-effects',`GameMakeAnim ${event.anim} requires imported fightfx AIR/SFF.`);
+        }
         if (["playsnd", "stopsnd", "sndpan"].includes(event.type))
           this.events.push({
             ...cloneEvent(event, entity.id),
             character: entity.character.path,
           });
+      }
     }
     for (const event of match.presentationEvents)
       this.effects.consume([event], { entity: event.entity || event.owner });
-    for (const hit of match.events)
-      this.sparks.push({ x: hit.x, y: hit.y, age: 0, guarded: hit.guarded });
+    // Use the exact HitDef hit/guard spark AIR & SFF action rather than a
+    // generic GPU flash whenever the authored resources are available.
+    for (const hit of match.events) {
+      if(hit.typeNone)continue;
+      const attacker=hit.attacker?.isProjectile ? hit.attacker.owner : hit.attacker;
+      const definition=hit.hitDef||{},guarded=!!hit.guarded;
+      const no=Number(guarded?definition['guard.sparkno']:definition.sparkno),
+        common=guarded?definition.guardSparkCommon!==false:definition.sparkCommon!==false,
+        catalog=common?this.commonEffects.animations:attacker?.animations,
+        resource=common?this.commonEffects.resource:attacker?.character,
+        animation=catalog?.get(no),
+        offset=Array.isArray(definition.sparkxy)?definition.sparkxy:[0,0],
+        factor=definition.coordinateScale??attacker?.coordinateScale??1;
+      let rendered=false;
+      if(Number.isFinite(no)&&no>=0&&animation?.frames?.length&&resource&&attacker){
+        if(this.gameEffects.length>=256)this.gameEffects.shift();
+        this.gameEffects.push({animation,resource,scale:common?this.commonEffects.scale:baseScale(attacker),
+          frameIndex:0,frameTime:0,age:0,maxAge:120,owner:attacker,under:false,
+          pos:{x:hit.x+(offset[0]||0)*factor*attacker.facing,
+            y:attacker.pos.y+(offset[1]||0)*factor},facing:attacker.facing});
+        rendered=true;
+      }else if(Number.isFinite(no)&&no>=0)
+        this.issue('missing-animation',`HitDef ${guarded?'guard ':''}spark ${common?'F':''}${no} is unavailable from imported assets.`);
+      if(!rendered)this.sparks.push({x:hit.x,y:hit.y,age:0,guarded});
+      const snd=guarded?definition.guardsound:definition.hitsound;
+      const pair=Array.isArray(snd)?snd:[snd,0];
+      if(attacker&&pair[0]!==undefined&&Number.isFinite(Number(pair[0]))&&Number(pair[0])>=0)
+        this.events.push({type:'playsnd',group:Number(pair[0]),number:Number(pair[1]||0),
+          common:guarded?definition.guardSoundCommon!==false:definition.hitSoundCommon!==false,
+          channel:-1,character:attacker.character.path,entity:attacker.id});
+    }
     this.sparks = this.sparks.filter((s) => ++s.age < 12);
     if (this.sparks.length > 256)
       this.sparks.splice(0, this.sparks.length - 256);
@@ -543,24 +598,32 @@ export class CoreSession {
           effect,
         });
     }
+    for(const gameEffect of this.gameEffects)
+      layers.push({priority:gameEffect.under?-1000:1000,gameEffect});
     layers.sort((a, b) => a.priority - b.priority);
-    for (const { actor, effect } of layers) {
+    for (const { actor, effect, gameEffect } of layers) {
+      if(gameEffect){
+        const pos=world(gameEffect.pos),unit=zoom*(gameEffect.scale??this.commonEffects.scale);
+        this.quad(draws,gameEffect.resource||this.commonEffects.resource,sampleAnimation(gameEffect.animation,gameEffect.frameIndex,gameEffect.frameTime),{
+          ...pos,sx:unit,sy:unit,facing:gameEffect.facing,remaps:null,palette:this.effects.paletteFor(gameEffect.owner)
+        });
+        continue;
+      }
       if (effect) {
-        if (effect.common) {
-          this.issue(
-            "common-effects",
-            "Character requested an unavailable shared effect animation.",
-          );
+        const resource = effect.common ? this.commonEffects.resource : actor.character;
+        if (!resource) {
+          this.issue("common-effects", "Character requested an unavailable shared effect sprite bank.");
           continue;
         }
         const pos =
             effect.space === "screen"
               ? { x: effect.pos.x * scale, y: effect.pos.y * scale }
               : world(effect.pos),
-          unit = (effect.coordinateScale ?? baseScale(actor)) * zoom;
+          unit = (effect.coordinateScale ?? baseScale(actor)) * zoom *
+            (effect.common ? this.commonEffects.scale : 1);
         this.quad(
           draws,
-          actor.character,
+          resource,
           sampleAnimation(
             effect.animation,
             effect.frameIndex,
@@ -574,7 +637,7 @@ export class CoreSession {
             angle: effect.angle || 0,
             xangle: effect.xangle || 0,
             yangle: effect.yangle || 0,
-            remaps: effect.ownpal ? effect.paletteRemaps : actor.paletteRemaps,
+            remaps: effect.common ? null : effect.ownpal ? effect.paletteRemaps : actor.paletteRemaps,
             palette: this.effects.paletteFor(effect.source || actor),
             trans: effect.trans,
           },
@@ -650,6 +713,8 @@ export class CoreSession {
           }
         : null,
       ground,
+      // Expose IKEMEN match-wide shadow suppression until sprite shadows are implemented.
+      suppressCharacterShadows:m.entities.some(a=>a.asserted.has('globalnoshadow')),
       grid:
         !m.stage ||
         (!m.stage.definition.sprite &&
@@ -708,6 +773,7 @@ export class CoreSession {
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
     this.sent.clear();
+    this.gameEffects=[];
     this.events = [];
   }
 }

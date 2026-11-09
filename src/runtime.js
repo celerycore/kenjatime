@@ -52,6 +52,9 @@ export function parseSections(text, source = '<script>') {
 }
 
 const DEFAULT_CONSTANTS = {
+  'statetagenteringscreen': 6565600, 'statetagleavingscreen': 6565610,
+  'statetagwaitingoutside': 6565611, 'statetagjumpingin': 6565620,
+  'statetaglanding': 6565621,
   'data.life': 1000, 'data.power': 3000, 'data.attack': 100, 'data.defence': 100,
   'data.airjuggle': 15, 'data.liedown.time': 60, 'data.sparkno': 2, 'data.guard.sparkno': 40,
   'data.fall.defence_up':50,'data.ko.echo':0,'data.intpersistindex':60,'data.floatpersistindex':40,
@@ -99,10 +102,10 @@ const CONTROLLERS = new Set([
   'angleadd', 'angleset', 'anglemul', 'angledraw', 'offset', 'destroyself',
   'helper', 'projectile', 'pause', 'superpause', 'afterimage', 'afterimagetime', 'trans', 'movehitreset', 'attackdist', 'reversaldef', 'envcolor', 'fallenvshake', 'remappal',
   'makedust','gamemakeanim','forcefeedback','displaytoclipboard','appendtoclipboard','clearclipboard','victoryquote',
-  'mapset','mapadd',
+  'mapset','mapadd','rootmapset','rootmapadd','modifyplayer',
 ]);
 export const supportedControllers = new Set(CONTROLLERS);
-export const supportedTriggers = new Set(['time','stateno','prevstateno','anim','animelem','animtime','ctrl','statetype','movetype','physics','life','lifemax','power','powermax','facing','alive','gametime','hitpausetime','hitshakeover','hitover','movecontact','movehit','moveguarded','movereversed','hitcount','uniqhitcount','numhelper','numexplod','numtarget','numenemy','numpartner','ishelper','roundstate','roundno','matchno','teamside','teampower','tickspersecond','ailevel','palno','id','name','authorname','numproj','win','lose','drawgame','inguarddist','canrecover','pos x','pos y','vel x','vel y','screenpos x','screenpos y','command','const','const240p','const480p','const720p','random','animexist','selfanimexist','animelemtime','animelemno','gethitvar','playeridexist','p2name','p2life','p2stateno','p2statetype','p2movetype','p2bodydist x','p2dist x','p2bodydist y','p2dist y','hitdefattr','roundsexisted','camerapos x','camerapos y','hitfall','hitvel x','hitvel y','frontedgedist','backedgedist','frontedgebodydist','backedgebodydist','var','fvar','sysvar','sysfvar']);
+export const supportedTriggers = new Set(['time','stateno','prevstateno','anim','animelem','animtime','ctrl','statetype','movetype','physics','life','lifemax','power','powermax','facing','alive','gametime','hitpausetime','hitshakeover','hitover','movecontact','movehit','moveguarded','movereversed','hitcount','uniqhitcount','numhelper','numexplod','numtarget','numenemy','numpartner','ishelper','roundstate','roundno','matchno','teamside','teampower','tickspersecond','ailevel','palno','id','name','authorname','numproj','win','lose','drawgame','inguarddist','canrecover','pos x','pos y','vel x','vel y','screenpos x','screenpos y','command','const','const240p','const480p','const720p','random','animexist','selfanimexist','animelemtime','animelemno','gethitvar','playeridexist','p2name','p2life','p2stateno','p2statetype','p2movetype','p2bodydist x','p2dist x','p2bodydist y','p2dist y','hitdefattr','reversaldefattr','pausetime','incustomstate','ailevelf','gamemode','standby','attack','defence','sprpriority','inputtime','receiveddamage','receivedhits','roundsexisted','camerapos x','camerapos y','hitfall','hitvel x','hitvel y','frontedgedist','backedgedist','frontedgebodydist','backedgebodydist','var','fvar','sysvar','sysfvar']);
 supportedTriggers.add('teammode');
 supportedTriggers.add('map');
 supportedTriggers.add('ishometeam');
@@ -115,13 +118,13 @@ const requiredParameters=new Map();
 for(const type of ['attackdist','attackmulset','changeanim','changeanim2','changestate','selfstate','ctrlset','defencemulset','hitadd','lifeadd','lifeset','playerpush','playsnd','poweradd','powerset','targetfacing','targetlifeadd','targetpoweradd','targetstate'])requiredParameters.set(type,['value']);
 for(const [type,keys]of Object.entries({afterimagetime:['time'],assertspecial:['flag'],assertinput:['flag'],displaytoclipboard:['text'],appendtoclipboard:['text'],envshake:['time'],explod:['anim'],hitdef:['attr'],pause:['time'],reversaldef:['reversal.attr'],sndpan:['channel'],stopsnd:['channel'],trans:['trans'],varrandom:['v']}))requiredParameters.set(type,keys);
 const controllerMetadata=new WeakMap();
-for(const type of ['mapset','mapadd'])requiredParameters.set(type,['map','value']);
+for(const type of ['mapset','mapadd','rootmapset','rootmapadd'])requiredParameters.set(type,['map','value']);
 function controllerRules(controller){
   if(controllerMetadata.has(controller))return controllerMetadata.get(controller);
   const rules={ignorehitpause:0,persistent:1,groups:new Map(),errors:[],warnings:[]};
   for(const key of requiredParameters.get(controller.type)||[])if(controller.values[key]===undefined)rules.errors.push({line:controller.line,message:`${controller.type} requires ${key}.`});
   if(['varset','varadd','varmul','parentvarset','parentvaradd'].includes(controller.type)&&!controller.entries.some(e=>/^(?:var|fvar|sysvar|sysfvar)\s*\(/.test(e.key))){
-    if(controller.values.v===undefined&&controller.values.fv===undefined)rules.errors.push({line:controller.line,message:`${controller.type} requires v or fv (or alternate variable assignment syntax).`});
+    if(controller.values.v===undefined&&controller.values.fv===undefined&&controller.values.sysv===undefined&&controller.values.sysfv===undefined)rules.errors.push({line:controller.line,message:`${controller.type} requires v or fv (or alternate variable assignment syntax).`});
     if(controller.values.value===undefined)rules.errors.push({line:controller.line,message:`${controller.type} requires value.`});
   }
   if(controller.type==='varrangeset'&&controller.values.value===undefined&&controller.values.fvalue===undefined)rules.errors.push({line:controller.line,message:'VarRangeSet requires value or fvalue.'});
@@ -221,7 +224,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
           if(isFunction)functions.set(value.name,value);
           else{
             const id=staticValue(value.idExpression);if(!Number.isInteger(id)||id< -2147483648||id>2147483647)throw new ZssError('State number must be a signed 32-bit integer constant.',source,value.line);
-            if(id===-4||value.idExpression.replace(/\s/g,'')==='+1')throw new ZssError('Extended global states -4/+1 are not scheduled by this preview.',source,value.line);
+            if(value.idExpression.replace(/\s/g,'')==='+1')throw new ZssError('Extended global state +1 is not scheduled by this preview.',source,value.line);
             value.id=id;states.set(id,value);
             const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
             for(const entry of value.entries)if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
@@ -329,8 +332,8 @@ export class FighterRuntime {
     this.collisionAnimation=null;this.collisionFrameIndex=0;this.collisionFrameTime=0;
     this.hitDef = null; this.reversalDef = null; this.moveReversed = 0; this._hitSerial = 0; this.hitPauseTime = 0; this.hitTime = -1;
     this.hitId=-1;this.hitSourceId=undefined;this._spentHitDefs=new WeakSet();this.inGuardDistance=false;this._projectileContactShield=false;
-    this.moveContact = 0; this.moveHit = 0; this.moveGuarded = 0; this.hitCount = 0;this.uniqHitCount=0;this.comboHits=0;this._lastHitCountTick=null;
-    this.getHitVars = initialHitVariables(this);this._fallXVelocityDefined=false;this._fallDefenceMultiplier=1;this._previousInput=new Set();this.rawInput=new Set();this._fallEntry=-1; this.targets = [];this.targetHitIds=new Map(); this.helpers = []; this.explods = [];this.drawExplods=[];
+    this.moveContact = 0; this.moveHit = 0; this.moveGuarded = 0; this.hitCount = 0;this.uniqHitCount=0;this.comboHits=0;this._lastHitCountTick=null;this._receivedComboDamage=0;this._receivedComboHits=0;
+    this.getHitVars = initialHitVariables(this);this._fallXVelocityDefined=false;this._fallDefenceMultiplier=1;this._previousInput=new Set();this.rawInput=new Set();this._inputDurations=new Map();this._fallEntry=-1; this.targets = [];this.targetHitIds=new Map(); this.helpers = []; this.explods = [];this.drawExplods=[];
     this.events = []; this.commands = new Set(); this.asserted = new Set(); this.opponent = null;
     this.pendingAssertedInputs=new Set();
     this.maps=new Map(this.program.initialMaps||[]);this._zssContext=null;this._zssSteps=0;
@@ -447,7 +450,7 @@ export class FighterRuntime {
       else if (type === 'playerid') target = this.world?.findPlayer(+redirect.args[0]) || [this, this.opponent, ...this.helpers].find(t => t?.id === +redirect.args[0]);
       else throw new Error(`Unsupported redirection: ${type}`);
       if (!target || target.destroyed) { const error = new Error(`Redirection ${type} has no matching player`); error.bottom = true; throw error; }
-      return target.resolveTrigger(name,args,null,scale);
+      return target.resolveTrigger(name,args,redirect.child || null,scale);
     }
     if (['var', 'fvar', 'sysvar', 'sysfvar'].includes(name)) {
       const array = this.variableArray(name), index = integer(args[0]);
@@ -457,6 +460,23 @@ export class FighterRuntime {
     const simpleField=simpleTriggerFields.get(name);
     if(simpleField)return this[simpleField];
     if(name==='map')return {value:this.maps.get(String(args[0]).toLowerCase())||0,float:true};
+    if(name==='pausetime')return Math.max(this.world?.pause?.remaining||0,this.world?.superPause?.remaining||0);
+    if(name==='incustomstate')return +(this.stateOwner!==this);
+    if(name==='ailevelf')return {value:Math.fround(this.aiLevel||0),float:true};
+    if(name==='standby')return 0; // Tag standby currently unsupported by Core.
+    if(name==='gamemode')return this.world?.gameMode || 'training';
+    if(name==='attack')return this.constant('data.attack');
+    if(name==='defence')return this.constant('data.defence');
+    if(name==='sprpriority')return this.sprPriority;
+    if(name==='receiveddamage')return this.moveType==='H'?this._receivedComboDamage:0;
+    if(name==='receivedhits')return this.moveType==='H'?this._receivedComboHits:0;
+    if(name==='inputtime'){
+      if(!this.keyCtrl)return 0;
+      const raw=String(args[0]??'');
+      const key=['f','b','u','d','l','r'].includes(raw.toLowerCase())?raw.toUpperCase():raw;
+      const physical=key==='F'?(this.facing===1?'R':'L'):key==='B'?(this.facing===1?'L':'R'):key;
+      return this._inputDurations.get(physical)||0;
+    }
     if (name === 'command') return +this.commands.has(String(args[0]));
     if (name === 'const') return this.constant(args[0],scale);
     if (name === 'const240p') return numeric(args[0]) / this.coordinateScale;
@@ -550,9 +570,10 @@ export class FighterRuntime {
       return distance;
     }
     if (name === 'p2bodydist y' || name === 'p2dist y') return other ? (other.pos.y - this.pos.y) / scale : 0;
-    if (name === 'hitdefattr') {
-      if(this.moveType!=='A'||!this.hitDef?.attr)return 0;
-      return +matchAttribute(args.map(String).join(','),this.hitDef.attr);
+    if (name === 'hitdefattr' || name === 'reversaldefattr') {
+      const hit = name === 'reversaldefattr' ? this.reversalDef?.['reversal.attr'] : this.hitDef?.attr;
+      if (!hit || name === 'hitdefattr' && this.moveType !== 'A') return 0;
+      return +matchAttribute(args.map(String).join(','),hit);
     }
     if (Object.hasOwn(values, name)) return values[name];
     throw new UnsupportedExpressionError(`Unsupported trigger: ${name}`);
@@ -732,7 +753,8 @@ export class FighterRuntime {
 
   tick({ commands = new Set(), opponent = null, paused: worldPaused = false,input=null } = {}) {
     const ordered=this.world?.orderedPhases;
-    if(!worldPaused)this._zssSteps=0;
+    // Global IKEMEN state -4 executes even during game pause.
+    this._zssSteps=0;
     let resumedAnimation=false;
     if(ordered&&!worldPaused&&this._pausedAnimation){
       if(this._pausedAnimation.serial===this._animationSerial){restoreAnimationClock(this,this._pausedAnimation.logic);resumedAnimation=true;}
@@ -744,6 +766,19 @@ export class FighterRuntime {
     if(ordered&&this._pendingStateEntry&&!worldPaused){const pending=this._pendingStateEntry;this._pendingStateEntry=null;this.stateNo=pending.oldState;this.stateOwner=pending.oldOwner;this.changeState(pending.number,pending.ctrl,pending.owner);}
     this.events = []; this.commands = commands; this.opponent = opponent;
     sampleRecoveryInput(this,input,commands);
+    // IKEMEN InputTime counts raw physical button durations during pauses.
+    if(this.keyCtrl){
+      const pressed=new Set(input||[]),all=new Set([...this._inputDurations.keys(),...pressed]);
+      for(const key of all){const prev=this._inputDurations.get(key)||0,down=pressed.has(key);
+        this._inputDurations.set(key,down?prev>0?Math.min(prev+1,360000):1:prev<0?Math.max(prev-1,-360000):-1);
+      }
+    }
+    const previousAnimationFrozen=this.asserted.has('animfreeze');
+    if(!this.destroyed){
+      this.asserted=new Set();
+      this._executing=null;
+      this.runState(-4,false,this);
+    }
     if (worldPaused || this.destroyed) {if(!this.world)this.updateExplods({forceFrozen:true});this.gameTime++; return this.events; }
     this._executing = null;
     const paused = this.hitPauseTime > 0;
@@ -753,15 +788,15 @@ export class FighterRuntime {
         if(!this._pausedAnimation){
           const visible=captureAnimationClock(this);
           this._pausedAnimation={visible,draw:visible,logic:null,serial:this._animationSerial};
-          if(!resumedAnimation&&animationSerial===this._animationSerial&&!shaking)this.advanceAnimation();
+          if(!resumedAnimation&&animationSerial===this._animationSerial&&!shaking&&!previousAnimationFrozen&&!this.asserted.has('animfreeze'))this.advanceAnimation();
         }
         this._inPausedAnimation=true;
       }else{
         this._pausedAnimation=null;
-        if(!resumedAnimation&&animationSerial===this._animationSerial&&!shaking)this.advanceAnimation();
+        if(!resumedAnimation&&animationSerial===this._animationSerial&&!shaking&&!previousAnimationFrozen&&!this.asserted.has('animfreeze'))this.advanceAnimation();
       }
     }
-    this.asserted = new Set();this.posFrozen=false;
+    this.posFrozen=false;
     if(!paused){
       this.playerPush=!this.parent;this.screenBound=!this.parent;this.moveCamera={x:!this.parent,y:!this.parent};this._previousWidth=this.width;this.width=null;
     }
@@ -872,7 +907,18 @@ export class FighterRuntime {
     const text = (key, fallback = '') => this.text(controller, key, fallback);
     if (!CONTROLLERS.has(type)) { this.diagnostic('unsupported-controller', `Controller ${type || '(missing type)'} is not implemented.`, controller); return; }
     if (type === 'null') return;
-    if(type==='mapset'||type==='mapadd'){this.setMap(text('map'),num('value'),type==='mapadd');return;}
+    if(['mapset','mapadd','rootmapset','rootmapadd'].includes(type)){
+      const target=type.startsWith('root')?(this.parent?this.root:null):this;
+      if(target&&!target.destroyed)target.setMap(text('map'),num('value'),type.endsWith('add'));
+      return;
+    }
+    if(type==='modifyplayer'){
+      const supported=new Set(['type','trigger1','pausemovetime','supermovetime']);
+      if(controller.values.pausemovetime!==undefined)this.pauseMoveTime=Math.max(0,int('pausemovetime'));
+      if(controller.values.supermovetime!==undefined)this.superMoveTime=Math.max(0,int('supermovetime'));
+      for(const key of Object.keys(controller.values))if(!supported.has(key))this.diagnostic('unsupported-modifyplayer-parameter',`ModifyPlayer parameter ${key} is not implemented.`,controller);
+      return;
+    }
     if(type==='assertinput'){
       if(!this.world?.manageInputs){this.diagnostic('unsupported-input-routing','AssertInput needs the independent input scheduler.');return;}
       for(const entry of controller.entries)if(/^flag\d*$/.test(entry.key))for(const value of this.text(controller,entry.key).split(/[+|\s,]+/).filter(Boolean)){
@@ -978,8 +1024,9 @@ export class FighterRuntime {
       if (!target || target.destroyed) return;
       let assignments = controller.entries.filter(e => /^(var|fvar|sysvar|sysfvar)\s*\(/.test(e.key));
       if (!assignments.length) {
-        const kind = controller.values.fv !== undefined ? 'fvar' : 'var';
-        assignments = [{ key: `${kind}(${int(kind === 'fvar' ? 'fv' : 'v')})`, value: controller.values.value ?? '0' }];
+        const kind = controller.values.sysfv !== undefined ? 'sysfvar' : controller.values.sysv !== undefined ? 'sysvar' : controller.values.fv !== undefined ? 'fvar' : 'var';
+        const indexKey = kind === 'sysfvar' ? 'sysfv' : kind === 'sysvar' ? 'sysv' : kind === 'fvar' ? 'fv' : 'v';
+        assignments = [{ key: `${kind}(${int(indexKey)})`, value: controller.values.value ?? '0' }];
       }
       for (const assignment of assignments) {
         const match = assignment.key.match(/^(var|fvar|sysvar|sysfvar)\s*\((.*)\)$/);
@@ -1009,7 +1056,7 @@ export class FighterRuntime {
     if (type === 'lifeadd' || type === 'lifeset') {
       let value = int('value');
       if (type === 'lifeadd') {value=-scaledDamage(-value,null,this,{absolute:!!num('absolute')});value+=this.life;}
-      this.life = clamp(value, num('kill', 1) ? 0 : 1, this.maxLife); return;
+      this.life = clamp(value, this.immortal||!num('kill', 1) ? 1 : 0, this.maxLife); return;
     }
     if (type === 'poweradd' || type === 'powerset') { this.power = clamp(int('value') + (type === 'poweradd' ? this.power : 0), 0, this.maxPower); return; }
     if (type === 'attackmulset') { this.attackMultiplier = num('value', 1); return; }
@@ -1024,7 +1071,7 @@ export class FighterRuntime {
       const edge=vec('edge',common);this.width={front:integer(front),back:integer(back),edge:[integer(edge[0]??0),integer(edge[1]??0)]}; return;
     }
     if (type === 'assertspecial') {
-      const supported = new Set(['nowalk', 'nojump', 'nocrouch', 'noautoturn', 'invisible', 'noshadow', 'unguardable', 'noairguard', 'nostandguard', 'nocrouchguard','nojugglecheck','intro','roundnotover','timerfreeze','noko','nobardisplay','nobg','nofg','nomusic']);
+      const supported = new Set(['nowalk', 'nojump', 'nocrouch', 'noautoturn', 'invisible', 'noshadow', 'unguardable', 'noairguard', 'nostandguard', 'nocrouchguard','nojugglecheck','intro','roundnotover','timerfreeze','noko','nobardisplay','nobg','nofg','nomusic','animfreeze','globalnoshadow']);
       for (const key of ['flag', 'flag2', 'flag3']) if (controller.values[key]) {
         const flag = text(key).toLowerCase(); this.asserted.add(flag);
         if (!supported.has(flag)) this.diagnostic('unsupported-flag', `AssertSpecial flag ${flag} is not implemented.`, controller);
@@ -1144,6 +1191,8 @@ export class FighterRuntime {
     for (const entry of controller.entries) {
       if (/^(type|triggerall|trigger\d+|persistent|ignorehitpause)$/.test(entry.key)) continue;
       if (symbolic.has(entry.key) && !/^-?[\d.]+$/.test(entry.value)) { result[entry.key] = unquote(entry.value); continue; }
+      // IKEMEN redirectid takes one redirected expression, including commas.
+      if (entry.key === 'redirectid') { result[entry.key] = this.parameter(entry.value, controller); continue; }
       const parts = splitArguments(entry.value);
       const evaluated = parts.map(part => {
         // S before a sound or animation index denotes the character resource bank.
@@ -1176,6 +1225,9 @@ export class FighterRuntime {
       id,position:pos,facing,parent:this,root:this.root,helperId:Math.trunc(spec.id||0),keyCtrl:!!spec.keyctrl,
       ownPal:!!spec.ownpal,teamSide:this.teamSide,pauseMoveTime:spec.pausemovetime||0,superMoveTime:spec.supermovetime||0});
     helper.name = spec.name || `${this.name}'s helper`; helper.opponent = this.opponent;
+    helper.immortal = !!spec.immortal;
+    for(const [key,value] of Object.entries(spec))if(key.startsWith('map.'))
+      helper.setMap(key.slice(4),value);
     // Legacy helper bindtime is an optional compatibility extension used by
     // Rare Akuma. Bind the new helper to its initial p1/p2 spawn anchor;
     // expiry releases it without touching ordinary BindToParent controllers.
@@ -1196,8 +1248,8 @@ export class FighterRuntime {
     }
     if(spec.ownpal)helper._paletteRemaps=copyPaletteRemaps(this.paletteRemaps);
     if(spec.ownpal)this.events.push({type:'palettesnapshot',target:helper});
-    const known=new Set(['id','name','stateno','postype','pos','facing','bindtime','helpertype','keyctrl','ownpal','pausemovetime','supermovetime','remappal','source','line']);
-    for(const key of Object.keys(spec))if(!known.has(key)&&!key.startsWith('size.'))helper.diagnostic('unsupported-helper',`Helper parameter ${key} is not implemented.`);
+    const known=new Set(['id','name','stateno','postype','pos','facing','bindtime','helpertype','keyctrl','ownpal','pausemovetime','supermovetime','remappal','immortal','source','line']);
+    for(const key of Object.keys(spec))if(!known.has(key)&&!key.startsWith('size.')&&!key.startsWith('map.'))helper.diagnostic('unsupported-helper',`Helper parameter ${key} is not implemented.`);
     if(spec.ownpal&&spec.remappal!==undefined)try{remapAllPalettes(helper.paletteRemaps,helper.character,spec.remappal);}catch(error){helper.diagnostic('palette',error.message);}
     if (!helper.changeState(spec.stateno ?? 0)) { helper.destroyed = true; return helper; }
     this.helpers.push(helper); return helper;
@@ -1283,7 +1335,10 @@ export class FighterRuntime {
     if(!guarded&&hit.forcestand && this.stateType==='C')this.stateType='S';
     const baseDamage = numeric(hit.damage?.[guarded ? 1 : 0] || 0);
     const damage = Math.max(0,scaledDamage(baseDamage,attacker,this));
-    const ordered=this.world?.orderedPhases,minimum=(guarded?hit['guard.kill']:hit.kill)===0?1:0,projected=clamp((this._projectedLife??this.life)-damage,minimum,this.maxLife);
+    // IKEMEN received counters track consecutive non-guarded hit contacts.
+    this._receivedComboHits = guarded ? 0 : (inCombo ? this._receivedComboHits : 0) + 1;
+    this._receivedComboDamage = guarded ? 0 : (inCombo ? this._receivedComboDamage : 0) + damage;
+    const ordered=this.world?.orderedPhases,minimum=this.immortal||((guarded?hit['guard.kill']:hit.kill)===0)?1:0,projected=clamp((this._projectedLife??this.life)-damage,minimum,this.maxLife);
     if(ordered)this._projectedLife=projected;else this.life=projected;
     const hitTransform={},hitFacing=attacker&&hit.p2facing?(ordered?-1:1)*impactFacing*(hit.p2facing<0?-1:1):this.facing;
     if(attacker&&hit.p2facing){if(ordered)hitTransform.facing=hitFacing;else this.facing=hitFacing;}
