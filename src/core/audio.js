@@ -40,6 +40,8 @@ export class CoreAudio {
     this.free = 0;
     this.closed = false;
     this.lastError = null;
+    this.musicSuppressed = false;
+    this.manuallyPaused = false;
   }
 
   prepare() {
@@ -62,11 +64,22 @@ export class CoreAudio {
   }
 
   pause(on) {
+    this.manuallyPaused = !!on;
     this.output.pause(on);
-    if (this.music) {
-      if (on) this.music.pause();
-      else this.music.play().catch(() => {});
-    }
+    this.syncMusicPlayback();
+  }
+
+  setMusicSuppressed(on) {
+    if (this.closed || this.musicSuppressed === !!on) return;
+    this.musicSuppressed = !!on;
+    this.syncMusicPlayback();
+  }
+
+  syncMusicPlayback() {
+    if (!this.music) return;
+    if (this.musicSuppressed || this.manuallyPaused || this.output.status().paused)
+      this.music.pause();
+    else this.music.play().catch(() => {});
   }
 
   mute(enabled) {
@@ -316,7 +329,7 @@ export class CoreAudio {
     this.music.loop = loop;
     this.musicNode = this.output.media(this.music);
     this.musicNode?.volume(bounded(volume / 100, 0, 1, 1));
-    if (!this.output.status().paused) this.music.play().catch(() => {});
+    this.syncMusicPlayback();
   }
 
   close() {
