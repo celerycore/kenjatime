@@ -66,10 +66,9 @@ try{
     report.parseDiagnostics.push({type:'missing-compiled-state',id});
   session.bank(resource);
   const spritePairs=session.indices.get(resource);
-  const seen=new Set();
-  for(const action of resource.animations){
-    if(seen.has(action.id))continue; // duplicate AIR action IDs resolve to the last definition
-    seen.add(action.id);
+  // Map agrees with FighterRuntime: the last duplicate AIR action wins.
+  const effectiveAnimations=new Map(resource.animations.map(action=>[action.id,action]));
+  for(const action of effectiveAnimations.values()){
     const result={id:action.id,frames:action.frames.length,missingSourceSprites:0,
       decodedSample:false,changed:false,packet:false,error:null};
     const present=[];
