@@ -1024,7 +1024,7 @@ export class FighterRuntime {
       const edge=vec('edge',common);this.width={front:integer(front),back:integer(back),edge:[integer(edge[0]??0),integer(edge[1]??0)]}; return;
     }
     if (type === 'assertspecial') {
-      const supported = new Set(['nowalk', 'nojump', 'nocrouch', 'noautoturn', 'invisible', 'noshadow', 'unguardable', 'noairguard', 'nostandguard', 'nocrouchguard','nojugglecheck','intro','roundnotover','timerfreeze','noko','nobardisplay','nobg','nofg']);
+      const supported = new Set(['nowalk', 'nojump', 'nocrouch', 'noautoturn', 'invisible', 'noshadow', 'unguardable', 'noairguard', 'nostandguard', 'nocrouchguard','nojugglecheck','intro','roundnotover','timerfreeze','noko','nobardisplay','nobg','nofg','nomusic']);
       for (const key of ['flag', 'flag2', 'flag3']) if (controller.values[key]) {
         const flag = text(key).toLowerCase(); this.asserted.add(flag);
         if (!supported.has(flag)) this.diagnostic('unsupported-flag', `AssertSpecial flag ${flag} is not implemented.`, controller);
@@ -1176,9 +1176,27 @@ export class FighterRuntime {
       id,position:pos,facing,parent:this,root:this.root,helperId:Math.trunc(spec.id||0),keyCtrl:!!spec.keyctrl,
       ownPal:!!spec.ownpal,teamSide:this.teamSide,pauseMoveTime:spec.pausemovetime||0,superMoveTime:spec.supermovetime||0});
     helper.name = spec.name || `${this.name}'s helper`; helper.opponent = this.opponent;
+    // Legacy helper bindtime is an optional compatibility extension used by
+    // Rare Akuma. Bind the new helper to its initial p1/p2 spawn anchor;
+    // expiry releases it without touching ordinary BindToParent controllers.
+    if (spec.bindtime !== undefined) {
+      const time = integer(spec.bindtime);
+      if (time < -1 || time > 360000) throw Error('Helper bindtime must be -1 or between 0 and 360000 ticks.');
+      if (time !== 0) {
+        const postype = String(spec.postype || 'p1').toLowerCase();
+        const target = postype === 'p2' ? this.opponent : postype === 'p1' ? this : null;
+        if (target && !target.destroyed) {
+          const [x=0, y=0] = Array.isArray(spec.pos) ? spec.pos : [spec.pos ?? 0,0];
+          helper.bound = { target, x: numeric(x) * this.coordinateScale,
+            y: numeric(y) * this.coordinateScale, time, facing: numeric(spec.facing ?? 1) };
+        } else if (postype === 'p1' || postype === 'p2') {
+          helper.diagnostic('missing-player', 'Helper bindtime target is unavailable.');
+        }
+      }
+    }
     if(spec.ownpal)helper._paletteRemaps=copyPaletteRemaps(this.paletteRemaps);
     if(spec.ownpal)this.events.push({type:'palettesnapshot',target:helper});
-    const known=new Set(['id','name','stateno','postype','pos','facing','helpertype','keyctrl','ownpal','pausemovetime','supermovetime','remappal','source','line']);
+    const known=new Set(['id','name','stateno','postype','pos','facing','bindtime','helpertype','keyctrl','ownpal','pausemovetime','supermovetime','remappal','source','line']);
     for(const key of Object.keys(spec))if(!known.has(key)&&!key.startsWith('size.'))helper.diagnostic('unsupported-helper',`Helper parameter ${key} is not implemented.`);
     if(spec.ownpal&&spec.remappal!==undefined)try{remapAllPalettes(helper.paletteRemaps,helper.character,spec.remappal);}catch(error){helper.diagnostic('palette',error.message);}
     if (!helper.changeState(spec.stateno ?? 0)) { helper.destroyed = true; return helper; }
@@ -1199,6 +1217,10 @@ export class FighterRuntime {
       } catch { throw new Error(`HitDef parameter ${entry.key} could not be evaluated; attack disabled.`); }
     }
     const vector = (key, fallback) => Array.isArray(hit[key]) ? hit[key] : hit[key] === undefined ? [...fallback] : [hit[key], fallback[1] ?? 0];
+    // Pre-2002 HitDef 'sprpriority' was renamed to 'p1sprpriority'.
+    // Explicit modern p1sprpriority wins if a script uses both spellings.
+    if(hit.sprpriority!==undefined && hit.p1sprpriority===undefined)
+      hit.p1sprpriority=hit.sprpriority;
     hit.attr = hit.attr ?? `${this.stateType}, NA`;
     hit.id=integer(hit.id??0);hit.chainid=integer(hit.chainid??-1);
     const noChain=hit.nochainid===undefined?[-1,-1]:Array.isArray(hit.nochainid)?hit.nochainid:[hit.nochainid,-1];
@@ -1227,7 +1249,7 @@ export class FighterRuntime {
     hit.sparkCommon = !/^s/i.test(raw.sparkno || ''); hit.guardSparkCommon = !/^s/i.test(raw['guard.sparkno'] || '');
     hit.hitSoundCommon = !/^s/i.test(raw.hitsound || ''); hit.guardSoundCommon = !/^s/i.test(raw.guardsound || '');
     hit.sparkno ??= this.constant('data.sparkno'); hit['guard.sparkno'] ??= this.constant('data.guard.sparkno');
-    const consumed = new Set(['attr','damage','pausetime','guard.pausetime','ground.velocity','air.velocity','guard.velocity','airguard.velocity','ground.hittime','air.hittime','guard.hittime','ground.slidetime','guard.slidetime','ground.ctrltime','guard.ctrltime','guardflag','hitflag','fall','forcenofall','kill','guard.kill','fall.kill','fall.damage','fall.xvelocity','fall.yvelocity','fall.recover','fall.recovertime','yaccel','animtype','air.animtype','ground.type','air.type','chainid','id','p1stateno','p2stateno','p2getp1state','p1facing','p1getp2facing','p2facing','p1sprpriority','p2sprpriority','numhits','getpower','givepower','priority','affectteam','guard.dist','down.velocity','down.hittime','air.fall','forcestand','air.juggle','fall.envshake.time','fall.envshake.ampl','fall.envshake.freq','fall.envshake.phase','sparkno','guard.sparkno','sparkxy','hitsound','guardsound','envshake.time','envshake.freq','envshake.ampl','envshake.phase','palfx.time','palfx.add','palfx.mul','palfx.sinadd','palfx.color','palfx.invertall']);
+    const consumed = new Set(['attr','damage','pausetime','guard.pausetime','ground.velocity','air.velocity','guard.velocity','airguard.velocity','ground.hittime','air.hittime','guard.hittime','ground.slidetime','guard.slidetime','ground.ctrltime','guard.ctrltime','guardflag','hitflag','fall','forcenofall','kill','guard.kill','fall.kill','fall.damage','fall.xvelocity','fall.yvelocity','fall.recover','fall.recovertime','yaccel','animtype','air.animtype','ground.type','air.type','chainid','id','p1stateno','p2stateno','p2getp1state','p1facing','p1getp2facing','p2facing','p1sprpriority','p2sprpriority','sprpriority','numhits','getpower','givepower','priority','affectteam','guard.dist','down.velocity','down.hittime','air.fall','forcestand','air.juggle','fall.envshake.time','fall.envshake.ampl','fall.envshake.freq','fall.envshake.phase','sparkno','guard.sparkno','sparkxy','hitsound','guardsound','envshake.time','envshake.freq','envshake.ampl','envshake.phase','palfx.time','palfx.add','palfx.mul','palfx.sinadd','palfx.color','palfx.invertall']);
     for(const key of ['fall.animtype','mindist','maxdist','snap','ground.cornerpush.veloff','air.cornerpush.veloff','down.cornerpush.veloff','guard.cornerpush.veloff','airguard.cornerpush.veloff','airguard.ctrltime'])consumed.add(key);
     consumed.add('hitonce');consumed.add('nochainid');consumed.add('down.bounce');
     for (const entry of controller.entries) {

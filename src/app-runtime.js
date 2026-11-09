@@ -22,6 +22,7 @@ import {mountTouchControls} from './touch-controls.js';
 import {mountArena} from './arena.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
 import {musicLoopPoints} from './audio.js';
+import {explodDrawPriority} from './explods.js';
 import {ForceFeedbackState} from './haptics.js';
 import {characterSpriteBank} from './palettes.js';
 import {exportFile} from './export-file.js';
@@ -528,7 +529,7 @@ export function mountApp({arena=false}={}) {
     const environment=mode==='training'?effects.environmentColor:null;if(environment?.under){ctx.fillStyle=`rgb(${environment.value.join(',')})`;ctx.fillRect(0,0,960,540);}
     if (mode === 'training' && match) {
       drawActors.length=0;drawLayers.length=0;drawCount=0;for(const actor of match.renderEntities)drawActors.push(actor);for(const actor of match.drawProjectiles)drawActors.push(actor);
-      for(const fighter of drawActors){if(!fighter.destroyed){for(const trail of effects.trailsFor(fighter))addDraw('trail',(fighter.sprPriority||0)-.1,fighter,trail);addDraw('fighter',fighter.sprPriority||0,fighter,null);}for(const effect of fighter.drawExplods||[])addDraw('explod',effect.ontop?1000:effect.sprpriority||0,fighter,effect);}
+      for(const fighter of drawActors){if(!fighter.destroyed){for(const trail of effects.trailsFor(fighter))addDraw('trail',(fighter.sprPriority||0)-.1,fighter,trail);addDraw('fighter',fighter.sprPriority||0,fighter,null);}for(const effect of fighter.drawExplods||[])addDraw('explod',explodDrawPriority(effect),fighter,effect);}
       for(const effect of impactEffects)addDraw('impact',effect.ontop?1000:effect.under?-1000:100,null,effect);
       for(let i=drawCount;i<drawPool.length;i++){drawPool[i].actor=null;drawPool[i].item=null;}
       drawLayers.sort((a,b)=>a.priority-b.priority||a.order-b.order);

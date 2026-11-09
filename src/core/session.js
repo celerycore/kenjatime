@@ -22,6 +22,7 @@ import {
 import { stageDefinitions } from "../stages.js";
 import { WasmExpressions } from "./wasm-expressions.js";
 import { stageClip, stageDrawPlans } from "./stage-draw.js";
+import { explodDrawPriority } from "../explods.js";
 import { luaModules, LuaMatch } from "./lua-match.js";
 import { videoScale } from "./video-source.js";
 
@@ -537,7 +538,7 @@ export class CoreSession {
         layers.push({ priority: actor.sprPriority || 0, actor });
       for (const effect of actor.drawExplods || [])
         layers.push({
-          priority: effect.ontop ? 1000 : effect.sprpriority || 0,
+          priority: explodDrawPriority(effect),
           actor,
           effect,
         });

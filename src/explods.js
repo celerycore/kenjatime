@@ -3,7 +3,8 @@ const pair=(value,fallback=[0,0])=>value===undefined?[...fallback]:Array.isArray
 const direction=value=>value<0?-1:1;
 const integer=value=>Math.trunc(Number(value));
 const commonAnim=raw=>/^\s*f(?=\s|[\d(+.-])/i.test(raw||'');
-const options=new Set(['anim','id','space','pos','facing','vfacing','bindid','bindtime','vel','velocity','accel','removetime','supermovetime','pausemovetime','scale','angle','xangle','yangle','sprpriority','ontop','shadow','ownpal','remappal','removeongethit','ignorehitpause','trans','alpha','postype','random','supermove']);
+export const explodDrawPriority = effect => effect.ontop ? 1000 : effect.under ? -1000 : effect.sprpriority || 0;
+const options=new Set(['anim','id','space','pos','facing','vfacing','bindid','bindtime','vel','velocity','accel','removetime','supermovetime','pausemovetime','scale','angle','xangle','yangle','sprpriority','under','ontop','shadow','ownpal','remappal','removeongethit','ignorehitpause','trans','alpha','postype','random','supermove']);
 
 function setPalette(owner,e,data,creating=false){
   const ownpal=data.ownpal===undefined?(creating?e.common:e.ownpal):!!data.ownpal;
@@ -52,9 +53,12 @@ function apply(owner,e,data,creating,controller){
     if(!bank.has(anim)||!bank.get(anim).frames?.length)throw Error(`Explod ${common?'common ':''}animation ${anim} does not exist or has no frames.`);
     e.anim=anim;e.common=common;e.animation=bank.get(anim);e.frameIndex=0;e.frameTime=0;
   }
-  for(const key of ['removetime','supermovetime','pausemovetime','sprpriority','angle','xangle','yangle','ontop','shadow','removeongethit','ignorehitpause','supermove'])if(data[key]!==undefined)e[key]=data[key];
+  for(const key of ['removetime','supermovetime','pausemovetime','sprpriority','under','angle','xangle','yangle','ontop','shadow','removeongethit','ignorehitpause','supermove'])if(data[key]!==undefined)e[key]=data[key];
   for(const key of ['removetime','supermovetime','pausemovetime','sprpriority'])e[key]=integer(e[key]??0);
   if(e.removetime< -2||integer(e.config.bindtime??0)< -1)throw Error('Invalid Explod removal or binding time.');
+  // Older custom characters sometimes apply GameMakeAnim's 'under' syntax
+  // to Explod. Support it as a layering hint, not as an animation offset.
+  if(data.under!==undefined)e.under=+!!Number(data.under);
   if(data.scale!==undefined)e.scale=pair(data.scale,[1,1]);
   if(data.trans!==undefined||data.alpha!==undefined)e.trans={mode:String(e.config.trans||'default').toLowerCase(),alpha:pair(e.config.alpha,[256,0])};
   if(data.vel!==undefined||data.velocity!==undefined||creating)e.velocity=pair(e.config.vel??e.config.velocity).map(v=>v*owner.coordinateScale);

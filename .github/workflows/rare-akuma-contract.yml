@@ -1,0 +1,33 @@
+name: Rare Akuma compatibility contract
+on:
+  pull_request:
+    branches: [source/independent-engine]
+    paths:
+      - 'src/**'
+      - 'scripts/core/verify-rare-akuma*'
+      - 'test/core/rare-akuma*'
+      - 'test/fixtures/core/rare-akuma*'
+      - '.github/workflows/rare-akuma-contract.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: node --check scripts/core/verify-rare-akuma-coverage.mjs
+      - run: node --check scripts/core/verify-rare-akuma.mjs
+      - run: node --check scripts/core/verify-rare-akuma-assets.mjs
+      - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js
+      - run: npm run test:core
+      - run: npm run test:core:compiled
+      - name: Explain opt-in full package replay
+        run: |
+          echo "The uploaded third-party Rare Akuma ZIP is intentionally not in Git."
+          echo "Run MUGEN_RARE_AKUMA=/path/to/local.zip npm run benchmark:core:rare-akuma to exercise the original archive."

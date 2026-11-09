@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { packageFiles } from "../../src/formats.js";
+import { packageFiles, charactersFromFiles } from "../../src/formats.js";
 if (!process.env.MUGEN_RARE_AKUMA)
   throw Error("Set MUGEN_RARE_AKUMA to the supplied RareAkuma.zip path.");
 const source = resolve(process.env.CORE_BASELINE || ".");
@@ -16,7 +16,9 @@ const bytes = readFileSync(process.env.MUGEN_RARE_AKUMA),
     ...packageFiles(bytes),
     ...packageFiles(readFileSync("public/kfm.zip")),
   };
-const character = Object.keys(files).find((p) => p.endsWith("rareakuma.def"));
+const character = charactersFromFiles(files).find((c) =>
+  String(c.def.info?.name || "").replace(/[^a-z0-9]/gi, "").toLowerCase() === "rareakuma"
+)?.path;
 if (!character) throw Error("RareAkuma.def is missing.");
 const session = new CoreSession(files, {
     character,
@@ -55,12 +57,12 @@ try {
         alive: !!actor.alive,
       });
   }
-  if (contact?.damage !== 50)
-    throw Error("The intended single contact was not exercised.");
+  if (contact?.damage !== 100)
+    throw Error("The expected 100-damage contact was not exercised for the provided defence=100 Rare Akuma archive.");
   if (
     !process.env.CORE_BASELINE &&
     (!actor.alive ||
-      actor.life !== 1961 ||
+      actor.life !== 1911 ||
       samples.filter((s) => s.damageDelta !== 0).length !== 1)
   )
     throw Error("Rare Akuma charged the controlled contact repeatedly.");

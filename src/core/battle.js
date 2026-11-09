@@ -141,6 +141,10 @@ export async function openCoreBattle({
       audio.musicFile(data);
       return;
     }
+    if (data.type === "music-suppression") {
+      audio.setMusicSuppressed(data.value);
+      return;
+    }
     if (data.type === "ready") {
       ready = true;
       host.querySelector("[role=status]").hidden = true;
