@@ -101,10 +101,13 @@ export function createCoreRuntime(emit) {
           const character = session.characters.find(
               (c) => c.path === event.character,
             ),
-            path = character?.checks.find(
+            path = event.common ? session.commonEffects.soundPath : character?.checks.find(
               (c) => c.key === "sound" && c.ok,
             )?.path;
-          if (!path || event.common) continue;
+          if (!path) {
+            if (event.common) session.issue('common-sound','Common sound requested, but the imported pack has no common.snd.');
+            continue;
+          }
           if (!sounds.has(path))
             sounds.set(path, soundArchive(session.files[path]));
           const group = event.group ?? event.value?.[0],
