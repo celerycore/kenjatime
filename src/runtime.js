@@ -52,6 +52,9 @@ export function parseSections(text, source = '<script>') {
 }
 
 const DEFAULT_CONSTANTS = {
+  'statetagenteringscreen': 6565600, 'statetagleavingscreen': 6565610,
+  'statetagwaitingoutside': 6565611, 'statetagjumpingin': 6565620,
+  'statetaglanding': 6565621,
   'data.life': 1000, 'data.power': 3000, 'data.attack': 100, 'data.defence': 100,
   'data.airjuggle': 15, 'data.liedown.time': 60, 'data.sparkno': 2, 'data.guard.sparkno': 40,
   'data.fall.defence_up':50,'data.ko.echo':0,'data.intpersistindex':60,'data.floatpersistindex':40,
