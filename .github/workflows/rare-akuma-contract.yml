@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'scripts/core/verify-rare-akuma*'
       - 'test/core/rare-akuma*'
+      - 'test/core/common-effects.test.js'
       - 'test/fixtures/core/rare-akuma*'
       - '.github/workflows/rare-akuma-contract.yml'
   workflow_dispatch:
@@ -25,9 +26,11 @@ jobs:
       - run: node --check scripts/core/verify-rare-akuma.mjs
       - run: node --check scripts/core/verify-rare-akuma-assets.mjs
       - run: node --check scripts/core/verify-rare-akuma-2026.mjs
-      - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js
+      - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/common-effects.test.js
       - run: npm run test:core
       - run: npm run test:core:compiled
+      - run: npm run build:core
+      - run: npm run verify:core:browser
       - name: Explain opt-in full package replay
         run: |
           echo "The uploaded third-party Rare Akuma ZIP is intentionally not in Git."
