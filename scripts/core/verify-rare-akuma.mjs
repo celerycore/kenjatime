@@ -57,12 +57,12 @@ try {
         alive: !!actor.alive,
       });
   }
-  if (contact?.damage !== 50)
-    throw Error("The intended single contact was not exercised.");
+  if (contact?.damage !== 100)
+    throw Error("The expected 100-damage contact was not exercised for the provided defence=100 Rare Akuma archive.");
   if (
     !process.env.CORE_BASELINE &&
     (!actor.alive ||
-      actor.life !== 1961 ||
+      actor.life !== 1911 ||
       samples.filter((s) => s.damageDelta !== 0).length !== 1)
   )
     throw Error("Rare Akuma charged the controlled contact repeatedly.");
