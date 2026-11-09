@@ -223,7 +223,7 @@ class Parser {
         if (attribute.type !== 'name' || !/^[nsha][atp]$/.test(attribute.value)) this.fail('HitDefAttr requires attack attributes such as NA or ST');
         attributes.push(attribute.value.toUpperCase());
       } while (this.peek().value === ',' && this.peek(1).type === 'name' && /^[nsha][atp]$/.test(this.peek(1).value) && this.accept(','));
-      return { kind: 'legacyattribute', op, attributes };
+      return { kind: 'legacyattribute', name, op, attributes };
     }
     let node;
     if (this.accept('(')) {
