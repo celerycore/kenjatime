@@ -4,15 +4,18 @@
  */
 import {animations, decodeText, ini, packagePath} from '../formats.js';
 
+export const hasCommonEffects = files => Object.keys(files||{}).some(path=>
+  /(^|\/)fightfx\.air$/i.test(path) && !!files[path.replace(/\.air$/i,'.sff')]);
+
 const normalize = path => String(path||'').replaceAll('\\','/').toLowerCase();
 
 /** Returns a shared animation map + a plain SFF resource for CoreSession.asset. */
-export function loadCommonEffects(files, {fightDef, character, stage} = {}) {
+export function loadCommonEffects(files, {fightDef, character, stage, effectsPackage} = {}) {
   const issues=[];
   const chosen=normalize(fightDef);
   // Library imports live under imports/<package-id>/; prefer the active
   // stage's motif, then the active character package.
-  const namespaces=[stage,character].map(value=>/^imports\/[^/]+\//.exec(normalize(value))?.[0]).filter(Boolean);
+  const namespaces=[effectsPackage,stage,character].map(value=>/^imports\/[^/]+\//.exec(normalize(value))?.[0]).filter(Boolean);
   const scopePrefixes=[...new Set([...namespaces,''])];
   const defPath = (chosen && files[chosen] && chosen) ||
     scopePrefixes.flatMap(prefix=>[prefix+'data/fight.def',prefix+'fight.def']).find(path=>files[path]);
