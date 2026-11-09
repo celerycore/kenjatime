@@ -132,6 +132,7 @@ export class CoreSession {
     this.assets = [];
     this.events = [];
     this.sparks = [];
+    this.gameEffects = [];
     this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
     this.videoSprites = new Map();
@@ -188,6 +189,20 @@ export class CoreSession {
     const match = this.match,
       paused = (e) => match.isFrozen(e) || e.hitPauseTime > 0;
     this.effects.advance({ paused });
+    this.gameEffects = this.gameEffects.filter(fx=>{
+      if (fx.owner?.destroyed || !fx.animation.frames.length) return false;
+      if (fx.owner && paused(fx.owner)) return true;
+      const frame=fx.animation.frames[fx.frameIndex];
+      if(frame.ticks<0) return true;
+      if(++fx.frameTime>=Math.max(1,frame.ticks)){
+        fx.frameTime=0;
+        if(++fx.frameIndex>=fx.animation.frames.length){
+          if(fx.animation.loopStart>0) fx.frameIndex=fx.animation.loopStart;
+          else return false;
+        }
+      }
+      return ++fx.age<3600;
+    });
     match.tick(new Set(), new Set(), {
       playerInput: left,
       opponentInput: right,
@@ -199,12 +214,20 @@ export class CoreSession {
     ];
     for (const entity of match.eventEntities) {
       this.effects.consume(entity.events, { entity });
-      for (const event of entity.events)
+      for (const event of entity.events) {
+        if (event.type === 'gameanim') {
+          const animation=this.commonEffects.animations.get(event.anim);
+          if (animation && this.commonEffects.resource){
+            if(this.gameEffects.length>=256)this.gameEffects.shift();
+            this.gameEffects.push({animation,frameIndex:0,frameTime:0,age:0,owner:entity,pos:event.pos,facing:event.facing,under:event.under});
+          }else this.issue('common-effects',`GameMakeAnim ${event.anim} requires imported fightfx AIR/SFF.`);
+        }
         if (["playsnd", "stopsnd", "sndpan"].includes(event.type))
           this.events.push({
             ...cloneEvent(event, entity.id),
             character: entity.character.path,
           });
+      }
     }
     for (const event of match.presentationEvents)
       this.effects.consume([event], { entity: event.entity || event.owner });
@@ -546,8 +569,17 @@ export class CoreSession {
           effect,
         });
     }
+    for(const gameEffect of this.gameEffects)
+      layers.push({priority:gameEffect.under?-1000:1000,gameEffect});
     layers.sort((a, b) => a.priority - b.priority);
-    for (const { actor, effect } of layers) {
+    for (const { actor, effect, gameEffect } of layers) {
+      if(gameEffect){
+        const pos=world(gameEffect.pos),unit=zoom*this.commonEffects.scale;
+        this.quad(draws,this.commonEffects.resource,sampleAnimation(gameEffect.animation,gameEffect.frameIndex,gameEffect.frameTime),{
+          ...pos,sx:unit,sy:unit,facing:gameEffect.facing,remaps:null,palette:this.effects.paletteFor(gameEffect.owner)
+        });
+        continue;
+      }
       if (effect) {
         const resource = effect.common ? this.commonEffects.resource : actor.character;
         if (!resource) {
@@ -710,6 +742,7 @@ export class CoreSession {
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
     this.sent.clear();
+    this.gameEffects=[];
     this.events = [];
   }
 }
