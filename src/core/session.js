@@ -2,6 +2,7 @@
  * Rendering, archive codecs and platform input are separate adapters.
  */
 import { charactersFromFiles, decodeText, sff } from "../formats.js";
+import {loadCommonEffects} from "./common-effects.js";
 import { parseProgram } from "../runtime.js";
 import { TrainingMatch } from "../combat.js";
 import { commonStates } from "../common.js";
@@ -64,6 +65,7 @@ export class CoreSession {
     this.files = files;
     this.selection = selection;
     this.characters = charactersFromFiles(files);
+    this.commonEffects = loadCommonEffects(files, {fightDef:selection.fightDef});
     const p1 =
         this.characters.find((c) => c.path === selection.character) ||
         this.characters[0],
@@ -99,6 +101,7 @@ export class CoreSession {
     this.match = new TrainingMatch(p1, {
       opponentCharacter: p2,
       commonText: CORE_COMMON_STATES,
+      commonAnimations: this.commonEffects.animations,
       programs,
       manageInputs: true,
       orderedPhases: true,
@@ -129,7 +132,7 @@ export class CoreSession {
     this.assets = [];
     this.events = [];
     this.sparks = [];
-    this.issues = new Map();
+    this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
     this.videoSprites = new Map();
     if (this.match.stage) this.match.stage.viewportAspect = 16 / 9;
@@ -546,21 +549,20 @@ export class CoreSession {
     layers.sort((a, b) => a.priority - b.priority);
     for (const { actor, effect } of layers) {
       if (effect) {
-        if (effect.common) {
-          this.issue(
-            "common-effects",
-            "Character requested an unavailable shared effect animation.",
-          );
+        const resource = effect.common ? this.commonEffects.resource : actor.character;
+        if (!resource) {
+          this.issue("common-effects", "Character requested an unavailable shared effect sprite bank.");
           continue;
         }
         const pos =
             effect.space === "screen"
               ? { x: effect.pos.x * scale, y: effect.pos.y * scale }
               : world(effect.pos),
-          unit = (effect.coordinateScale ?? baseScale(actor)) * zoom;
+          unit = (effect.coordinateScale ?? baseScale(actor)) * zoom *
+            (effect.common ? this.commonEffects.scale : 1);
         this.quad(
           draws,
-          actor.character,
+          resource,
           sampleAnimation(
             effect.animation,
             effect.frameIndex,
@@ -574,7 +576,7 @@ export class CoreSession {
             angle: effect.angle || 0,
             xangle: effect.xangle || 0,
             yangle: effect.yangle || 0,
-            remaps: effect.ownpal ? effect.paletteRemaps : actor.paletteRemaps,
+            remaps: effect.common ? null : effect.ownpal ? effect.paletteRemaps : actor.paletteRemaps,
             palette: this.effects.paletteFor(effect.source || actor),
             trans: effect.trans,
           },
