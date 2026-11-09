@@ -286,6 +286,8 @@ export class CoreSession {
     return this.banks.get(resource);
   }
   asset(resource, frame, remaps) {
+    // MUGEN AIR group -1 is intentionally sprite-less; not missing source art.
+    if(!frame || frame.group < 0)return null;
     try {
       const bank = this.bank(resource),
         index = this.indices
