@@ -35,7 +35,8 @@
     "benchmark:core:combat": "node scripts/core/benchmark-combat.mjs",
     "benchmark:core:animation": "node scripts/core/benchmark-animation.mjs",
     "benchmark:core:rare-akuma": "node scripts/core/verify-rare-akuma-coverage.mjs",
-    "verify:core:rare-akuma-health": "node scripts/core/verify-rare-akuma.mjs"
+    "verify:core:rare-akuma-health": "node scripts/core/verify-rare-akuma.mjs",
+    "audit:core:rare-akuma-assets": "node scripts/core/verify-rare-akuma-assets.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",
