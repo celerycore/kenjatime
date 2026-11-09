@@ -6,6 +6,14 @@ import { libraryDeadline } from "../library-recovery.js";
 export function connectCorePlatform(startup) {
   if (!Capacitor.isNativePlatform()) return;
   const device = registerPlugin("ArenaDevice");
+  let battle = { active: false, paused: true };
+  const applyBattleMode = () =>
+    device
+      .setBattleMode({
+        enabled: battle.active,
+        awake: battle.active && !battle.paused,
+      })
+      .catch(() => {});
   const step = startup?.begin("native-info", { critical: false });
   libraryDeadline(
     device.getStartupInfo(),
@@ -18,20 +26,17 @@ export function connectCorePlatform(startup) {
     })
     .catch((error) => step?.fail(error));
   window.addEventListener("kenjatime:battle", ({ detail }) => {
-    device
-      .setBattleMode({
-        enabled: detail.active,
-        awake: detail.active && !detail.paused,
-      })
-      .catch(() => {});
+    battle = { active: !!detail.active, paused: !!detail.paused };
+    applyBattleMode();
   });
-  App.addListener("appStateChange", (state) =>
+  App.addListener("appStateChange", (state) => {
+    if (state.isActive) applyBattleMode();
     window.dispatchEvent(
       new CustomEvent("kenjatime:app-state", {
         detail: { active: state.isActive },
       }),
-    ),
-  );
+    );
+  });
   App.addListener("backButton", () => {
     const menu = document.querySelector(".kenjatime-battle [data-menu]");
     if (menu) menu.click();

@@ -63,13 +63,14 @@ export function charactersFromFiles(normalized){
   // Relocated Windows/engine-folder references may still name an adjacent ZIP asset.
   const filename=String(value).replaceAll('\\','/').split('/').at(-1);
   if(!local&&filename&&filename!=='.'&&filename!=='..'){try{const adjacent=resolve(filename);if(normalized[adjacent])local=adjacent;}catch{/* Keep an unavailable reference as a package-check failure. */}}
+  if(/^(cns|cmd|st\d*|stcommon)$/.test(key)&&local&&!normalized[local]&&normalized[local+'.zss'])return local+'.zss';
   if(key!=='stcommon'||normalized[local])return local;
   // In an engine distribution, shared states live in data/ beside chars/.
   // A standalone character archive can also supply data/ at its own root.
   const marker=c.path.indexOf('/chars/'),engineRoot=marker>=0?c.path.slice(0,marker+1):'';
   const candidates=[engineRoot+'data/',engineRoot].flatMap(root=>{try{return [packagePath(value,root,true)];}catch{return [];}});
   if(filename?.toLowerCase()==='common1.cns')candidates.push(engineRoot+'data/common1.cns','data/common1.cns');
-  return candidates.find(path=>normalized[path])||local;
+  return candidates.find(path=>normalized[path])||candidates.map(path=>path+'.zss').find(path=>normalized[path])||local;
  };
  const checks=Object.entries(c.def.files).filter(([k,v])=>v&&/^(sprite|anim|cmd|cns|sound|stcommon|st\d*|pal\d+)$/.test(k)).map(([key,value])=>{const path=reference(key,value);return {key,value,path,ok:!!path&&!!normalized[path],...(!path?{message:'This resource is outside the ZIP. Include it in the package or use an in-package relative path.'}:{})};});
  const air=checks.find(c=>c.key==='anim'&&c.ok);return {...c,checks,files:normalized,animations:air?animations(text(air.path)):[],sprite:checks.find(c=>c.key==='sprite'&&c.ok),palettes:checks.filter(c=>/^pal\d+$/.test(c.key)).map(c=>({...c,number:Number(c.key.slice(3))}))};

@@ -12,6 +12,8 @@ npm run compatibility
 npm test
 ```
 
+The 0.5.6 preview adds structured numeric ZSS scripting, named maps, GPU parallax and stage window clipping. Focus loss no longer auto-pauses a match; hidden rendering stops while timer-driven simulation continues when the browser/OS permits it. Lua, newer ZSS/global-state extensions, 3D/video stages and advanced camera parity remain unfinished.
+
 The standalone output is `dist-core/`. Open `/core/index.html` with the development server. Worker graphics are preferred; unsupported worker graphics fall back to the main thread before character data is transferred. Fights stay in the current page.
 
 ZIP, RAR4/5, 7z, TAR and compressed TAR imports use content detection. Tested encryption variants and multipart sets are supported; select every volume together. Original downloads are preserved, including multipart bundles that can be imported again. The preview uses a separate library and selection key, and resetting it leaves the recovery library intact.
@@ -22,6 +24,7 @@ npm run verify:core:movesets      # strict gate for 147 captured scenarios
 npm run diagnose:core:movesets    # reports all 147, including known differences
 npm run verify:core:browser       # built UI, input, audio and GPU lifecycle
 npm run verify:core:archives      # real picker/worker/store/download checks
+npm run verify:core:stages        # production GPU vs authored native stage captures
 npm run android:core:debug        # requires Android SDK 36 and JDK 21
 npm run benchmark:core:combat     # authored CPU simulation loads; not phone FPS
 ```

@@ -25,12 +25,12 @@ import {
   DoubleSide,
 } from "three";
 const vertex = `precision highp float;
-in vec3 position;in vec2 uv;uniform mat4 projectionMatrix,modelViewMatrix;uniform vec2 size;out vec2 texUV;
-void main(){texUV=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position.xy*size,0.,1.);}`;
+in vec3 position;in vec2 uv;uniform mat4 projectionMatrix,modelViewMatrix;uniform vec2 size,warpBounds;uniform bool warped;out vec2 texUV,localPoint;
+void main(){texUV=uv;localPoint=position.xy*size;if(warped)localPoint.x=mix(warpBounds.x,warpBounds.y,position.x);gl_Position=projectionMatrix*modelViewMatrix*vec4(localPoint,0.,1.);}`;
 const fragment = `precision highp float;
 uniform sampler2D image,palette;uniform bool indexed,maskZero;uniform vec2 coefficients;uniform float opacity;
-uniform int fxCount;uniform vec3 fxAdd[8],fxMul[8],fxPost[8];uniform vec2 fxColorInvert[8];in vec2 texUV;out vec4 result;
-void main(){vec4 color=texture(image,texUV);if(indexed){float i=floor(color.r*255.+.5);color=texture(palette,vec2((i+.5)/256.,.5));if(i<.5){if(maskZero)discard;color.a=1.;}}if(color.a<=0.)discard;
+uniform bool warped;uniform vec4 warpEdges;uniform vec2 size;uniform int fxCount;uniform vec3 fxAdd[8],fxMul[8],fxPost[8];uniform vec2 fxColorInvert[8];in vec2 texUV,localPoint;out vec4 result;
+void main(){vec2 sampleUV=texUV;if(warped){vec2 edges=mix(warpEdges.xy,warpEdges.zw,clamp(localPoint.y/size.y,0.,1.));float span=edges.y-edges.x;if(abs(span)<.00001)discard;float u=(localPoint.x-edges.x)/span;if(u<0.||u>=1.)discard;sampleUV=vec2(u,localPoint.y/size.y);}vec4 color=texture(image,sampleUV);if(indexed){float i=floor(color.r*255.+.5);color=texture(palette,vec2((i+.5)/256.,.5));if(i<.5){if(maskZero)discard;color.a=1.;}}if(color.a<=0.)discard;
 vec3 rgb=color.rgb*255.;for(int i=0;i<8;i++){if(i>=fxCount)break;float grey=dot(rgb,vec3(.299,.587,.114));rgb=mix(vec3(grey),rgb,fxColorInvert[i].x);if(fxColorInvert[i].y>.5)rgb=255.-rgb;rgb=clamp((rgb+fxAdd[i])*fxMul[i]+fxPost[i],0.,255.);}
 rgb=floor(rgb+.00001)/255.;float coverage=color.a*opacity;result=vec4(rgb*coefficients.x*coverage,coverage*(1.-coefficients.y));}`;
 const gridFragment = `precision highp float;uniform float ground;in vec2 texUV;out vec4 result;
@@ -89,7 +89,12 @@ export class CoreThreeRenderer {
       glslVersion: GLSL3,
       vertexShader: vertex,
       fragmentShader: gridFragment,
-      uniforms: { size: { value: [960, 540] }, ground: { value: 450 } },
+      uniforms: {
+        size: { value: [960, 540] },
+        ground: { value: 450 },
+        warped: { value: false },
+        warpBounds: { value: [0, 0] },
+      },
       side: DoubleSide,
       depthTest: false,
       depthWrite: false,
@@ -164,6 +169,9 @@ export class CoreThreeRenderer {
           indexed: { value: false },
           maskZero: { value: true },
           size: { value: [1, 1] },
+          warped: { value: false },
+          warpEdges: { value: [0, 1, 0, 1] },
+          warpBounds: { value: [0, 1] },
           coefficients: { value: [1, 0] },
           opacity: { value: 1 },
           fxCount: { value: 0 },
@@ -249,6 +257,12 @@ export class CoreThreeRenderer {
       u.maskZero.value = q.mask !== false;
       u.size.value[0] = q.width;
       u.size.value[1] = q.height;
+      u.warped.value = !!q.warp;
+      if (q.warp) {
+        for (let n = 0; n < 4; n++) u.warpEdges.value[n] = q.warp[n];
+        u.warpBounds.value[0] = Math.min(...q.warp);
+        u.warpBounds.value[1] = Math.max(...q.warp);
+      }
       u.opacity.value = q.alpha ?? 1;
       u.coefficients.value[0] = q.blend?.source ?? 1;
       u.coefficients.value[1] = q.blend?.destination ?? 0;

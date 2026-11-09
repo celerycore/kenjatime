@@ -159,6 +159,8 @@ const report = {
       "cpu",
       "rounds",
       "animation-clock",
+      "zss",
+      "zss-executor",
     ].map((name) => [
       "src/" + name + ".js",
       existsSync(resolve(source, "src/" + name + ".js"))

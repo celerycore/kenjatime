@@ -52,6 +52,8 @@ export async function openCoreBattle({
     paused = false,
     closed = false,
     ready = false,
+    focused = document.hasFocus(),
+    appActive = true,
     state,
     gpu,
     backend,
@@ -179,23 +181,42 @@ export async function openCoreBattle({
     input(side, keyboard[side]);
     if (event.type === "keydown") audio.output.gesture();
   }
-  const visibility = () => {
-      if (document.hidden) pause(true);
-    },
-    appState = (e) => {
-      if (!e.detail.active) pause(true);
-    },
-    blur = () => {
+  const releaseInputs = () => {
       keyboard.forEach((k, side) => {
         k.clear();
         input(side, k);
       });
+      touch.reset();
+      lastPadKeys.fill(null);
+      send({ type: "release-inputs" });
+    },
+    visibility = () => {
+      const hidden = document.hidden || !appActive;
+      if (hidden) releaseInputs();
+      send({ type: "visibility", hidden, focused });
+    },
+    appState = (e) => {
+      appActive = !!e.detail.active;
+      visibility();
+    },
+    blur = () => {
+      focused = false;
+      releaseInputs();
+      visibility();
+    },
+    focus = () => {
+      focused = true;
+      lastPadKeys.fill(null);
+      visibility();
+      audio.output.gesture();
     };
   function pads() {
     if (closed) return;
-    const devices = Array.from(navigator.getGamepads?.() || []).filter(
-      (p) => p?.connected,
-    );
+    const devices = Array.from(
+      focused && appActive && !document.hidden
+        ? navigator.getGamepads?.() || []
+        : [],
+    ).filter((p) => p?.connected);
     for (let side = 0; side < 2; side++) {
       const keys = gamepadKeys(devices[side]),
         signature = [...keys].join(",");
@@ -219,6 +240,7 @@ export async function openCoreBattle({
     window.removeEventListener("keydown", keys);
     window.removeEventListener("keyup", keys);
     window.removeEventListener("blur", blur);
+    window.removeEventListener("focus", focus);
     window.removeEventListener("kenjatime:app-state", appState);
     document.removeEventListener("visibilitychange", visibility);
     host.remove();
@@ -253,6 +275,7 @@ export async function openCoreBattle({
   window.addEventListener("keydown", keys);
   window.addEventListener("keyup", keys);
   window.addEventListener("blur", blur);
+  window.addEventListener("focus", focus);
   document.addEventListener("visibilitychange", visibility);
   window.addEventListener("kenjatime:app-state", appState);
   const api = {
@@ -344,6 +367,7 @@ export async function openCoreBattle({
       await runtime.start({ files, selection, canvas, sampleRate, quality });
     }
     pads();
+    visibility();
     await started;
   } catch (error) {
     close();

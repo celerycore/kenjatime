@@ -1,6 +1,6 @@
 {
   "name": "kenjatime-core",
-  "version": "0.5.5-core-preview",
+  "version": "0.5.6-core-preview",
   "type": "module",
   "scripts": {
     "dev": "npm run dev:core",
@@ -24,6 +24,7 @@
     "diagnose:core:movesets": "python scripts/core/compare-native.py --group kfm-classic --allow-gaps",
     "verify:core:browser": "python scripts/core/verify-browser.py",
     "verify:core:archives": "python scripts/core/verify-archives.py",
+    "verify:core:stages": "python scripts/core/verify-stages.py",
     "android:core:copy": "npm run build:core && node scripts/core/copy-android.mjs",
     "android:core:debug": "npm run android:core:copy && cd android && ./gradlew -PkenjatimeCorePreview=true assembleDebug",
     "compatibility:legacy": "node scripts/compatibility-audit.mjs",

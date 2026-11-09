@@ -3,14 +3,17 @@ import { CoreThreeRenderer } from "./three-renderer.js";
 import { FrameClock } from "../frame-clock.js";
 import { TickInputBuffer } from "../input-buffer.js";
 import { soundArchive } from "../formats.js";
+import { FrameScheduler } from "./frame-scheduler.js";
 /** Worker-owned simulation/renderer. The UI owns only input, audio sinks and HUD. */
 export function createCoreRuntime(emit) {
   let session,
     renderer,
     closed = false,
+    started = false,
     paused = false,
     dirty = true,
-    handle = 0,
+    hidden = false,
+    focused = true,
     lastState = -Infinity,
     scale = 1,
     quality = "auto",
@@ -25,10 +28,13 @@ export function createCoreRuntime(emit) {
     sentSounds = new Set(),
     soundKeys = new Map(),
     renderTimes = [];
-  const next = (callback) =>
-    typeof requestAnimationFrame === "function"
-      ? requestAnimationFrame(callback)
-      : setTimeout(() => callback(performance.now()), 16);
+  const scheduler = new FrameScheduler(frame);
+  const schedule = () =>
+    scheduler.schedule({
+      timer: hidden || !focused,
+      catchUp: !paused && clock.debt >= 1,
+      idle: paused,
+    });
   function audio(buffer) {
     const data = new Float32Array(buffer);
     data.fill(0);
@@ -95,7 +101,12 @@ export function createCoreRuntime(emit) {
         session.tick(inputs[0].sample(sample), inputs[1].sample(sample));
         soundEvents();
       });
-      if ((!paused || dirty) && clock.renderDue(time, 60)) {
+      if (
+        !hidden &&
+        clock.debt < 1 &&
+        (!paused || dirty) &&
+        clock.renderDue(time, 60)
+      ) {
         const start = performance.now(),
           packet = session.frame();
         renderer.render(packet, {
@@ -119,11 +130,17 @@ export function createCoreRuntime(emit) {
         lastState = time;
         emit({
           type: "state",
-          state: { ...session.snapshot(), paused, simulationDebt: clock.debt },
+          state: {
+            ...session.snapshot(),
+            paused,
+            background: hidden,
+            focused,
+            simulationDebt: clock.debt,
+          },
           gpu: renderer.stats,
         });
       }
-      handle = next(frame);
+      schedule();
     } catch (error) {
       emit({ type: "error", message: error.message });
       stop();
@@ -169,11 +186,23 @@ export function createCoreRuntime(emit) {
       }
     }
     if (closed) return;
+    started = true;
     emit({ type: "ready", capabilities: session.capabilities });
-    handle = next(frame);
+    schedule();
   }
   function control(data) {
     if (closed) return;
+    if (data.type === "visibility") {
+      hidden = !!data.hidden;
+      focused = data.focused !== false;
+      if (!hidden) dirty = true;
+      if (started) schedule();
+      return;
+    }
+    if (data.type === "release-inputs") {
+      inputs.forEach((i) => i.reset());
+      return;
+    }
     if (data.type === "sound-request") {
       try {
         const spec = soundKeys.get(data.key),
@@ -198,6 +227,7 @@ export function createCoreRuntime(emit) {
       inputs.forEach((i) => i.reset());
       clock.suspend();
       dirty = true;
+      if (started) schedule();
     }
     if (data.type === "quality") {
       quality = data.value;
@@ -222,9 +252,7 @@ export function createCoreRuntime(emit) {
   function stop() {
     if (closed) return;
     closed = true;
-    if (typeof cancelAnimationFrame === "function")
-      cancelAnimationFrame(handle);
-    else clearTimeout(handle);
+    scheduler.cancel();
     audioPort?.close();
     moduleDecoder?.close();
     session?.close();

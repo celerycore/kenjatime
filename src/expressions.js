@@ -47,7 +47,7 @@ const comparisons = new Set(['=', '!=', '<', '<=', '>', '>=']);
 const redirects = new Set(['parent', 'root', 'helper', 'target', 'partner', 'enemy', 'enemynear', 'playerid', 'p2']);
 const axes = new Set(['pos', 'vel', 'p2dist', 'p2bodydist', 'parentdist', 'rootdist', 'screenpos', 'hitvel', 'camerapos']);
 const enums = new Set(['s', 'c', 'a', 'h', 'l', 'i', 'n', 'v', 'u']);
-const symbolArguments = new Set(['const', 'gethitvar','stagevar']);
+const symbolArguments = new Set(['const', 'gethitvar','stagevar','map']);
 const floatHitVars=new Set(['xveladd','yveladd','xoff','yoff','zoff','xvel','yvel','yaccel','fall.xvel','fall.yvel','fall.envshake.freq','fall.envshake.phase']);
 const floatTriggers = /^(?:fvar|sysfvar|const240p|const480p|const720p|pos [xy]|vel [xy]|p2dist [xy]|p2bodydist [xy]|parentdist [xy]|rootdist [xy]|screenpos [xy]|hitvel [xy]|camerapos [xy]|camerazoom|gamewidth|gameheight|screenwidth|screenheight|leftedge|rightedge|topedge|bottomedge|(?:front|back)edge(?:body)?dist|frontedge|backedge)$/;
 const floatConstant=name=>/^(?:velocity\.|movement\.(?!airjump\.)|size\.[xy]scale$|data\.fall\.defence_mul$)/.test(name);

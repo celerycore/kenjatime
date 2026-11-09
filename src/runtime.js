@@ -12,6 +12,8 @@ import {allowsHitActivation,claimHitActivation,hitSourceId,recordHitContact} fro
 import {initialHitVariables,hitVariableNames,sampleRecoveryInput,advanceHitState} from './hit-state.js';
 import {scaledDamage,hitPower,koVelocity} from './combat-rules.js';
 import {animationTiming,animationElementTime,animationElementAt,animationRemaining,captureAnimationClock,restoreAnimationClock} from './animation-clock.js';
+import {parseZss,zssNodes,ZssError} from './zss.js';
+import {runZss} from './zss-executor.js';
 
 // CNS sections are ordered and may repeat keys (especially trigger1).
 export function parseSections(text, source = '<script>') {
@@ -94,10 +96,12 @@ const CONTROLLERS = new Set([
   'angleadd', 'angleset', 'anglemul', 'angledraw', 'offset', 'destroyself',
   'helper', 'projectile', 'pause', 'superpause', 'afterimage', 'afterimagetime', 'trans', 'movehitreset', 'attackdist', 'reversaldef', 'envcolor', 'fallenvshake', 'remappal',
   'makedust','gamemakeanim','forcefeedback','displaytoclipboard','appendtoclipboard','clearclipboard','victoryquote',
+  'mapset','mapadd',
 ]);
 export const supportedControllers = new Set(CONTROLLERS);
 export const supportedTriggers = new Set(['time','stateno','prevstateno','anim','animelem','animtime','ctrl','statetype','movetype','physics','life','lifemax','power','powermax','facing','alive','gametime','hitpausetime','hitshakeover','hitover','movecontact','movehit','moveguarded','movereversed','hitcount','uniqhitcount','numhelper','numexplod','numtarget','numenemy','numpartner','ishelper','roundstate','roundno','matchno','teamside','teampower','tickspersecond','ailevel','palno','id','name','authorname','numproj','win','lose','drawgame','inguarddist','canrecover','pos x','pos y','vel x','vel y','screenpos x','screenpos y','command','const','const240p','const480p','const720p','random','animexist','selfanimexist','animelemtime','animelemno','gethitvar','playeridexist','p2name','p2life','p2stateno','p2statetype','p2movetype','p2bodydist x','p2dist x','p2bodydist y','p2dist y','hitdefattr','roundsexisted','camerapos x','camerapos y','hitfall','hitvel x','hitvel y','frontedgedist','backedgedist','frontedgebodydist','backedgebodydist','var','fvar','sysvar','sysfvar']);
 supportedTriggers.add('teammode');
+supportedTriggers.add('map');
 supportedTriggers.add('ishometeam');
 for(const name of ['p1name','p3name','p4name','frontedge','backedge','const240p','const480p','const720p'])supportedTriggers.add(name);
 const DELEGATED_EFFECTS = new Set(['playsnd', 'stopsnd', 'sndpan', 'envshake', 'envcolor', 'palfx', 'allpalfx', 'bgpalfx', 'afterimage', 'afterimagetime']);
@@ -108,6 +112,7 @@ const requiredParameters=new Map();
 for(const type of ['attackdist','attackmulset','changeanim','changeanim2','changestate','selfstate','ctrlset','defencemulset','hitadd','lifeadd','lifeset','playerpush','playsnd','poweradd','powerset','targetfacing','targetlifeadd','targetpoweradd','targetstate'])requiredParameters.set(type,['value']);
 for(const [type,keys]of Object.entries({afterimagetime:['time'],assertspecial:['flag'],assertinput:['flag'],displaytoclipboard:['text'],appendtoclipboard:['text'],envshake:['time'],explod:['anim'],hitdef:['attr'],pause:['time'],reversaldef:['reversal.attr'],sndpan:['channel'],stopsnd:['channel'],trans:['trans'],varrandom:['v']}))requiredParameters.set(type,keys);
 const controllerMetadata=new WeakMap();
+for(const type of ['mapset','mapadd'])requiredParameters.set(type,['map','value']);
 function controllerRules(controller){
   if(controllerMetadata.has(controller))return controllerMetadata.get(controller);
   const rules={ignorehitpause:0,persistent:1,groups:new Map(),errors:[],warnings:[]};
@@ -119,6 +124,7 @@ function controllerRules(controller){
   if(controller.type==='varrangeset'&&controller.values.value===undefined&&controller.values.fvalue===undefined)rules.errors.push({line:controller.line,message:'VarRangeSet requires value or fvalue.'});
   if(controller.type==='sndpan'&&controller.values.pan===undefined&&controller.values.abspan===undefined)rules.errors.push({line:controller.line,message:'SndPan requires pan or abspan.'});
   for(const key of ['ignorehitpause','persistent'])if(controller.values[key]!==undefined){
+    if(key==='ignorehitpause'&&controller.language==='zss'&&controller.type==='explod')continue;
     const raw=controller.values[key],value=Number(raw);
     if(!/^[+-]?\d+$/.test(raw)||!Number.isSafeInteger(value)||value< -2147483648||value>2147483647||key==='persistent'&&value<0)rules.errors.push({line:controller.entries.find(e=>e.key===key)?.line||controller.line,message:`${key} requires ${key==='persistent'?'a nonnegative':'a signed 32-bit'} integer constant; expressions are not allowed.`});
     else rules[key]=value;
@@ -140,7 +146,7 @@ const simpleTriggerFields=new Map(Object.entries({
 }));
 
 export function parseProgram(character, { commonText = '',constantDefaults={},constantsFromCnsOnly=false } = {}) {
-  const program = { states: new Map(), constants: new Map(Object.entries({...DEFAULT_CONSTANTS,...constantDefaults})), quotes:new Map(), diagnostics: [], sources: [], controllerTypes: new Set() };
+  const program = { states: new Map(), constants: new Map(Object.entries({...DEFAULT_CONSTANTS,...constantDefaults})), quotes:new Map(), functions:new Map(), initialMaps:new Map(), zssExpressions:new Set(), diagnostics: [], sources: [], controllerTypes: new Set() };
   const sourceTexts = [];
   if (commonText) sourceTexts.push(['<common states>', commonText]);
   const files = character.files || {};
@@ -150,7 +156,8 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
     const charsIndex = base.lastIndexOf('/chars/');
     const engineRoot = charsIndex < 0 ? '' : base.slice(0, charsIndex + 1);
     const checked = (character.checks || []).find(check => check.ok&&check.path&&normalize(check.value || '') === path && files[check.path]);
-    return [checked?.path, base + path, path, engineRoot + 'data/' + path, 'data/' + path].find(candidate => candidate && files[candidate]);
+    const candidates=[checked?.path, base + path, path, engineRoot + 'data/' + path, 'data/' + path];
+    return candidates.find(candidate => candidate && files[candidate])||candidates.filter(Boolean).map(candidate=>candidate+'.zss').find(candidate=>files[candidate]);
   };
   const reference = character.def?.files || {};
   const constantsPath=reference.cns?lookup(reference.cns):(character.checks||[]).find(check=>check.key==='cns'&&check.ok)?.path;
@@ -173,10 +180,62 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
     }
   }
   let nextId = 0;
+  let zssNodeCount=0;
+  const staticValue=(text)=>evaluateExpression(text,{resolve:(name,args)=>{
+    if(name!=='const'||!program.constants.has(String(args[0]).toLowerCase()))throw Error('State identifiers must use known numeric constants.');
+    return program.constants.get(String(args[0]).toLowerCase());
+  }});
+  for(const [name,text]of Object.entries(character.def?.map||{})){
+    try{const value=Math.fround(staticValue(text));if(!Number.isFinite(value)||program.initialMaps.size>=4096)throw Error('Invalid or excessive initial named maps.');program.initialMaps.set(name.toLowerCase(),value);}
+    catch(error){program.diagnostics.push({source:character.path,line:0,type:'constant',message:error.message});}
+  }
+  const sectionCache=new Map();
+  for(const [source,text]of sourceTexts){
+    if(/\.zss$/i.test(source)||!/^\s*\[\s*(?:constants|map)\s*\]/im.test(text))continue;
+    const sections=parseSections(text,source);sectionCache.set(source,sections);
+    for(const section of sections)if(section.name==='constants'||section.name==='map')for(const entry of section.entries){
+      try{const value=Math.fround(staticValue(entry.value));if(!Number.isFinite(value))throw Error('Expected a finite float32 value.');if(section.name==='map'&&program.initialMaps.size>=4096&&!program.initialMaps.has(entry.key))throw Error('Initial named map limit exceeded.');(section.name==='map'?program.initialMaps:program.constants).set(entry.key,value);}
+      catch(error){program.diagnostics.push({source,line:entry.line,type:'constant',message:error.message});}
+    }
+  }
   for (const [source, text] of sourceTexts) {
     program.sources.push(source);
+    if(/\.zss$/i.test(source)){
+      try{
+        const parsed=parseZss(text,source),functions=new Map(program.functions),states=new Map(program.states),controllers=[];
+        const definitions=[...parsed.functions.map(value=>({value,isFunction:true})),...parsed.states.map(value=>({value,isFunction:false}))].sort((a,b)=>a.value.line-b.value.line);
+        for(const {value,isFunction}of definitions){
+          const body=isFunction?value.body:value.zssNodes;
+          zssNodes(body,node=>{
+            if(++zssNodeCount>100000)throw new ZssError('Combined ZSS statement limit (100,000) exceeded.',source,node.line);
+            if(node.kind==='call'){
+              const fn=functions.get(node.name);if(!fn)throw new ZssError(`Function ${node.name} must be defined before its caller.`,source,node.line);
+              if(node.args.length!==fn.args.length||node.outputs&&node.outputs.length!==fn.outputs.length)throw new ZssError(`Function ${node.name} argument/return count mismatch.`,source,node.line);
+              node.function=fn;
+            }
+            if(node.controller){node.controller.id=++nextId;node.controller.state=isFunction?value.name:value.idExpression;controllers.push(node.controller);if(!isFunction)value.controllers.push(node.controller);}
+          });
+          if(isFunction)functions.set(value.name,value);
+          else{
+            const id=staticValue(value.idExpression);if(!Number.isInteger(id)||id< -2147483648||id>2147483647)throw new ZssError('State number must be a signed 32-bit integer constant.',source,value.line);
+            if(id===-4||value.idExpression.replace(/\s/g,'')==='+1')throw new ZssError('Extended global states -4/+1 are not scheduled by this preview.',source,value.line);
+            value.id=id;states.set(id,value);
+            const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
+            for(const entry of value.entries)if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
+          }
+        }
+        program.functions=functions;program.states=states;for(const expression of parsed.expressions)program.zssExpressions.add(expression);
+        for(const controller of controllers){
+          program.controllerTypes.add(controller.type);const rules=controllerRules(controller);
+          for(const error of rules.errors)program.diagnostics.push({source,line:error.line,type:'controller-parameter',fatal:true,message:error.message});
+          if(!CONTROLLERS.has(controller.type))program.diagnostics.push({source,line:controller.line,type:'unsupported-controller',name:controller.type,message:`Controller ${controller.type} is not implemented.`});
+        }
+      }catch(error){program.diagnostics.push({source,line:error.line||1,type:'zss-compile',fatal:true,message:error.message});}
+      continue;
+    }
+    if(/\.lua$/i.test(source)){program.diagnostics.push({source,line:1,type:'script-language',fatal:true,message:'Lua character-state execution is not implemented.'});continue;}
     let current;
-    for (const section of parseSections(text, source)) {
+    for (const section of sectionCache.get(source)||parseSections(text, source)) {
       const statedef = section.name.match(/^statedef\s+(-?\d+)\s*$/);
       if (statedef) {
         current = { id: +statedef[1], ...section, controllers: [] };
@@ -271,6 +330,7 @@ export class FighterRuntime {
     this.getHitVars = initialHitVariables(this);this._fallXVelocityDefined=false;this._fallDefenceMultiplier=1;this._previousInput=new Set();this.rawInput=new Set();this._fallEntry=-1; this.targets = [];this.targetHitIds=new Map(); this.helpers = []; this.explods = [];this.drawExplods=[];
     this.events = []; this.commands = new Set(); this.asserted = new Set(); this.opponent = null;
     this.pendingAssertedInputs=new Set();
+    this.maps=new Map(this.program.initialMaps||[]);this._zssContext=null;this._zssSteps=0;
     this._pendingStateEntry=null;
     this._pendingHitTransform=null;
     this.attackMultiplier = 1; this.defenceMultiplier = 1;
@@ -330,7 +390,13 @@ export class FighterRuntime {
   evaluate(source, controller = this._executing, typed=false) {
     try {
       return (this.options.expressionEvaluator|| (typed?evaluateTypedExpression:evaluateExpression))(source, {
-        resolve: (name, args = [], redirect = null) => this.resolveTrigger(name, args, redirect),
+        resolve: (name, args = [], redirect = null) => {
+          if(name==='zsslocal'){
+            const value=this._zssContext?.locals.get(String(args[0]));if(!value)throw new UnsupportedExpressionError(`ZSS local ${args[0]} is unavailable.`);
+            if(value.bottom)throw value.error;return value;
+          }
+          return this.resolveTrigger(name, args, redirect);
+        },
         assign: (name, args, value) => this.assignVariable(name, args, value),
         onWarning: error => { if (!error.bottom) this.diagnostic('expression-warning', `${source}: ${error.message}`, controller); },
         typedResult:typed,
@@ -351,6 +417,13 @@ export class FighterRuntime {
     if (index < 0 || index >= array.length) throw new BottomError(`${name} index out of range: ${index}`);
     array[index] = numeric(value);
     return array[index];
+  }
+
+  setMap(name,value,add=false){
+    name=String(name).toLowerCase();if(!name||name.length>128||name.includes('\0'))throw Error('Invalid map name.');
+    if(!this.maps.has(name)&&this.maps.size>=4096)throw Error('Named map limit (4,096) exceeded.');
+    const result=Math.fround(numeric(value)+(add?this.maps.get(name)||0:0));if(!Number.isFinite(result))throw new BottomError('Map value is not finite.');
+    this.maps.set(name,result);return result;
   }
 
   resolveTrigger(name, args = [], redirect = null,scale=this.coordinateScale) {
@@ -380,6 +453,7 @@ export class FighterRuntime {
     }
     const simpleField=simpleTriggerFields.get(name);
     if(simpleField)return this[simpleField];
+    if(name==='map')return {value:this.maps.get(String(args[0]).toLowerCase())||0,float:true};
     if (name === 'command') return +this.commands.has(String(args[0]));
     if (name === 'const') return this.constant(args[0],scale);
     if (name === 'const240p') return numeric(args[0]) / this.coordinateScale;
@@ -489,7 +563,7 @@ export class FighterRuntime {
   value(controller, key, fallback) {
     const raw = controller.values[key];
     if(raw===undefined)return fallback;
-    if(key==='ignorehitpause'||key==='persistent'){const rules=controllerRules(controller);if(rules.errors.some(e=>e.message.startsWith(key)))throw Error(rules.errors.find(e=>e.message.startsWith(key)).message);return rules[key];}
+    if((key==='ignorehitpause'||key==='persistent')&&!(key==='ignorehitpause'&&controller.language==='zss'&&controller.type==='explod')){const rules=controllerRules(controller);if(rules.errors.some(e=>e.message.startsWith(key)))throw Error(rules.errors.find(e=>e.message.startsWith(key)).message);return rules[key];}
     let cache=this._parameterCache?.get(controller);if(this._parameterCache&&!cache)this._parameterCache.set(controller,cache=new Map());
     if(cache?.has(key))return cache.get(key);
     const result=this.parameter(raw,controller);cache?.set(key,result);return result;
@@ -603,6 +677,7 @@ export class FighterRuntime {
   runState(number, paused, owner = this.stateOwner) {
     const state = owner.program.states.get(number);
     if (!state) return;
+    if(state.zssNodes){runZss(this,state,owner,paused);return;}
     const entry = this._entrySerial;
     for (const controller of state.controllers) {
       const previousOwner=this._scriptOwner;this._scriptOwner=owner;
@@ -654,6 +729,7 @@ export class FighterRuntime {
 
   tick({ commands = new Set(), opponent = null, paused: worldPaused = false,input=null } = {}) {
     const ordered=this.world?.orderedPhases;
+    if(!worldPaused)this._zssSteps=0;
     let resumedAnimation=false;
     if(ordered&&!worldPaused&&this._pausedAnimation){
       if(this._pausedAnimation.serial===this._animationSerial){restoreAnimationClock(this,this._pausedAnimation.logic);resumedAnimation=true;}
@@ -790,6 +866,7 @@ export class FighterRuntime {
     const text = (key, fallback = '') => this.text(controller, key, fallback);
     if (!CONTROLLERS.has(type)) { this.diagnostic('unsupported-controller', `Controller ${type || '(missing type)'} is not implemented.`, controller); return; }
     if (type === 'null') return;
+    if(type==='mapset'||type==='mapadd'){this.setMap(text('map'),num('value'),type==='mapadd');return;}
     if(type==='assertinput'){
       if(!this.world?.manageInputs){this.diagnostic('unsupported-input-routing','AssertInput needs the independent input scheduler.');return;}
       for(const entry of controller.entries)if(/^flag\d*$/.test(entry.key))for(const value of this.text(controller,entry.key).split(/[+|\s,]+/).filter(Boolean)){

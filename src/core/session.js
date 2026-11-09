@@ -21,10 +21,12 @@ import {
 } from "../rendering.js";
 import { stageDefinitions } from "../stages.js";
 import { WasmExpressions } from "./wasm-expressions.js";
+import { stageClip, stageDrawPlans } from "./stage-draw.js";
 
 export function programExpressions(programs) {
   const sources = new Set();
-  for (const p of programs)
+  for (const p of programs) {
+    for (const source of p.zssExpressions || []) sources.add(source);
     for (const state of p.states.values())
       for (const section of [state, ...state.controllers])
         for (const entry of section.entries) {
@@ -33,6 +35,7 @@ export function programExpressions(programs) {
             for (const part of splitArguments(entry.value)) sources.add(part);
           } catch {}
         }
+  }
   return sources;
 }
 const cloneEvent = (event, id) => {
@@ -72,6 +75,10 @@ export class CoreSession {
         }),
       ]),
     );
+    for (const program of programs.values()) {
+      const error = program.diagnostics.find((d) => d.fatal);
+      if (error) throw Error(`${error.source}:${error.line}: ${error.message}`);
+    }
     this.expressions = new WasmExpressions(
       programExpressions(programs.values()),
     );
@@ -129,12 +136,12 @@ export class CoreSession {
       compiledNumericExpressions: true,
       scriptInterpreter: true,
       knownGaps: [
-        "Extended scripting languages",
+        "Lua state scripts, extended global states and newer ZSS extensions",
         "3D model stages and model shadows",
         "Video background composition",
-        "Stage parallax and window clipping",
+        "Advanced stage camera offsets and mixed-coordinate camera parity",
         "Afterimage palette chains beyond eight layers",
-        "Full native moveset parity not yet established",
+        "Unverified character families and extended controller combinations",
       ],
     };
   }
@@ -289,6 +296,8 @@ export class CoreSession {
       alpha = 1,
       clip = null,
       corners = null,
+      axisX = null,
+      warp = null,
     } = {},
   ) {
     if (!frame || draws.length >= 8192) return;
@@ -336,8 +345,8 @@ export class CoreSession {
         b,
         c,
         d,
-        x + (frame.x || 0) * sx - a * sp.x - c * sp.y,
-        y + (frame.y || 0) * sy - b * sp.x - d * sp.y,
+        x + (frame.x || 0) * sx - a * (axisX ?? sp.x) - c * sp.y,
+        y + (frame.y || 0) * sy - b * (axisX ?? sp.x) - d * sp.y,
       ],
       blend: blendCoefficients(blend),
       mask,
@@ -345,6 +354,7 @@ export class CoreSession {
       palFX: palette?.layers || [],
       clip,
       corners,
+      warp,
     });
     return sp;
   }
@@ -367,8 +377,15 @@ export class CoreSession {
       const stage = m.stage;
       if (!stage?.definition.sprite) return;
       const def = stage.definition,
-        factor = def.coordinateScale * (def.backgroundScale || 1);
+        backgroundScale = def.backgroundScale || 1,
+        factor = def.coordinateScale * backgroundScale,
+        cameraX = camera.x * backgroundScale,
+        cameraY = camera.y * backgroundScale;
       for (const [index, e] of stage.elements.entries()) {
+        if (draws.length >= 8192) {
+          this.issue("resource-limit", "Visible quad budget exceeded.");
+          break;
+        }
         if (e.layer !== layer || !e.enabled || !e.visible || e.type === "dummy")
           continue;
         const frame = e.animated
@@ -388,62 +405,52 @@ export class CoreSession {
             scale *
             z *
             def.xscale *
-            (e.scaleStart[0] + (camera.y / factor) * e.scaleDelta[0]),
+            (e.scaleStart[0] + (cameraY / factor) * e.scaleDelta[0]),
           sy =
             factor *
             scale *
             z *
             def.yscale *
-            (e.scaleStart[1] + (camera.y / factor) * e.scaleDelta[1]);
+            (e.scaleStart[1] + (cameraY / factor) * e.scaleDelta[1]);
         const x =
-            480 + (position.x * factor - camera.x * position.delta[0]) * zoom,
+            480 + (position.x * factor - cameraX * position.delta[0]) * zoom,
           y =
             ground +
             (position.y * factor -
               (v.zoffset || 0) -
-              camera.y * position.delta[1]) *
+              cameraY * position.delta[1]) *
               zoom;
-        const dx = backgroundTileStep(e, sp.w) * Math.abs(sx),
-          dy = backgroundTileStep(e, sp.h, 1) * Math.abs(sy),
-          xs = tileOffsets(
-            x - sp.x * sx,
-            sp.w * Math.abs(sx),
-            dx,
-            e.tile[0],
-            0,
-            960,
-          ),
-          ys = tileOffsets(
-            y - sp.y * sy,
-            sp.h * Math.abs(sy),
-            dy,
-            e.tile[1],
-            0,
-            540,
-          );
-        for (const iy of ys)
-          for (const ix of xs) {
-            if (draws.length >= 8192) {
-              this.issue("resource-limit", "Visible quad budget exceeded.");
-              break;
-            }
-            this.quad(draws, def, frame, {
-              x: x + ix * dx,
-              y: y + iy * dy,
-              sx,
-              sy,
-              mask: e.mask,
-              trans: e.transSpecified
-                ? { mode: e.trans, alpha: e.alpha }
-                : null,
-              palette: this.effects.backgroundPalette,
-            });
+        const clip = stageClip(e, {
+          factor,
+          scale,
+          cameraX,
+          cameraY,
+          cropTop: v.cropTop,
+          displayHeight: v.displayHeight,
+        });
+        for (const plan of stageDrawPlans(e, sp, frame, {
+          x,
+          y,
+          sx,
+          sy,
+          cameraX,
+          cameraY,
+          deltaX: position.delta[0],
+          zoom,
+          factor,
+          clip,
+        })) {
+          if (draws.length >= 8192) {
+            this.issue("resource-limit", "Visible quad budget exceeded.");
+            break;
           }
-        if (e.type === "parallax")
-          this.issue(
-            "stage",
-            "Parallax perspective is pending; this preview uses the authored base scale.",
-          );
+          this.quad(draws, def, frame, {
+            ...plan,
+            mask: e.mask,
+            trans: e.transSpecified ? { mode: e.trans, alpha: e.alpha } : null,
+            palette: this.effects.backgroundPalette,
+          });
+        }
       }
     };
     stageLayer(0);

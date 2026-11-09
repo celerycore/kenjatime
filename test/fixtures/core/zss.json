@@ -1,0 +1,605 @@
+{
+  "format": "kenjatime-original-zss-native-observations-v1",
+  "oracle": {
+    "release": "v1.0.0 Linux",
+    "sha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+    "method": "Unchanged official binary, original authored ZSS probes on bundled KFM character; numeric state snapshots through public debug API. No implementation source used."
+  },
+  "runs": [
+    {
+      "id": "basic",
+      "source": "[Function Stamp(amount) result]\nlet result = $amount * 3;\n[Statedef 0; type:S; movetype:I; physics:N; ctrl:0; anim:0;]\nif time = 0 { let remembered = 9; var(11):=0; var(12):=0;\nmap(tokens):=0; var(15):=0; }\nvar(8) := $remembered;\nvar(9) := 3;\nif var(9) = 3 { var(9) := 4; } else { var(10) := var(10) + 1; }\npersistent(2) { var(11) := var(11) + 1; var(12) := var(12) + 1; }\nlet tripled = call Stamp(time);\nvar(13) := $tripled;\nlet fraction = 1.0;\nfvar(0) := $fraction / 2;\nmap(tokens) := map(tokens) + 2;\nvar(14) := map(tokens);\npersistent(2) if time%2=0 {var(15):=var(15)+1;}\nmap(intmap) := 1;\nmap(floatmap) := 1.0;\nfvar(1) := map(intmap)/2;\nfvar(2) := map(floatmap)/2;\n",
+      "sourceSha256": "be3982b0aab018a3cac5b6bcaa050a2627a72f7aaf4b078cf209af492271b26a",
+      "observationSha256": "d11f4021b7518fb65477c47f2bca0e735e2632a74e3dc7253ccc237130a7a430",
+      "samples": [
+        {
+          "tick": 1,
+          "time": 1,
+          "variables": [
+            9,
+            4,
+            0,
+            1,
+            1,
+            0
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 2,
+          "conditional": 1
+        },
+        {
+          "tick": 2,
+          "time": 2,
+          "variables": [
+            0,
+            4,
+            0,
+            1,
+            1,
+            3
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 4,
+          "conditional": 1
+        },
+        {
+          "tick": 3,
+          "time": 3,
+          "variables": [
+            0,
+            4,
+            0,
+            2,
+            2,
+            6
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 6,
+          "conditional": 2
+        },
+        {
+          "tick": 4,
+          "time": 4,
+          "variables": [
+            0,
+            4,
+            0,
+            2,
+            2,
+            9
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 8,
+          "conditional": 2
+        },
+        {
+          "tick": 5,
+          "time": 5,
+          "variables": [
+            0,
+            4,
+            0,
+            3,
+            3,
+            12
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 10,
+          "conditional": 3
+        },
+        {
+          "tick": 6,
+          "time": 6,
+          "variables": [
+            0,
+            4,
+            0,
+            3,
+            3,
+            15
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 12,
+          "conditional": 3
+        },
+        {
+          "tick": 7,
+          "time": 7,
+          "variables": [
+            0,
+            4,
+            0,
+            4,
+            4,
+            18
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 14,
+          "conditional": 4
+        },
+        {
+          "tick": 8,
+          "time": 8,
+          "variables": [
+            0,
+            4,
+            0,
+            4,
+            4,
+            21
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 16,
+          "conditional": 4
+        },
+        {
+          "tick": 9,
+          "time": 9,
+          "variables": [
+            0,
+            4,
+            0,
+            5,
+            5,
+            24
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 18,
+          "conditional": 5
+        },
+        {
+          "tick": 10,
+          "time": 10,
+          "variables": [
+            0,
+            4,
+            0,
+            5,
+            5,
+            27
+          ],
+          "fvars": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "map": 20,
+          "conditional": 5
+        }
+      ]
+    },
+    {
+      "id": "pause",
+      "source": "[Statedef 0; type:S; movetype:A; physics:N; ctrl:0; anim:7000;]\nif time=0 {var(8):=0;var(9):=0;var(10):=0;var(11):=0;var(12):=0;var(13):=0;}\nlet fresh = time + 10;\nvar(8):=var(8)+1;\nignoreHitPause {var(9):=var(9)+1;var(10):=$fresh;}\nif (var(11):=var(11)+1)>0 {var(12):=var(12)+1;}\nif time>=0 {ignoreHitPause {var(13):=var(13)+1;}}\nif time=2 {hitDef{attr:S,NA;damage:1;pausetime:3,0;ground.type:High;ground.hittime:1;ground.velocity:0;}}\n",
+      "sourceSha256": "77fca3ffa69e1124b55db7ae83dc4b3f14526216451a91a6eb6eeb1afa3cb4a7",
+      "observationSha256": "30a21ea9f09d2c7f3436cf1a8b50661d6cf92ef7fb93efbb47de2f9a66b3a277",
+      "samples": [
+        {
+          "tick": 1,
+          "time": 1,
+          "variables": [
+            1,
+            1,
+            10,
+            1,
+            1,
+            1
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 2,
+          "time": 2,
+          "variables": [
+            2,
+            2,
+            11,
+            2,
+            2,
+            2
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 3,
+          "time": 3,
+          "variables": [
+            3,
+            3,
+            12,
+            3,
+            3,
+            3
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 4,
+          "time": 3,
+          "variables": [
+            3,
+            4,
+            0,
+            3,
+            3,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 5,
+          "time": 3,
+          "variables": [
+            3,
+            5,
+            0,
+            3,
+            3,
+            5
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 6,
+          "time": 3,
+          "variables": [
+            3,
+            6,
+            0,
+            3,
+            3,
+            6
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 7,
+          "time": 4,
+          "variables": [
+            4,
+            7,
+            13,
+            4,
+            4,
+            7
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 8,
+          "time": 5,
+          "variables": [
+            5,
+            8,
+            14,
+            5,
+            5,
+            8
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 9,
+          "time": 6,
+          "variables": [
+            6,
+            9,
+            15,
+            6,
+            6,
+            9
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 10,
+          "time": 7,
+          "variables": [
+            7,
+            10,
+            16,
+            7,
+            7,
+            10
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        }
+      ],
+      "extraAIR": "\n[Begin Action 7000]\nClsn2Default: 1\nClsn2[0]=-13,-79,16,0\nClsn1Default: 1\nClsn1[0]=0,-79,40,0\n0,0,0,0,-1\n"
+    },
+    {
+      "id": "loops",
+      "source": "[Statedef 0; type:S; movetype:I; physics:N; ctrl:0; anim:0;]\nvar(8):=0;\nfor i=0;3;1 {var(8):=var(8)+1;}\nvar(9):=$i;\nvar(10):=0;\nfor j=3;0;-1 {var(10):=var(10)+1;}\nvar(11):=$j;\nvar(12):=0;\nswitch time%3 {case 0:var(12):=10; case 1;2:var(12):=20; default:var(12):=30;}\nvar(13):=0;\nlet k=0;\nwhile $k<5 {let k=$k+1; if $k=2 {continue;} if $k=4 {break;} var(13):=var(13)+$k;}\n",
+      "sourceSha256": "c5e17c3b0e75b70235b9c66d0c54b2fafc77cd2aea9567fb08c74e24b88b1bdc",
+      "observationSha256": "8727e8df74bf6821d0120d60a3c384e0ef01093c404e9ba34830b5f7aa0f4fa7",
+      "samples": [
+        {
+          "tick": 1,
+          "time": 1,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            10,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 2,
+          "time": 2,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            20,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 3,
+          "time": 3,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            20,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 4,
+          "time": 4,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            10,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 5,
+          "time": 5,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            20,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 6,
+          "time": 6,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            20,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 7,
+          "time": 7,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            10,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 8,
+          "time": 8,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            20,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 9,
+          "time": 9,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            20,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        },
+        {
+          "tick": 10,
+          "time": 10,
+          "variables": [
+            4,
+            3,
+            4,
+            0,
+            10,
+            4
+          ],
+          "fvars": [
+            0,
+            0,
+            0
+          ],
+          "map": 0,
+          "conditional": 0
+        }
+      ]
+    }
+  ]
+}

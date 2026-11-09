@@ -1,6 +1,6 @@
 {
   "engine": "Kenjatime Core",
-  "version": "0.5.5-core-preview",
+  "version": "0.5.6-core-preview",
   "independentRuntime": true,
   "universalCompatibility": false,
   "recoveryTags": [
@@ -9,7 +9,7 @@
     "recovery/pre-original-engine-android-0.4.5"
   ],
   "unitTests": {
-    "core": 50,
+    "core": 60,
     "compiledRegressionCorpus": 550,
     "skipped": 0,
     "suppliedCharacterAndStageArchivesPresent": true,
@@ -1114,8 +1114,8 @@
       "checks": {
         "attackDamage": 23,
         "compiled": {
-          "wasm": 10120,
-          "interpreted": 4,
+          "wasm": 9825,
+          "interpreted": 6,
           "deoptimized": 0,
           "compiled": 486,
           "bytes": 16744,
@@ -1123,127 +1123,10 @@
         },
         "gpu": {
           "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 54,
+          "frames": 49,
           "draws": 3,
-          "textureBytes": 130343,
-          "textures": 28,
-          "width": 960,
-          "height": 540
-        },
-        "audio": {
-          "enabled": true,
-          "paused": false,
-          "running": true,
-          "contexts": [
-            "running"
-          ],
-          "sink": "pending",
-          "sampleRate": 44100,
-          "baseLatency": 0.01,
-          "outputLatency": 0.032,
-          "pcm": {
-            "buffers": 0,
-            "frames": 0,
-            "peak": 0,
-            "underruns": 0
-          },
-          "voices": 1,
-          "cacheBytes": 22004,
-          "cachedSounds": 1,
-          "decoding": 0,
-          "pendingSounds": 0,
-          "queuedBytes": 0,
-          "lastError": null
-        },
-        "pause": true,
-        "samePage": true,
-        "menuCleanup": true,
-        "noExternalEngineRequests": true,
-        "pausedGpuStops": true,
-        "twoVisibleLifeBars": true,
-        "fixedAspectRatio": true,
-        "earlyCancellation": true,
-        "repeatedSessions": 3
-      }
-    },
-    "main": {
-      "physicalPhone": false,
-      "backendTest": "main",
-      "checks": {
-        "attackDamage": 23,
-        "compiled": {
-          "wasm": 10075,
-          "interpreted": 3,
-          "deoptimized": 0,
-          "compiled": 486,
-          "bytes": 16744,
-          "activeFunctions": 486
-        },
-        "gpu": {
-          "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 44,
-          "draws": 3,
-          "textureBytes": 124864,
+          "textureBytes": 125601,
           "textures": 27,
-          "width": 960,
-          "height": 540
-        },
-        "audio": {
-          "enabled": true,
-          "paused": false,
-          "running": true,
-          "contexts": [
-            "running"
-          ],
-          "sink": "pending",
-          "sampleRate": 44100,
-          "baseLatency": 0.01,
-          "outputLatency": 0.032,
-          "pcm": {
-            "buffers": 0,
-            "frames": 0,
-            "peak": 0,
-            "underruns": 0
-          },
-          "voices": 1,
-          "cacheBytes": 22004,
-          "cachedSounds": 1,
-          "decoding": 0,
-          "pendingSounds": 0,
-          "queuedBytes": 0,
-          "lastError": null
-        },
-        "pause": true,
-        "samePage": true,
-        "menuCleanup": true,
-        "noExternalEngineRequests": true,
-        "pausedGpuStops": true,
-        "twoVisibleLifeBars": true,
-        "fixedAspectRatio": true,
-        "earlyCancellation": true,
-        "repeatedSessions": 3,
-        "contextLossReturnsToLibrary": true
-      }
-    },
-    "worker-fallback": {
-      "physicalPhone": false,
-      "backendTest": "worker-fallback",
-      "checks": {
-        "attackDamage": 23,
-        "compiled": {
-          "wasm": 11361,
-          "interpreted": 8,
-          "deoptimized": 0,
-          "compiled": 486,
-          "bytes": 16744,
-          "activeFunctions": 486
-        },
-        "gpu": {
-          "backend": "Kenjatime Core \u00b7 Three.js",
-          "frames": 41,
-          "draws": 3,
-          "textureBytes": 128629,
-          "textures": 28,
           "width": 960,
           "height": 540
         },
@@ -1272,7 +1155,142 @@
           "queuedBytes": 0,
           "lastError": null
         },
+        "blurReleasesAllInputs": true,
+        "blurKeepsRunning": true,
+        "hiddenKeepsSimulating": true,
+        "hiddenGpuStops": true,
+        "appInactiveDoesNotAutoPause": true,
         "pause": true,
+        "focusPreservesManualPause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3
+      }
+    },
+    "main": {
+      "physicalPhone": false,
+      "backendTest": "main",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 10065,
+          "interpreted": 7,
+          "deoptimized": 0,
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 43,
+          "draws": 3,
+          "textureBytes": 118248,
+          "textures": 26,
+          "width": 960,
+          "height": 540
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 0,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "blurReleasesAllInputs": true,
+        "blurKeepsRunning": true,
+        "hiddenKeepsSimulating": true,
+        "hiddenGpuStops": true,
+        "appInactiveDoesNotAutoPause": true,
+        "pause": true,
+        "focusPreservesManualPause": true,
+        "samePage": true,
+        "menuCleanup": true,
+        "noExternalEngineRequests": true,
+        "pausedGpuStops": true,
+        "twoVisibleLifeBars": true,
+        "fixedAspectRatio": true,
+        "earlyCancellation": true,
+        "repeatedSessions": 3,
+        "contextLossReturnsToLibrary": true
+      }
+    },
+    "worker-fallback": {
+      "physicalPhone": false,
+      "backendTest": "worker-fallback",
+      "checks": {
+        "attackDamage": 23,
+        "compiled": {
+          "wasm": 9259,
+          "interpreted": 2,
+          "deoptimized": 0,
+          "compiled": 486,
+          "bytes": 16744,
+          "activeFunctions": 486
+        },
+        "gpu": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 44,
+          "draws": 3,
+          "textureBytes": 118859,
+          "textures": 26,
+          "width": 960,
+          "height": 540
+        },
+        "audio": {
+          "enabled": true,
+          "paused": false,
+          "running": true,
+          "contexts": [
+            "running"
+          ],
+          "sink": "pending",
+          "sampleRate": 44100,
+          "baseLatency": 0.01,
+          "outputLatency": 0.032,
+          "pcm": {
+            "buffers": 0,
+            "frames": 0,
+            "peak": 0,
+            "underruns": 0
+          },
+          "voices": 1,
+          "cacheBytes": 22004,
+          "cachedSounds": 1,
+          "decoding": 0,
+          "pendingSounds": 0,
+          "queuedBytes": 0,
+          "lastError": null
+        },
+        "blurReleasesAllInputs": true,
+        "blurKeepsRunning": true,
+        "hiddenKeepsSimulating": true,
+        "hiddenGpuStops": true,
+        "appInactiveDoesNotAutoPause": true,
+        "pause": true,
+        "focusPreservesManualPause": true,
         "samePage": true,
         "menuCleanup": true,
         "noExternalEngineRequests": true,
@@ -1393,9 +1411,9 @@
   },
   "android": {
     "applicationId": "io.github.celerycore.kenjatime.core.preview",
-    "version": "0.5.5-core-preview",
-    "bytes": 6988568,
-    "sha256": "9a295562b487d4c7f9fb8ae9b186bd231403e1f26a0bea8fe79aa40a71943377",
+    "version": "0.5.6-core-preview",
+    "bytes": 7235002,
+    "sha256": "705b612f58beea85d04d72538e46eea5d1de37a8b9c6709cca3301ef59606a4c",
     "certificateSha256": "796ea4f868b5562eecdf9a157df53f9e3a0747d7280c8bf9ef66a1303e416904",
     "offlineAssetsMatchWebBuild": true,
     "bundledFiles": 36,
@@ -1411,7 +1429,7 @@
     "defaultBuildUsesSeparatePreviewId": true
   },
   "build": {
-    "bytes": 6623573,
+    "bytes": 6661846,
     "graphManifests": 4,
     "artifactManifest": "dist-core/provenance.json"
   },
@@ -1655,7 +1673,7 @@
     ],
     "scope": "Sequential host samples with identical checksums. Shared independent JS interpreter. No browser or phone FPS or full-native-engine speed comparison."
   },
-  "previousVerifiedCheckpoint": "checkpoint/core-preview-0.5.4",
+  "previousVerifiedCheckpoint": "checkpoint/core-preview-0.5.5",
   "remainingMovesetExamples": [],
   "reversalRegression": {
     "originalDefectSource": "273c8214e7e232f69e1f301eab2636fef26a665f",
@@ -1864,5 +1882,800 @@
     },
     "wrongPasswordReportsPasswordOrDamage": true,
     "correctPasswordImportAfterFailurePasses": true
+  },
+  "zss": {
+    "fixture": "test/fixtures/core/zss.json",
+    "authoredNativeRuns": 3,
+    "nativeSamples": 30,
+    "executionBackends": [
+      "independent-interpreter",
+      "compiled-numeric-with-independent-fallback"
+    ],
+    "differences": 0,
+    "features": [
+      "structured conditionals",
+      "numeric locals and functions",
+      "named maps",
+      "block persistence",
+      "hitpause inheritance",
+      "integer for/while loops",
+      "switch",
+      "break/continue"
+    ],
+    "scope": "Authored probes on an unchanged native executable, not complete ZSS or extended-controller certification. Lua, extended global states and newer dialects remain unsupported."
+  },
+  "stages": {
+    "physicalPhone": false,
+    "cases": [
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              0,
+              64,
+              -32,
+              96
+            ],
+            "clip": null
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 1,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180
+        },
+        "id": "width",
+        "testedPixels": 4608,
+        "rasterEdgePixels": 15,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              -192,
+              -128,
+              -416,
+              -288
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              -128,
+              -64,
+              -288,
+              -160
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              -64,
+              0,
+              -160,
+              -32
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              0,
+              64,
+              -32,
+              96
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              64,
+              128,
+              96,
+              224
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              128,
+              192,
+              224,
+              352
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              192,
+              256,
+              352,
+              480
+            ],
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 7,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180
+        },
+        "id": "width-tiles-window",
+        "testedPixels": 9432,
+        "rasterEdgePixels": 141,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              -192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              0,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              576,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              768,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              960,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              90,
+              345,
+              783,
+              108
+            ]
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 7,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180
+        },
+        "id": "normal-window",
+        "testedPixels": 9432,
+        "rasterEdgePixels": 72,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              -192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              0,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              192,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              576,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              768,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          },
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              960,
+              330
+            ],
+            "warp": null,
+            "clip": [
+              180,
+              345,
+              600,
+              105
+            ]
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 7,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180
+        },
+        "id": "normal-maskwindow",
+        "testedPixels": 7035,
+        "rasterEdgePixels": 70,
+        "differentPixels": 0
+      },
+      {
+        "camera": {
+          "x": 0,
+          "y": 0,
+          "zoom": 1
+        },
+        "draws": [
+          {
+            "matrix": [
+              3,
+              0,
+              0,
+              3,
+              384,
+              330
+            ],
+            "warp": [
+              0,
+              64,
+              0,
+              64
+            ],
+            "clip": null
+          }
+        ],
+        "warmUploads": 0,
+        "diagnostics": [],
+        "stats": {
+          "backend": "Kenjatime Core \u00b7 Three.js",
+          "frames": 1,
+          "draws": 1,
+          "textureBytes": 4356,
+          "textures": 4,
+          "width": 320,
+          "height": 180
+        },
+        "id": "xscale-camera-0",
+        "testedPixels": 3072,
+        "rasterEdgePixels": 0,
+        "differentPixels": 0
+      }
+    ],
+    "comparedPatternPixels": 33579,
+    "rasterEdgePixels": 298,
+    "interiorDifferences": 0,
+    "rasterEdgeAllowancePixels": 1,
+    "scope": "Production Core/Three GPU output, static authored stage patterns, fixed camera. Bidirectional one-pixel OpenGL/WebGL raster allowance. Moving cameras, camera start offsets and mixed-coordinate behavior remain unverified."
+  },
+  "backgroundExecution": {
+    "automaticPauseOnBlur": false,
+    "automaticPauseOnHidden": false,
+    "automaticPauseOnAppInactive": false,
+    "manualPausePreserved": true,
+    "releasedInputSources": [
+      "keyboard",
+      "touch",
+      "gamepad"
+    ],
+    "hiddenRendering": false,
+    "simulationScheduler": "timer fallback with bounded catch-up; elapsed debt retained",
+    "browserBackendsVerified": [
+      "worker",
+      "main",
+      "worker-fallback"
+    ],
+    "scope": "Injected lifecycle events and scheduler tests withholding rAF; subject to browser timer policies and Android process suspension. No physical-phone background measurements."
+  },
+  "cpuFeatureSample": {
+    "baselineSource": "065a8ee4f10aa569ac0c8b456f9ddafce6227f3c",
+    "samples": {
+      "before": {
+        "engine": "Kenjatime Core",
+        "version": "0.5.6-core-preview",
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "combatSourceSha256": "bb91c407eb83db9b6ed1a8abc70db74c4eb4f66277e6fe7f50dd7a503655ade4",
+        "simulationSources": {
+          "src/combat.js": "bb91c407eb83db9b6ed1a8abc70db74c4eb4f66277e6fe7f50dd7a503655ade4",
+          "src/runtime.js": "647a1914afffac471bdc3e27bab8681b49d3e8a040c221dd2d842b3d36036f20",
+          "src/common.js": "86ab2e401e7027fbfc1bd318b91d8688821cb5f0c6e69a6306dbaf14fdb9c37b",
+          "src/coordinates.js": "6ca870a1720be3b154d05313fff1e02b3456a532198c2fdd57792b7976405518",
+          "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
+          "src/expressions.js": "dcfab8e96748d520097816795c249f97ffcb82aa21f726d2fe3c528dd232f63f",
+          "src/hit-state.js": "a35f52ae114045a5bb6fb858b710db585a14ef441164636a07ec691388e1915c",
+          "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
+          "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
+          "src/cpu.js": "564266a9e8ea72990e6cf8104829b401aef81a1c58ff956d22ac3c72d879d729",
+          "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4",
+          "src/animation-clock.js": "f52b950774cce62243be29671f09599d8607eb451d04934ff3001265d2f0d665",
+          "src/zss.js": null,
+          "src/zss-executor.js": null
+        },
+        "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
+        "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
+        "workloads": [
+          {
+            "name": "two-fighters",
+            "helpers": 0,
+            "attacking": true,
+            "projectiles": 0,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 17.53512699999999,
+            "timesMs": [
+              34.550402000000005,
+              27.90492599999999,
+              17.53512699999999,
+              16.855433000000005,
+              15.487291999999997
+            ],
+            "checksum": 3101414621
+          },
+          {
+            "name": "idle-helpers",
+            "helpers": 40,
+            "attacking": false,
+            "projectiles": 0,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 111.62893800000006,
+            "timesMs": [
+              109.62488800000006,
+              113.47601199999997,
+              113.50318300000004,
+              108.43174899999997,
+              111.62893800000006
+            ],
+            "checksum": 960736573
+          },
+          {
+            "name": "attacking-helpers",
+            "helpers": 40,
+            "attacking": true,
+            "projectiles": 0,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 845.695103,
+            "timesMs": [
+              779.3084009999998,
+              770.9733180000003,
+              845.695103,
+              1031.145552,
+              903.1606600000005
+            ],
+            "checksum": 984608061
+          },
+          {
+            "name": "projectile-load",
+            "helpers": 16,
+            "attacking": true,
+            "projectiles": 32,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 571.0295009999991,
+            "timesMs": [
+              566.3944850000007,
+              561.7760950000011,
+              598.7562839999991,
+              574.3310570000012,
+              571.0295009999991
+            ],
+            "checksum": 2939807261
+          }
+        ]
+      },
+      "after": {
+        "engine": "Kenjatime Core",
+        "version": "0.5.6-core-preview",
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "combatSourceSha256": "bb91c407eb83db9b6ed1a8abc70db74c4eb4f66277e6fe7f50dd7a503655ade4",
+        "simulationSources": {
+          "src/combat.js": "bb91c407eb83db9b6ed1a8abc70db74c4eb4f66277e6fe7f50dd7a503655ade4",
+          "src/runtime.js": "a5c6556d6f0d606572c7673deb7ea92911320f2e2cdf076c59dbe653186d7321",
+          "src/common.js": "86ab2e401e7027fbfc1bd318b91d8688821cb5f0c6e69a6306dbaf14fdb9c37b",
+          "src/coordinates.js": "6ca870a1720be3b154d05313fff1e02b3456a532198c2fdd57792b7976405518",
+          "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
+          "src/expressions.js": "462e4be51896506eb05dba42b3e478ce091fd4a19b92ec72e107e4a1cce161f2",
+          "src/hit-state.js": "a35f52ae114045a5bb6fb858b710db585a14ef441164636a07ec691388e1915c",
+          "src/projectiles.js": "5a13c2853adc5192b5e1fa629559566a50226349f95a4be3ed91daa65884d23d",
+          "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
+          "src/cpu.js": "564266a9e8ea72990e6cf8104829b401aef81a1c58ff956d22ac3c72d879d729",
+          "src/rounds.js": "1f6051012e9d8aa85b3a2c2faf906639f49e0ea7a555bc8a6ec7a6720ab937b4",
+          "src/animation-clock.js": "f52b950774cce62243be29671f09599d8607eb451d04934ff3001265d2f0d665",
+          "src/zss.js": "5db926e491954bd1b87ac5d96adaea02fad413bbfff8508264068f502549b35e",
+          "src/zss-executor.js": "e4b8aa885c60ea09e32606cf679aca70bb63f84e5e4b13fadf506864df556bcb"
+        },
+        "expressionBackend": "Independent JS interpreter, identical for baseline and optimized runs",
+        "scope": "Headless fixed-tick CPU simulation of authored synthetic loads, including CNS, contact scanning and cleanup. No graphics, archive loading or audio; no browser or phone FPS claim.",
+        "workloads": [
+          {
+            "name": "two-fighters",
+            "helpers": 0,
+            "attacking": true,
+            "projectiles": 0,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 19.94786400000001,
+            "timesMs": [
+              28.787838000000008,
+              19.93524500000001,
+              19.067868000000004,
+              31.205636,
+              19.94786400000001
+            ],
+            "checksum": 3101414621
+          },
+          {
+            "name": "idle-helpers",
+            "helpers": 40,
+            "attacking": false,
+            "projectiles": 0,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 108.86116400000003,
+            "timesMs": [
+              108.86116400000003,
+              99.30688899999996,
+              113.33245800000009,
+              110.71523300000001,
+              102.85542699999996
+            ],
+            "checksum": 960736573
+          },
+          {
+            "name": "attacking-helpers",
+            "helpers": 40,
+            "attacking": true,
+            "projectiles": 0,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 835.2210099999998,
+            "timesMs": [
+              835.2210099999998,
+              854.275005,
+              823.4471710000003,
+              837.6219019999999,
+              814.634478
+            ],
+            "checksum": 984608061
+          },
+          {
+            "name": "projectile-load",
+            "helpers": 16,
+            "attacking": true,
+            "projectiles": 32,
+            "ticks": 2000,
+            "samples": 5,
+            "medianMs": 595.8875909999988,
+            "timesMs": [
+              574.1287830000001,
+              617.5881999999992,
+              595.8875909999988,
+              565.4404890000005,
+              741.4465179999988
+            ],
+            "checksum": 2939807261
+          }
+        ]
+      }
+    },
+    "scope": "Five 2,000-tick host samples; identical checksums. Taken before final scheduler/cache-only refinements, which are not exercised by these CNS workloads. No overall CPU speedup established; not phone FPS.",
+    "baselinePackageMetadataNote": "Baseline runtime files were exported from 065a8ee; package.json was copied only to enable ES-module loading, so its version label identifies the harness rather than the baseline runtime."
   }
 }

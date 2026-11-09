@@ -1,0 +1,76 @@
+{
+  "cases": [
+    {
+      "id": "width",
+      "parameters": "type=parallax\nwidth=64,128",
+      "cameraX": 0,
+      "definition": "[Info]\nname=Original stage verification width\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,180\nzoffset=140\n[BGDef]\nspr=pattern.sff\n[BG pattern]\ntype=parallax\nwidth=64,128\nspriteno=0,0\nstart=0,110\ndelta=1,1\n",
+      "roi": [
+        0,
+        105,
+        320,
+        65
+      ],
+      "sha256": "7be183ce9709dd7346481cc380bf55bdd2ef6bd3e1ddffb382dfb2ecba236389"
+    },
+    {
+      "id": "width-tiles-window",
+      "parameters": "type=parallax\nwidth=64,128\ntile=1,0\nwindow=30,115,290,150",
+      "cameraX": 0,
+      "definition": "[Info]\nname=Original stage verification width-tiles-window\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,180\nzoffset=140\n[BGDef]\nspr=pattern.sff\n[BG pattern]\ntype=parallax\nwidth=64,128\ntile=1,0\nwindow=30,115,290,150\nspriteno=0,0\nstart=0,110\ndelta=1,1\n",
+      "roi": [
+        0,
+        105,
+        320,
+        65
+      ],
+      "sha256": "f37103821cf40a0e825d74d79f934ec2ad818ae6b5bdfde47d6515e341057025"
+    },
+    {
+      "id": "normal-window",
+      "parameters": "type=normal\ntile=1,0\nwindow=30,115,290,150",
+      "cameraX": 0,
+      "definition": "[Info]\nname=Original stage verification normal-window\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,180\nzoffset=140\n[BGDef]\nspr=pattern.sff\n[BG pattern]\ntype=normal\ntile=1,0\nwindow=30,115,290,150\nspriteno=0,0\nstart=0,110\ndelta=1,1\n",
+      "roi": [
+        0,
+        105,
+        320,
+        65
+      ],
+      "sha256": "abef1954dc7676eeddab60ef3778dffdfb9d072d67425ad619c11e08782871f5"
+    },
+    {
+      "id": "normal-maskwindow",
+      "parameters": "type=normal\ntile=1,0\nmaskwindow=-100,115,100,150",
+      "cameraX": 0,
+      "definition": "[Info]\nname=Original stage verification normal-maskwindow\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,180\nzoffset=140\n[BGDef]\nspr=pattern.sff\n[BG pattern]\ntype=normal\ntile=1,0\nmaskwindow=-100,115,100,150\nspriteno=0,0\nstart=0,110\ndelta=1,1\n",
+      "roi": [
+        0,
+        105,
+        320,
+        65
+      ],
+      "sha256": "91bc63e44ec7af5ae36dace6613387484fa74cfe70ce11e1c58fbc9ee6ddf09b"
+    },
+    {
+      "id": "xscale-camera-0",
+      "parameters": "type=parallax\nxscale=0.5,1.5",
+      "cameraX": 0,
+      "definition": "[Info]\nname=Original stage verification xscale-camera\n[Camera]\nstartx=0\nboundleft=0\nboundright=0\nboundhigh=0\nboundlow=0\nverticalfollow=0\n[PlayerInfo]\np1startx=-70\np2startx=70\nleftbound=-1000\nrightbound=1000\n[Bound]\nscreenleft=0\nscreenright=0\n[StageInfo]\nlocalcoord=320,180\nzoffset=140\n[BGDef]\nspr=pattern.sff\n[BG pattern]\ntype=parallax\nxscale=0.5,1.5\nspriteno=0,0\nstart=0,110\ndelta=1,1\n",
+      "roi": [
+        0,
+        105,
+        320,
+        65
+      ],
+      "sha256": "dd23be902fa8f61181ff610cdb9f0797abe471eb444932c0293d68bb941206c9"
+    }
+  ],
+  "oracle": {
+    "release": "v1.0.0 Linux",
+    "binarySha256": "4a7dbe22218ca2c6785a745c756cdf391edd6f3a3b956f66e101030957c8df29",
+    "method": "Unchanged official executable, original checker-pattern SFF and stage definitions. ROI excludes lifebar/interface. Camera is stationary; captures do not certify advanced camera or mixed-coordinate behavior.",
+    "rasterEdgeAllowancePixels": 1
+  },
+  "spriteSha256": "7259b20e19f316c5d32bd428f7aa5d27a29e2679413f1c815431c7da84222a50"
+}
