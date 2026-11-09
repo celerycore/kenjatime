@@ -109,6 +109,21 @@ export function commonStates({orderedPhases=false}={}){return [
   state(5120, (orderedPhases?'type=L\nphysics=N':'type=S\nphysics=S')+'\nmovetype=I\nctrl=0',
     anim(5120) + controller('SelfState','value=0\nctrl=1','animtime = 0 || !selfanimexist(5120)')),
   state(5150, 'type = L\nmovetype = H\nphysics = N\nctrl = 0\nvelset = 0,0', anim(5110)),
+  // Core fall recovery states. Character-provided common states override these
+  // defaults; separate ground recovery preserves air recovery state 5210.
+  state(5200,'type=A\nmovetype=H\nphysics=N\nctrl=0',
+    anim(5050,'anim=5035 && animtime=0')+
+    controller('VelAdd','y=gethitvar(yaccel)','time>0')+
+    controller('SelfState','value=5201\nctrl=0',
+      'vel y>0 && pos y>=const(movement.air.gethit.groundrecover.groundlevel)')),
+  state(5201,'type=A\nmovetype=H\nphysics=A\nctrl=0\nanim=5200',
+    controller('Turn','','time=0 && p2dist x<const720p(-20)')+
+    controller('VelSet','x=const(velocity.air.gethit.groundrecover.x)\ny=const(velocity.air.gethit.groundrecover.y)','time=0')+
+    controller('PosSet','y=0','time=0')+
+    controller('NotHitBy','value=SCA\ntime=1')+
+    controller('PalFX','time=3\nadd=128,128,128','time=0')+
+    controller('Explod','anim=F60\npos=0,0\nsprpriority=-10','time=0')+
+    change(52,'vel y>0 && pos y>=0',1)),
   state(5210,'type=A\nmovetype=I\nphysics=N\nctrl=0',anim(5210)+controller('PosFreeze','value=1','time<4')+
     controller('VelMul',orderedPhases?'x=const(velocity.air.gethit.airrecover.mul.x)\ny=const(velocity.air.gethit.airrecover.mul.y)':'x=.5\ny=.2','time=4')+
     controller('VelAdd',orderedPhases?'x=const(velocity.air.gethit.airrecover.add.x)\ny=const(velocity.air.gethit.airrecover.add.y)':'y=Const240p(-4.5)','time=4')+
