@@ -1,10 +1,10 @@
 {
-  "version": "0.5.7-core-preview",
-  "sourceCommit": "6bc046eb52701646a68c908a728efe8dcf0ef476",
+  "version": "0.5.8-core-preview",
+  "sourceCommit": "86881e99f5f269b7ba5b74f6695c467fbe2d80ce",
   "webPath": "/kenjatime/engine-preview/",
   "independentRuntime": true,
   "universalCompatibility": false,
   "externalEnginePayloads": false,
-  "scope": "Build isolation and recorded fixtures; complete advanced parity and physical phone FPS unverified.",
-  "provenanceSha256": "e7335a5d4ce9372af901ad539b2f51678173679aa83f5786d9500b78dc595d2c"
+  "scope": "Verified fixtures; complete advanced parity and physical phone FPS unverified.",
+  "provenanceSha256": "29c3afd769fa65097e28b52dc9b8c0c89ffa400ab00f8487d24de9836a1f65d4"
 }

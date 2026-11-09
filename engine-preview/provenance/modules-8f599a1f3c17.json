@@ -25,7 +25,7 @@
     "src/runtime.js": "b9daaee75fd23e7d41d3b61403186feb27d0a0d1b872bf5f295dea96b9b93a43",
     "src/seven-archive.js": "19921cb4816451381452d8cac1e0bbedd7cf9a101f97e622d0ae2002bf8a4747",
     "src/stage-sprites.js": "e5ac5a7657c9a16b16c11eff0357d8fb000bfe678dd8c4cd2b1e8dd9cef7d047",
-    "src/stages.js": "98d2cc554a250c5010d4b9b82b58caa4ff1841c57613786db3989bc1be06baa2",
+    "src/stages.js": "a6562a3ee3bef2639bd237f264286f630857931bb069f3ddf24db8432f812a1b",
     "src/zip-encrypted.js": "e94a93cc6a09ea5ad7c5f3f2b53a1f52473711cc98821c0bbf46e110307dc4cb",
     "src/zip-lzma.js": "54619d449e7a23c74893268e2df8deda89c9e0d94807c4f27f3e3f95fabae5ac",
     "src/zss-executor.js": "b18cab696d55c8a63290dbf7de90eeb74011922a2727633dfd3310528758b4b6",
