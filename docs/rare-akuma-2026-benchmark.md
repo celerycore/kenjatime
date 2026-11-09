@@ -81,3 +81,37 @@ The new asset-free synthetic regression tests run with normal `npm ci` alongside
 `npm run test:core` and `npm run test:core:compiled` in the Rare Akuma contract
 GitHub Actions workflow. The original ZIP is required for the opt-in benchmark
 and is intentionally **not** uploaded to CI.
+
+
+## Core common-effects integration (this update)
+
+Core now recognizes and renders imported MUGEN/IKEMEN shared effects. The implementation loads
+`fightfx.air` and `fightfx.sff` from the selected `fight.def` motif or imported pack,
+parses the authentic AIR action IDs, and uses their own SFF graphics for `Explod anim=F...`
+and `GameMakeAnim` instead of dropping draw events. `common.snd` can be included for
+`PlaySnd value=F...` requests. If the resources are absent, the engine reports them as
+missing and does **not** manufacture source artwork.
+
+To use this in the browser, import a ZIP retaining paths:
+
+```
+data/fight.def          # recommended (specifies [Files] fightfx.air / fightfx.sff)
+data/fightfx.air        # required
+data/fightfx.sff        # required
+data/common.snd         # optional, for common SFX
+```
+
+The library accepts this ZIP even if it contains no character or stage DEF.
+Under match setup, select the installed pack in the **Common effects** dropdown.
+By default, a matching original effects set from the selected stage or character
+package is used if one exists. The package remains separate from RareAkuma.zip.
+
+`AssertSpecial globalnoshadow` is now recognized and propagated as the
+match-wide `suppressCharacterShadows` render flag; **Core does not yet
+implement native MUGEN/IKEMEN 2D player/Explod shadow rendering**, so shadow
+appearance cannot be certified.
+
+The seven truncated PCX records and three absent source animation sprites
+are unchanged original-archive findings. The new loader does not and cannot
+repair those character-specific pixels. A real IKEMEN GO 0.99+ reference
+capture is still required for frame-by-frame collision, effects and audio parity.
