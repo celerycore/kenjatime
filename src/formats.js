@@ -84,11 +84,11 @@ export function animations(text) {
   const line=raw.split(';')[0].trim();
   const action=line.match(/^\[begin action\s+(-?\d+)\]\s*$/i);
   if (action) {
-   current={id:+action[1],frames:[],loopStart:0};list.push(current);
+   current={id:+action[1],frames:[],loopStart:0,loopDeclared:false};list.push(current);
    defaults={1:[],2:[]};pending={};definition={};continue;
   }
   if (!current || !line) continue;
-  if (/^loopstart\s*$/i.test(line)) {current.loopStart=current.frames.length;continue;}
+  if (/^loopstart\s*$/i.test(line)) {current.loopStart=current.frames.length;current.loopDeclared=true;continue;}
   const header=line.match(/^clsn([12])(default)?\s*:\s*(\d+)\s*$/i);
   if (header) {
    const kind=+header[1],count=+header[3];
@@ -135,7 +135,7 @@ export function animations(text) {
   pending={};
  }
  return list.filter(a=>a.frames.length).map(a=>{
-  if(a.loopStart>=a.frames.length)a.loopStart=0;
+  if(a.loopStart>=a.frames.length){a.loopStart=0;a.loopDeclared=false;}
   if(a.loopInterpolate)a.frames.at(-1).interpolate=[...new Set([...(a.frames.at(-1).interpolate||[]),...a.loopInterpolate])];
   delete a.loopInterpolate;return a;
  });

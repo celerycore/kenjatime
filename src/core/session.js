@@ -133,6 +133,7 @@ export class CoreSession {
     this.events = [];
     this.sparks = [];
     this.gameEffects = [];
+    this.roundGeneration = this.match.roundGeneration;
     this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
     this.videoSprites = new Map();
@@ -184,20 +185,34 @@ export class CoreSession {
       throw error;
     }
   }
+  syncRoundGeneration() {
+    if (this.roundGeneration === this.match.roundGeneration) return;
+    this.roundGeneration = this.match.roundGeneration;
+    // All transient world effects belong to the previous round's actors.
+    // Keep decoded sprites/textures cached for the next round.
+    this.gameEffects = [];
+    this.sparks = [];
+    this.events = [];
+    this.effects = new EffectsState();
+  }
   tick(left = new Set(), right = new Set()) {
     if (this.closed) throw Error("Match is closed.");
+    this.syncRoundGeneration();
     const match = this.match,
       paused = (e) => match.isFrozen(e) || e.hitPauseTime > 0;
     this.effects.advance({ paused });
     this.gameEffects = this.gameEffects.filter(fx=>{
-      if (!fx.animation.frames.length || ++fx.age > (fx.maxAge||3600)) return false;
+      if (!fx.animation.frames.length) return false;
+      // Pause and hitstop freeze effect clocks, including their max lifetime.
       if (fx.owner && paused(fx.owner)) return true;
+      if (++fx.age > (fx.maxAge ?? 3600)) return false;
       const frame=fx.animation.frames[fx.frameIndex];
       if(frame.ticks<0) return true;
       if(++fx.frameTime>=Math.max(1,frame.ticks)){
         fx.frameTime=0;
         if(++fx.frameIndex>=fx.animation.frames.length){
-          if(fx.animation.loopStart>0) fx.frameIndex=fx.animation.loopStart;
+          if(fx.animation.loopDeclared || fx.animation.loopStart>0)
+            fx.frameIndex=fx.animation.loopStart;
           else return false;
         }
       }
@@ -207,6 +222,7 @@ export class CoreSession {
       playerInput: left,
       opponentInput: right,
     });
+    this.syncRoundGeneration();
     this.lua?.step();
     this.commands = [
       match.inputBuffers.get(match.player),
@@ -246,12 +262,28 @@ export class CoreSession {
         factor=definition.coordinateScale??attacker?.coordinateScale??1;
       let rendered=false;
       if(Number.isFinite(no)&&no>=0&&animation?.frames?.length&&resource&&attacker){
+        // An action ID can exist while every referenced sprite is absent from
+        // the original SFF. Keep this distinct from successful rendering.
+        // Negative AIR sprite groups are intentionally invisible.
+        const visible=animation.frames.filter(frame=>frame.group>=0);
+        let sourceAvailable=true;
+        if(visible.length){
+          try{
+            this.bank(resource);
+            const indices=this.indices.get(resource);
+            sourceAvailable=visible.some(frame=>indices.has(frame.group+','+frame.number));
+          }catch(error){sourceAvailable=false;this.issue('sprite',error.message);}
+        }
+        if(!sourceAvailable){
+          this.issue('missing-sprite',`HitDef ${guarded?'guard ':''}spark ${common?'F':''}${no} contains no source sprites in its SFF.`);
+        }else {
         if(this.gameEffects.length>=256)this.gameEffects.shift();
         this.gameEffects.push({animation,resource,scale:common?this.commonEffects.scale:baseScale(attacker),
           frameIndex:0,frameTime:0,age:0,maxAge:120,owner:attacker,under:false,
           pos:{x:hit.x+(offset[0]||0)*factor*attacker.facing,
             y:attacker.pos.y+(offset[1]||0)*factor},facing:attacker.facing});
         rendered=true;
+        }
       }else if(Number.isFinite(no)&&no>=0)
         this.issue('missing-animation',`HitDef ${guarded?'guard ':''}spark ${common?'F':''}${no} is unavailable from imported assets.`);
       if(!rendered)this.sparks.push({x:hit.x,y:hit.y,age:0,guarded});
