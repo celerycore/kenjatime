@@ -28,7 +28,7 @@ class ExpressionParityTest {
         a.posX = -30*Fixed.ONE
         b.posX = 25*Fixed.ONE
         assertTrue(check("StateType = S && MoveType = I && Facing = 1", a))
-        assertTrue(check("p2dist x > 50 && p2bodydist x = 55", a))
+        assertTrue(check("p2dist x > 50 && p2bodydist x = 25", a))
         assertTrue(check("p2stateno = 0 && p2life = 1000", a))
         assertTrue(check("Power = 0 && LifeMax = 1000", a))
         assertFalse(check("StateType = A",a))

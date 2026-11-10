@@ -29,9 +29,12 @@ object CoreExpression {
                 "pos y" -> Fixed.pixels(f.posY)
                 "vel x" -> Fixed.pixels(f.velX)
                 "vel y" -> Fixed.pixels(f.velY)
-                "p2dist x" -> p?.let { Fixed.pixels(it.posX-f.posX) } ?: 0.0
+                "p2dist x" -> p?.let { Fixed.pixels(it.posX-f.posX) * if(f.facingRight)1 else -1 } ?: 0.0
                 "p2dist y" -> p?.let { Fixed.pixels(it.posY-f.posY) } ?: 0.0
-                "p2bodydist x" -> p?.let { abs(Fixed.pixels(it.posX-f.posX)) } ?: 0.0
+                "p2bodydist x" -> p?.let {
+                    val ahead=Fixed.pixels(it.posX-f.posX)*(if(f.facingRight)1 else -1)
+                    ahead - (f.definition.groundFront+it.definition.groundBack)
+                } ?: 0.0
                 "p2bodydist y" -> p?.let { Fixed.pixels(it.posY-f.posY) } ?: 0.0
                 "p2stateno" -> p?.stateNo?.toDouble() ?: 0.0
                 "p2life" -> p?.life?.toDouble() ?: 0.0

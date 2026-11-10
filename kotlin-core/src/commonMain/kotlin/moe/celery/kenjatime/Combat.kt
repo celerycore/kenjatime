@@ -41,13 +41,57 @@ data class StateProgram(
     val velocityX: Int? = null,
     val velocityY: Int? = null
 )
+data class MugenConstants(
+    val maxLife: Int = 1000,
+    val front: Int = 15,
+    val back: Int = 15,
+    val gravity: Int = Fixed.of(0.7),
+    val xScale: Int = Fixed.ONE,
+    val yScale: Int = Fixed.ONE
+)
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
     val states: Map<Int, StateProgram> = emptyMap(),
-    val maxLife: Int = 1000
-)
+    val maxLife: Int = 1000,
+    val groundFront: Int = 15,
+    val groundBack: Int = 15,
+    val airGravity: Int = Fixed.of(0.7),
+    val xScale: Int = Fixed.ONE,
+    val yScale: Int = Fixed.ONE
+) {
+    companion object {
+        fun fromScript(name: String, air: String, cns: String): FighterDefinition {
+            val constants = MugenCnsParser.constants(cns)
+            return FighterDefinition(
+                name, MugenAirParser.parse(air), MugenCnsParser.parse(cns),
+                constants.maxLife, constants.front, constants.back,
+                constants.gravity, constants.xScale, constants.yScale
+            )
+        }
+    }
+}
 
 object MugenCnsParser {
+    /** Read fighter base constants without coupling actors to script text. */
+    fun constants(source: String): MugenConstants {
+        val script = MugenDefParser.parse(source)
+        val size = script.section("Size")
+        val movement = script.section("Movement")
+        fun fixed(raw: String?, fallback: Int): Int =
+            raw?.toDoubleOrNull()?.takeIf { it.isFinite() }?.let {
+                Fixed.of(it.coerceIn(0.1,4.0))
+            } ?: fallback
+        return MugenConstants(
+            maxLife = script.section("Data")?.int("life",1000)?.coerceIn(1,100000) ?: 1000,
+            front = size?.int("ground.front",15)?.coerceIn(0,200) ?: 15,
+            back = size?.int("ground.back",15)?.coerceIn(0,200) ?: 15,
+            gravity = movement?.get("yaccel")?.toDoubleOrNull()?.let {
+                Fixed.of(it.coerceIn(0.0,4.0))
+            } ?: Fixed.of(0.7),
+            xScale = fixed(size?.get("xscale"),Fixed.ONE),
+            yScale = fixed(size?.get("yscale"),Fixed.ONE)
+        )
+    }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
     private val statedef = Regex("statedef\\s+(-?\\d+)", RegexOption.IGNORE_CASE)
     /** Preserve the authored order. A [State] with no triggers never activates. */
@@ -184,7 +228,7 @@ class FightingCharacter(
     fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
     fun markHit(target: Int) { struck.add(target) }
     fun attackBoxes(): List<MugenRect> = animation?.frame?.boxes
-        ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
+        ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight, definition.xScale, definition.yScale) } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
     private fun number(raw: String?, default: Int = 0): Int =

@@ -21,8 +21,8 @@ private object Fights {
     cns1: String, cns2: String, cmd1: String, cmd2: String
 ): Int {
     require(Fights.active.size < 8) { "Too many active fights" }
-    val a = FighterDefinition(name1, MugenAirParser.parse(air1), MugenCnsParser.parse(cns1))
-    val b = FighterDefinition(name2, MugenAirParser.parse(air2), MugenCnsParser.parse(cns2))
+    val a = FighterDefinition.fromScript(name1, air1, cns1)
+    val b = FighterDefinition.fromScript(name2, air2, cns2)
     val id = Fights.next++
     val left = FightingCharacter(a, 1, MugenCommandParser.parseFile(cmd1))
     val right = FightingCharacter(b, 2, MugenCommandParser.parseFile(cmd2))

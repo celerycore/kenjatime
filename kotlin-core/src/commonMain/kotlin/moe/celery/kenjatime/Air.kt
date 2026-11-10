@@ -1,11 +1,11 @@
 package moe.celery.kenjatime
 
 data class MugenRect(val x1: Int, val y1: Int, val x2: Int, val y2: Int) {
-    fun world(x: Int, y: Int, facingRight: Boolean, scale: Int = 256): MugenRect {
+    fun world(x: Int, y: Int, facingRight: Boolean, scale: Int = 256, scaleY: Int = scale): MugenRect {
         val a = x + x1 * (if (facingRight) 1 else -1) * scale
         val b = x + x2 * (if (facingRight) 1 else -1) * scale
-        return MugenRect(minOf(a, b), minOf(y + y1 * scale, y + y2 * scale),
-            maxOf(a, b), maxOf(y + y1 * scale, y + y2 * scale))
+        return MugenRect(minOf(a, b), minOf(y + y1 * scaleY, y + y2 * scaleY),
+            maxOf(a, b), maxOf(y + y1 * scaleY, y + y2 * scaleY))
     }
     fun intersects(other: MugenRect): Boolean = x1 < other.x2 && x2 > other.x1 &&
         y1 < other.y2 && y2 > other.y1

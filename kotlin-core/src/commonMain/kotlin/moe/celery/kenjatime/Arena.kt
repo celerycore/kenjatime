@@ -32,7 +32,7 @@ data class ArenaRules(
     private fun individual(p:FightingCharacter) {
         p.posX=p.posX.coerceIn(left,right)
         val physics=p.definition.states[p.stateNo]?.physics?.uppercase()
-        if(physics=="A" && p.stateType=="A")p.velY+=gravity
+        if(physics=="A" && p.stateType=="A")p.velY+=p.definition.airGravity
         if(p.posY>=ground && p.velY>0) {
             p.posY=ground
             p.velY=0
@@ -45,7 +45,9 @@ data class ArenaRules(
     private fun separate(p1:FightingCharacter,p2:FightingCharacter) {
         if(abs(p1.posY.toLong()-p2.posY.toLong())>50L*Fixed.ONE)return
         val diff=p2.posX.toLong()-p1.posX.toLong()
-        val minDistance=2L*playerHalfWidth
+        val minDistance=((if(diff>=0) p1.definition.groundFront+p2.definition.groundBack
+                           else p1.definition.groundBack+p2.definition.groundFront)
+                           .coerceAtLeast(2)*Fixed.ONE).toLong()
         if(abs(diff)>=minDistance)return
         val forward=if(diff>=0)1 else -1
         val penetration=(minDistance-abs(diff)).toInt()
