@@ -165,7 +165,7 @@ test('Invalid stage definitions and unsupported elements fail visibly instead of
 });
 
 test('Built-in grid camera tracks airborne fighters and ignores excluded helpers',()=>{
-  const world=new TrainingMatch(fighter(),{initialize:false});
+  const world=new TrainingMatch(fighter(),{initialize:false,cameraFollow:true});
   assert.equal(world.stage,null);
   assert.equal(world.cameraRuntime.camera.y,0);
   world.player.pos.y=-200;
