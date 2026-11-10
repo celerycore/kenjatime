@@ -174,6 +174,11 @@ class FightingCharacter(
     val vars = IntArray(60)
     val fvars = DoubleArray(40)
     var opponent: FightingCharacter? = null
+    var parent: FightingCharacter? = null
+    var destroyed = false
+    var hitCount = 0
+    private var randomState = 0x6d2b79f5 xor id
+    val asserted: MutableSet<String> = linkedSetOf()
     var life = definition.maxLife
     var power = 0
     var posX = 0
@@ -234,6 +239,14 @@ class FightingCharacter(
             "null" -> {}
             "velset" -> { velX = number(args["x"], velX); velY = number(args["y"], velY) }
             "veladd" -> { velX += number(args["x"]); velY += number(args["y"]) }
+            "velmul" -> {
+                val x = args["x"]?.trim()?.toDoubleOrNull() ?: 1.0
+                val y = args["y"]?.trim()?.toDoubleOrNull() ?: 1.0
+                velX = (velX * x).toInt()
+                velY = (velY * y).toInt()
+            }
+            "gravity" -> { velY += Fixed.of(0.7) }
+            "turn" -> { facingRight = !facingRight }
             "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "ctrlset" -> control = integer(args["value"]) != 0
@@ -253,7 +266,36 @@ class FightingCharacter(
             "lifeadd" -> {
                 life = (life + integer(args["value"])).coerceIn(0, definition.maxLife)
             }
+            "lifeset" -> { life = integer(args["value"],life).coerceIn(0, definition.maxLife) }
+            "hitadd" -> { hitCount = (hitCount + integer(args["value"])).coerceAtLeast(0) }
+            "assertspecial" -> {
+                args["flag"]?.lowercase()?.let { asserted.add(it) }
+            }
+            "destroyself" -> {
+                if (parent == null) errors.add("DestroySelf ignored for a root fighter")
+                else { destroyed = true; return true }
+            }
             "poweradd" -> { power = (power + integer(args["value"])).coerceIn(0, 3000) }
+            "varrandom" -> {
+                val index = integer(args["v"], -1)
+                if (index in vars.indices) {
+                    randomState = randomState * 1664525 + 1013904223
+                    val upper = integer(args["range"], 1000).coerceIn(0, 1_000_000)
+                    vars[index] = (randomState ushr 1) % (upper + 1)
+                } else errors.add("Unsupported VarRandom slot")
+            }
+            "varrangeset" -> {
+                val first = integer(args["first"], 0).coerceIn(0, vars.lastIndex)
+                val last = integer(args["last"], vars.lastIndex).coerceIn(0, vars.lastIndex)
+                if (first <= last) for (slot in first..last) vars[slot] = integer(args["value"])
+            }
+            "parentvarset" -> {
+                val index = integer(args["v"], -1)
+                val parentVars = parent?.vars
+                if (parentVars == null || index !in parentVars.indices)
+                    errors.add("ParentVarSet requires valid helper parent/slot")
+                else parentVars[index] = integer(args["value"])
+            }
             "varset", "varadd" -> {
                 val index = integer(args["v"], -1)
                 val value = integer(args["value"])
@@ -339,6 +381,8 @@ class FightingCharacter(
         return false
     }
     fun tick(errors: MutableSet<String>) {
+        if (destroyed) return
+        asserted.clear()
         if (hitPauseLeft > 0) {
             hitPauseLeft--
             // ignorehitpause is a future compatibility gate; do not advance physics.
