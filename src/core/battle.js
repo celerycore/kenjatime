@@ -343,6 +343,10 @@ export async function openCoreBattle({
     }),
   );
   host.scrollIntoView({ block: "start", behavior: "instant" });
+  // Detect touch/handheld rendering once on the UI thread; workers do not
+  // have matchMedia, so forward only this boolean to the simulation host.
+  const mobile = typeof window.matchMedia === "function"
+    && window.matchMedia("(pointer: coarse)").matches;
   let canvas = host.querySelector("canvas");
   try {
     if (
@@ -393,7 +397,7 @@ export async function openCoreBattle({
             message: event.message || "The game worker stopped.",
           });
         worker.postMessage(
-          { type: "start", files, selection, sampleRate, quality },
+          { type: "start", files, selection, sampleRate, quality, mobile },
           [...new Set(Object.values(files).map((bytes) => bytes.buffer))],
         );
       } catch (error) {
@@ -411,7 +415,7 @@ export async function openCoreBattle({
       const { createCoreRuntime } = await import("./runtime.js");
       if (closed) throw Error("Match cancelled.");
       runtime = createCoreRuntime(update);
-      await runtime.start({ files, selection, canvas, sampleRate, quality });
+      await runtime.start({ files, selection, canvas, sampleRate, quality, mobile });
     }
     pads();
     visibility();
