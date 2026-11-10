@@ -71,11 +71,19 @@ class InputBuffer(private val capacity: Int = 60) {
         if (command.steps.isEmpty() || history.isEmpty()) return false
         val limit = minOf(history.size, command.timeBuffer.coerceAtLeast(1))
         var cursor = 0
+        var newerStep: CommandStep? = null
         for (step in command.steps.asReversed()) {
             var found = false
-            while (cursor < limit) {
+            // The final input must be fresh; older motion history may fill the rest.
+            val searchLimit = if (newerStep == null)
+                minOf(limit, command.bufferTime.coerceAtLeast(1)) else limit
+            while (cursor < searchLimit) {
                 if (matchesStep(step, cursor, isFacingRight)) {
-                    cursor++
+                    val sameFrameAsButton = newerStep?.let {
+                        it.buttons.isNotEmpty() && it.direction == 0 && !it.release && step.direction != 0
+                    } ?: false
+                    if (!sameFrameAsButton) cursor++
+                    newerStep = step
                     found = true
                     break
                 }
