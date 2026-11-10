@@ -37,6 +37,7 @@ test('Native-style CPU flag survives intro, physical keypresses and round reset 
   let fightTicks=0,observedInput=0;
   for(let i=0;i<420;i++){
    session.tick();
+   if(i%100===0){const m=session.match;console.log('INTRO_TRACE',i,'round',m.roundFlow?.roundState,'phase',m.roundFlow?.phaseTime,'state',m.player.stateNo,m.opponent.stateNo,'flags',m.entities.map(p=>p.asserted.has('intro')));}
    if(session.match.roundFlow?.roundState!==2)continue;
    fightTicks++;
    if(fightTicks===1)continue; // The transition edge occurs after fighter tick.
