@@ -69,6 +69,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 val owner = request.owner
                 val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.commands else emptyList())
                 actor.parent = owner
+                actor.world = match
                 actor.posX = owner.posX + request.offsetX * if (owner.facingRight) 1 else -1
                 actor.posY = owner.posY + request.offsetY
                 actor.facingRight = if (request.face >= 0) owner.facingRight else !owner.facingRight
@@ -117,6 +118,9 @@ class CoreEntities(private val match: DeterministicFight) {
                 helper.actor.attackBoxes().any { a -> enemy.hurtBoxes().any { a.intersects(it) } }) {
                 val guarded = enemy.blocks(hit)
                 helper.actor.markHit(enemy.id)
+                helper.actor.moveContact = true
+                helper.actor.moveHit = !guarded
+                helper.actor.moveGuarded = guarded
                 helper.actor.hitPauseLeft = if (guarded) hit.guardPause else hit.hitPause
                 match.contacts.add(FightContact(helper.actor.id, enemy.id, guarded,
                     if (guarded) hit.guardDamage else hit.damage))
