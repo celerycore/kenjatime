@@ -33,11 +33,17 @@ parity with all controller parameters or MUGEN edge cases.
 | Rare Akuma | The repo retains an inventory of 60 original controller types, 137 states, 45 helper-spawn controllers and three projectile controllers (2007 source). Kotlin coverage audit computes the subset and reports missing controllers; synthetic helper/projectile contracts run | Original full ZIP/RAR isn't tracked in the repo. Most controller types, full 2007/2026 ZSS support, helpers, native AI and visual effect parity are not certified |
 
 The existing JavaScript engine has a separate native-capture comparison job.
-The first 16-interaction strict reference comparison currently reports
-**guard-position discrepancies**, despite no production runtime changes in
-this PR. Those failures remain visible. Passing a JS baseline is not Kotlin
-parity; a failing JS baseline cannot be used as a golden standard without
-recording its differences.
+The strict JavaScript reference baseline was measured again in CI run
+`42888689492`: **1/147 KFM native scenarios matched**, and the 16-interaction
+comparison returned a nonzero exit status with guard-position differences.
+These existing JavaScript differences do **not** prove Kotlin is better or
+worse. Both native-capture comparisons are intentionally marked as
+nonblocking *diagnostics* in the draft workflow, and their failures remain in
+the job logs. The JS Rare Akuma inventory/synthetic tests passed, but no
+original Rare Akuma archive was run by Kotlin.
+
+Kotlin native capture parity is still **not measured**. No native baseline
+has been silently replaced or regenerated to make a test pass.
 
 ## Reproduce tests
 
