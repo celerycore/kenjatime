@@ -94,6 +94,7 @@ object MugenCnsParser {
 
 /** Intentionally bounded expression subset; unsupported script branches fail closed. */
 object CoreTriggers {
+    private val commandPattern = Regex("""(?i)^command\s*=\s*["']?([a-z0-9_ +.-]+)["']?$""")
     private val comparison = Regex(
         """(?i)^(time|stateno|life|power|pos x|pos y|vel x|vel y|ctrl|p2dist x|p2dist y|roundstate|var\(\d+\)|fvar\(\d+\)|statetype|movetype)\s*(=|!=|<=|>=|<|>)\s*("?[a-z]+?"?|-?\d+(?:\.\d+)?)$"""
     )
@@ -103,7 +104,7 @@ object CoreTriggers {
         if (e.contains("&&")) return e.split("&&").all { test(it, actor, errors) }
         if (e.equals("1") || e.equals("true", true)) return true
         if (e.equals("0") || e.equals("false", true)) return false
-        val command = Regex("""(?i)^command\s*=\s*["']?([a-z0-9_ +.-]+)["']?$""").matchEntire(e)
+        val command = commandPattern.matchEntire(e)
         if (command != null) return actor.commands.any {
             it.name.equals(command.groupValues[1], true) && actor.input.matches(it, actor.facingRight)
         }
