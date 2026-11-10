@@ -516,6 +516,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val contacts: MutableList<FightContact> = ArrayList()
     val presentation: MutableList<CorePresentationEvent> = ArrayList()
     val entities = CoreEntities(this)
+    private val flatCollision = FlatCollisionScratch()
     var roundFlow: CoreRoundFlow? = null
         private set
     fun enableRoundFlow(rules: CoreRoundRules = CoreRoundRules()) {
@@ -602,11 +603,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         sequence?.step(p1,p2)
         frame++
     }
-    private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean {
-        val attacks = attacker.attackBoxes()
-        val hurt = defender.hurtBoxes()
-        return attacks.any { a -> hurt.any { h -> a.intersects(h) } }
-    }
+    private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean =
+        flatCollision.connects(attacker, defender)
     fun checksum(): String = listOf(frame, p1.life, p1.posX, p1.posY, p1.velX, p1.velY,
         p1.stateNo, p1.timeInState, p2.life, p2.posX, p2.posY, p2.velX, p2.velY,
         p2.stateNo, p2.timeInState).joinToString(":")
