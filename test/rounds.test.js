@@ -98,3 +98,36 @@ flag2=noko`);
 test('Match rules reject invalid timer and score settings',()=>{
   assert.throws(()=>new RoundFlow({roundsToWin:0}),/bounds/);assert.throws(()=>new RoundFlow({roundTime:NaN}),/Invalid/);
 });
+
+test('Missing AIR action 5900 falls back to the character-owned intro animation',()=>{
+  const c=character(String.raw`
+[Statedef 5900]
+type=U
+anim=5900
+[State Init]
+type=ChangeState
+trigger1=roundno=1
+value=190
+[Statedef 190]
+type=S
+ctrl=0
+anim=5901
+[State Intro]
+type=AssertSpecial
+trigger1=time<4
+flag=intro
+[State End]
+type=ChangeState
+trigger1=time>=4
+value=0
+ctrl=0`);
+  c.animations.push({id:5901,frames:[{group:30,number:0,x:0,y:0,ticks:8,clsn1:[],clsn2:[]}]});
+  const world=new TrainingMatch(c,{rules:{preIntro:0,introHold:0},skipIntro:false});
+  assert.equal(world.player.anim,5901,'startup should use a supplied intro action');
+  assert.equal(world.player.stateNo,5900);
+  world.tick();
+  assert.equal(world.player.stateNo,190);
+  assert.equal(world.player.anim,5901);
+  for(let i=0;i<6;i++)world.tick();
+  assert.equal(world.roundFlow.roundState,2);
+});
