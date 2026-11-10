@@ -19,7 +19,17 @@
     "varadd",
     "helper",
     "projectile",
-    "hitdef"
+    "hitdef",
+    "velmul",
+    "gravity",
+    "turn",
+    "lifeset",
+    "hitadd",
+    "assertspecial",
+    "destroyself",
+    "varrandom",
+    "varrangeset",
+    "parentvarset"
   ],
   "knownIncomplete": [
     "Complex CNS/ZSS expression evaluation and evaluation order",
