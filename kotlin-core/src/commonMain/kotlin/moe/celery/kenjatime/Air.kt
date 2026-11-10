@@ -15,7 +15,7 @@ data class AirFrame(
     val group: Int, val sprite: Int, val offsetX: Int, val offsetY: Int,
     val duration: Int, val flip: String = "", val boxes: List<AirBox> = emptyList()
 )
-data class AirAction(val number: Int, val frames: List<AirFrame>)
+data class AirAction(val number: Int, val frames: List<AirFrame>, val loopIndex: Int? = null)
 class AirAnimationPlayer(val action: AirAction) {
     var index = 0
         private set
@@ -32,8 +32,14 @@ class AirAnimationPlayer(val action: AirAction) {
         if (tick >= f.duration.coerceAtLeast(1)) {
             tick = 0
             if (index + 1 == action.frames.size) {
-                index = 0
-                finished = true
+                val loop = action.loopIndex
+                if (loop != null && loop in action.frames.indices) {
+                    index = loop
+                } else {
+                    // Non-looping AIR holds its final frame for collision and display.
+                    index = action.frames.lastIndex
+                    finished = true
+                }
             } else index++
         }
     }
@@ -48,11 +54,16 @@ object MugenAirParser {
         val actions = linkedMapOf<Int, AirAction>()
         var id: Int? = null
         val frames = mutableListOf<AirFrame>()
+        var loopIndex: Int? = null
         val default = mutableListOf<AirBox>()
         val pending = mutableListOf<AirBox>()
         var usePending = false
         val overridden = mutableSetOf<Boolean>()
-        fun flush() { id?.let { actions[it] = AirAction(it, frames.toList()) }; frames.clear(); default.clear(); pending.clear(); overridden.clear(); usePending = false }
+        fun flush() {
+            id?.let { actions[it] = AirAction(it, frames.toList(), loopIndex) }
+            frames.clear(); default.clear(); pending.clear(); overridden.clear()
+            usePending = false; loopIndex = null
+        }
         for (raw in source.lineSequence()) {
             val line = raw.substringBefore(';').trim()
             if (line.isEmpty()) continue
@@ -82,7 +93,7 @@ object MugenAirParser {
                 }
                 continue
             }
-            if (line.startsWith("Loopstart", true)) continue
+            if (line.equals("Loopstart", true)) { loopIndex = frames.size; continue }
             val values = line.split(',').map { it.trim() }
             if (values.size < 5) continue
             val numbers = values.take(5).map { it.toIntOrNull() }
