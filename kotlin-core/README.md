@@ -68,11 +68,11 @@ normal Kenjatime matches still use the JavaScript worker.
 
 For automated KFM runs with the **real bundled** scripts:
 
-\`\`\`sh
+```sh
 ./android/gradlew -p kotlin-core jvmTest wasmJsNodeTest wasmJsBrowserProductionWebpack
 node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
 node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs
-\`\`\`
+```
 
 The benchmark runs 600 ticks, reports sampled authored states, damage/contact
 events and unsupported features, and rejects divergent checksums across two
@@ -81,4 +81,4 @@ separate Kotlin/Wasm fighter instances. It does not certify native parity.
 Other migration additions include: CMD StateDef -1 import, bounded compiled
 CNS expressions with inclusive ranges, real KFM structural smoke, helper and
 projectile constraints, opt-in arena and round sequencing, queued presentation
-events, and the allocation-light \`ktCoreAdvance\` API.
+events, and the allocation-light `ktCoreAdvance` API.
