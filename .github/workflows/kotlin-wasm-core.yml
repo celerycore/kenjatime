@@ -22,8 +22,18 @@ jobs:
         run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
       - name: Build browser Kotlin/Wasm artifact
         run: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack --stacktrace
+      - name: Package raw Kotlin/Wasm ESM exports and Wasm companion
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p kotlin-core/wasm-package
+          RAW=$(find kotlin-core/build -type f -name 'kenjatime-kotlin-core.mjs' -print -quit)
+          test -n "$RAW"
+          cp "$(dirname "$RAW")"/kenjatime-kotlin-core* kotlin-core/wasm-package/
+          ls -lh kotlin-core/wasm-package/
+          test -f kotlin-core/wasm-package/kenjatime-kotlin-core.wasm
       - uses: actions/upload-artifact@v4
         with:
           name: kenjatime-kotlin-wasm
-          path: kotlin-core/build/dist/wasmJs/productionExecutable/
+          path: kotlin-core/wasm-package/
           if-no-files-found: error
