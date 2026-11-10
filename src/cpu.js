@@ -186,7 +186,11 @@ export class CpuController{
       this.plan=commandInputPlan(command);this.index=0;this.remaining=0;
     }else this.queue([],2);
   }
-  tick(fighter,opponent,{paused=false,enabled=true}={}){\n    // A native -3 CPU script owns attacks, combos, defensive decisions and jumps.\n    // Synthetic random attacks would interrupt its chain; keep the CMD clock\n    // running without injecting player inputs.\n    if(this.nativeAI){this.raw=new Set();this.plan=[];this.index=0;this.remaining=0;return this.buffer.update(this.raw,fighter.facing);}
+  tick(fighter,opponent,{paused=false,enabled=true}={}){
+    // A native -3 CPU script owns attacks, combos, defensive decisions and jumps.
+    // Synthetic random attacks would interrupt its chain; keep the CMD clock
+    // running without injecting player inputs.
+    if(this.nativeAI){this.raw=new Set();this.plan=[];this.index=0;this.remaining=0;return this.buffer.update(this.raw,fighter.facing);}
     if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;}
     else if(!paused){
       if(this.jumpWait>0)this.jumpWait--;
