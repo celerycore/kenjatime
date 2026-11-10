@@ -12,6 +12,7 @@ From repository root, with JDK 21:
 
 ```sh
 ./android/gradlew -p kotlin-core jvmTest
+./android/gradlew -p kotlin-core wasmJsNodeTest
 ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack
 ```
 
