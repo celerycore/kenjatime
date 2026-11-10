@@ -6,13 +6,18 @@ import kotlin.math.*
 object CoreExpression {
     private data class Token(val value: String, val type: Char)
     private sealed interface Node { fun read(f: FightingCharacter): Value }
-    private data class Value(val n: Double? = null, val s: String? = null) {
+    private data class Value(val n: Double? = null, val s: String? = null,
+                             val range: Pair<Double,Double>? = null) {
         fun number(): Double = n ?: s?.toDoubleOrNull() ?: 0.0
         fun bool() = number() != 0.0
         fun string() = s ?: (n?.toString() ?: "")
         companion object { fun num(d: Double) = Value(n=d); fun str(s: String) = Value(s=s) }
     }
     private data class Literal(val v: Value): Node { override fun read(f: FightingCharacter) = v }
+    private data class InclusiveRange(val lower: Node, val upper: Node): Node {
+        override fun read(f:FightingCharacter) =
+            Value(range=Pair(lower.read(f).number(),upper.read(f).number()))
+    }
     private data class Variable(val key: String): Node {
         override fun read(f: FightingCharacter): Value {
             val p = f.opponent
@@ -110,10 +115,12 @@ object CoreExpression {
             val comparison:Boolean?=when(op) {
                 "&&"->a.bool()&&b.bool()
                 "||"->a.bool()||b.bool()
-                "=","=="-> if(a.s=="@command")
+                "=","=="-> if(b.range!=null) left>=b.range.first && left<=b.range.second
+                    else if(a.s=="@command")
                     f.commands.any { it.name.equals(b.string(),true) && f.input.matches(it,f.facingRight) }
                     else if(a.s!=null||b.s!=null) a.string().equals(b.string(),true) else left==right
-                "!=","<>"-> if(a.s=="@command")
+                "!=","<>"-> if(b.range!=null) left<b.range.first || left>b.range.second
+                    else if(a.s=="@command")
                     f.commands.none { it.name.equals(b.string(),true) && f.input.matches(it,f.facingRight) }
                     else if(a.s!=null||b.s!=null) !a.string().equals(b.string(),true) else left!=right
                 "<"->left<right
@@ -160,6 +167,11 @@ object CoreExpression {
         fun mul():Node{var n=unary();while(peek()=="*"||peek()=="/"||peek()=="%")n=Binary(consume().value,n,unary());return n}
         fun unary():Node=if(peek() in setOf("+","-","!"))Unary(consume().value,unary())else primary()
         fun primary():Node{
+            if(accept("[")){
+                val low=or();expect(",")
+                val high=or();expect("]")
+                return InclusiveRange(low,high)
+            }
             if(accept("(")){
                 if(++depth>32)throw IllegalArgumentException("Expression nesting limit")
                 val n=or();expect(")");depth--;return n
@@ -208,7 +220,7 @@ object CoreExpression {
             }else{
                 val pair=source.substring(i,min(source.length,i+2))
                 val op=if(pair in setOf("&&","||","!=","==","<=",">=","<>")){i+=2;pair}
-                    else {require(c in "()+-*/%,=<>!"){"Unsupported character"};i++;c.toString()}
+                    else {require(c in "[]()+-*/%,=<>!"){"Unsupported character"};i++;c.toString()}
                 result.add(Token(op,'o'))
             }
             require(result.size<=256){"Too many expression tokens"}
