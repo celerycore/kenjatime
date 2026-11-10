@@ -1,6 +1,7 @@
 import { CoreSession } from "./session.js";
 import { CoreThreeRenderer } from "./three-renderer.js";
 import { FrameClock } from "../frame-clock.js";
+import { GraphicsQuality } from "../graphics.js";
 import { TickInputBuffer } from "../input-buffer.js";
 import { soundArchive } from "../formats.js";
 import { FrameScheduler } from "./frame-scheduler.js";
@@ -15,7 +16,8 @@ export function createCoreRuntime(emit) {
     hidden = false,
     focused = true,
     lastState = -Infinity,
-    scale = 1,
+    graphics = new GraphicsQuality(),
+    lastPresentationTime = null,
     quality = "auto",
     audioPort,
     moduleDecoder,
@@ -27,8 +29,7 @@ export function createCoreRuntime(emit) {
     inputs = [new TickInputBuffer(), new TickInputBuffer()],
     sounds = new Map(),
     sentSounds = new Set(),
-    soundKeys = new Map(),
-    renderTimes = [];
+    soundKeys = new Map();
   const videoStates = new Map(),
     failedVideos = new Set();
   function syncVideos() {
@@ -151,26 +152,23 @@ export function createCoreRuntime(emit) {
         !hidden &&
         clock.debt < 1 &&
         (!paused || dirty) &&
-        clock.renderDue(time, 60)
+        clock.renderDue(time, graphics.settings.fps)
       ) {
         const start = performance.now(),
           packet = session.frame();
         renderer.render(packet, {
-          width: Math.round(960 * scale),
-          height: Math.round(540 * scale),
+          width: Math.round(960 * graphics.settings.scale),
+          height: Math.round(540 * graphics.settings.scale),
         });
         const elapsed = performance.now() - start;
+        const interval = lastPresentationTime === null ? 1000 / 60 : Math.max(0, time - lastPresentationTime);
+        lastPresentationTime = time;
         dirty = false;
-        if (quality === "auto" && !packet.assets.length && !paused) {
-          renderTimes.push(elapsed);
-          if (renderTimes.length >= 30) {
-            const average =
-              renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length;
-            if (average > 20) scale = Math.max(0.5, scale - 0.05);
-            else if (average < 9) scale = Math.min(1, scale + 0.05);
-            renderTimes.length = 0;
-          }
-        }
+        // Match the pre-rewrite mobile quality policy: use both render cost
+        // and actual presentation interval (GPU stalls may not appear in JS
+        // render timings). Keep every 60 Hz simulation tick and every effect.
+        if (!paused && !packet.assets.length)
+          graphics.observeFrame(elapsed, interval);
       }
       if (time - lastState >= 100) {
         lastState = time;
@@ -182,6 +180,8 @@ export function createCoreRuntime(emit) {
             background: hidden,
             focused,
             simulationDebt: clock.debt,
+            graphics: { mode: quality, preset: graphics.preset,
+              scale: graphics.settings.scale, fps: graphics.settings.fps },
           },
           gpu: renderer.stats,
         });
@@ -198,8 +198,12 @@ export function createCoreRuntime(emit) {
     canvas,
     sampleRate = 48000,
     quality: value = "auto",
+    mobile = false,
   }) {
     quality = value;
+    graphics = new GraphicsQuality({ mode: value === "sharp" ? "high" : "auto",
+      mobile: !!mobile });
+    lastPresentationTime = null;
     if (!renderer) prepare(canvas);
     session = new CoreSession(files, selection);
     await session.initializeScripts();
@@ -337,8 +341,8 @@ export function createCoreRuntime(emit) {
     }
     if (data.type === "quality") {
       quality = data.value;
-      scale = 1;
-      renderTimes.length = 0;
+      graphics.setMode(quality === "sharp" ? "high" : "auto");
+      lastPresentationTime = null;
       dirty = true;
     }
     if (data.type === "audio-port") {
