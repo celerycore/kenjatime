@@ -59,11 +59,14 @@ export function commandInputPlan(command){
  * cannot realistically type that sequence. Recognize the authored handshake,
  * but never infer AI identity from an arbitrary variable or fighter name.
  */
-export function nativeCnsAIActivationVariable(program) {
+// Both native VarSet forms are valid CNS syntax: v=59/value=11 and
+// var(59)=11 (as authored in Dark Donald's AI.cns).
+function nativeAIBootstrap(program) {
   const controllers=program?.states?.get(-3)?.controllers||[];
-  for(const controller of controllers){
-    if(controller.type!=='varset')continue;
-    const index=Number(controller.values?.v);
+  for (const controller of controllers) {
+    if (controller.type!=='varset')continue;
+    const direct=Object.entries(controller.values||{}).find(([key])=>/^var\s*\(\s*\d+\s*\)$/.test(key));
+    const index=direct?Number(/^var\s*\(\s*(\d+)\s*\)$/.exec(direct[0])[1]):Number(controller.values?.v);
     if(!Number.isInteger(index)||index<0||index>=60)continue;
     const triggers=(controller.entries||[]).filter(entry=>/^trigger(?:all|[1-9]\d*)$/.test(entry.key)).map(entry=>entry.value).join('\n');
     if(!/\bcommand\s*=\s*["']AI\d+["']/i.test(triggers))continue;
@@ -74,21 +77,18 @@ export function nativeCnsAIActivationVariable(program) {
         condition.includes('var('+index+')>0')||
         condition.includes('var('+index+')>=1');
     });
-    const actions=controllers.filter(item=>['changestate','selfstate'].includes(item.type)&&hasAIBranch(item));
-    if(actions.length>=2)return index;
+    if(controllers.filter(item=>['changestate','selfstate'].includes(item.type)&&hasAIBranch(item)).length<2)continue;
+    const value=Number(direct?direct[1]:controller.values?.value);
+    return {index,value:Number.isFinite(value)&&value>0?value:1};
   }
   return null;
 }
-/** The authored value (e.g. 11), not merely a boolean, controls native AI
- * aggression and command chains on legacy fighters. */
+export function nativeCnsAIActivationVariable(program) {
+  return nativeAIBootstrap(program)?.index??null;
+}
 export function nativeCnsAIActivationValue(program,index) {
-  if(index===null||index===undefined)return 1;
-  const controllers=program?.states?.get(-3)?.controllers||[];
-  const bootstrap=controllers.find(controller=>controller.type==='varset' &&
-    Number(controller.values?.v)===index &&
-    (controller.entries||[]).some(entry=>/^trigger(?:all|[1-9]\d*)$/.test(entry.key)&&/\bcommand\s*=\s*["']AI\d+["']/i.test(entry.value)));
-  const value=Number(bootstrap?.values?.value);
-  return Number.isFinite(value)&&value>0?value:1;
+  const bootstrap=nativeAIBootstrap(program);
+  return bootstrap?.index===index?bootstrap.value:1;
 }
 export function legacyAIActivationVariable(program) {
   const state = program?.states?.get(-1);
