@@ -31,7 +31,7 @@ class EntityBehaviorTest {
     """.trimIndent()
 
     @Test fun helperUsesOwnStateAndSharedDefinitions() {
-        val owner = actor(1, neutral + """
+        val owner = actor(1, neutral + "\n" + """
             [State 0, once]
             type=Helper
             trigger1=Time=0
@@ -67,7 +67,7 @@ class EntityBehaviorTest {
     }
 
     @Test fun projectileSpawnsMovesHitsAndIsRetired() {
-        val owner = actor(1, neutral + """
+        val owner = actor(1, neutral + "\n" + """
             [State 0, once]
             type=Projectile
             trigger1=Time=0
@@ -93,7 +93,7 @@ class EntityBehaviorTest {
     }
 
     @Test fun configuredEntityLimitsPreventUnboundedHelperAndProjectileClones() {
-        val owner = actor(1, neutral + """
+        val owner = actor(1, neutral + "\n" + """
             [State 0, repeat]
             type=Helper
             trigger1=1
@@ -109,7 +109,7 @@ class EntityBehaviorTest {
     }
 
     @Test fun unknownProjectileSpriteNeverCreatesImaginaryArtwork() {
-        val owner = actor(1, neutral + """
+        val owner = actor(1, neutral + "\n" + """
             [State 0, missing asset]
             type=Projectile
             trigger1=Time=0
