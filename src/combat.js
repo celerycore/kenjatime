@@ -3,7 +3,7 @@ import {FighterRuntime} from './runtime.js';
 import {ProjectileRuntime} from './projectiles.js';
 import {StageRuntime} from './stages.js';
 import {RoundFlow} from './rounds.js';
-import {CpuController,characterCommands,normalizeAILevel} from './cpu.js';
+import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable} from './cpu.js';
 import {baseScale,bodyWidthWorld,animationSource} from './coordinates.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
 import {CommandBuffer} from './commands.js';
@@ -115,6 +115,13 @@ export class TrainingMatch {
     const starts=this.stage?.definition.starts||[{x:-70,y:0,facing:1},{x:70,y:0,facing:-1}];
     this.player = new FighterRuntime(this.character, {world:this,program:this.programs?.get(this.character),expressionEvaluator:this.expressionEvaluator,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[0], facing:starts[0].facing, id: 1, teamSide: 1,paletteNo:this.playerPalette,aiLevel:this.playerAILevel});
     this.opponent = new FighterRuntime(this.opponentCharacter, {world:this,program:this.programs?.get(this.opponentCharacter),expressionEvaluator:this.expressionEvaluator,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[1], facing:starts[1].facing, id: 2, teamSide: 2,paletteNo:this.opponentPalette,aiLevel:this.opponentAILevel});
+    // Native setCom() exposed CPU identity to original Winane-style AI
+    // branches; Core's synthetic keypresses otherwise trigger human mode.
+    // Detect the variable from the character's own StateDef -1 controllers.
+    for (const actor of [this.player,this.opponent]) if (actor.aiLevel>0) {
+      const flag=legacyAIActivationVariable(actor.program);
+      if(flag!==null){actor.vars[flag]=1;actor.legacyAIFlag=flag;}
+    }
     this.player.teamSide = 1;
     this.opponent.teamSide = 2;
     this.player.opponent=this.opponent;this.opponent.opponent=this.player;
@@ -231,6 +238,13 @@ export class TrainingMatch {
     const globallyPaused=!!(this.superPause?.remaining>0||this.pause?.remaining>0);
     const effectPause=this.pause?.remaining>0?this.pause:null,effectSuperPause=this.superPause?.remaining>0?this.superPause:null;
     this.syncEnvironment();
+    // Pre-fight StateDef -2 scripts may reset the AI variable during intros.
+    // Reactivate CPU-owned legacy AI for every fighting tick, including the
+    // first frame after a round transition and after authored command input.
+    if(!this.roundFlow || this.roundFlow.roundState===2)
+      for(const actor of [this.player,this.opponent])
+        if(actor.aiLevel>0 && actor.legacyAIFlag!==undefined)
+          actor.vars[actor.legacyAIFlag]=1;
     if(this.cpus.has(this.player))commands=this.cpus.get(this.player).tick(this.player,this.opponent,{paused:this.isFrozen(this.player)||this.player.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
     if(this.cpus.has(this.opponent))opponentCommands=this.cpus.get(this.opponent).tick(this.opponent,this.player,{paused:this.isFrozen(this.opponent)||this.opponent.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
     if(this.cpus.has(this.player))playerInput=this.cpus.get(this.player).raw;
