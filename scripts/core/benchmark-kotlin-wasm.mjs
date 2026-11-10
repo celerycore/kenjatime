@@ -65,6 +65,26 @@ try {
   const b=JSON.parse(api.ktCoreSnapshot(handle,1));
   const issues=api.ktCoreIssues(handle).split('\n').filter(Boolean);
   const entities=api.ktCoreEntities?JSON.parse(api.ktCoreEntities(handle)):{};
+  // Re-import the same real character in a second isolated fight and verify a
+  // bit-exact 600-tick replay. Compiler caches and fighter handles must not leak state.
+  const second=api.ktCoreCreateWithCommands('KFM','KFM',
+    air.text,air.text,state.text,state.text,cmd.text,cmd.text);
+  let repeatChecksum='';
+  try {
+    api.ktCoreSetup(second,-70*256,0,70*256,0);
+    if(api.ktCoreConfigureArena)api.ktCoreConfigureArena(second,-150,150,0,true,false);
+    for(let i=0;i<ticks;i++) {
+      const mod=i%48;
+      const dir=mod===0?2:mod===1?10:8;
+      const keys=mod===2?'a':mod===10?'b':mod===20?'x':'';
+      if(i===120 && api.ktCoreDebugForceState) {
+        api.ktCoreSetup(second,-20*256,0,20*256,0);
+        api.ktCoreDebugForceState(second,0,200);
+      }
+      repeatChecksum=api.ktCoreStep(second,dir,keys,0,'');
+    }
+  }finally{api.ktCoreRelease(second);}
+  assert.equal(repeatChecksum,checksum,'Kotlin/Wasm actual KFM replay diverged across separate fights');
   const result={
     context:'Kotlin/Wasm 600-tick structural real-KFM smoke, NOT native or JS parity',
     ticks,elapsedMs:Number(elapsedMs.toFixed(3)),
@@ -73,7 +93,7 @@ try {
     before,after:{p1:a,p2:b},entities,
     issueCount:issues.length,sampleIssues:issues.slice(0,12),
     distinctStates:[...stateHistogram.entries()],
-    nonIdleTicks,contactCount,checksum
+    nonIdleTicks,contactCount,checksum,deterministicReplay:true
   };
   assert.equal(a.frame,ticks);
   assert.ok(Number.isFinite(a.x256) && Number.isFinite(a.y256));
