@@ -34,6 +34,17 @@ class ExpressionParityTest {
         assertFalse(check("StateType = A",a))
     }
 
+    @Test fun authoredKfmStatenoRangesEvaluateWithoutDiagnostics() {
+        val a = fighter()
+        val errors = linkedSetOf<String>()
+        a.changeState(240)
+        assertTrue(check("(stateno = [200,299]) || (stateno = [400,499])",a,errors))
+        assertFalse(check("stateno != [200,299]",a,errors))
+        a.changeState(0)
+        assertFalse(check("stateno = [200,299]",a,errors))
+        assertTrue(errors.isEmpty(),errors.joinToString())
+    }
+
     @Test fun commandExpressionRespectsFacingAndButtonEdge() {
         val command = MugenCommand("QCF_A", MugenCommandParser.parseCommandString("D, DF, F, a"))
         val fighter = FightingCharacter(FighterDefinition("command probe"),1, listOf(command))
