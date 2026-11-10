@@ -44,7 +44,7 @@ class CoreProjectile(
     }
     fun hitBoxes(): List<MugenRect> = action.frame?.boxes?.filter { it.attack }
         ?.map { it.rect.world(x, y, owner.facingRight) } ?: emptyList()
-    fun canHit(id: Int): Boolean = id !in targets && alive
+    fun canHit(id: Int): Boolean = id !in targets
     fun markHit(id: Int) { targets.add(id) }
 }
 
@@ -96,6 +96,7 @@ class CoreEntities(private val match: DeterministicFight) {
         }
     }
     fun step(errors: MutableSet<String>) {
+        if (helpers.isEmpty() && projectiles.isEmpty()) return
         val newRequests = mutableListOf<EntityRequest>()
         val current = helpers.toList()
         for (helper in current) {
@@ -120,8 +121,8 @@ class CoreEntities(private val match: DeterministicFight) {
             }
         }
         for (projectile in projectiles) {
-            projectile.step()
             if (!projectile.alive) continue
+            projectile.step()
             val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue
             if (projectile.hitBoxes().any { box -> enemy.hurtBoxes().any { box.intersects(it) } }) {
