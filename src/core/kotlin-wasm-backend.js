@@ -14,7 +14,7 @@ export async function loadKotlinCore(moduleUrl) {
   if (!api) throw new Error("The Kotlin/Wasm combat functions are not exported");
   return {
     version: api.ktCoreVersion(),
-    create({ player1, player2, positions } = {}) {
+    create({ player1, player2, positions, arena } = {}) {
       if (!player1?.name || !player2?.name)
         throw new TypeError("Both fighters need a name");
       const handle = typeof api.ktCoreCreateWithCommands === "function"
@@ -44,8 +44,17 @@ export async function loadKotlinCore(moduleUrl) {
         };
         api.ktCoreSetup(handle, fixed(p1.x), fixed(p1.y), fixed(p2.x), fixed(p2.y));
       };
+      const configureArena = ({ left=-150, right=150, ground=0, pushPlayers=true, autoFaceIdle=false } = {}) => {
+        assertOpen();
+        if (typeof api.ktCoreConfigureArena !== "function")
+          throw new Error("This Kotlin/Wasm build does not support arena simulation");
+        if (![left,right,ground].every(n => Number.isSafeInteger(n) && n>=-100000 && n<=100000) || left>=right)
+          throw new RangeError("Arena boundaries must be finite ordered integer pixels");
+        api.ktCoreConfigureArena(handle,left,right,ground,!!pushPlayers,!!autoFaceIdle);
+      };
       try {
         if (positions) setup(positions);
+        if (arena) configureArena(arena);
       } catch (error) {
         api.ktCoreRelease(handle);
         closed = true;
@@ -77,6 +86,12 @@ export async function loadKotlinCore(moduleUrl) {
           return api.ktCoreIssues(handle).split("\n").filter(Boolean);
         },
         setup,
+        configureArena,
+        camera() {
+          assertOpen();
+          return typeof api.ktCoreCamera === "function"
+            ? JSON.parse(api.ktCoreCamera(handle)) : { enabled: false };
+        },
         close() {
           if (!closed) {
             closed = true;
