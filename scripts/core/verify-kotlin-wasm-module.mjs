@@ -46,6 +46,8 @@ try {
   assert.equal(JSON.parse(api.ktCoreSnapshot(handle,1)).frame,1);
   if (api.ktCoreContacts)
     assert.deepEqual(JSON.parse(api.ktCoreContacts(handle)),[]);
+  if (api.ktCoreEntities)
+    assert.deepEqual(JSON.parse(api.ktCoreEntities(handle)),{helpers:0,projectiles:0});
   console.log("Native Wasm import/step/snapshot/release: OK");
 } finally {
   api.ktCoreRelease(handle);
