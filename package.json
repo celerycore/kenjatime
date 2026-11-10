@@ -38,7 +38,8 @@
     "verify:core:rare-akuma-health": "node scripts/core/verify-rare-akuma.mjs",
     "audit:core:rare-akuma-assets": "node scripts/core/verify-rare-akuma-assets.mjs",
     "benchmark:core:rare-akuma-2026": "node scripts/core/verify-rare-akuma-2026.mjs",
-    "benchmark:core:rare-akuma-duel": "node scripts/core/verify-rare-akuma-duel.mjs"
+    "benchmark:core:rare-akuma-duel": "node scripts/core/verify-rare-akuma-duel.mjs",
+    "verify:core:official-fightfx": "node scripts/core/verify-official-fightfx.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",

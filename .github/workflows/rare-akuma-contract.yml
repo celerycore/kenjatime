@@ -1,10 +1,12 @@
 name: Rare Akuma compatibility contract
 on:
   pull_request:
-    branches: [source/independent-engine, qa/rare-akuma-coverage-20261109, qa/rare-akuma-2026-ikemen-20261110, qa/rare-akuma-dual-compat-20261110]
+    branches: [source/independent-engine, qa/rare-akuma-coverage-20261109, qa/rare-akuma-2026-ikemen-20261110, qa/rare-akuma-dual-compat-20261110, qa/rare-akuma-core-effects-hardening-20261110]
     paths:
       - 'src/**'
       - 'scripts/core/verify-rare-akuma*'
+      - 'scripts/core/verify-official-fightfx.mjs'
+      - 'scripts/core/package-official-fightfx.py'
       - 'test/core/rare-akuma*'
       - 'test/core/common-effects.test.js'
       - 'test/core/rare-akuma-dual.test.js'
@@ -29,6 +31,20 @@ jobs:
       - run: node --check scripts/core/verify-rare-akuma-assets.mjs
       - run: node --check scripts/core/verify-rare-akuma-2026.mjs
       - run: node --check scripts/core/verify-rare-akuma-duel.mjs
+      - run: node --check scripts/core/verify-official-fightfx.mjs
+      - name: Download original pinned IKEMEN GO screenpack resources
+        run: python3 scripts/core/package-official-fightfx.py --output work/core/IKEMEN_GO_Official_Common_FX.zip
+      - name: Test actual IKEMEN GO source F0/F1/F2/F40 in Core
+        run: MUGEN_OFFICIAL_FIGHTFX_ZIP=work/core/IKEMEN_GO_Official_Common_FX.zip npm run verify:core:official-fightfx
+      - name: Preserve verified upstream effect pack and render audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: ikemen-go-original-common-fx-verified
+          path: |
+            work/core/IKEMEN_GO_Official_Common_FX.zip
+            work/core/official-fightfx-verify.json
+          retention-days: 14
+          if-no-files-found: error
       - run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/common-effects.test.js test/core/rare-akuma-dual.test.js test/core/rare-akuma-hardening.test.js test/palettes.test.js
       - run: npm run test:core
       - run: npm run test:core:compiled
