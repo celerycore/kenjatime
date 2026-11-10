@@ -168,6 +168,9 @@ class FightingCharacter(
     val commands: List<MugenCommand> = emptyList()
 ) {
     val input = InputBuffer()
+    private val entityRequests = mutableListOf<EntityRequest>()
+    fun flushEntityRequests(): List<EntityRequest> =
+        entityRequests.toList().also { entityRequests.clear() }
     val vars = IntArray(60)
     val fvars = DoubleArray(40)
     var opponent: FightingCharacter? = null
@@ -257,6 +260,46 @@ class FightingCharacter(
                 if (index in vars.indices) {
                     vars[index] = if (c.type.equals("varadd", true)) vars[index] + value else value
                 } else errors.add("Unsupported VarSet/VarAdd slot: " + args["v"])
+            }
+            "helper" -> {
+                val offset = (args["pos"] ?: "0,0").split(',')
+                entityRequests.add(EntityRequest.Helper(
+                    this,
+                    integer(args["id"]),
+                    integer(args["stateno"]),
+                    number(offset.getOrNull(0)),
+                    number(offset.getOrNull(1)),
+                    integer(args["facing"], 1),
+                    integer(args["keyctrl"]) != 0,
+                    integer(args["bindtime"])
+                ))
+            }
+            "projectile" -> {
+                val position = (args["offset"] ?: "0,0").split(',')
+                val velocity = (args["velocity"] ?: "0,0").split(',')
+                val damage = (args["projdamage"] ?: "0,0").split(',')
+                val groundVelocity = (args["projground.velocity"] ?: "0,0").split(',')
+                val pause = (args["projpausetime"] ?: "0,0").split(',')
+                val hit = HitDefinition(
+                    attr = args["projattr"] ?: "S, SP",
+                    damage = integer(damage.getOrNull(0)),
+                    guardDamage = integer(damage.getOrNull(1)),
+                    guardFlag = (args["projguardflag"] ?: "HL").uppercase(),
+                    hitFlag = (args["projhitflag"] ?: "MAF").uppercase(),
+                    hitPause = integer(pause.getOrNull(0)),
+                    defenderPause = integer(pause.getOrNull(1)),
+                    velocityX = number(groundVelocity.getOrNull(0)),
+                    velocityY = number(groundVelocity.getOrNull(1))
+                )
+                entityRequests.add(EntityRequest.Projectile(
+                    this,
+                    integer(args["projid"]),
+                    integer(args["projanim"], -1),
+                    number(position.getOrNull(0)), number(position.getOrNull(1)),
+                    number(velocity.getOrNull(0)), number(velocity.getOrNull(1)),
+                    integer(args["projremovetime"], 60),
+                    hit
+                ))
             }
             "hitdef" -> {
                 val pause = (args["pausetime"] ?: "0,0").split(',')
@@ -355,6 +398,7 @@ data class FightContact(val attacker: Int, val defender: Int, val guarded: Boole
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
+    val entities = CoreEntities(this)
     var frame: Long = 0
         private set
     init {
@@ -401,6 +445,9 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         }
         if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB)
         if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA)
+        entities.step(issues)
+        val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
+        entities.add(spawned, issues)
         frame++
     }
     private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean {
