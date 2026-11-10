@@ -119,11 +119,11 @@ object CoreExpression {
                 "||"->a.bool()||b.bool()
                 "=","=="-> if(b.range!=null) left>=b.range.first && left<=b.range.second
                     else if(a.s=="@command")
-                    f.commands.any { it.name.equals(b.string(),true) && f.input.matches(it,f.facingRight) }
+                    f.commandActive(b.string())
                     else if(a.s!=null||b.s!=null) a.string().equals(b.string(),true) else left==right
                 "!=","<>"-> if(b.range!=null) left<b.range.first || left>b.range.second
                     else if(a.s=="@command")
-                    f.commands.none { it.name.equals(b.string(),true) && f.input.matches(it,f.facingRight) }
+                    !f.commandActive(b.string())
                     else if(a.s!=null||b.s!=null) !a.string().equals(b.string(),true) else left!=right
                 "<"->left<right
                 ">"->left>right

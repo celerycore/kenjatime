@@ -161,6 +161,13 @@ class FightingCharacter(
     val commands: List<MugenCommand> = emptyList()
 ) {
     val input = InputBuffer()
+    private val commandCache = mutableMapOf<String,Boolean>()
+    fun commandActive(name: String): Boolean {
+        val normalized = name.lowercase()
+        return commandCache.getOrPut(normalized) {
+            commands.any { it.name.equals(name,true) && input.matches(it,facingRight) }
+        }
+    }
     private val entityRequests = mutableListOf<EntityRequest>()
     fun flushEntityRequests(): List<EntityRequest> =
         entityRequests.toList().also { entityRequests.clear() }
@@ -445,6 +452,7 @@ class FightingCharacter(
     fun tick(errors: MutableSet<String>) {
         if (destroyed) return
         asserted.clear()
+        commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0
         if (paused) hitPauseLeft--
