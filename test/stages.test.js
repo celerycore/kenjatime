@@ -173,7 +173,7 @@ test('Built-in grid camera tracks airborne fighters and ignores excluded helpers
   assert.ok(world.cameraRuntime.camera.y<0,'camera did not pan upward with jumping player');
   assert.ok(world.view.top<-200);
   assert.equal(world.player.cameraPos,world.cameraRuntime.camera);
-  assert.equal(world.player.evaluate('CameraPos Y'),world.cameraRuntime.camera.y);
+  assert.ok(Math.abs(world.player.evaluate('CameraPos Y')-world.cameraRuntime.camera.y)<1e-4,'camera trigger must track the same position within f32 precision');
   const above=world.cameraRuntime.camera.y;
   world.player.pos.y=0;
   for(let i=0;i<20;i++)world.tick();
