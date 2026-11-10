@@ -77,8 +77,10 @@ object CoreExpression {
                 ?: throw IllegalArgumentException("Missing argument for "+name)
             fun idx(i:Int)=a(i).toInt()
             val v=when(name) {
-                "var","sysvar" -> f.vars.getOrNull(idx(0))?.toDouble() ?: 0.0
-                "fvar","sysfvar" -> f.fvars.getOrNull(idx(0)) ?: 0.0
+                "var" -> f.vars.getOrNull(idx(0))?.toDouble() ?: 0.0
+                "fvar" -> f.fvars.getOrNull(idx(0)) ?: 0.0
+                "sysvar" -> f.sysVars.getOrNull(idx(0))?.toDouble() ?: 0.0
+                "sysfvar" -> f.sysFvars.getOrNull(idx(0)) ?: 0.0
                 "abs" -> abs(a(0))
                 "floor" -> floor(a(0))
                 "ceil" -> ceil(a(0))

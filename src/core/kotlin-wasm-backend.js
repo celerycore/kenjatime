@@ -88,6 +88,11 @@ export async function loadKotlinCore(moduleUrl) {
           return typeof api.ktCoreContacts === "function"
             ? JSON.parse(api.ktCoreContacts(handle)) : [];
         },
+        presentationEvents() {
+          assertOpen();
+          return typeof api.ktCoreEvents === "function"
+            ? JSON.parse(api.ktCoreEvents(handle)) : [];
+        },
         entities() {
           assertOpen();
           return typeof api.ktCoreEntities === "function"

@@ -108,6 +108,12 @@ private object Fights {
     val e = Fights.get(handle).entities
     return "{\"helpers\":" + e.helpers.size + ",\"projectiles\":" + e.projectiles.size + "}"
 }
+@JsExport fun ktCoreEvents(handle: Int): String = Fights.get(handle).presentation.joinToString(
+    prefix = "[", postfix = "]", separator = ","
+) { e ->
+    "{\"type\":\"" + e.type + "\",\"group\":" + e.group +
+    ",\"number\":" + e.number + ",\"channel\":" + e.channel + "}"
+}
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
 @JsExport fun ktCoreReadDef(source: String, section: String, key: String): String? =

@@ -166,6 +166,8 @@ class FightingCharacter(
         entityRequests.toList().also { entityRequests.clear() }
     val vars = IntArray(60)
     val fvars = DoubleArray(40)
+    val sysVars = IntArray(60)
+    val sysFvars = DoubleArray(40)
     var opponent: FightingCharacter? = null
     var world: DeterministicFight? = null
     var moveContact = false
@@ -276,6 +278,18 @@ class FightingCharacter(
             "assertspecial" -> {
                 args["flag"]?.lowercase()?.let { asserted.add(it) }
             }
+            "playsnd" -> {
+                val pair = (args["value"] ?: "-1,-1").split(',')
+                val group = integer(pair.getOrNull(0),-1)
+                val sound = integer(pair.getOrNull(1),-1)
+                if (group < -1 || sound < 0) errors.add("Invalid PlaySnd group/number")
+                else world?.presentation?.add(CorePresentationEvent("playsnd",group,sound,
+                    integer(args["channel"],-1)))
+            }
+            "stopsnd" -> {
+                world?.presentation?.add(CorePresentationEvent("stopsnd",
+                    channel=integer(args["channel"],-1)))
+            }
             "destroyself" -> {
                 if (parent == null) errors.add("DestroySelf ignored for a root fighter")
                 else { destroyed = true; return true }
@@ -294,19 +308,52 @@ class FightingCharacter(
                 val last = integer(args["last"], vars.lastIndex).coerceIn(0, vars.lastIndex)
                 if (first <= last) for (slot in first..last) vars[slot] = integer(args["value"])
             }
-            "parentvarset" -> {
-                val index = integer(args["v"], -1)
-                val parentVars = parent?.vars
-                if (parentVars == null || index !in parentVars.indices)
-                    errors.add("ParentVarSet requires valid helper parent/slot")
-                else parentVars[index] = integer(args["value"])
-            }
-            "varset", "varadd" -> {
-                val index = integer(args["v"], -1)
-                val value = integer(args["value"])
-                if (index in vars.indices) {
-                    vars[index] = if (c.type.equals("varadd", true)) vars[index] + value else value
-                } else errors.add("Unsupported VarSet/VarAdd slot: " + args["v"])
+            "varset", "varadd", "varmul", "parentvarset", "parentvaradd" -> {
+                val operation = c.type.lowercase()
+                val target = if (operation.startsWith("parent")) parent else this
+                if (target == null) {
+                    errors.add("Variable assignment requires a valid parent")
+                } else {
+                    val altPattern = Regex("^(var|fvar|sysvar|sysfvar)\\s*\\(([^)]+)\\)$")
+                    val alternate = args.entries.mapNotNull { (key,value) ->
+                        val match = altPattern.matchEntire(key)
+                        if (match == null) null else Triple(match.groupValues[1],match.groupValues[2],value)
+                    }
+                    val defaultKind = when {
+                        args.containsKey("sysfv") -> "sysfvar"
+                        args.containsKey("sysv") -> "sysvar"
+                        args.containsKey("fv") -> "fvar"
+                        else -> "var"
+                    }
+                    val indexKey = when(defaultKind) {
+                        "sysfvar" -> "sysfv"; "sysvar" -> "sysv"; "fvar" -> "fv"; else -> "v"
+                    }
+                    val assignments = if (alternate.isNotEmpty()) alternate else
+                        listOf(Triple(defaultKind,args[indexKey] ?: "-1",args["value"] ?: "0"))
+                    for ((kind,indexText,valueText) in assignments) {
+                        val index = integer(indexText,-1)
+                        val value = CoreExpression.number(valueText,this,errors) ?: continue
+                        val isFloat = kind.endsWith("fvar")
+                        if (isFloat) {
+                            val slots = if (kind.startsWith("sys")) target.sysFvars else target.fvars
+                            if (index !in slots.indices) { errors.add("Invalid float variable slot");continue }
+                            slots[index] = when (operation) {
+                                "varadd","parentvaradd" -> slots[index]+value
+                                "varmul" -> slots[index]*value
+                                else -> value
+                            }
+                        } else {
+                            val slots = if (kind.startsWith("sys")) target.sysVars else target.vars
+                            if (index !in slots.indices) { errors.add("Invalid integer variable slot");continue }
+                            val numeric=value.toInt()
+                            slots[index] = when (operation) {
+                                "varadd","parentvaradd" -> slots[index]+numeric
+                                "varmul" -> slots[index]*numeric
+                                else -> numeric
+                            }
+                        }
+                    }
+                }
             }
             "helper" -> {
                 val offset = (args["pos"] ?: "0,0").split(',')
@@ -451,11 +498,15 @@ class FightingCharacter(
 }
 
 data class FightContact(val attacker: Int, val defender: Int, val guarded: Boolean, val damage: Int)
+data class CorePresentationEvent(
+    val type: String, val group: Int = -1, val number: Int = -1, val channel: Int = -1
+)
 
 /** Two-actor deterministic subset, not a full MUGEN contact phase. */
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
+    val presentation: MutableList<CorePresentationEvent> = ArrayList()
     val entities = CoreEntities(this)
     var roundFlow: CoreRoundFlow? = null
         private set
@@ -486,6 +537,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     }
     fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame()) {
         contacts.clear()
+        presentation.clear()
         val sequence = roundFlow
         p1.roundState = sequence?.roundState() ?: 2
         p2.roundState = sequence?.roundState() ?: 2
