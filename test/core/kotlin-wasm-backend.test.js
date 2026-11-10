@@ -11,6 +11,8 @@ function mockModule() {
     "export function ktCoreSetup(n,...positions) { fights.get(n).positions=positions; }",
     "export function ktCoreConfigureArena(n,...arena) { fights.get(n).arena=arena; }",
     "export function ktCoreCamera(n) { return JSON.stringify({ enabled: true, x: 0, y: -40, zoom: 0.9, arena: fights.get(n).arena }); }",
+    "export function ktCoreEnableRoundFlow(n,...frames) { fights.get(n).round=frames; }",
+    "export function ktCoreRoundState(n) { return JSON.stringify({ phase:'INTRO',round:fights.get(n).round }); }",
     "export function ktCoreStep(n,...raw) { const f=fights.get(n); f.tick++; return f.tick+':'+raw.join(','); }",
     "export function ktCoreSnapshot(n,side) { const f=fights.get(n); return JSON.stringify({frame:f.tick,side,positions:f.positions,cmd1:f.args[6],cmd2:f.args[7]}); }",
     "export function ktCoreContacts() { return '[{\"attacker\":1,\"defender\":2,\"guarded\":true,\"damage\":3}]'; }",
@@ -52,6 +54,15 @@ test("optional arena is passed to the Wasm module without altering JS production
   assert.deepEqual(fight.camera().arena,[-180,180,0,true,false]);
   assert.equal(fight.camera().y,-40);
   assert.throws(()=>fight.configureArena({left:5,right:-5}),/ordered/);
+  fight.close();
+});
+
+test("optional round sequence is explicit and isolated from live runtime", async () => {
+  const engine=await loadKotlinCore(mockModule());
+  const fight=engine.create({...characters,round:{introFrames:2,roundFrames:3,fightFrames:4,koFrames:5,outroFrames:6,timerSeconds:99}});
+  assert.equal(fight.roundState().phase,"INTRO");
+  assert.deepEqual(fight.roundState().round,[2,3,4,5,6,99]);
+  assert.throws(()=>fight.enableRoundFlow({introFrames:-1}),/bounded/);
   fight.close();
 });
 
