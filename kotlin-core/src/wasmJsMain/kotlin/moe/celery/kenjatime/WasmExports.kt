@@ -75,14 +75,21 @@ private object Fights {
         "{\"enabled\":true,\"x\":" + camera.x + ",\"y\":" + camera.y +
         ",\"zoom\":" + camera.zoom + "}"
 }
+@JsExport fun ktCoreAdvance(
+    handle: Int, p1Direction: Int, p1Buttons: String,
+    p2Direction: Int, p2Buttons: String
+) {
+    val fight = Fights.get(handle)
+    fight.step(InputFrame(p1Direction, p1Buttons.lowercase().toSet()),
+        InputFrame(p2Direction, p2Buttons.lowercase().toSet()))
+}
+@JsExport fun ktCoreChecksum(handle: Int): String = Fights.get(handle).checksum()
 @JsExport fun ktCoreStep(
     handle: Int, p1Direction: Int, p1Buttons: String,
     p2Direction: Int, p2Buttons: String
 ): String {
-    val fight = Fights.get(handle)
-    fight.step(InputFrame(p1Direction, p1Buttons.lowercase().toSet()),
-        InputFrame(p2Direction, p2Buttons.lowercase().toSet()))
-    return fight.checksum()
+    ktCoreAdvance(handle,p1Direction,p1Buttons,p2Direction,p2Buttons)
+    return ktCoreChecksum(handle)
 }
 @JsExport fun ktCoreSnapshot(handle: Int, side: Int): String {
     val fight = Fights.get(handle)

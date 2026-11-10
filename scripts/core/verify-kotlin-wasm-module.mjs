@@ -51,6 +51,11 @@ try {
   const checksum = api.ktCoreStep(handle,0,"",0,"");
   assert.ok(checksum.startsWith("1:"));
   assert.equal(JSON.parse(api.ktCoreSnapshot(handle,1)).frame,1);
+  if (typeof api.ktCoreAdvance === "function") {
+    api.ktCoreAdvance(handle,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle,1)).frame,2);
+    assert.equal(typeof api.ktCoreChecksum(handle),"string");
+  }
   if (api.ktCoreContacts)
     assert.deepEqual(JSON.parse(api.ktCoreContacts(handle)),[]);
   if (api.ktCoreEntities)

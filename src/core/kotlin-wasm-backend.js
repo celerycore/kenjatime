@@ -79,6 +79,19 @@ export async function loadKotlinCore(moduleUrl) {
             a.directions ?? 0, a.buttons ?? "",
             b.directions ?? 0, b.buttons ?? "");
         },
+        advance(a = {}, b = {}) {
+          assertOpen();
+          if (typeof api.ktCoreAdvance === "function")
+            api.ktCoreAdvance(handle,a.directions ?? 0,a.buttons ?? "",
+              b.directions ?? 0,b.buttons ?? "");
+          else api.ktCoreStep(handle,a.directions ?? 0,a.buttons ?? "",
+              b.directions ?? 0,b.buttons ?? "");
+        },
+        checksum() {
+          assertOpen();
+          return typeof api.ktCoreChecksum === "function"
+            ? api.ktCoreChecksum(handle) : null;
+        },
         snapshot(side = 0) {
           assertOpen();
           return JSON.parse(api.ktCoreSnapshot(handle, side));
