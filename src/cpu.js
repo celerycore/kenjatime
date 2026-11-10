@@ -79,6 +79,17 @@ export function nativeCnsAIActivationVariable(program) {
   }
   return null;
 }
+/** The authored value (e.g. 11), not merely a boolean, controls native AI
+ * aggression and command chains on legacy fighters. */
+export function nativeCnsAIActivationValue(program,index) {
+  if(index===null||index===undefined)return 1;
+  const controllers=program?.states?.get(-3)?.controllers||[];
+  const bootstrap=controllers.find(controller=>controller.type==='varset' &&
+    Number(controller.values?.v)===index &&
+    (controller.entries||[]).some(entry=>/^trigger(?:all|[1-9]\d*)$/.test(entry.key)&&/\bcommand\s*=\s*["']AI\d+["']/i.test(entry.value)));
+  const value=Number(bootstrap?.values?.value);
+  return Number.isFinite(value)&&value>0?value:1;
+}
 export function legacyAIActivationVariable(program) {
   const state = program?.states?.get(-1);
   if (!state?.controllers?.length) return nativeCnsAIActivationVariable(program);
