@@ -93,8 +93,8 @@ test('both sample KFM CPUs walk, recognize native commands and deal actual colli
 });
 
 test('Legacy StateDef -3 command handshake activates native combo AI at its authored strength',()=>{
-  // Minimal faithful contract of Dark Donald's AI.cns: an impossible AI0
-  // command sets var(59)=11, followed by authored -3 attack/jump branches.
+  // Faithful Dark Donald AI.cns contract: its bootstrap uses direct
+  // var(59)=11 assignment (not v=59/value=11), plus native -3 actions.
   const source=character(String.raw`
 [Statedef -3]
 [State AI activate]
@@ -102,8 +102,7 @@ type=VarSet
 triggerall=var(59)=0
 triggerall=RoundState=[1,2]
 trigger1=command="AI0"
-v=59
-value=11
+var(59)=11
 [State AI combo]
 type=ChangeState
 triggerall=var(59)!=0
