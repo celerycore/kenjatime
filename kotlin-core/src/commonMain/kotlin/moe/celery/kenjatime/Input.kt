@@ -31,6 +31,16 @@ data class MugenCommand(val name: String, val steps: List<CommandStep>, val time
 
 object MugenCommandParser {
     private val buttons = "abcxyzs"
+    fun parseFile(source: String): List<MugenCommand> =
+        MugenDefParser.parse(source).sectionsNamed("Command").mapNotNull { section ->
+            val name = section.get("name") ?: return@mapNotNull null
+            val command = section.get("command") ?: return@mapNotNull null
+            val steps = parseCommandString(command)
+            if (steps.isEmpty() || steps.size > 64) return@mapNotNull null
+            MugenCommand(name, steps,
+                section.int("time", 15).coerceIn(1, 360),
+                section.int("buffer.time", 1).coerceIn(1, 30))
+        }
     fun parseCommandString(command: String): List<CommandStep> = command.split(',').mapNotNull { token ->
         val raw = token.trim()
         if (raw.isEmpty()) return@mapNotNull null
