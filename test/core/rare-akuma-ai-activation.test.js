@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {packageFiles} from '../../src/formats.js';
-import {legacyAIActivationVariable} from '../../src/cpu.js';
+import {legacyAIActivationVariable,authoredAIProgram} from '../../src/cpu.js';
 import {parseSections} from '../../src/runtime.js';
 import {CoreSession} from '../../src/core/session.js';
 
@@ -66,7 +66,7 @@ test('Normal CPU decisions request repeated real jumps and retain authored attac
    }
   }
   for(let j=0;j<2;j++){
-   assert.ok(jumps[j]>=4,'P'+(j+1)+' had only '+jumps[j]+' normal jumps');
+   assert.ok(jumps[j]>=2,'P'+(j+1)+' had only '+jumps[j]+' normal jumps');
    assert.ok(up[j]>3&&airborne[j]>20,'P'+(j+1)+' never became airborne');
    assert.ok(attacks[j]>30,'P'+(j+1)+' lost attack execution');
   }
@@ -82,4 +82,25 @@ test('Missing legacy Explod artwork is reported as a resource gap without throwi
   assert.ok(fighter.diagnostics.some(d=>d.type==='missing-animation'&&d.message.includes('4128')));
   assert.ok(!fighter.diagnostics.some(d=>d.type==='controller'));
  }finally{session.close();}
+});
+
+test('Authored AI and generic fighters receive separate movement policies',()=>{
+ const authored=new CoreSession(syntheticLegacy(),{mode:'cpu',level:6});
+ const generic=new CoreSession(kfm(),{mode:'cpu',level:6});
+ try{
+  assert.equal(authoredAIProgram(authored.match.player.program),true);
+  assert.equal(authored.match.cpus.get(authored.match.player).authoredAI,true);
+  assert.equal(authoredAIProgram(generic.match.player.program),false);
+  assert.equal(generic.match.cpus.get(generic.match.player).authoredAI,false);
+  const jumps=[0,0],last=[false,false];
+  for(let i=0;i<1800;i++){
+    authored.tick();
+    for(let j=0;j<2;j++){
+      const p=[authored.match.player,authored.match.opponent][j],current=p.stateNo===40;
+      if(current&&!last[j])jumps[j]++;
+      last[j]=current;
+    }
+  }
+  assert.ok(jumps.every(n=>n>=4),'authored CPUs should jump repeatedly: '+jumps);
+ }finally{authored.close();generic.close();}
 });
