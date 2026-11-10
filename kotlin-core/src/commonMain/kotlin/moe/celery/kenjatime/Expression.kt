@@ -51,6 +51,7 @@ object CoreExpression {
                 "true" -> 1.0
                 "false" -> 0.0
                 else -> {
+                    if (key in setOf("s","c","a","h","i","l","n","u","p")) return Value.str(key)
                     if (key=="statetype") return Value.str(f.stateType)
                     if (key=="movetype") return Value.str(f.moveType)
                     if (key=="p2statetype") return Value.str(p?.stateType ?: "")
