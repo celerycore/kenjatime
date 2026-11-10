@@ -29,6 +29,8 @@ jobs:
         run: ./android/gradlew -p kotlin-core wasmJsNodeTest --stacktrace
       - name: Build browser Kotlin/Wasm artifact
         run: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack --stacktrace
+      - name: Execute the actual compiled Kotlin/Wasm JavaScript ABI
+        run: node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
       - name: Package raw Kotlin/Wasm ESM exports and Wasm companion
         shell: bash
         run: |
