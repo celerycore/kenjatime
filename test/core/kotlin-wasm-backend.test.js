@@ -12,6 +12,7 @@ function mockModule() {
     "export function ktCoreStep(n,...raw) { const f=fights.get(n); f.tick++; return f.tick+':'+raw.join(','); }",
     "export function ktCoreSnapshot(n,side) { const f=fights.get(n); return JSON.stringify({frame:f.tick,side,positions:f.positions,cmd1:f.args[6],cmd2:f.args[7]}); }",
     "export function ktCoreContacts() { return '[{\"attacker\":1,\"defender\":2,\"guarded\":true,\"damage\":3}]'; }",
+    "export function ktCoreEntities() { return '{\"helpers\":1,\"projectiles\":0}'; }",
     "export function ktCoreIssues() { return 'Unsupported controller: Explod\\n'; }",
     "export function ktCoreRelease(n) { fights.delete(n); }"
   ].join("\n");
