@@ -43,12 +43,22 @@ try {
   const before=JSON.parse(api.ktCoreSnapshot(handle,0));
   const t0=performance.now();
   let checksum='';
+  const stateHistogram=new Map();
+  let nonIdleTicks=0, contactCount=0;
   const ticks=600;
   for(let i=0;i<ticks;i++){
     const mod=i%48;
     const dir=mod===0?2:mod===1?10:8;
     const keys=mod===2?'a':mod===10?'b':mod===20?'x':'';
+    if(i===120 && api.ktCoreDebugForceState) {
+      api.ktCoreSetup(handle,-20*256,0,20*256,0);
+      api.ktCoreDebugForceState(handle,0,200);
+    }
     checksum=api.ktCoreStep(handle,dir,keys,0,'');
+    const snapshot=JSON.parse(api.ktCoreSnapshot(handle,0));
+    stateHistogram.set(snapshot.state,(stateHistogram.get(snapshot.state)||0)+1);
+    if(snapshot.state!==0)nonIdleTicks++;
+    if(api.ktCoreContacts) contactCount+=JSON.parse(api.ktCoreContacts(handle)).length;
   }
   const elapsedMs=performance.now()-t0;
   const a=JSON.parse(api.ktCoreSnapshot(handle,0));
@@ -62,7 +72,8 @@ try {
     archive:{air:air.files.length,cmd:cmd.files.length,state:state.files.length},
     before,after:{p1:a,p2:b},entities,
     issueCount:issues.length,sampleIssues:issues.slice(0,12),
-    checksum
+    distinctStates:[...stateHistogram.entries()],
+    nonIdleTicks,contactCount,checksum
   };
   assert.equal(a.frame,ticks);
   assert.ok(Number.isFinite(a.x256) && Number.isFinite(a.y256));

@@ -60,10 +60,13 @@ data class FighterDefinition(
     val yScale: Int = Fixed.ONE
 ) {
     companion object {
-        fun fromScript(name: String, air: String, cns: String): FighterDefinition {
+        fun fromScript(name: String, air: String, cns: String, cmd: String = ""): FighterDefinition {
             val constants = MugenCnsParser.constants(cns)
+            // MUGEN CMD embeds StateDef -1 and controllers AFTER [Command] sections.
+            // Motion definitions alone cannot activate any authored combat move.
+            val allStates = if (cmd.isBlank()) cns else cns + "\n" + cmd
             return FighterDefinition(
-                name, MugenAirParser.parse(air), MugenCnsParser.parse(cns),
+                name, MugenAirParser.parse(air), MugenCnsParser.parse(allStates),
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale
             )

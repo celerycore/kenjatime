@@ -21,8 +21,8 @@ private object Fights {
     cns1: String, cns2: String, cmd1: String, cmd2: String
 ): Int {
     require(Fights.active.size < 8) { "Too many active fights" }
-    val a = FighterDefinition.fromScript(name1, air1, cns1)
-    val b = FighterDefinition.fromScript(name2, air2, cns2)
+    val a = FighterDefinition.fromScript(name1, air1, cns1, cmd1)
+    val b = FighterDefinition.fromScript(name2, air2, cns2, cmd2)
     val id = Fights.next++
     val left = FightingCharacter(a, 1, MugenCommandParser.parseFile(cmd1))
     val right = FightingCharacter(b, 2, MugenCommandParser.parseFile(cmd2))
@@ -41,6 +41,23 @@ private object Fights {
     pushPlayers: Boolean, autoFaceIdle: Boolean
 ) {
     Fights.get(handle).configureArena(leftPixels,rightPixels,groundPixels,pushPlayers,autoFaceIdle)
+}
+@JsExport fun ktCoreDebugForceState(handle: Int, side: Int, newState: Int) {
+    val fight = Fights.get(handle)
+    val actor = if (side == 0) fight.p1 else fight.p2
+    require(newState in actor.definition.states) { "Unknown authored StateDef" }
+    actor.changeState(newState)
+}
+@JsExport fun ktCoreDebugSetFacing(handle: Int, side: Int, facingRight: Boolean) {
+    val fight = Fights.get(handle)
+    val actor = if (side == 0) fight.p1 else fight.p2
+    actor.facingRight = facingRight
+}
+@JsExport fun ktCoreDebugSetStats(handle: Int, side: Int, life: Int, power: Int) {
+    val fight = Fights.get(handle)
+    val actor = if (side == 0) fight.p1 else fight.p2
+    actor.life = life.coerceIn(0, actor.definition.maxLife)
+    actor.power = power.coerceIn(0, 3000)
 }
 @JsExport fun ktCoreCamera(handle: Int): String {
     val camera = Fights.get(handle).camera
