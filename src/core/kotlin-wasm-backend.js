@@ -1,37 +1,83 @@
 /**
- * Explicit opt-in bridge for the Kotlin/Wasm migration track.
- * This does NOT silently replace the existing JS MUGEN interpreter.
- * Build: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack
- * Supply the .mjs URL emitted by that build to loadKotlinCore().
+ * Opt-in Kotlin/Wasm adapter. The production JS CoreSession is not changed.
+ * Use the generated Kotlin ESM module with its relative .wasm/import-object files.
  */
 export async function loadKotlinCore(moduleUrl) {
-  if (!moduleUrl || typeof moduleUrl !== "string")
-    throw new Error("A built Kotlin/Wasm .mjs module URL is required");
+  if (typeof moduleUrl !== "string" || !moduleUrl.trim())
+    throw new TypeError("A compiled Kotlin/Wasm .mjs URL is required");
   const imported = await import(/* @vite-ignore */ moduleUrl);
-  const api = imported.default;
-  if (!api || typeof api.ktCoreCreate !== "function")
-    throw new Error("Kotlin/Wasm exports were not found");
+  const produced = typeof imported.default === "function"
+    ? await imported.default() : imported.default;
+  // Kotlin toolchain output may export directly or wrap an initialized instance.
+  const api = [imported, produced, produced?.exports, imported.default?.exports]
+    .find(value => value && typeof value.ktCoreCreate === "function");
+  if (!api) throw new Error("The Kotlin/Wasm combat functions are not exported");
   return {
     version: api.ktCoreVersion(),
-    create({ player1, player2 }) {
-      const handle = api.ktCoreCreate(
-        player1.name, player2.name,
-        player1.air ?? "", player2.air ?? "",
-        player1.cns ?? "", player2.cns ?? "",
-      );
+    create({ player1, player2, positions } = {}) {
+      if (!player1?.name || !player2?.name)
+        throw new TypeError("Both fighters need a name");
+      const handle = typeof api.ktCoreCreateWithCommands === "function"
+        ? api.ktCoreCreateWithCommands(
+            player1.name, player2.name,
+            player1.air ?? "", player2.air ?? "",
+            player1.cns ?? "", player2.cns ?? "",
+            player1.cmd ?? "", player2.cmd ?? "",
+          )
+        : api.ktCoreCreate(
+            player1.name, player2.name,
+            player1.air ?? "", player2.air ?? "",
+            player1.cns ?? "", player2.cns ?? "",
+          );
       let closed = false;
+      const assertOpen = () => {
+        if (closed) throw new Error("Fight released");
+      };
+      const setup = ({ p1 = { x: -70, y: 0 }, p2 = { x: 70, y: 0 } } = {}) => {
+        assertOpen();
+        if (typeof api.ktCoreSetup !== "function")
+          throw new Error("Kotlin/Wasm build does not expose positional setup");
+        const fixed = n => {
+          if (!Number.isFinite(n) || Math.abs(n) >= 8_388_608)
+            throw new RangeError("World coordinates must be finite, bounded numbers");
+          return Math.trunc(n * 256);
+        };
+        api.ktCoreSetup(handle, fixed(p1.x), fixed(p1.y), fixed(p2.x), fixed(p2.y));
+      };
+      try {
+        if (positions) setup(positions);
+      } catch (error) {
+        api.ktCoreRelease(handle);
+        closed = true;
+        throw error;
+      }
       return {
         step(a = {}, b = {}) {
-          if (closed) throw new Error("Fight released");
-          return api.ktCoreStep(handle, a.directions ?? 0, a.buttons ?? "",
+          assertOpen();
+          return api.ktCoreStep(handle,
+            a.directions ?? 0, a.buttons ?? "",
             b.directions ?? 0, b.buttons ?? "");
         },
         snapshot(side = 0) {
-          if (closed) throw new Error("Fight released");
+          assertOpen();
           return JSON.parse(api.ktCoreSnapshot(handle, side));
         },
-        issues() { return api.ktCoreIssues(handle).split("\n").filter(Boolean); },
-        close() { if (!closed) { closed = true; api.ktCoreRelease(handle); } },
+        contacts() {
+          assertOpen();
+          return typeof api.ktCoreContacts === "function"
+            ? JSON.parse(api.ktCoreContacts(handle)) : [];
+        },
+        issues() {
+          assertOpen();
+          return api.ktCoreIssues(handle).split("\n").filter(Boolean);
+        },
+        setup,
+        close() {
+          if (!closed) {
+            closed = true;
+            api.ktCoreRelease(handle);
+          }
+        },
       };
     },
   };
