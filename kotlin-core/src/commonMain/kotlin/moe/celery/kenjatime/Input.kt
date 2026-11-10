@@ -40,19 +40,20 @@ object MugenCommandParser {
         val strict = '>' in raw
         val delay = Regex("~(\\d+)").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: 1
         val clean = raw.replace(Regex("[~/>$\\d ]"), "")
-        val upper = clean.uppercase()
+        // CMD directions are uppercase; lowercase b is an attack button.
+        val direction = clean.filter { it in "UDFB" }
         val dir = when {
-            "DF" in upper -> Directions.DF
-            "DB" in upper -> Directions.DB
-            "UF" in upper -> Directions.UF
-            "UB" in upper -> Directions.UB
-            "D" in upper -> Directions.D
-            "U" in upper -> Directions.U
-            "F" in upper -> Directions.R
-            "B" in upper -> Directions.L
+            "DF" in direction -> Directions.DF
+            "DB" in direction -> Directions.DB
+            "UF" in direction -> Directions.UF
+            "UB" in direction -> Directions.UB
+            "D" in direction -> Directions.D
+            "U" in direction -> Directions.U
+            "F" in direction -> Directions.R
+            "B" in direction -> Directions.L
             else -> 0
         }
-        val keys = clean.filter { it.lowercaseChar() in buttons }.map { it.lowercaseChar() }.toSet()
+        val keys = clean.filter { it in buttons }.toSet()
         CommandStep(dir, keys, release, held, fourWay, strict, delay.coerceAtLeast(1))
     }
 }
