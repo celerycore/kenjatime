@@ -48,13 +48,22 @@ for(const [index,order]of [[0,[0,1]],[1,[1,0]]]){
   const session=new CoreSession(files,selection);
   const result={order:index?'2026-v-2007':'2007-v-2026',ticksCompleted:0,
     contacts:0,maxHelpers:0,maxProjectiles:0,maxDraws:0,renderFrames:0,newAssets:0,
-    playerSamples:[],resourceDiagnostics:[],runtimeDiagnostics:[],roundStates:[],error:null};
+    playerSamples:[],resourceDiagnostics:[],runtimeDiagnostics:[],roundStates:[],error:null,
+    cpuUpTicks:[0,0],jumpStarts:[0,0],airborneTicks:[0,0]};
   const runtimeIssues=new Map(),resourceIssues=new Map(),roundStates=new Set();
+  const wasJumping=[false,false];
   const start=performance.now();
   try{
     for(let tick=1;tick<=ticks;tick++){
       session.tick();result.ticksCompleted=tick;
       result.contacts+=session.match.events.filter(e=>['hit','guard','reversal'].includes(e.type)).length;
+      for(const [side,actor] of [session.match.player,session.match.opponent].entries()){
+        if(session.match.cpus.get(actor)?.raw.has('U'))result.cpuUpTicks[side]++;
+        const jumping=actor.stateNo===40;
+        if(jumping&&!wasJumping[side])result.jumpStarts[side]++;
+        wasJumping[side]=jumping;
+        if(actor.stateType==='A'&&actor.pos.y < -10)result.airborneTicks[side]++;
+      }
       result.maxHelpers=Math.max(result.maxHelpers,session.match.entities.filter(e=>e.parent).length);
       result.maxProjectiles=Math.max(result.maxProjectiles,session.match.projectiles.length);
       roundStates.add(session.match.roundFlow?.roundState??2);
@@ -85,6 +94,7 @@ for(const [index,order]of [[0,[0,1]],[1,[1,0]]]){
 }
 report.summary={
   bothOrdersCompleted:report.matches.every(m=>m.ticksCompleted===ticks&&!m.error),
+  bothVersionsJumped:report.matches.every(m=>m.jumpStarts.every(n=>n>0)&&m.airborneTicks.every(n=>n>0)),
   totalContacts:report.matches.reduce((n,m)=>n+m.contacts,0),
   maxHelpers:Math.max(...report.matches.map(m=>m.maxHelpers)),
   maxProjectiles:Math.max(...report.matches.map(m=>m.maxProjectiles)),
@@ -99,6 +109,8 @@ console.log(JSON.stringify({output,versions:report.inputArchives.map(a=>a.versio
   summary:report.summary,results:report.matches.map(m=>({
     order:m.order,contacts:m.contacts,maxHelpers:m.maxHelpers,
     maxProjectiles:m.maxProjectiles,maxDraws:m.maxDraws,newAssets:m.newAssets,
-    renderFrames:m.renderFrames,wallTimeMs:m.wallTimeMs}))}));
+    renderFrames:m.renderFrames,cpuUpTicks:m.cpuUpTicks,jumpStarts:m.jumpStarts,
+    airborneTicks:m.airborneTicks,wallTimeMs:m.wallTimeMs}))}));
 if(process.env.RARE_DUEL_STRICT==='1'&&
-  (!report.summary.bothOrdersCompleted||report.summary.runtimeDiagnosticKinds.length))process.exitCode=1;
+  (!report.summary.bothOrdersCompleted||report.summary.runtimeDiagnosticKinds.length||
+   process.env.RARE_DUEL_REQUIRE_JUMPS==='1'&&!report.summary.bothVersionsJumped))process.exitCode=1;
