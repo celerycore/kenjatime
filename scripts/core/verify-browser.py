@@ -47,6 +47,26 @@ try:
    for _ in range(3):
     page.locator('#fight-now').click();page.wait_for_function('window.__kenjatimeCoreState?.ticks>3',timeout=30000);page.locator('[data-menu]').click();page.wait_for_function("!document.querySelector('#fight-now').disabled")
    result['checks'].update(earlyCancellation=True,repeatedSessions=3)
+   # End-to-end CPU movement, not a synthesized keyboard input test.
+   page.locator('#arena-mode').select_option('cpu')
+   page.locator('#cpu-level').select_option('6')
+   page.locator('#fight-now').click()
+   page.wait_for_function('window.__kenjatimeCoreState?.ticks>20',timeout=30000)
+   page.evaluate("""
+     window.__kenjatimeCpuJumpSeen=[false,false];
+     (function observe(){
+       const players=window.__kenjatimeCoreState?.players||[];
+       for(let side=0;side<2;side++)
+         if(players[side]?.state===50 && players[side]?.y < -20)
+           window.__kenjatimeCpuJumpSeen[side]=true;
+       if(!window.__kenjatimeCpuJumpSeen.every(Boolean))requestAnimationFrame(observe);
+     })();
+   """)
+   page.wait_for_function('window.__kenjatimeCpuJumpSeen.every(Boolean)',timeout=30000)
+   result['checks']['bothCPUsActuallyJumped']=page.evaluate('window.__kenjatimeCpuJumpSeen')
+   page.locator('[data-menu]').click()
+   page.wait_for_function("!document.querySelector('#fight-now').disabled")
+   page.locator('#arena-mode').select_option('training')
    if mode=='main':
     page.locator('#fight-now').click();page.wait_for_function('window.__kenjatimeCoreState?.ticks>3',timeout=30000);page.evaluate("document.querySelector('.kenjatime-battle canvas').getContext('webgl2').getExtension('WEBGL_lose_context').loseContext()");page.wait_for_function('window.__kenjatimeCoreBattle===undefined');page.wait_for_function("!document.querySelector('#fight-now').disabled");assert 'context was lost' in page.locator('#status').inner_text();result['checks']['contextLossReturnsToLibrary']=True
    assert not errors,errors
