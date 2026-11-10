@@ -1,0 +1,8 @@
+{
+  "project": "Kenjatime Core browser QA",
+  "branch": "qa/core-browser-test-20261110",
+  "commit": "7bf48116b5c63a868356a27c7ab67834ed3d56ad",
+  "build": "0.5.8-core-preview",
+  "characterArchivesIncluded": false,
+  "source": "celerycore/kenjatime"
+}
