@@ -95,10 +95,14 @@ class InputBuffer(private val capacity: Int = 360) {
                 minOf(limit, command.bufferTime.coerceAtLeast(1)) else limit
             while (cursor < searchLimit) {
                 if (matchesStep(step, cursor, isFacingRight)) {
+                    // MUGEN accepts F+a on one tick; the button press must not consume
+                    // that sample before the preceding direction is matched.
                     val sameFrameAsButton = newerStep?.let {
                         it.buttons.isNotEmpty() && it.direction == 0 && !it.release && step.direction != 0
                     } ?: false
-                    if (!sameFrameAsButton) cursor++
+                    val allowNextStepSameFrame =
+                        step.buttons.isNotEmpty() && step.direction == 0 && !step.release
+                    if (!sameFrameAsButton && !allowNextStepSameFrame) cursor++
                     newerStep = step
                     found = true
                     break
@@ -119,7 +123,7 @@ class InputBuffer(private val capacity: Int = 360) {
             // Ordinary D/B/F/U require the exact direction, not a diagonal.
             current.directions == expected
         }
-        if (!directionMatches) return false
+        if (!step.release && !directionMatches) return false
         if (step.release) {
             val heldBefore = if (step.buttons.isNotEmpty())
                 step.buttons.all { it in older.buttons }
