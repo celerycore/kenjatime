@@ -30,8 +30,9 @@ class FlatBoxBuffer(initialBoxes: Int = 16, private val limit: Int = 4096) {
     fun load(actor: FightingCharacter, attack: Boolean) {
         clear()
         val frames = actor.animation?.frame?.boxes ?: return
-        val sx = actor.definition.xScale
-        val sy = actor.definition.yScale
+        // Legacy hurt boxes are unscaled; preserve existing contact semantics.
+        val sx = if (attack) actor.definition.xScale else Fixed.ONE
+        val sy = if (attack) actor.definition.yScale else Fixed.ONE
         val face = if (actor.facingRight) 1 else -1
         for (box in frames) {
             if (box.attack != attack) continue

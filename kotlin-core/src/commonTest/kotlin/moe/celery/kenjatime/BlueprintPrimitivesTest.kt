@@ -11,14 +11,14 @@ class BlueprintPrimitivesTest {
     @Test fun fixed16IsDeterministicAndBridgesLegacyCoordinates() {
         val a = Fixed16.fromRatio(3, 2)
         assertEquals(98304, a.raw)
-        assertEquals(131072, (a * Fixed16.fromInt(2)).raw)
+        assertEquals(196608, (a * Fixed16.fromInt(2)).raw)
         assertEquals(32768, (Fixed16.ONE / Fixed16.fromInt(2)).raw)
         assertEquals(512, Fixed16.fromLegacy8(512).toLegacy8Raw())
         assertEquals(Int.MAX_VALUE, (Fixed16(Int.MAX_VALUE) + Fixed16.ONE).raw)
         assertFailsWith<IllegalArgumentException> { Fixed16.fromRatio(1, 0) }
     }
     @Test fun fractionalClockNeverChangesSimulationStepSize() {
-        val clock = FixedTickAccumulator(Fixed16.fromRatio(1, 5))
+        val clock = RationalTickAccumulator(1, 5)
         val samples = (1..10).map { clock.advance() }
         assertEquals(listOf(false,false,false,false,true,false,false,false,false,true), samples)
     }

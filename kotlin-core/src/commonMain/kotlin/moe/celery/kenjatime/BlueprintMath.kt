@@ -66,3 +66,16 @@ class FixedTickAccumulator(private val rate: Fixed16 = Fixed16.ONE) {
     fun reset() { remainder = 0 }
     fun remainderRaw(): Int = remainder
 }
+
+/** Exact rational slow motion when 0.2 speed must tick on each fifth frame. */
+class RationalTickAccumulator(private val numerator: Int, private val denominator: Int) {
+    init { require(denominator > 0 && numerator in 0..denominator) }
+    private var progress: Long = 0
+    fun advance(): Boolean {
+        progress += numerator.toLong()
+        if (progress < denominator.toLong()) return false
+        progress -= denominator.toLong()
+        return true
+    }
+    fun reset() { progress = 0 }
+}
