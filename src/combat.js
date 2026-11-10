@@ -3,7 +3,7 @@ import {FighterRuntime} from './runtime.js';
 import {ProjectileRuntime} from './projectiles.js';
 import {StageRuntime} from './stages.js';
 import {RoundFlow} from './rounds.js';
-import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable} from './cpu.js';
+import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable,authoredAIProgram} from './cpu.js';
 import {baseScale,bodyWidthWorld,animationSource} from './coordinates.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
 import {CommandBuffer} from './commands.js';
@@ -133,7 +133,7 @@ export class TrainingMatch {
     this.inputBuffers=new Map();this.inputProfiles=new Map();if(this.manageInputs)for(const actor of this._entities){if(!this.inputProfiles.has(actor.character))this.inputProfiles.set(actor.character,characterCommands(actor.character));this.inputBuffers.set(actor,new CommandBuffer(this.inputProfiles.get(actor.character)));}
     this.events = [];
     this.cpus=new Map();
-    for(const actor of this._entities)if(actor.aiLevel){const parsed=characterCommands(actor.character);this.cpus.set(actor,new CpuController(parsed,{level:actor.aiLevel,seed:0x6d2b79f5^(actor.id*0x9e3779b9)^(this.roundFlow?.roundNo||1)}));for(const issue of parsed.diagnostics)actor.diagnostic('command',issue.message,{source:actor.character.def.files.cmd,line:issue.line});}
+    for(const actor of this._entities)if(actor.aiLevel){const parsed=characterCommands(actor.character);this.cpus.set(actor,new CpuController(parsed,{level:actor.aiLevel,authoredAI:authoredAIProgram(actor.program),seed:0x6d2b79f5^(actor.id*0x9e3779b9)^(this.roundFlow?.roundNo||1)}));for(const issue of parsed.diagnostics)actor.diagnostic('command',issue.message,{source:actor.character.def.files.cmd,line:issue.line});}
     this.ticks = prior?.ticks||0;
     this.winner = null;
     if(prior){
