@@ -8,7 +8,7 @@ private object Fights {
     val active = mutableMapOf<Int, DeterministicFight>()
     fun get(handle: Int): DeterministicFight = active[handle] ?: error("Unknown fight handle")
 }
-@JsExport fun ktCoreVersion(): String = "0.1.0-wasm-foundation"
+@JsExport fun ktCoreVersion(): String = "0.2.0-wasm-combat-preview"
 @JsExport fun ktCoreCreate(
     name1: String, name2: String, air1: String, air2: String, cns1: String, cns2: String
 ): Int {
@@ -64,6 +64,10 @@ private object Fights {
 ) { c ->
     "{\"attacker\":" + c.attacker + ",\"defender\":" + c.defender +
         ",\"guarded\":" + c.guarded + ",\"damage\":" + c.damage + "}"
+}
+@JsExport fun ktCoreEntities(handle: Int): String {
+    val e = Fights.get(handle).entities
+    return "{\"helpers\":" + e.helpers.size + ",\"projectiles\":" + e.projectiles.size + "}"
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
