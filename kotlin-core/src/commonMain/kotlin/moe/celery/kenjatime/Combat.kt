@@ -457,6 +457,11 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
     val entities = CoreEntities(this)
+    var roundFlow: CoreRoundFlow? = null
+        private set
+    fun enableRoundFlow(rules: CoreRoundRules = CoreRoundRules()) {
+        roundFlow = CoreRoundFlow(rules)
+    }
     var arena: ArenaRules? = null
         private set
     var camera: MugenCamera? = null
@@ -481,8 +486,13 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     }
     fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame()) {
         contacts.clear()
-        p1.input.update(a)
-        p2.input.update(b)
+        val sequence = roundFlow
+        p1.roundState = sequence?.roundState() ?: 2
+        p2.roundState = sequence?.roundState() ?: 2
+        if (sequence?.finished == true) { frame++; return }
+        val allowCombat = sequence == null || sequence.active
+        p1.input.update(if (allowCombat) a else InputFrame())
+        p2.input.update(if (allowCombat) b else InputFrame())
         val p1Frozen = p1.hitPauseLeft > 0
         val p2Frozen = p2.hitPauseLeft > 0
         p1.tick(issues)
@@ -490,8 +500,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         arena?.step(p1,p2,p1Frozen,p2Frozen)
         camera?.update(p1,p2)
         // Contact candidates collected before mutating either fighter: genuine trades.
-        var ab = !p1Frozen && p1.canHit(p2.id) && p2.canReceive(p1.activeHitDef!!) && connects(p1, p2)
-        var ba = !p2Frozen && p2.canHit(p1.id) && p1.canReceive(p2.activeHitDef!!) && connects(p2, p1)
+        var ab = allowCombat && !p1Frozen && p1.canHit(p2.id) && p2.canReceive(p1.activeHitDef!!) && connects(p1, p2)
+        var ba = allowCombat && !p2Frozen && p2.canHit(p1.id) && p1.canReceive(p2.activeHitDef!!) && connects(p2, p1)
         if (ab && ba) {
             val x = p1.activeHitDef!!
             val y = p2.activeHitDef!!
@@ -526,9 +536,10 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         }
         if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB)
         if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA)
-        entities.step(issues)
+        if (allowCombat) entities.step(issues)
         val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
+        sequence?.step(p1,p2)
         frame++
     }
     private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean {
