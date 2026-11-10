@@ -15,7 +15,7 @@ From repository root, with JDK 21:
 ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack
 ```
 
-Use the generated Kotlin .mjs file with the opt-in
+Use the raw Kotlin ESM .mjs alongside the generated .wasm and import-object files, not the webpack .js bundle, with the opt-in
 `src/core/kotlin-wasm-backend.js` adapter. The module exposes primitive
 `ktCore*` functions and accepts CNS/AIR strings. An application bundler
 must serve the generated .mjs **and its .wasm companion** at the expected URL.
@@ -30,7 +30,7 @@ No part of the current production fighting runtime automatically loads it.
 | 3: CMD | `Input.kt` | Motion buffer, facing and button edges; partial modifiers |
 | 4: CNS/ST | `Combat.kt` | Simple triggers/controller subset; incomplete |
 | 5: Clsn1/Clsn2 | `Air.kt`, `Combat.kt` | AABB attacks, trade snapshot, per-target once |
-| 6: SFF/palette | `Assets.kt` | ACT + indexed RGBA expansion; no SFF/PCX decoder |
+| 6: SFF/palette | `Assets.kt` | ACT + indexed RGBA; SFF v1 PCX 8-bit/linked sprites; no SFF2 |
 | 7: camera | `Camera.kt` | Render-only tracking and safe clamping |
 | 8: SND | `Assets.kt` | Bounded v1 archive extraction; no audio playback |
 | 9: AIR | `Air.kt` | Action frames and collision box defaults; partial AIR |
@@ -38,7 +38,7 @@ No part of the current production fighting runtime automatically loads it.
 
 ## Compatibility boundary — not full MUGEN or Ikemen GO
 
-Not yet implemented: binary SFF v1/v2 and PCX decompression; state expression
+Not yet implemented: SFF v2 (RLE5/LZ5/PNG) and other PCX variants; state expression
 interpreter and most CNS/ZSS controllers; guard/throws/helpers/projectiles;
 common state inheritance, character palettes and AIR loopstart semantics;
 sound playback; round intro/outro; arcade screenpack and Lua extensions.
