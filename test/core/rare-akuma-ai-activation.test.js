@@ -46,8 +46,13 @@ test('Native-style CPU flag survives intro, physical keypresses and round reset 
   }
   assert.ok(fightTicks>100 && observedInput>0);
   session.match.reset();
-  for(let i=0;i<90;i++)session.tick();
-  assert.equal(session.match.opponent.vars[59],1,'round reset restored CPU-owned AI');
+  // Intro scripts may legitimately clear AI during RoundState 0/1. The CPU
+  // flag must be restored on the first active fight tick, not at an arbitrary
+  // wall-clock count while authored intro poses are still running.
+  for(let i=0;i<360&&session.match.roundFlow.roundState!==2;i++)session.tick();
+  assert.equal(session.match.roundFlow.roundState,2,'reset intro did not reach FIGHT');
+  session.tick();
+  assert.equal(session.match.opponent.vars[59],1,'round reset restored CPU-owned AI on FIGHT');
  }finally{session.close();}
 });
 test('Normal CPU decisions request repeated real jumps and retain authored attacks',()=>{

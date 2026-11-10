@@ -146,7 +146,17 @@ export class TrainingMatch {
       }
     }
     this.syncEnvironment();
-    if(this.initialize)for(const fighter of this._entities)if(fighter.program.states.has(5900)){fighter._initializing=true;fighter.options.skipIntro=this.skipIntro;fighter.changeState(5900);}
+    if(this.initialize)for(const fighter of this._entities){
+      if(fighter.program.states.has(5900)){
+        fighter._initializing=true;
+        fighter.options.skipIntro=this.skipIntro;
+        fighter.changeState(5900);
+      }else if(this.roundFlow&&!this.skipIntro){
+        // Do not skip an authored intro just because StateDef 5900 is absent.
+        const intro=fighter.program.states.has(190)?190:fighter.program.states.has(191)?191:null;
+        if(intro!==null)fighter.changeState(intro,0,fighter);
+      }
+    }
     return this;
   }
 
@@ -386,12 +396,32 @@ export class TrainingMatch {
     if (!this.roundFlow&&!asserted('noko')&&(this.player.life<=0||this.opponent.life<=0)) this.winner = this.player.life <= 0 && this.opponent.life <= 0 ? 'draw' : this.player.life <= 0 ? 'opponent' : 'player';
     if(this.roundFlow){
       const flow=this.roundFlow,players=[this.player,this.opponent];
-      const events=flow.step({players,paused:globallyPaused,intro:asserted('intro'),roundNotOver:asserted('roundnotover'),timerFreeze:asserted('timerfreeze'),noKO:players.map(()=>asserted('noko'))});
+      const intro=asserted('intro');
+      const inIntro=p=>p.stateNo===5900||(p.stateNo>=190&&p.stateNo<=199)||p.asserted.has('intro');
+      // Old common1.cns intros can deliberately hold/restart their animation
+      // while RoundState=0, then play it when the round announcer starts.
+      // Wait while any intro makes progress; release only when every active
+      // intro is parked on the same first animation tick for one second.
+      const waitingForAnnouncer=flow.roundState===0&&flow.phaseTime>=60
+        &&players.every(p=>!inIntro(p)||
+          (p.stateNo>=190&&p.stateNo<=199&&p.animationTime===0));
+      const introPending=players.some(inIntro)&&!waitingForAnnouncer;
+      const winningActor=flow.roundWinner==='player'?this.player:flow.roundWinner==='opponent'?this.opponent:null;
+      const victoryPending=!!winningActor&&winningActor.stateNo>=180&&winningActor.stateNo<=189
+        &&!winningActor.animationEnded;
+      const events=flow.step({players,paused:globallyPaused,intro,introPending,victoryPending,
+        roundNotOver:asserted('roundnotover'),timerFreeze:asserted('timerfreeze'),
+        noKO:players.map(()=>asserted('noko'))});
       this.syncEnvironment();
       for(const event of events){
         if(event.type==='fight')for(const p of players)if(p.stateNo===0)p.ctrl=1;
         if(event.type==='round-over')this.winner=event.winner;
-        if(event.type==='result')for(const p of players){const won=event.winner===(p===this.player?'player':'opponent'),state=won?180:event.reason==='time'?170:null;if(state!==null&&p.program.states.has(state))p.changeState(state,0,p);}
+        if(event.type==='result')for(const p of players){
+          const won=event.winner===(p===this.player?'player':'opponent');
+          // Dispatch to the fighter's own win/timeout state and any chained pose.
+          const state=won?180:event.reason==='time'?170:null;
+          if(state!==null&&p.program.states.has(state))p.changeState(state,0,p);
+        }
         if(event.type==='next-round')this.reset({preserveMatch:true});
         this.presentationEvents.push({...event,type:'round',event:event.type});
       }

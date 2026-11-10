@@ -57,3 +57,30 @@
   height: 100%;
   object-fit: contain;
 }
+
+
+/* Phase announcer is a lightweight DOM overlay: no extra GPU textures,
+   blur filters, animation loops or per-frame canvas compositing. */
+.kenjatime-battle-screen {
+  position: relative;
+}
+.core-announcement {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 43%;
+  transform: translate(-50%, -50%);
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+  text-align: center;
+  color: #f4f7ed;
+  font: 900 clamp(21px, 5vw, 48px)/1.1 system-ui, sans-serif;
+  letter-spacing: .035em;
+  text-shadow: 2px 3px 0 #182921;
+}
+.core-announcement[hidden] {
+  display: none;
+}
