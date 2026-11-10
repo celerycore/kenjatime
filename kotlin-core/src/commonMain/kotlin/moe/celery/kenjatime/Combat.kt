@@ -1,17 +1,28 @@
 package moe.celery.kenjatime
 
-/** All simulation coordinates/velocities are fixed-point: 1 pixel = 256 units. */
+/** Simulation coordinates use signed 1/256 pixel fixed point. No frame delta times. */
 object Fixed {
     const val ONE = 256
     fun of(value: Double): Int = (value * ONE).toInt()
     fun pixels(value: Int): Double = value.toDouble() / ONE
 }
+
 data class HitDefinition(
     val attr: String = "S, NA",
     val damage: Int = 0,
     val hitPause: Int = 0,
     val velocityX: Int = 0,
-    val velocityY: Int = 0
+    val velocityY: Int = 0,
+    val guardDamage: Int = 0,
+    val guardFlag: String = "",
+    val hitFlag: String = "MAF",
+    val priority: Int = 4,
+    val priorityType: String = "Hit",
+    val defenderPause: Int = hitPause,
+    val guardPause: Int = hitPause,
+    val guardVelocityX: Int = 0,
+    val guardVelocityY: Int = 0,
+    val hitTime: Int = 12
 )
 data class StateController(
     val type: String,
@@ -19,25 +30,37 @@ data class StateController(
     val triggerAll: List<String>,
     val triggerGroups: Map<Int, List<String>>
 )
-data class StateProgram(val number: Int, val animation: Int?, val controllers: List<StateController>)
+data class StateProgram(
+    val number: Int,
+    val animation: Int?,
+    val controllers: List<StateController>,
+    val stateType: String? = null,
+    val moveType: String? = null,
+    val physics: String? = null,
+    val control: Boolean? = null,
+    val velocityX: Int? = null,
+    val velocityY: Int? = null
+)
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
     val states: Map<Int, StateProgram> = emptyMap(),
     val maxLife: Int = 1000
 )
+
 object MugenCnsParser {
-    private val state = Regex("state\\s+(-?\\d+)\\s*,.*", RegexOption.IGNORE_CASE)
+    private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
     private val statedef = Regex("statedef\\s+(-?\\d+)", RegexOption.IGNORE_CASE)
+    /** Preserve the authored order. A [State] with no triggers never activates. */
     fun parse(source: String): Map<Int, StateProgram> {
         val sections = MugenDefParser.parse(source).sections
         val controllers = linkedMapOf<Int, MutableList<StateController>>()
-        val animations = mutableMapOf<Int, Int?>()
+        val metadata = mutableMapOf<Int, MugenSection>()
         var current: Int? = null
         for (section in sections) {
             val d = statedef.matchEntire(section.name)
             if (d != null) {
                 current = d.groupValues[1].toInt()
-                animations[current] = section.get("anim")?.toIntOrNull()
+                metadata[current] = section
                 controllers.getOrPut(current) { mutableListOf() }
                 continue
             }
@@ -54,34 +77,73 @@ object MugenCnsParser {
                 } else params[key] = value
             }
             controllers.getOrPut(stateNo) { mutableListOf() }.add(StateController(
-                params["type"] ?: "Null", params.toMap(), all.toList(), grouped.mapValues { it.value.toList() }))
+                params["type"] ?: "Null", params.toMap(), all.toList(),
+                grouped.mapValues { it.value.toList() }))
         }
-        return controllers.mapValues { (n, c) -> StateProgram(n, animations[n], c.toList()) }
+        return controllers.mapValues { (n, c) ->
+            val m = metadata[n]
+            val velocity = m?.get("velset")?.split(",") ?: emptyList()
+            StateProgram(n, m?.get("anim")?.toIntOrNull(), c.toList(),
+                m?.get("type")?.uppercase(), m?.get("movetype")?.uppercase(),
+                m?.get("physics")?.uppercase(), m?.get("ctrl")?.toIntOrNull()?.let { it != 0 },
+                velocity.getOrNull(0)?.trim()?.toDoubleOrNull()?.let(Fixed::of),
+                velocity.getOrNull(1)?.trim()?.toDoubleOrNull()?.let(Fixed::of))
+        }
     }
 }
 
-/** Small explicit trigger subset. Unknown expressions fail closed and are reported. */
+/** Intentionally bounded expression subset; unsupported script branches fail closed. */
 object CoreTriggers {
+    private val comparison = Regex(
+        """(?i)^(time|stateno|life|power|pos x|pos y|vel x|vel y|ctrl|p2dist x|p2dist y|roundstate|var\(\d+\)|fvar\(\d+\)|statetype|movetype)\s*(=|!=|<=|>=|<|>)\s*("?[a-z]+?"?|-?\d+(?:\.\d+)?)$"""
+    )
     fun test(expr: String, actor: FightingCharacter, errors: MutableSet<String>): Boolean {
-        val e = expr.trim().removeSurrounding("(" , ")").trim()
+        val e = expr.trim().removeSurrounding("(", ")").trim()
         if (e.contains("||")) return e.split("||").any { test(it, actor, errors) }
         if (e.contains("&&")) return e.split("&&").all { test(it, actor, errors) }
         if (e.equals("1") || e.equals("true", true)) return true
         if (e.equals("0") || e.equals("false", true)) return false
-        val m = Regex("(?i)^(time|stateno|life|pos x|pos y|vel x|vel y|ctrl)\\s*(=|!=|<=|>=|<|>)\\s*(-?\\d+)$").matchEntire(e)
+        val command = Regex("""(?i)^command\s*=\s*["']?([a-z0-9_ +.-]+)["']?$""").matchEntire(e)
+        if (command != null) return actor.commands.any {
+            it.name.equals(command.groupValues[1], true) && actor.input.matches(it, actor.facingRight)
+        }
+        val m = comparison.matchEntire(e)
         if (m != null) {
-            val x = when (m.groupValues[1].lowercase()) {
-                "time" -> actor.timeInState
-                "stateno" -> actor.stateNo
-                "life" -> actor.life
-                "pos x" -> actor.posX / Fixed.ONE
-                "pos y" -> actor.posY / Fixed.ONE
-                "vel x" -> actor.velX / Fixed.ONE
-                "vel y" -> actor.velY / Fixed.ONE
-                else -> if (actor.control) 1 else 0
+            val lhs = m.groupValues[1].lowercase()
+            val rhs = m.groupValues[3].trim('"', '\'')
+            if (lhs == "statetype" || lhs == "movetype") {
+                val x = if (lhs == "statetype") actor.stateType else actor.moveType
+                return when (m.groupValues[2]) {
+                    "=" -> x.equals(rhs, true)
+                    "!=" -> !x.equals(rhs, true)
+                    else -> false
+                }
             }
-            val y = m.groupValues[3].toInt()
-            return when (m.groupValues[2]) {
+            val x: Double = when {
+                lhs == "time" -> actor.timeInState.toDouble()
+                lhs == "stateno" -> actor.stateNo.toDouble()
+                lhs == "life" -> actor.life.toDouble()
+                lhs == "power" -> actor.power.toDouble()
+                lhs == "pos x" -> Fixed.pixels(actor.posX)
+                lhs == "pos y" -> Fixed.pixels(actor.posY)
+                lhs == "vel x" -> Fixed.pixels(actor.velX)
+                lhs == "vel y" -> Fixed.pixels(actor.velY)
+                lhs == "ctrl" -> if (actor.control) 1.0 else 0.0
+                lhs == "roundstate" -> actor.roundState.toDouble()
+                lhs == "p2dist x" -> actor.opponent?.let { Fixed.pixels(it.posX - actor.posX) } ?: 0.0
+                lhs == "p2dist y" -> actor.opponent?.let { Fixed.pixels(it.posY - actor.posY) } ?: 0.0
+                lhs.startsWith("var(") -> {
+                    val i = lhs.substringAfter("(").substringBefore(")").toIntOrNull()
+                    actor.vars.getOrNull(i ?: -1)?.toDouble() ?: 0.0
+                }
+                lhs.startsWith("fvar(") -> {
+                    val i = lhs.substringAfter("(").substringBefore(")").toIntOrNull()
+                    actor.fvars.getOrNull(i ?: -1) ?: 0.0
+                }
+                else -> 0.0
+            }
+            val y = rhs.toDoubleOrNull()
+            if (y != null) return when (m.groupValues[2]) {
                 "=" -> x == y
                 "!=" -> x != y
                 "<=" -> x <= y
@@ -90,25 +152,27 @@ object CoreTriggers {
                 else -> x > y
             }
         }
-        val command = Regex("(?i)^command\\s*=\\s*\"?([a-z0-9_ +-]+)\"?$").matchEntire(e)
-        if (command != null) return actor.commands.any {
-            it.name.equals(command.groupValues[1], true) && actor.input.matches(it, actor.facingRight)
-        }
         errors.add("Unsupported trigger: " + e.take(160))
         return false
     }
     fun controllerEnabled(c: StateController, fighter: FightingCharacter, errors: MutableSet<String>): Boolean {
+        if (c.triggerGroups.isEmpty()) return false
         if (!c.triggerAll.all { test(it, fighter, errors) }) return false
-        return c.triggerGroups.isEmpty() || c.triggerGroups.values.any { group -> group.all { test(it, fighter, errors) } }
+        return c.triggerGroups.values.any { group -> group.all { test(it, fighter, errors) } }
     }
 }
+
 class FightingCharacter(
     val definition: FighterDefinition,
     val id: Int,
     val commands: List<MugenCommand> = emptyList()
 ) {
     val input = InputBuffer()
+    val vars = IntArray(60)
+    val fvars = DoubleArray(40)
+    var opponent: FightingCharacter? = null
     var life = definition.maxLife
+    var power = 0
     var posX = 0
     var posY = 0
     var velX = 0
@@ -119,22 +183,39 @@ class FightingCharacter(
     var timeInState = 0
         private set
     var hitPauseLeft = 0
+    var hitStunLeft = 0
+        private set
+    var roundState = 2
+    var stateType = "S"
+        private set
+    var moveType = "I"
+        private set
     var control = true
     var activeHitDef: HitDefinition? = null
         private set
-    private var attackGeneration = 0
     private val struck = mutableSetOf<Int>()
     var animation: AirAnimationPlayer? = null
         private set
     init { changeState(0) }
     fun changeState(state: Int) {
+        val oldAnim = animation?.action?.number
         stateNo = state
         timeInState = 0
         control = state < 5000
         activeHitDef = null
         struck.clear()
-        val a = definition.states[state]?.animation ?: state
-        animation = definition.animations[a]?.let(::AirAnimationPlayer)
+        val program = definition.states[state]
+        stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
+        moveType = program?.moveType ?: (if (state >= 5000) "H" else "I")
+        control = program?.control ?: control
+        program?.velocityX?.let { velX = it }
+        program?.velocityY?.let { velY = it }
+        val newAnim = program?.animation ?: state
+        if (oldAnim != newAnim || animation == null)
+            animation = definition.animations[newAnim]?.let(::AirAnimationPlayer)
+    }
+    fun changeAnimation(id: Int) {
+        animation = definition.animations[id]?.let(::AirAnimationPlayer)
     }
     fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
     fun markHit(target: Int) { struck.add(target) }
@@ -142,73 +223,184 @@ class FightingCharacter(
         ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
-    private fun numeric(raw: String?, default: Int = 0): Int = raw?.trim()?.toDoubleOrNull()?.let(Fixed::of) ?: default
-    fun tick(errors: MutableSet<String>) {
-        if (hitPauseLeft > 0) { hitPauseLeft--; return }
-        val program = definition.states[stateNo]
-        if (program != null) for (c in program.controllers) {
-            if (!CoreTriggers.controllerEnabled(c, this, errors)) continue
-            when (c.type.lowercase()) {
-                "null" -> {}
-                "velset" -> {
-                    velX = numeric(c.params["x"], velX); velY = numeric(c.params["y"], velY)
-                }
-                "veladd" -> {
-                    velX += numeric(c.params["x"]); velY += numeric(c.params["y"])
-                }
-                "posadd" -> {
-                    posX += numeric(c.params["x"]); posY += numeric(c.params["y"])
-                }
-                "ctrlset" -> control = (c.params["value"]?.trim() ?: "0") != "0"
-                "changestate", "selfstate" -> {
-                    val next = c.params["value"]?.trim()?.toIntOrNull()
-                    if (next == null) errors.add("Non-constant ChangeState: " + c.params["value"])
-                    else { changeState(next); break }
-                }
-                "hitdef" -> {
-                    val pause = (c.params["pausetime"] ?: "0").substringBefore(',').trim().toIntOrNull() ?: 0
-                    val vel = (c.params["ground.velocity"] ?: "0,0").split(',')
-                    activeHitDef = HitDefinition(c.params["attr"] ?: "S, NA",
-                        c.params["damage"]?.substringBefore(',')?.trim()?.toIntOrNull() ?: 0,
-                        pause.coerceIn(0, 120), numeric(vel.getOrNull(0)), numeric(vel.getOrNull(1)))
-                    attackGeneration++
-                    struck.clear()
-                }
-                else -> errors.add("Unsupported controller: " + c.type)
+    private fun number(raw: String?, default: Int = 0): Int = raw?.trim()?.toDoubleOrNull()?.let(Fixed::of) ?: default
+    private fun integer(raw: String?, default: Int = 0): Int = raw?.trim()?.toIntOrNull() ?: default
+    private fun runController(c: StateController, errors: MutableSet<String>): Boolean {
+        val args = c.params
+        when (c.type.lowercase()) {
+            "null" -> {}
+            "velset" -> { velX = number(args["x"], velX); velY = number(args["y"], velY) }
+            "veladd" -> { velX += number(args["x"]); velY += number(args["y"]) }
+            "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
+            "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
+            "ctrlset" -> control = integer(args["value"]) != 0
+            "changestate", "selfstate" -> {
+                val next = args["value"]?.trim()?.toIntOrNull()
+                if (next == null) errors.add("Non-constant ChangeState: " + args["value"])
+                else { changeState(next); return true }
             }
+            "changeanim" -> {
+                val next = args["value"]?.trim()?.toIntOrNull()
+                if (next != null) changeAnimation(next) else errors.add("Non-constant ChangeAnim")
+            }
+            "statetypeset" -> {
+                args["statetype"]?.uppercase()?.let { stateType = it }
+                args["movetype"]?.uppercase()?.let { moveType = it }
+            }
+            "lifeadd" -> {
+                life = (life + integer(args["value"])).coerceIn(0, definition.maxLife)
+            }
+            "poweradd" -> { power = (power + integer(args["value"])).coerceIn(0, 3000) }
+            "varset", "varadd" -> {
+                val index = integer(args["v"], -1)
+                val value = integer(args["value"])
+                if (index in vars.indices) {
+                    vars[index] = if (c.type.equals("varadd", true)) vars[index] + value else value
+                } else errors.add("Unsupported VarSet/VarAdd slot: " + args["v"])
+            }
+            "hitdef" -> {
+                val pause = (args["pausetime"] ?: "0,0").split(',')
+                val velocity = (args["ground.velocity"] ?: "0,0").split(',')
+                val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
+                val priority = (args["priority"] ?: "4,Hit").split(',')
+                val next = HitDefinition(
+                    attr = args["attr"] ?: "S, NA",
+                    damage = integer(args["damage"]?.substringBefore(',')),
+                    hitPause = integer(pause.getOrNull(0)).coerceIn(0, 120),
+                    velocityX = number(velocity.getOrNull(0)),
+                    velocityY = number(velocity.getOrNull(1)),
+                    guardDamage = integer(args["guard.damage"]),
+                    guardFlag = (args["guardflag"] ?: "").uppercase().replace(" ", ""),
+                    hitFlag = (args["hitflag"] ?: "MAF").uppercase().replace(" ", ""),
+                    priority = integer(priority.getOrNull(0), 4).coerceIn(1, 7),
+                    priorityType = priority.getOrNull(1)?.trim() ?: "Hit",
+                    defenderPause = integer(pause.getOrNull(1), integer(pause.getOrNull(0))).coerceIn(0,120),
+                    guardPause = integer((args["guard.pausetime"] ?: args["pausetime"])?.substringBefore(','), integer(pause.getOrNull(0))).coerceIn(0,120),
+                    guardVelocityX = number(guardVelocity.getOrNull(0)),
+                    guardVelocityY = number(guardVelocity.getOrNull(1)),
+                    hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600)
+                )
+                // A controller evaluated every tick must not reset a target's struck set.
+                // State entry starts a new contact window; multi-hit/HitOnce need further parity.
+                if (activeHitDef == null) activeHitDef = next
+            }
+            else -> errors.add("Unsupported controller: " + c.type)
         }
+        return false
+    }
+    private fun executeState(n: Int, errors: MutableSet<String>): Boolean {
+        val p = definition.states[n] ?: return false
+        for (c in p.controllers) if (CoreTriggers.controllerEnabled(c, this, errors)) {
+            if (runController(c, errors)) return true
+        }
+        return false
+    }
+    fun tick(errors: MutableSet<String>) {
+        if (hitPauseLeft > 0) {
+            hitPauseLeft--
+            // ignorehitpause is a future compatibility gate; do not advance physics.
+            return
+        }
+        if (hitStunLeft > 0) hitStunLeft--
+        // Global states are ordered separately from the current state.
+        val changed = executeState(-3, errors) ||
+            executeState(-2, errors) || executeState(-1, errors) ||
+            executeState(stateNo, errors)
+        if (changed) return
         posX += velX
         posY += velY
         timeInState++
         animation?.advance()
+        if (hitStunLeft == 0 && (stateNo == 5000 || stateNo in 150..152) &&
+            stateNo !in definition.states && life > 0)
+            changeState(0)
     }
-    fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean) {
-        life = (life - hit.damage.coerceAtLeast(0)).coerceAtLeast(0)
-        changeState(if (life == 0) 5150 else 5000)
-        velX = hit.velocityX * if (attackerFacingRight) 1 else -1
-        velY = hit.velocityY
-        hitPauseLeft = hit.hitPause
+    fun blocks(hit: HitDefinition): Boolean {
+        if (!control && stateNo !in 150..152) return false
+        val backwards = if (facingRight) Directions.L else Directions.R
+        if (input.latest()?.directions?.and(backwards) != backwards) return false
+        val flag = hit.guardFlag
+        return when (stateType) {
+            "A" -> 'A' in flag
+            "C" -> 'L' in flag || 'M' in flag
+            else -> 'H' in flag || 'M' in flag
+        }
+    }
+    fun canReceive(hit: HitDefinition): Boolean {
+        if (life <= 0) return false
+        val flags = hit.hitFlag
+        return when (stateType) {
+            "L" -> 'D' in flags
+            "A" -> 'A' in flags || 'F' in flags
+            else -> flags.any { it == 'H' || it == 'L' || it == 'M' }
+        }
+    }
+    fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false) {
+        life = (life - if (guarded) hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)).coerceAtLeast(0)
+        val resultingState = if (life == 0) 5150 else if (guarded)
+            when (stateType) { "A" -> 152; "C" -> 151; else -> 150 }
+        else 5000
+        changeState(resultingState)
+        velX = (if (guarded) hit.guardVelocityX else hit.velocityX) *
+            if (attackerFacingRight) 1 else -1
+        velY = if (guarded) hit.guardVelocityY else hit.velocityY
+        hitPauseLeft = if (guarded) hit.guardPause else hit.defenderPause
+        hitStunLeft = hit.hitTime
     }
 }
+
+data class FightContact(val attacker: Int, val defender: Int, val guarded: Boolean, val damage: Int)
+
+/** Two-actor deterministic subset, not a full MUGEN contact phase. */
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val issues: MutableSet<String> = linkedSetOf()
+    val contacts: MutableList<FightContact> = ArrayList()
     var frame: Long = 0
         private set
-    init { require(p1.id != p2.id) }
+    init {
+        require(p1.id != p2.id)
+        p1.opponent = p2
+        p2.opponent = p1
+    }
     fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame()) {
-        p1.input.update(a); p2.input.update(b)
+        contacts.clear()
+        p1.input.update(a)
+        p2.input.update(b)
         val p1Frozen = p1.hitPauseLeft > 0
         val p2Frozen = p2.hitPauseLeft > 0
-        p1.tick(issues); p2.tick(issues)
-        // Resolve both attacks from the same pre-hit snapshot; trades are supported.
-        val aHits = !p1Frozen && p1.canHit(p2.id) && connects(p1, p2)
-        val bHits = !p2Frozen && p2.canHit(p1.id) && connects(p2, p1)
-        val ah = if (aHits) p1.activeHitDef else null
-        val bh = if (bHits) p2.activeHitDef else null
-        if (ah != null) { p1.markHit(p2.id); p1.hitPauseLeft = ah.hitPause }
-        if (bh != null) { p2.markHit(p1.id); p2.hitPauseLeft = bh.hitPause }
-        if (ah != null) p2.receiveHit(ah, p1.facingRight)
-        if (bh != null) p1.receiveHit(bh, p2.facingRight)
+        p1.tick(issues)
+        p2.tick(issues)
+        // Contact candidates collected before mutating either fighter: genuine trades.
+        var ab = !p1Frozen && p1.canHit(p2.id) && p2.canReceive(p1.activeHitDef!!) && connects(p1, p2)
+        var ba = !p2Frozen && p2.canHit(p1.id) && p1.canReceive(p2.activeHitDef!!) && connects(p2, p1)
+        if (ab && ba) {
+            val x = p1.activeHitDef!!
+            val y = p2.activeHitDef!!
+            if (x.priority > y.priority) ba = false
+            else if (y.priority > x.priority) ab = false
+            else if (x.priorityType.equals("dodge", true) || y.priorityType.equals("dodge", true)) {
+                ab = false; ba = false
+            } else {
+                if (!x.priorityType.equals("hit", true)) ab = false
+                if (!y.priorityType.equals("hit", true)) ba = false
+            }
+        }
+        val ah = if (ab) p1.activeHitDef else null
+        val bh = if (ba) p2.activeHitDef else null
+        val guardB = ah != null && p2.blocks(ah)
+        val guardA = bh != null && p1.blocks(bh)
+        if (ah != null) {
+            p1.markHit(p2.id)
+            p1.hitPauseLeft = if (guardB) ah.guardPause else ah.hitPause
+            contacts.add(FightContact(p1.id, p2.id, guardB, if (guardB) ah.guardDamage else ah.damage))
+        }
+        if (bh != null) {
+            p2.markHit(p1.id)
+            p2.hitPauseLeft = if (guardA) bh.guardPause else bh.hitPause
+            contacts.add(FightContact(p2.id, p1.id, guardA, if (guardA) bh.guardDamage else bh.damage))
+        }
+        if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB)
+        if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA)
         frame++
     }
     private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean {
