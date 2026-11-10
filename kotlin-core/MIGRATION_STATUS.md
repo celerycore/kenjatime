@@ -39,7 +39,7 @@ continue using its JavaScript CoreSession until the release gates below pass.
 
 ## Real KFM evidence — not native parity
 
-The CI repository contains the original bundled \`public/kfm.zip\`.
+The CI repository contains the original bundled `public/kfm.zip`.
 Its DEF/CMD/CNS/ST/AIR sources are parsed, including CMD -1 controllers.
 A 600-tick two-fighter simulation on compiled Kotlin/Wasm directly exercises
 KFM's authored inputs and a forced state 200 move. This runs the character's
@@ -87,22 +87,22 @@ an authored Kotlin move does not certify Kotlin/native MUGEN parity.
 
 ## Reproduce the independent tests
 
-\`\`\`sh
+```sh
 ./android/gradlew -p kotlin-core jvmTest
 ./android/gradlew -p kotlin-core wasmJsNodeTest
 ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack
 node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js
 node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
 node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs
-\`\`\`
+```
 
 For local extracted original source-only checks:
 
-\`\`\`sh
-KENJATIME_DARK_DONALD_DIR=/path/to/extracted/dark-donald \\
-KENJATIME_RARE_AKUMA_DIR=/path/to/extracted/rare-akuma \\
+```sh
+KENJATIME_DARK_DONALD_DIR=/path/to/extracted/dark-donald \
+KENJATIME_RARE_AKUMA_DIR=/path/to/extracted/rare-akuma \
   ./android/gradlew -p kotlin-core jvmTest
-\`\`\`
+```
 
 These source-only checks are **not** full character execution parity. Do not
 merge to production or enable a default Kotlin battle until the strict gates
