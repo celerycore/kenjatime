@@ -14,7 +14,7 @@ export async function loadKotlinCore(moduleUrl) {
   if (!api) throw new Error("The Kotlin/Wasm combat functions are not exported");
   return {
     version: api.ktCoreVersion(),
-    create({ player1, player2, positions, arena } = {}) {
+    create({ player1, player2, positions, arena, round } = {}) {
       if (!player1?.name || !player2?.name)
         throw new TypeError("Both fighters need a name");
       const handle = typeof api.ktCoreCreateWithCommands === "function"
@@ -52,9 +52,21 @@ export async function loadKotlinCore(moduleUrl) {
           throw new RangeError("Arena boundaries must be finite ordered integer pixels");
         api.ktCoreConfigureArena(handle,left,right,ground,!!pushPlayers,!!autoFaceIdle);
       };
+      const enableRoundFlow = ({
+        introFrames=90,roundFrames=45,fightFrames=30,koFrames=60,outroFrames=90,timerSeconds=99
+      } = {}) => {
+        assertOpen();
+        if (typeof api.ktCoreEnableRoundFlow !== "function")
+          throw new Error("This Kotlin/Wasm build does not support round sequencing");
+        const values=[introFrames,roundFrames,fightFrames,koFrames,outroFrames,timerSeconds];
+        if (!values.every(n => Number.isSafeInteger(n) && n>=0 && n<=3600) || timerSeconds<1)
+          throw new RangeError("Round durations must be bounded integer tick counts");
+        api.ktCoreEnableRoundFlow(handle,...values);
+      };
       try {
         if (positions) setup(positions);
         if (arena) configureArena(arena);
+        if (round) enableRoundFlow(round);
       } catch (error) {
         api.ktCoreRelease(handle);
         closed = true;
@@ -87,6 +99,12 @@ export async function loadKotlinCore(moduleUrl) {
         },
         setup,
         configureArena,
+        enableRoundFlow,
+        roundState() {
+          assertOpen();
+          return typeof api.ktCoreRoundState === "function"
+            ? JSON.parse(api.ktCoreRoundState(handle)) : {enabled:false};
+        },
         camera() {
           assertOpen();
           return typeof api.ktCoreCamera === "function"
