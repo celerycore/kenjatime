@@ -86,7 +86,7 @@ function chooseContacts(contacts) {
 
 /** Deterministic, two-fighter training. Stage bounds and ground push separation are intentionally simple. */
 export class TrainingMatch {
-  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0,expressionEvaluator=null,programs=null,manageInputs=false,orderedPhases=false} = {}) {
+  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0,expressionEvaluator=null,programs=null,manageInputs=false,orderedPhases=false,cameraFollow=false} = {}) {
     this.expressionEvaluator=expressionEvaluator;
     this.programs=programs;
     this.manageInputs=manageInputs;
@@ -103,7 +103,7 @@ export class TrainingMatch {
     this.initialize=initialize;this.skipIntro=skipIntro;
     this.playerPalette=playerPalette;this.opponentPalette=opponentPalette;
     this.playerAILevel=normalizeAILevel(playerAILevel);this.opponentAILevel=normalizeAILevel(opponentAILevel);
-    this.stage=stage?new StageRuntime(stage):null;this.cameraRuntime=this.stage||new ArenaCamera();this.rules=rules;this.gameMode=rules?'versus':'training';
+    this.stage=stage?new StageRuntime(stage):null;this.cameraRuntime=this.stage||new ArenaCamera();this.cameraFollow=!!cameraFollow;this.rules=rules;this.gameMode=rules?'versus':'training';
     if(this.stage){this.leftBound=stage.leftBound;this.rightBound=stage.rightBound;}
     this.reset();
   }
@@ -280,11 +280,11 @@ export class TrainingMatch {
     }
     for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile._hitPausedThisTick=projectile.hitPauseTime>0;projectile.tick({paused:stopped}); }
     if(this.stage)for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));
-    this.cameraRuntime.updateCamera(this.entities,{advance:!globallyPaused});this.syncEnvironment();
+    if(this.stage||this.cameraFollow)this.cameraRuntime.updateCamera(this.entities,{advance:!globallyPaused});this.syncEnvironment();
     if(this.stage)this.stage.tick({paused:backgroundPaused});
     if(this.orderedPhases)this.advanceCornerPush(frozen);
     const pushed=this.constrainPositions();
-    if(pushed){this.cameraRuntime.updateCamera(this.entities,{advance:false});this.syncEnvironment();this.constrainPositions({push:false});}
+    if(pushed){if(this.stage||this.cameraFollow)this.cameraRuntime.updateCamera(this.entities,{advance:false});this.syncEnvironment();this.constrainPositions({push:false});}
     const fighters = this.entities;
     for(const defender of fighters)if(defender.moveType!=='H'&&defender.stateType!=='L')for(const records of this.juggles.values())records.delete(defender.id);
     const projectiles = this.projectiles.filter(p=>!p.removed && !p.removing);
