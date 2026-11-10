@@ -1,7 +1,7 @@
 name: Rare Akuma compatibility contract
 on:
   pull_request:
-    branches: [source/independent-engine, qa/rare-akuma-coverage-20261109, qa/rare-akuma-2026-ikemen-20261110, qa/rare-akuma-dual-compat-20261110, qa/rare-akuma-core-effects-hardening-20261110]
+    branches: [source/independent-engine, qa/rare-akuma-coverage-20261109, qa/rare-akuma-2026-ikemen-20261110, qa/rare-akuma-dual-compat-20261110, qa/rare-akuma-core-effects-hardening-20261110, qa/official-fightfx-rare-akuma-20261110]
     paths:
       - 'src/**'
       - 'scripts/core/verify-rare-akuma*'
