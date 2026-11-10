@@ -105,6 +105,7 @@ export class CoreSession {
       programs,
       manageInputs: true,
       orderedPhases: true,
+      cameraFollow: true,
       expressionEvaluator: (s, c) => this.expressions.evaluate(s, c),
       stage,
       playerPalette: selection.palette || 1,
@@ -495,7 +496,7 @@ export class CoreSession {
     const m = this.match,
       v = m.view,
       scale = Math.min(960 / 320, 540 / (v.displayHeight || 240)),
-      camera = m.stage?.camera || { x: 0, y: 0, zoom: 1 },
+      camera = m.cameraRuntime.camera,
       ground =
         (540 - (v.displayHeight || 240) * scale) / 2 +
         (v.groundY || 200) * scale,

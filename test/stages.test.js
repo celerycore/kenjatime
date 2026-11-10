@@ -163,3 +163,24 @@ test('Invalid stage definitions and unsupported elements fail visibly instead of
   assert.throws(()=>definition('[BG Invalid]\nstart=oops,0'),/Invalid/);
   const unsupported=definition('[BG Bad]\ntype=mystery');assert.equal(unsupported.elements.length,0);assert.ok(unsupported.diagnostics.some(d=>d.type==='unsupported-stage'));
 });
+
+test('Built-in grid camera tracks airborne fighters and ignores excluded helpers',()=>{
+  const world=new TrainingMatch(fighter(),{initialize:false,cameraFollow:true});
+  assert.equal(world.stage,null);
+  assert.equal(world.cameraRuntime.camera.y,0);
+  world.player.pos.y=-200;
+  world.tick();
+  assert.ok(world.cameraRuntime.camera.y<0,'camera did not pan upward with jumping player');
+  assert.ok(world.view.top<-200);
+  assert.equal(world.player.cameraPos,world.cameraRuntime.camera);
+  assert.ok(Math.abs(world.player.evaluate('CameraPos Y')-world.cameraRuntime.camera.y)<1e-4,'camera trigger must track the same position within f32 precision');
+  const above=world.cameraRuntime.camera.y;
+  world.player.pos.y=0;
+  for(let i=0;i<20;i++)world.tick();
+  assert.ok(world.cameraRuntime.camera.y>above,'camera did not ease back toward the ground');
+  const helper=world.spawnHelper(world.player,{stateno:0,id:800});
+  helper.pos.y=-500;
+  const before=world.cameraRuntime.camera.y;
+  world.tick();
+  assert.ok(world.cameraRuntime.camera.y>=before,'non-following helper must not pull camera upward');
+});

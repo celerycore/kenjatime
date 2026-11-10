@@ -52,9 +52,47 @@ export function commandInputPlan(command){
  * Detect the exact paired CPU/human variable without hard-coding a fighter
  * name or mutating any unrelated character variables.
  */
+/**
+ * Some classic MUGEN fighters put their entire native CPU state machine in
+ * StateDef -3 and bootstrap it with impossible AI0..AI60 command sequences.
+ * Native MUGEN activates this variable for CPU players; web key synthesis
+ * cannot realistically type that sequence. Recognize the authored handshake,
+ * but never infer AI identity from an arbitrary variable or fighter name.
+ */
+// Both native VarSet forms are valid CNS syntax: v=59/value=11 and
+// var(59)=11 (as authored in Dark Donald's AI.cns).
+function nativeAIBootstrap(program) {
+  const controllers=program?.states?.get(-3)?.controllers||[];
+  for (const controller of controllers) {
+    if (controller.type!=='varset')continue;
+    const direct=Object.entries(controller.values||{}).find(([key])=>/^var\s*\(\s*\d+\s*\)$/.test(key));
+    const index=direct?Number(/^var\s*\(\s*(\d+)\s*\)$/.exec(direct[0])[1]):Number(controller.values?.v);
+    if(!Number.isInteger(index)||index<0||index>=60)continue;
+    const triggers=(controller.entries||[]).filter(entry=>/^trigger(?:all|[1-9]\d*)$/.test(entry.key)).map(entry=>entry.value).join('\n');
+    if(!/\bcommand\s*=\s*["']AI\d+["']/i.test(triggers))continue;
+    const hasAIBranch=item=>(item.entries||[]).some(entry=>{
+      if(!/^trigger(?:all|[1-9]\d*)$/.test(entry.key))return false;
+      const condition=String(entry.value).replace(/\s+/g,'').toLowerCase();
+      return condition.includes('var('+index+')!=0')||
+        condition.includes('var('+index+')>0')||
+        condition.includes('var('+index+')>=1');
+    });
+    if(controllers.filter(item=>['changestate','selfstate'].includes(item.type)&&hasAIBranch(item)).length<2)continue;
+    const value=Number(direct?direct[1]:controller.values?.value);
+    return {index,value:Number.isFinite(value)&&value>0?value:1};
+  }
+  return null;
+}
+export function nativeCnsAIActivationVariable(program) {
+  return nativeAIBootstrap(program)?.index??null;
+}
+export function nativeCnsAIActivationValue(program,index) {
+  const bootstrap=nativeAIBootstrap(program);
+  return bootstrap?.index===index?bootstrap.value:1;
+}
 export function legacyAIActivationVariable(program) {
   const state = program?.states?.get(-1);
-  if (!state?.controllers?.length) return null;
+  if (!state?.controllers?.length) return nativeCnsAIActivationVariable(program);
   const text = state.controllers.flatMap(controller => (controller.entries || [])
     .filter(entry => /^trigger(?:all|[1-9]\d*)$/.test(entry.key))
     .map(entry => entry.value)).join('\n');
@@ -62,7 +100,7 @@ export function legacyAIActivationVariable(program) {
     .map(match => +match[1]);
   const human = new Set([...text.matchAll(/\bvar\s*\(\s*(\d{1,2})\s*\)\s*<=\s*0\b/gi)]
     .map(match => +match[1]));
-  return cpu.find(index => index < 60 && human.has(index)) ?? null;
+  return cpu.find(index => index < 60 && human.has(index)) ?? nativeCnsAIActivationVariable(program);
 }
 
 /** An authored ZSS AILevel branch or a legacy Winane variable enables the
@@ -78,8 +116,8 @@ export function authoredAIProgram(program) {
 
 /** Generic CPU input planning. Character-authored AI still runs in CNS using AILevel. */
 export class CpuController{
-  constructor(parsed,{level=4,seed=0x6d2b79f5,authoredAI=false}={}){
-    this.level=normalizeAILevel(level);this.authoredAI=!!authoredAI;this.seed=(seed>>>0)||1;this.buffer=new CommandBuffer(parsed);
+  constructor(parsed,{level=4,seed=0x6d2b79f5,authoredAI=false,nativeAI=false}={}){
+    this.level=normalizeAILevel(level);this.authoredAI=!!authoredAI;this.nativeAI=!!nativeAI;this.seed=(seed>>>0)||1;this.buffer=new CommandBuffer(parsed);
     this.inverse=new Map();for(const physical of buttons){const logical=parsed.remap?.[physical]??physical;if(logical&&!this.inverse.has(logical))this.inverse.set(logical,physical);}
     const reachable=parsed.commands.filter(command=>command.sequence.every(symbol=>symbol.kind!=='button'||symbol.keys.every(key=>this.inverse.has(key))));
     this.attacks=reachable.filter(command=>!command.holdOnly&&command.sequence.some(symbol=>symbol.kind==='button'&&symbol.keys.some(key=>key!=='s'))).slice(0,512);
@@ -149,6 +187,26 @@ export class CpuController{
     }else this.queue([],2);
   }
   tick(fighter,opponent,{paused=false,enabled=true}={}){
+    // Let the native StateDef -3 script own attacks and combo transitions.
+    // Supplement only safe, neutral-state physical Up inputs, at a bounded
+    // cadence, to restore jump frequency without forcing a character state.
+    if(this.nativeAI){
+      if(!this.level||!enabled||!fighter.alive||!opponent?.alive){
+        this.plan=[];this.index=0;this.remaining=0;this.raw=new Set();
+      }else if(!paused){
+        if(this.jumpWait>0)this.jumpWait--;
+        if(this.index>=this.plan.length && this.jumpWait<=0 &&
+            fighter.moveType==='I' && [0,20,100].includes(fighter.stateNo) &&
+            this.canJump(fighter))this.chooseJump(fighter,opponent);
+        const segment=this.plan[this.index];
+        if(segment){
+          if(this.remaining<=0)this.remaining=segment.duration;
+          this.raw=this.physical(segment.keys,fighter.facing);
+          if(--this.remaining<=0)this.index++;
+        }else this.raw=new Set();
+      }
+      return this.buffer.update(this.raw,fighter.facing);
+    }
     if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;}
     else if(!paused){
       if(this.jumpWait>0)this.jumpWait--;
