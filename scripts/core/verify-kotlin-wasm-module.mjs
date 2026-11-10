@@ -32,7 +32,7 @@ console.log("Kotlin/Wasm import module: " + filename);
 console.log("Kotlin/Wasm export keys: " + Object.keys(api).filter(k => k.startsWith("ktCore")).join(", "));
 
 const air = "[Begin Action 0]\nClsn2:1\nClsn2[0]=-10,-70,10,0\n0,0,0,0,-1";
-const cns = "[Statedef 0]\ntype=S\nanim=0\nctrl=1";
+const cns = "[Statedef 0]\ntype=S\nanim=0\nctrl=1\n[Statedef 200]\ntype=A\nanim=0\nctrl=0";
 const handle = api.ktCoreCreateWithCommands
   ? api.ktCoreCreateWithCommands("KFM","Dark Donald",air,air,cns,cns,"","")
   : api.ktCoreCreate("KFM","Dark Donald",air,air,cns,cns);
@@ -41,6 +41,13 @@ try {
   if (typeof api.ktCoreSetup === "function") api.ktCoreSetup(handle,-70*256,0,70*256,0);
   const before = JSON.parse(api.ktCoreSnapshot(handle,0));
   assert.equal(before.life,1000);
+  if (typeof api.ktCoreDebugForceState === "function") {
+    api.ktCoreDebugForceState(handle, 0, 200);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle,0)).state,200);
+    api.ktCoreDebugForceState(handle, 0, 0);
+    if (typeof api.ktCoreDebugSetFacing === "function")
+      api.ktCoreDebugSetFacing(handle,0,true);
+  }
   const checksum = api.ktCoreStep(handle,0,"",0,"");
   assert.ok(checksum.startsWith("1:"));
   assert.equal(JSON.parse(api.ktCoreSnapshot(handle,1)).frame,1);
