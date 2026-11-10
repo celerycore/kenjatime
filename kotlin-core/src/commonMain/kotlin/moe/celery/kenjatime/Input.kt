@@ -31,16 +31,21 @@ data class MugenCommand(val name: String, val steps: List<CommandStep>, val time
 
 object MugenCommandParser {
     private val buttons = "abcxyzs"
-    fun parseFile(source: String): List<MugenCommand> =
-        MugenDefParser.parse(source).sectionsNamed("Command").mapNotNull { section ->
+    fun parseFile(source: String): List<MugenCommand> {
+        val script = MugenDefParser.parse(source)
+        val defaults = script.section("Defaults")
+        val defaultTime = defaults?.int("command.time",15)?.coerceIn(1,360) ?: 15
+        val defaultBuffer = defaults?.int("command.buffer.time",1)?.coerceIn(1,30) ?: 1
+        return script.sectionsNamed("Command").take(4096).mapNotNull { section ->
             val name = section.get("name") ?: return@mapNotNull null
             val command = section.get("command") ?: return@mapNotNull null
             val steps = parseCommandString(command)
             if (steps.isEmpty() || steps.size > 64) return@mapNotNull null
             MugenCommand(name, steps,
-                section.int("time", 15).coerceIn(1, 360),
-                section.int("buffer.time", 1).coerceIn(1, 30))
+                section.int("time", defaultTime).coerceIn(1, 360),
+                section.int("buffer.time", defaultBuffer).coerceIn(1, 30))
         }
+    }
     fun parseCommandString(command: String): List<CommandStep> = command.split(',').mapNotNull { token ->
         val raw = token.trim()
         if (raw.isEmpty()) return@mapNotNull null
@@ -69,7 +74,7 @@ object MugenCommandParser {
 }
 
 /** Newest frame at index zero; this buffer belongs to exactly one fighter. */
-class InputBuffer(private val capacity: Int = 60) {
+class InputBuffer(private val capacity: Int = 360) {
     private val history = ArrayList<InputFrame>()
     init { require(capacity in 1..360) }
     fun clear() = history.clear()
@@ -109,18 +114,28 @@ class InputBuffer(private val capacity: Int = 60) {
         val older = history.getOrNull(index + 1) ?: InputFrame()
         val expected = Directions.facing(step.direction, facingRight)
         val directionMatches = expected == 0 || if (step.fourWay) {
-            // $D matches D, DF, DB; normal D requires D and excludes U.
             current.directions and expected == expected
-        } else current.directions and expected == expected &&
-            (expected and Directions.D == 0 || current.directions and Directions.U == 0) &&
-            (expected and Directions.U == 0 || current.directions and Directions.D == 0)
+        } else {
+            // Ordinary D/B/F/U require the exact direction, not a diagonal.
+            current.directions == expected
+        }
         if (!directionMatches) return false
         if (step.release) {
-            val before = step.buttons.all { it in older.buttons }
-            val after = step.buttons.any { it !in current.buttons }
-            if (step.buttons.isNotEmpty()) return before && after
-            return expected != 0 && older.directions and expected == expected &&
-                current.directions and expected != expected
+            val heldBefore = if (step.buttons.isNotEmpty())
+                step.buttons.all { it in older.buttons }
+                else expected != 0 && older.directions and expected == expected
+            val releasedNow = if (step.buttons.isNotEmpty())
+                step.buttons.any { it !in current.buttons }
+                else expected != 0 && current.directions and expected != expected
+            if (!heldBefore || !releasedNow) return false
+            // For ~N symbols, an uninterrupted hold lasting N preceding samples is required.
+            for (past in (index+1) until (index+1+step.minHold)) {
+                val sample = history.getOrNull(past) ?: return false
+                if (step.buttons.isNotEmpty()) {
+                    if (!sample.buttons.containsAll(step.buttons)) return false
+                } else if (sample.directions and expected != expected) return false
+            }
+            return true
         }
         if (!current.buttons.containsAll(step.buttons)) return false
         if (step.held) {
@@ -129,6 +144,13 @@ class InputBuffer(private val capacity: Int = 60) {
             }
         }
         // Button steps must be a press event rather than auto-firing every held tick.
-        return step.buttons.isEmpty() || step.held || step.buttons.any { it !in older.buttons }
+        if (step.held) return true
+        val buttonPressed = step.buttons.any { it !in older.buttons }
+        if (step.direction != 0 && step.buttons.isEmpty()) {
+            val previousDirectionMatches = if (step.fourWay)
+                older.directions and expected == expected else older.directions == expected
+            return !previousDirectionMatches
+        }
+        return step.buttons.isEmpty() || buttonPressed
     }
 }
