@@ -37,7 +37,7 @@ test('Native-style CPU flag survives intro, physical keypresses and round reset 
   let fightTicks=0,observedInput=0;
   for(let i=0;i<420;i++){
    session.tick();
-   if(i%100===0){const m=session.match;console.log('INTRO_TRACE',i,'round',m.roundFlow?.roundState,'phase',m.roundFlow?.phaseTime,'state',m.player.stateNo,m.opponent.stateNo,'flags',m.entities.map(p=>p.asserted.has('intro')));
+   if(i%100===0){const m=session.match;const p=m.player;console.log('INTRO_TRACE',i,'round',m.roundFlow?.roundState,'phase',m.roundFlow?.phaseTime,'state',p.stateNo,m.opponent.stateNo,'flags',m.entities.map(p=>p.asserted.has('intro')),'anim',p.anim,'animationTime',p.animationTime,'animtime',p.resolveTrigger('animtime'),'frames',p.animations.get(p.anim)?.frames?.slice(0,8).map(f=>f.ticks),'ended',p.animationEnded);
      if(i===0)console.log('INTRO_CONTROLLERS',JSON.stringify(m.player.program.states.get(191)?.controllers.filter(c=>['changestate','selfstate','assertspecial'].includes(c.type)).map(c=>({type:c.type,values:c.values}))).slice(0,3000));}
    if(session.match.roundFlow?.roundState!==2)continue;
    fightTicks++;
