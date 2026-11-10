@@ -65,11 +65,16 @@ export function nativeCnsAIActivationVariable(program) {
     if(controller.type!=='varset')continue;
     const index=Number(controller.values?.v);
     if(!Number.isInteger(index)||index<0||index>=60)continue;
-    const triggers=(controller.entries||[]).filter(entry=>/^trigger(?:all|[1-9]\\d*)$/.test(entry.key)).map(entry=>entry.value).join('\n');
-    if(!/\\bcommand\\s*=\\s*["']AI\\d+["']/i.test(triggers))continue;
-    const variable=new RegExp('\\\\bvar\\\\s*\\\\(\\\\s*'+index+'\\\\s*\\\\)\\\\s*(?:!=|>|>=)\\\\s*0','i');
-    const actions=controllers.filter(item=>['changestate','selfstate'].includes(item.type)
-      &&(item.entries||[]).some(entry=>/^trigger(?:all|[1-9]\\d*)$/.test(entry.key)&&variable.test(entry.value)));
+    const triggers=(controller.entries||[]).filter(entry=>/^trigger(?:all|[1-9]\d*)$/.test(entry.key)).map(entry=>entry.value).join('\n');
+    if(!/\bcommand\s*=\s*["']AI\d+["']/i.test(triggers))continue;
+    const hasAIBranch=item=>(item.entries||[]).some(entry=>{
+      if(!/^trigger(?:all|[1-9]\d*)$/.test(entry.key))return false;
+      const condition=String(entry.value).replace(/\s+/g,'').toLowerCase();
+      return condition.includes('var('+index+')!=0')||
+        condition.includes('var('+index+')>0')||
+        condition.includes('var('+index+')>=1');
+    });
+    const actions=controllers.filter(item=>['changestate','selfstate'].includes(item.type)&&hasAIBranch(item));
     if(actions.length>=2)return index;
   }
   return null;
