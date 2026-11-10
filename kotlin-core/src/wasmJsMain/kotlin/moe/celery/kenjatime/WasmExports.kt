@@ -13,11 +13,28 @@ private object Fights {
     name1: String, name2: String, air1: String, air2: String, cns1: String, cns2: String
 ): Int {
     require(Fights.active.size < 8) { "Too many active fights" }
+    return ktCoreCreateWithCommands(name1, name2, air1, air2, cns1, cns2, "", "")
+
+}
+@JsExport fun ktCoreCreateWithCommands(
+    name1: String, name2: String, air1: String, air2: String,
+    cns1: String, cns2: String, cmd1: String, cmd2: String
+): Int {
+    require(Fights.active.size < 8) { "Too many active fights" }
     val a = FighterDefinition(name1, MugenAirParser.parse(air1), MugenCnsParser.parse(cns1))
     val b = FighterDefinition(name2, MugenAirParser.parse(air2), MugenCnsParser.parse(cns2))
     val id = Fights.next++
-    Fights.active[id] = DeterministicFight(FightingCharacter(a, 1), FightingCharacter(b, 2))
+    val left = FightingCharacter(a, 1, MugenCommandParser.parseFile(cmd1))
+    val right = FightingCharacter(b, 2, MugenCommandParser.parseFile(cmd2))
+    left.facingRight = true
+    right.facingRight = false
+    Fights.active[id] = DeterministicFight(left, right)
     return id
+}
+@JsExport fun ktCoreSetup(handle: Int, p1x256: Int, p1y256: Int, p2x256: Int, p2y256: Int) {
+    val fight = Fights.get(handle)
+    fight.p1.posX = p1x256; fight.p1.posY = p1y256
+    fight.p2.posX = p2x256; fight.p2.posY = p2y256
 }
 @JsExport fun ktCoreStep(
     handle: Int, p1Direction: Int, p1Buttons: String,
@@ -35,7 +52,18 @@ private object Fights {
         ",\"x256\":" + p.posX + ",\"y256\":" + p.posY +
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
         ",\"state\":" + p.stateNo + ",\"stateTime\":" + p.timeInState +
-        ",\"hitPause\":" + p.hitPauseLeft + "}"
+        ",\"hitPause\":" + p.hitPauseLeft +
+        ",\"power\":" + p.power +
+        ",\"ctrl\":" + (if (p.control) 1 else 0) +
+        ",\"facing\":" + (if (p.facingRight) 1 else -1) +
+        ",\"stateType\":\"" + p.stateType +
+        "\",\"moveType\":\"" + p.moveType + "\"}"
+}
+@JsExport fun ktCoreContacts(handle: Int): String = Fights.get(handle).contacts.joinToString(
+    prefix = "[", postfix = "]", separator = ","
+) { c ->
+    "{\"attacker\":" + c.attacker + ",\"defender\":" + c.defender +
+        ",\"guarded\":" + c.guarded + ",\"damage\":" + c.damage + "}"
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
