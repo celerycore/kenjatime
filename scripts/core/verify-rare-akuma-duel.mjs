@@ -49,7 +49,8 @@ for(const [index,order]of [[0,[0,1]],[1,[1,0]]]){
   const result={order:index?'2026-v-2007':'2007-v-2026',ticksCompleted:0,
     contacts:0,maxHelpers:0,maxProjectiles:0,maxDraws:0,renderFrames:0,newAssets:0,
     playerSamples:[],resourceDiagnostics:[],runtimeDiagnostics:[],roundStates:[],error:null,
-    cpuUpTicks:[0,0],jumpStarts:[0,0],airborneTicks:[0,0]};
+    cpuUpTicks:[0,0],jumpStarts:[0,0],airborneTicks:[0,0],
+    authoredAIActiveTicks:[0,0],authoredAILegacyFlag:[null,null]};
   const runtimeIssues=new Map(),resourceIssues=new Map(),roundStates=new Set();
   const wasJumping=[false,false];
   const start=performance.now();
@@ -59,6 +60,11 @@ for(const [index,order]of [[0,[0,1]],[1,[1,0]]]){
       result.contacts+=session.match.events.filter(e=>['hit','guard','reversal'].includes(e.type)).length;
       for(const [side,actor] of [session.match.player,session.match.opponent].entries()){
         if(session.match.cpus.get(actor)?.raw.has('U'))result.cpuUpTicks[side]++;
+        if(actor.legacyAIFlag!==undefined){
+          result.authoredAILegacyFlag[side]=actor.legacyAIFlag;
+          if(actor.vars[actor.legacyAIFlag]>=1&&session.match.roundFlow?.roundState===2)
+            result.authoredAIActiveTicks[side]++;
+        }
         const jumping=actor.stateNo===40;
         if(jumping&&!wasJumping[side])result.jumpStarts[side]++;
         wasJumping[side]=jumping;
@@ -99,6 +105,7 @@ report.summary={
   maxHelpers:Math.max(...report.matches.map(m=>m.maxHelpers)),
   maxProjectiles:Math.max(...report.matches.map(m=>m.maxProjectiles)),
   runtimeDiagnosticKinds:[...new Set(report.matches.flatMap(m=>m.runtimeDiagnostics.map(d=>d.type)))],
+  legacyAIActivated:report.matches.every(m=>m.authoredAIActiveTicks.some(n=>n>500)),
   resourceDiagnosticKinds:[...new Set(report.matches.flatMap(m=>m.resourceDiagnostics.map(d=>d.type)))],
   errors:report.matches.filter(m=>m.error).map(m=>({order:m.order,error:m.error})),
 };
@@ -110,7 +117,9 @@ console.log(JSON.stringify({output,versions:report.inputArchives.map(a=>a.versio
     order:m.order,contacts:m.contacts,maxHelpers:m.maxHelpers,
     maxProjectiles:m.maxProjectiles,maxDraws:m.maxDraws,newAssets:m.newAssets,
     renderFrames:m.renderFrames,cpuUpTicks:m.cpuUpTicks,jumpStarts:m.jumpStarts,
-    airborneTicks:m.airborneTicks,wallTimeMs:m.wallTimeMs}))}));
+    airborneTicks:m.airborneTicks,authoredAIActiveTicks:m.authoredAIActiveTicks,
+    authoredAILegacyFlag:m.authoredAILegacyFlag,wallTimeMs:m.wallTimeMs}))}));
 if(process.env.RARE_DUEL_STRICT==='1'&&
   (!report.summary.bothOrdersCompleted||report.summary.runtimeDiagnosticKinds.length||
-   process.env.RARE_DUEL_REQUIRE_JUMPS==='1'&&!report.summary.bothVersionsJumped))process.exitCode=1;
+   process.env.RARE_DUEL_REQUIRE_JUMPS==='1'&&!report.summary.bothVersionsJumped ||
+   process.env.RARE_DUEL_REQUIRE_AUTHORED_AI==='1'&&!report.summary.legacyAIActivated))process.exitCode=1;
