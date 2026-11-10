@@ -1,89 +1,110 @@
-# Kenjatime Kotlin/Wasm combat migration: Phase II
+# Kenjatime Kotlin/Wasm combat migration — Phase III (review-only)
 
-This report is tied to draft PR #12. It describes **ported foundations**, not a
-playable replacement for the JavaScript Core 0.5.8. Production remains unchanged.
+PR: https://github.com/celerycore/kenjatime/pull/12
 
-## Ported from the current independent JS combat rules
+**Production engine is unchanged.** This is an experimental deterministic
+combat runtime, not a completed MUGEN / Ikemen GO clone. The browser app must
+continue using its JavaScript CoreSession until the release gates below pass.
 
-- Per-fighter mutable state with shared read-only parsed data and deterministic
-  60 Hz fixed-point movement (1/256 pixel units).
-- Ordered StateDef and State controllers, simple trigger groups, `var`/`fvar`
-  comparisons, `power`, `p2dist`, command triggers and key state controllers.
-- Physically held back input for standing/crouching/air guard eligibility.
-  Guard damage, contact events, hitpause and the first recovery fallback.
-- Frozen geometry before contact resolution; two attacks can trade, or a
-  higher-priority strike can win. Target contact is retained per attack state.
-- Helper requests: bounded by default to 56 live helpers, immutable shared
-  definitions, independent variable and input buffers, simple bind duration.
-- Projectile requests: bounded to 256, linear velocity, authored AIR attack
-  boxes, one-target contact and timeout cleanup.
-- AIR `LoopStart`, non-looping final-frame retention, PCX/SFF v1 decoding,
-  palette, SND v1 archive and visual-only camera primitives.
-- Browser bridge remains **opt-in**. No production worker/runtime switch.
+## Implemented and exercised
 
-These are minimal or subset implementations. Their presence does not imply
-parity with all controller parameters or MUGEN edge cases.
+- Kotlin Multiplatform Gradle project: JVM conformance tests, real Node-hosted
+  Kotlin/Wasm tests, browser Wasm compilation and actual ESM/Wasm ABI calls.
+- Independent fighter state, 60 Hz simulation, 1/256-pixel position math,
+  deterministic seeded random variables, bounded resource counts.
+- MUGEN .DEF, .AIR (including LoopStart), .CMD and partial .CNS/.ST import.
+  Critically, CMD [StateDef -1] move-selection controllers now load alongside
+  CNS/ST state programs, not just the physical motion-command definitions.
+- Authored fighter [Data], [Size] and [Movement] constants (life, body widths,
+  sprite scales, basic gravity). Multiple fighter definitions stay isolated.
+- Cached and bounded CNS expressions (variable references, math, Boolean
+  operators, commands, state comparisons and inclusive [a,b] ranges).
+  Unknown expressions produce diagnostics and evaluate false.
+- CMD default timings, directional input edges, same-frame F+a, released
+  charge requirements, buffer windows and double-tap recognition (partial CMD).
+- Simple StateDef controllers, per-state persistent scheduling and
+  ignorehitpause. Guard/block, contact priorities, trades, hitpause,
+  authored hit definitions, life/power, some utility controllers and events.
+- Alternate var()/fvar()/sysvar()/sysfvar() assignments, simple parent
+  variables and integer/float variable isolation.
+- Bounded helper/projectile foundations and clean destruction. Helpers share
+  immutable definitions but not mutable actor data.
+- Optional stage bounds, player push, gravity, landing, and visual-only
+  camera tracking; optional first-round INTRO/ROUND/FIGHT/KO/OUTRO state machine.
+- Presentation event queue for PlaySnd/StopSnd. **Actual audio playback is
+  still a browser adapter responsibility.**
+- Opt-in JS adapter: setup, stage, round flow, snapshots, contact/events,
+  resource counts, checksum debug, and fast advance without string allocation
+  on every simulation tick. No switch to the live Three.js renderer/worker.
 
-## Character validation matrix
+## Real KFM evidence — not native parity
 
-| Target | Evidence currently runnable | What is still missing |
+The CI repository contains the original bundled \`public/kfm.zip\`.
+Its DEF/CMD/CNS/ST/AIR sources are parsed, including CMD -1 controllers.
+A 600-tick two-fighter simulation on compiled Kotlin/Wasm directly exercises
+KFM's authored inputs and a forced state 200 move. This runs the character's
+scripts; it does **not** reproduce the original native 147-scenario suite.
+
+A successful historical run, [42913647525](https://github.com/celerycore/kenjatime/actions/runs/42913647525), recorded:
+
+- 600 ticks; 152 non-idle player frames, three contact events.
+- Zero unsupported-runtime diagnostics on that tested input path.
+- Two separately constructed Wasm fights replayed to an identical checksum.
+- 0.4733 ms/simulation tick in a hosted GitHub runner **for that particular
+  input trace**, not a mobile FPS benchmark, and not render/audio cost.
+
+Later commits add a per-tick command-activation cache and a zero-string-allocation
+advance API. Use a fresh CI artifact/benchmark to evaluate their final
+performance. No universal native timing or command reachability is claimed.
+
+## Character compatibility gates
+
+| Character | Verified on this migration | Not yet proven |
 | --- | --- | --- |
-| KFM | JVM uses the real repo `public/kfm.zip`; commands, AIR, CNS/ST and DEF are parsed and a deterministic 360-tick replay is repeated | Kotlin must be compared **tick for tick** with 147 native KFM scenarios, including actual attack/guard/recovery outputs |
-| Dark Donald | Synthetic command-buffer, guard, hitpause, state transition and new entity contracts; opt-in test accepts extracted original directory | The uploaded original RAR isn't tracked in the repo. No original Kotlin match or real intro/camera/combo parity has been run |
-| Rare Akuma | The repo retains an inventory of 60 original controller types, 137 states, 45 helper-spawn controllers and three projectile controllers (2007 source). Kotlin coverage audit computes the subset and reports missing controllers; synthetic helper/projectile contracts run | Original full ZIP/RAR isn't tracked in the repo. Most controller types, full 2007/2026 ZSS support, helpers, native AI and visual effect parity are not certified |
+| KFM | Real repo ZIP parses and executes authored states inside compiled Kotlin/Wasm; deterministic replay | All 147 native gameplay scenarios, every animation/hitbox and recovery, full common-state exactness |
+| Dark Donald | Isolated command, priority, hitpause, camera and round-sequence tests; optionally parse extracted original scripts | Original uploaded RAR is not in this Git checkout; real intro/air combo/AI/camera full battle not run under Kotlin |
+| Rare Akuma | 60-type authored controller inventory compared with Kotlin implemented subset; synthetic helper/projectile and variable contracts | Original archives absent from this checkout; 2007/2026 ZSS/complex helpers/projectiles/full effects and AI cannot be certified |
 
-The existing JavaScript engine has a separate native-capture comparison job.
-The strict JavaScript reference baseline was measured again in CI run
-`42888689492`: **1/147 KFM native scenarios matched**, and the 16-interaction
-comparison returned a nonzero exit status with guard-position differences.
-These existing JavaScript differences do **not** prove Kotlin is better or
-worse. Both native-capture comparisons are intentionally marked as
-nonblocking *diagnostics* in the draft workflow, and their failures remain in
-the job logs. The JS Rare Akuma inventory/synthetic tests passed, but no
-original Rare Akuma archive was run by Kotlin.
+**Important reference discrepancy:** Existing JavaScript Core's strict native
+comparison currently matches **1 of 147** KFM captured scenarios, and the
+16-interaction suite reports guard/position differences. CI runs these audits
+as visible *nonblocking diagnostics*. Passing a JavaScript test or running
+an authored Kotlin move does not certify Kotlin/native MUGEN parity.
 
-Kotlin native capture parity is still **not measured**. No native baseline
-has been silently replaced or regenerated to make a test pass.
+## Remaining release-blocking work
 
-## Reproduce tests
+1. Full CNS/ST/ZSS expression and controller semantics (hit overrides,
+   juggling, throws, target state/binds, actual KFM hit and KO common states,
+   recovery, full pause/superpause and entity lifetime rules).
+2. Exact command motion semantics (all modifiers, persistent buffers, remaps
+   and physical facing-crossing edge cases), gameplay-side AI.
+3. SFF v2 sprite decode, full AIR extension semantics, original effect
+   packs, renderer/audio adapter and browser match worker integration.
+4. Native-capture *tick-for-tick* comparisons on KFM 147 cases, Dark Donald,
+   both Rare Akuma versions, intros/KO/outros, helpers and projectiles.
+5. Physical Android GPU/CPU/memory and input-latency measurements at or
+   better than the current deployed JavaScript engine.
 
-```sh
+## Reproduce the independent tests
+
+\`\`\`sh
 ./android/gradlew -p kotlin-core jvmTest
 ./android/gradlew -p kotlin-core wasmJsNodeTest
 ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack
 node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js
 node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
-```
+node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs
+\`\`\`
 
-The last command uses the raw generated Kotlin ESM module; it does not
-benchmark the rendering or sound pipeline.
+For local extracted original source-only checks:
 
-For source-only smoke runs on locally extracted original character packages:
-
-```sh
-KENJATIME_DARK_DONALD_DIR=/path/to/unpacked-dark-donald \
-KENJATIME_RARE_AKUMA_DIR=/path/to/unpacked-rare-akuma \
+\`\`\`sh
+KENJATIME_DARK_DONALD_DIR=/path/to/extracted/dark-donald \\
+KENJATIME_RARE_AKUMA_DIR=/path/to/extracted/rare-akuma \\
   ./android/gradlew -p kotlin-core jvmTest
-```
+\`\`\`
 
-A source-only parse smoke is **not** a full original-character fight. Original
-character assets remain external to this repository.
-
-## Strict gates before turning on Kotlin matches
-
-1. Original KFM, Dark Donald and Rare Akuma archive imports, no missing required
-   states/assets, and explicit unsupported-controller diagnostics.
-2. Authoritative per-frame comparison of input, state, animation clocks,
-   helper/projectile IDs, life, power, guard, hitpause, camera target and
-   collision/contact events against native captures and the existing JS engine.
-3. Stateful character support: ZSS/expressions, hit overrides, actual hit
-   fall/recovery/KO, throw/target bindings, helper hierarchies, repeating
-   projectiles and pause/superpause semantics.
-4. Intro / ROUND 1 / FIGHT / KO / OUTRO state sequencing, camera jump panning,
-   mobile controls and renderer/audio integration with the same offscreen
-   fallback as the existing JavaScript worker.
-5. Physical Android FPS, memory consumption, load/cancel cycles and cold-start
-   timing at least as good as the retained JavaScript baseline.
-
-No silent fallback or automatic production enablement is permitted before these
-checks pass. This branch is deliberately review-only.
+These source-only checks are **not** full character execution parity. Do not
+merge to production or enable a default Kotlin battle until the strict gates
+are actually passed. Every unsupported controller and resource gap must
+remain visible.

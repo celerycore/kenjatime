@@ -42,7 +42,8 @@
     "Full hitguard/guardstun, juggling, KO, rebounds and throws",
     "Pause/superpause, effects, sound/video, AI decisions",
     "Original character timing parity and performance on physical mobile hardware",
-    "Playback of queued PlaySnd/StopSnd events remains browser-adapter responsibility"
+    "Playback of queued PlaySnd/StopSnd events remains browser-adapter responsibility",
+    "KFM native 147-case parity and 16-interaction reference still failing in existing JS baseline"
   ],
   "characterEvidence": {
     "kfm": {
@@ -50,7 +51,8 @@
       "fixture": "test/fixtures/core/verified-movesets.json",
       "nativeScenariosInJsBaseline": 147,
       "kotlinNativeParity": false,
-      "structuralSmoke": "CharacterArchiveSmokeTest"
+      "structuralSmoke": "CharacterArchiveSmokeTest",
+      "realWasmSmoke": true
     },
     "darkDonald": {
       "archiveInRepository": false,
@@ -61,7 +63,8 @@
         "camera tracking",
         "air combo windows",
         "AI jumps"
-      ]
+      ],
+      "originalKotlinFightValidated": false
     },
     "rareAkuma": {
       "sourceInventory": "test/fixtures/core/rare-akuma-inventory.json",
@@ -74,7 +77,18 @@
         "ZSS",
         "AI activation",
         "render memory"
-      ]
+      ],
+      "originalKotlinFightValidated": false
     }
+  },
+  "phase": 3,
+  "kfmWasmEvidence": {
+    "runId": 42913647525,
+    "ticks": 600,
+    "nonIdleTicks": 152,
+    "contacts": 3,
+    "unsupportedDiagnostics": 0,
+    "deterministicReplay": true,
+    "note": "Historical CI trace, not native capture parity or Android FPS."
   }
 }
