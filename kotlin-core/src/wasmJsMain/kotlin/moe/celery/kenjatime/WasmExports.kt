@@ -36,6 +36,18 @@ private object Fights {
     fight.p1.posX = p1x256; fight.p1.posY = p1y256
     fight.p2.posX = p2x256; fight.p2.posY = p2y256
 }
+@JsExport fun ktCoreConfigureArena(
+    handle: Int, leftPixels: Int, rightPixels: Int, groundPixels: Int,
+    pushPlayers: Boolean, autoFaceIdle: Boolean
+) {
+    Fights.get(handle).configureArena(leftPixels,rightPixels,groundPixels,pushPlayers,autoFaceIdle)
+}
+@JsExport fun ktCoreCamera(handle: Int): String {
+    val camera = Fights.get(handle).camera
+    return if (camera == null) "{\"enabled\":false}" else
+        "{\"enabled\":true,\"x\":" + camera.x + ",\"y\":" + camera.y +
+        ",\"zoom\":" + camera.zoom + "}"
+}
 @JsExport fun ktCoreStep(
     handle: Int, p1Direction: Int, p1Buttons: String,
     p2Direction: Int, p2Buttons: String
