@@ -106,7 +106,7 @@ class CoreEntities(private val match: DeterministicFight) {
             }
             helper.actor.tick(errors)
             newRequests.addAll(helper.actor.flushEntityRequests())
-            val enemy = if (helper.owner === match.p1) match.p2 else match.p1
+            val enemy = helper.actor.opponent ?: match.p2
             val hit = helper.actor.activeHitDef
             if (hit != null && helper.actor.hitPauseLeft == 0 && enemy.canReceive(hit) &&
                 helper.actor.canHit(enemy.id) &&
@@ -122,7 +122,7 @@ class CoreEntities(private val match: DeterministicFight) {
         for (projectile in projectiles) {
             projectile.step()
             if (!projectile.alive) continue
-            val enemy = if (projectile.owner === match.p1) match.p2 else match.p1
+            val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue
             if (projectile.hitBoxes().any { box -> enemy.hurtBoxes().any { box.intersects(it) } }) {
                 val guarded = enemy.blocks(projectile.hit)
