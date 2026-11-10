@@ -410,6 +410,19 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
     val entities = CoreEntities(this)
+    var arena: ArenaRules? = null
+        private set
+    var camera: MugenCamera? = null
+        private set
+    fun configureArena(leftPixels:Int,rightPixels:Int,groundPixels:Int=0,push:Boolean=true,
+                       autoFace:Boolean=false) {
+        require(leftPixels in -100_000..100_000 && rightPixels in -100_000..100_000)
+        arena = ArenaRules(leftPixels*Fixed.ONE,rightPixels*Fixed.ONE,
+            groundPixels*Fixed.ONE,pushPlayers=push,autoFaceIdle=autoFace)
+        camera = MugenCamera(CameraConfig(
+            left=leftPixels.toDouble(),right=rightPixels.toDouble(),
+            top=(groundPixels-600).toDouble(),bottom=groundPixels.toDouble()))
+    }
     var frame: Long = 0
         private set
     init {
@@ -427,6 +440,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         val p2Frozen = p2.hitPauseLeft > 0
         p1.tick(issues)
         p2.tick(issues)
+        arena?.step(p1,p2,p1Frozen,p2Frozen)
+        camera?.update(p1,p2)
         // Contact candidates collected before mutating either fighter: genuine trades.
         var ab = !p1Frozen && p1.canHit(p2.id) && p2.canReceive(p1.activeHitDef!!) && connects(p1, p2)
         var ba = !p2Frozen && p2.canHit(p1.id) && p1.canReceive(p2.activeHitDef!!) && connects(p2, p1)
