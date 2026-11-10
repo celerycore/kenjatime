@@ -1,0 +1,23 @@
+name: Dark Donald core regression QA
+on:
+  push:
+    branches:
+      - fix/dark-donald-camera-native-ai-intro-20261110
+  pull_request:
+    branches:
+      - qa/rare-akuma-native-ai-jump-parity-20261110
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run test:core
+      - run: npm run test:core:compiled
+      - run: npm run build:core
