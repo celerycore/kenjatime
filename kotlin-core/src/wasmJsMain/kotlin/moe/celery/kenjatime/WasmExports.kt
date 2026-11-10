@@ -152,6 +152,12 @@ private object Fights {
     Fights.assets.release(lease.second)
 }
 @JsExport fun ktCoreAssetRegistrySize(): Int = Fights.assets.size
+@JsExport fun ktCoreExportMacro(handle: Int, side: Int, name: String): String {
+    require(side == 0 || side == 1)
+    val fight = Fights.get(handle)
+    val player = if (side == 0) fight.p1 else fight.p2
+    return player.packedInput.exportCmd(name)
+}
 @JsExport fun ktCoreReadDef(source: String, section: String, key: String): String? =
     MugenDefParser.parse(source).section(section)?.get(key)
 

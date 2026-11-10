@@ -6,6 +6,16 @@ package moe.celery.kenjatime
  * parity for all modifiers and facing changes is being tested.
  */
 class PackedInputHistory(private val capacity: Int = 60) {
+    companion object {
+        fun buttonMask(buttons: Set<Char>): Int {
+            var mask = 0
+            for (button in buttons) {
+                val index = "abcxyzs".indexOf(button.lowercaseChar())
+                if (index >= 0) mask = mask or (1 shl index)
+            }
+            return mask
+        }
+    }
     init { require(capacity in 1..360) }
     private val samples = IntArray(capacity)
     private var next = 0

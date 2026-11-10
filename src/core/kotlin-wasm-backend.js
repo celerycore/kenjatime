@@ -115,6 +115,17 @@ export async function loadKotlinCore(moduleUrl) {
           assertOpen();
           return api.ktCoreIssues(handle).split("\n").filter(Boolean);
         },
+        exportMacro(side = 0, name = "kenjatime_macro") {
+          assertOpen();
+          if (typeof api.ktCoreExportMacro !== "function")
+            throw new Error("This Kotlin/Wasm build does not support input macros");
+          return api.ktCoreExportMacro(handle, side, name);
+        },
+        sharedAssetCount() {
+          assertOpen();
+          return typeof api.ktCoreAssetRegistrySize === "function"
+            ? api.ktCoreAssetRegistrySize() : null;
+        },
         setup,
         configureArena,
         enableRoundFlow,

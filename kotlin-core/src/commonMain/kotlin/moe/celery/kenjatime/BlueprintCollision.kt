@@ -44,6 +44,19 @@ class FlatBoxBuffer(initialBoxes: Int = 16, private val limit: Int = 4096) {
                 actor.posY + r.y2 * sy)
         }
     }
+    fun loadProjectile(projectile: CoreProjectile) {
+        clear()
+        val boxes = projectile.action.frame?.boxes ?: return
+        val face = if (projectile.owner.facingRight) 1 else -1
+        for (box in boxes) {
+            if (!box.attack) continue
+            val r = box.rect
+            add(1, projectile.x + r.x1 * Fixed.ONE * face,
+                projectile.y + r.y1 * Fixed.ONE,
+                projectile.x + r.x2 * Fixed.ONE * face,
+                projectile.y + r.y2 * Fixed.ONE)
+        }
+    }
     fun intersects(other: FlatBoxBuffer): Boolean {
         for (a in 0 until count) {
             val ai = a * 5
@@ -66,6 +79,11 @@ class FlatCollisionScratch {
     private val hurts = FlatBoxBuffer()
     fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean {
         attacks.load(attacker, true)
+        hurts.load(defender, false)
+        return attacks.intersects(hurts)
+    }
+    fun projectileConnects(projectile: CoreProjectile, defender: FightingCharacter): Boolean {
+        attacks.loadProjectile(projectile)
         hurts.load(defender, false)
         return attacks.intersects(hurts)
     }

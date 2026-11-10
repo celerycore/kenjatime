@@ -161,6 +161,7 @@ class FightingCharacter(
     val commands: List<MugenCommand> = emptyList()
 ) {
     val input = InputBuffer()
+    val packedInput = PackedInputHistory(60)
     private val commandCache = mutableMapOf<String,Boolean>()
     fun commandActive(name: String): Boolean {
         val normalized = name.lowercase()
@@ -552,8 +553,12 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         p2.roundState = sequence?.roundState() ?: 2
         if (sequence?.finished == true) { frame++; return }
         val allowCombat = sequence == null || sequence.active
-        p1.input.update(if (allowCombat) a else InputFrame())
-        p2.input.update(if (allowCombat) b else InputFrame())
+        val activeA = if (allowCombat) a else InputFrame()
+        val activeB = if (allowCombat) b else InputFrame()
+        p1.input.update(activeA)
+        p2.input.update(activeB)
+        p1.packedInput.record(activeA.directions and 15, PackedInputHistory.buttonMask(activeA.buttons))
+        p2.packedInput.record(activeB.directions and 15, PackedInputHistory.buttonMask(activeB.buttons))
         val p1Frozen = p1.hitPauseLeft > 0
         val p2Frozen = p2.hitPauseLeft > 0
         p1.tick(issues)
