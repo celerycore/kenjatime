@@ -24,9 +24,9 @@ class BlueprintPrimitivesTest {
     }
     @Test fun flattenedCollisionHonorsFacingAndAllocatesOnlyOnGrowth() {
         val attacking = AirAction(200, listOf(AirFrame(0,0,0,0,-1,boxes=listOf(
-            AirBox(true, MugenRect(0,-40,40,-20)))))
+            AirBox(true, MugenRect(0,-40,40,-20))))))
         val hurting = AirAction(0, listOf(AirFrame(0,0,0,0,-1,boxes=listOf(
-            AirBox(false, MugenRect(-10,-50,10,0)))))
+            AirBox(false, MugenRect(-10,-50,10,0))))))
         val p1 = FightingCharacter(FighterDefinition("p1", mapOf(200 to attacking)),1)
         val p2 = FightingCharacter(FighterDefinition("p2", mapOf(0 to hurting)),2)
         p1.changeAnimation(200)
