@@ -20,6 +20,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Verify deterministic Kotlin/JVM tests
         run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
+      - name: Execute shared deterministic tests in Kotlin/Wasm Node
+        run: ./android/gradlew -p kotlin-core wasmJsNodeTest --stacktrace
       - name: Build browser Kotlin/Wasm artifact
         run: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack --stacktrace
       - name: Package raw Kotlin/Wasm ESM exports and Wasm companion
