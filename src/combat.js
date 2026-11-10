@@ -397,7 +397,15 @@ export class TrainingMatch {
     if(this.roundFlow){
       const flow=this.roundFlow,players=[this.player,this.opponent];
       const intro=asserted('intro');
-      const introPending=intro||players.some(p=>p.stateNo===5900||(p.stateNo>=190&&p.stateNo<=199));
+      const inIntro=p=>p.stateNo===5900||(p.stateNo>=190&&p.stateNo<=199)||p.asserted.has('intro');
+      // Old common1.cns intros can deliberately hold/restart their animation
+      // while RoundState=0, then play it when the round announcer starts.
+      // Wait while any intro makes progress; release only when every active
+      // intro is parked on the same first animation tick for one second.
+      const waitingForAnnouncer=flow.roundState===0&&flow.phaseTime>=60
+        &&players.every(p=>!inIntro(p)||
+          (p.stateNo>=190&&p.stateNo<=199&&p.animationTime===0));
+      const introPending=players.some(inIntro)&&!waitingForAnnouncer;
       const winningActor=flow.roundWinner==='player'?this.player:flow.roundWinner==='opponent'?this.opponent:null;
       const victoryPending=!!winningActor&&winningActor.stateNo>=180&&winningActor.stateNo<=189
         &&!winningActor.animationEnded;
