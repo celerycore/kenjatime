@@ -1,0 +1,40 @@
+/* Compatibility browser preview guidance; no character assets are served by the site. */
+#core-qa-guide {
+  margin: 16px 0 18px;
+  padding: 16px 18px;
+  border: 1px solid rgba(123, 169, 242, .32);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(64, 100, 167, .16), rgba(20, 28, 44, .62));
+  color: #e7efff;
+  font-size: 13px;
+  line-height: 1.55;
+}
+#core-qa-guide .qa-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+#core-qa-guide h2 { margin: 0; font-size: 17px; line-height: 1.4; color: #f4f7ff; }
+#core-qa-guide .qa-state {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(107, 149, 231, .18);
+  border: 1px solid rgba(123, 169, 242, .35);
+  font-size: 11px;
+  letter-spacing: .02em;
+  font-weight: 700;
+}
+#core-qa-guide p { margin: 5px 0; color: #c6d4e9; }
+#core-qa-guide details { margin: 10px 0 0; }
+#core-qa-guide summary { cursor: pointer; font-weight: 700; color: #f4f7ff; }
+#core-qa-guide ol { padding-left: 22px; margin: 10px 0; }
+#core-qa-guide li { margin: 5px 0; }
+#core-qa-guide a { color: #a6d2ff; text-decoration: underline; text-underline-offset: 3px; }
+#core-qa-guide .qa-note { color: #aebcd4; font-size: 12px; }
+@media (max-width: 700px) {
+  #core-qa-guide { margin: 12px 0; padding: 14px; }
+  #core-qa-guide h2 { font-size: 16px; }
+}

@@ -55,6 +55,9 @@ export class CpuController{
     this.normal=this.attacks.filter(command=>command.sequence.length===1&&!command.sequence[0].release);
     this.special=this.attacks.filter(command=>!this.normal.includes(command));
     this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.lastCommand=null;
+    // A separate, deterministic cadence permits ordinary jumps between
+    // attacks without replacing character-authored CPU or movement scripts.
+    this.jumpWait=170+(this.seed%115);
   }
   random(){let value=this.seed;value^=value<<13;value^=value>>>17;value^=value<<5;this.seed=value>>>0;return this.seed/4294967296;}
   physical(relative,facing){return new Set([...relative].map(key=>key==='F'?(facing<0?'L':'R'):key==='B'?(facing<0?'R':'L'):this.inverse.get(key)||key));}
@@ -84,6 +87,18 @@ export class CpuController{
     if(!fighter.ctrl||fighter.moveType==='H')return;
     const distance=Math.abs(opponent.pos.x-fighter.pos.x),scale=fighter.coordinateScale||1;
     const range=fighter.constant('size.ground.front')*scale+opponent.constant('size.ground.front')*(opponent.coordinateScale||1)+20*scale;
+    // Request jumps through physical Up input, never by forcing state 40.
+    // The original CMD/CNS/ZSS and AssertSpecial nojump still decide legality.
+    const canJump=fighter.stateType==='S'&&fighter.pos.y>=-0.01&&
+      fighter.program?.states.has(40)&&!fighter.asserted?.has('nojump');
+    if(canJump&&this.jumpWait<=0){
+      const advance=distance>range || this.random()<.55;
+      const retreat=!advance&&this.random()<.3;
+      this.queue(advance?['U','F']:retreat?['U','B']:['U'],3+Math.floor(this.random()*4));
+      this.lastCommand=advance?'jump-forward':retreat?'jump-back':'jump-neutral';
+      this.jumpWait=Math.max(260,500-this.level*20)+Math.floor(this.random()*85);
+      return;
+    }
     if(distance>range){this.queue(['F'],4+Math.floor(this.random()*9));return;}
     if(opponent.moveType==='A'&&this.random()<.12+.07*this.level){this.queue(this.random()<.3?['D','B']:['B'],4+this.level);return;}
     if(this.attacks.length){
@@ -95,6 +110,7 @@ export class CpuController{
   tick(fighter,opponent,{paused=false,enabled=true}={}){
     if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;}
     else if(!paused){
+      if(this.jumpWait>0)this.jumpWait--;
       const recovering=fighter.moveType==='H'&&!!fighter.getHitVars?.fall;
       if(recovering!==this.recovering){this.plan=[];this.index=0;this.remaining=0;this.cooldown=recovering?10-this.level:0;this.raw=new Set();this.recovering=recovering;}
       const eligible=recovering&&['A','L'].includes(fighter.stateType)&&!!fighter.resolveTrigger?.('canrecover');
