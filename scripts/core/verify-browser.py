@@ -16,7 +16,7 @@ try:
     response=route.fetch();route.fulfill(response=response,body="OffscreenCanvas.prototype.getContext=function(){throw Error('Fixture: worker GPU unavailable');};\n"+response.text())
    page.route('**/assets/worker-*.js',fail_worker_gpu)
   if os.environ.get('CORE_MAIN'):page.add_init_script('HTMLCanvasElement.prototype.transferControlToOffscreen=undefined;')
-  page.goto(base+'core/index.html');page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'",timeout=30000);assert page.locator('#name').inner_text()=='Kung Fu Man';page.locator('#arena-mode').select_option('training');page.locator('#opponent-palette-select').select_option('1');page.locator('#fight-now').click()
+  page.goto(base+'core/index.html');page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'",timeout=30000);assert page.locator('#core-qa-guide').is_visible();assert page.locator('#effects-select').count()==1;assert page.locator('#name').inner_text()=='Kung Fu Man';page.locator('#arena-mode').select_option('training');page.locator('#opponent-palette-select').select_option('1');page.locator('#fight-now').click()
   try:
    page.wait_for_function('window.__kenjatimeCoreState?.ticks>30',timeout=30000);page.wait_for_function('window.__kenjatimeCoreState.players.every(p=>p.state===0)',timeout=30000)
    assert page.evaluate('window.__kenjatimeCoreBattle.backend()')==('worker' if mode=='worker' else 'main')
