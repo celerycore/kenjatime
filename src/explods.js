@@ -82,6 +82,18 @@ export function executeExplod(owner,controller){
   const entries=commonAnim(controller.values.anim)?controller.entries.map(entry=>entry.key==='anim'?{...entry,value:entry.value.replace(/^\s*f\s*/i,'')}:entry):controller.entries;
   const data=owner.effectParameters({...controller,entries});
   if(controller.values.ignorehitpause!==undefined)data.ignorehitpause=owner.value(controller,'ignorehitpause',1);
+  // Historic source archives sometimes reference AIR actions that they do
+  // not contain. Classify this as missing original artwork, not a failed
+  // controller execution; never attach an unrenderable Explod.
+  if(data.anim!==undefined){
+    const common=commonAnim(controller.values.anim),number=integer(data.anim);
+    const bank=common?owner.commonAnimations:owner.animations;
+    if(!bank.has(number)||!bank.get(number).frames?.length){
+      owner.diagnostic('missing-animation',
+        `Explod ${common?'F':''}${number} has no original AIR frames.`,controller);
+      return;
+    }
+  }
   for(const key of Object.keys(data))if(!options.has(key))owner.diagnostic('unsupported-explod-parameter',`Explod parameter ${key} is not implemented.`,controller);
   for(const key of ['pos','vel','velocity','accel','scale','random','remappal','alpha'])if(Array.isArray(data[key])&&data[key].length>2)throw Error(`Explod ${key} takes at most two components.`);
   if(controller.type==='modifyexplod'){

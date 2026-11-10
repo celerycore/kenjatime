@@ -2,9 +2,10 @@ name: Kenjatime Core browser QA preview
 on:
   push:
     branches:
-      - qa/core-browser-test-20261110
+      - qa/rare-akuma-native-ai-jump-parity-20261110
     paths:
       - 'src/**'
+      - 'test/core/rare-akuma-ai-activation.test.js'
       - 'core/**'
       - 'scripts/core/**'
       - 'package*.json'

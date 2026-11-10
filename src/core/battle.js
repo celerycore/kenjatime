@@ -43,7 +43,7 @@ export async function openCoreBattle({
   host.className = "kenjatime-battle";
   host.setAttribute("aria-label", "Kenjatime arena");
   host.innerHTML =
-    '<div class="kenjatime-battle-screen"><canvas width="960" height="540" aria-label="Fighting arena"></canvas><div class="core-hud"><div data-player="0"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div><span class="core-round">ROUND 1</span><div data-player="1"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div></div><p class="kenjatime-battle-status" role="status">Preparing your match…</p></div><div class="kenjatime-battle-bar"><button class="secondary" data-menu>Menu</button><button class="secondary" data-pause>Pause</button><button class="secondary" data-sound>Sound on</button><button class="secondary" data-quality>Visuals: Auto</button></div>';
+    '<div class="kenjatime-battle-screen"><canvas width="960" height="540" aria-label="Fighting arena"></canvas><strong class="core-announcement" aria-live="off" hidden></strong><div class="core-hud"><div data-player="0"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div><span class="core-round">ROUND 1</span><div data-player="1"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div></div><p class="kenjatime-battle-status" role="status">Preparing your match…</p></div><div class="kenjatime-battle-bar"><button class="secondary" data-menu>Menu</button><button class="secondary" data-pause>Pause</button><button class="secondary" data-sound>Sound on</button><button class="secondary" data-quality>Visuals: Auto</button></div>';
   stage.append(host);
   viewer.classList.add("kenjatime-viewer-playing");
   viewer.closest(".workspace")?.classList.add("kenjatime-workspace-playing");
@@ -169,12 +169,32 @@ export async function openCoreBattle({
         row.querySelector("small").textContent =
           `${actor.life} / ${actor.maxLife} · POWER ${actor.power}`;
       }
-      host.querySelector(".core-round").textContent =
-        selection.mode === "training"
-          ? "TRAINING"
-          : state.roundState < 2
-            ? "READY"
-            : "FIGHT";
+      const isTraining = selection.mode === "training";
+      const phase = state.roundState;
+      const round = state.roundNo ?? 1;
+      const elapsed = state.roundPhaseTime ?? 0;
+      const timer = state.roundTimeLeft ?? -1;
+      const winner = state.roundWinner === "player"
+        ? state.players[0]?.name
+        : state.roundWinner === "opponent"
+          ? state.players[1]?.name
+          : null;
+      const label = isTraining ? "TRAINING"
+        : phase === 0 ? "INTRO"
+        : phase === 1 ? `ROUND ${round}`
+        : phase === 2 ? timer < 0 ? "∞" : String(Math.ceil(timer / 60))
+        : phase === 3 ? state.roundReason === "time" ? "TIME" : "K.O."
+        : state.matchOver ? "MATCH OVER" : "ROUND OVER";
+      const roundTag = host.querySelector(".core-round");
+      if (roundTag.textContent !== label) roundTag.textContent = label;
+      const announcement = isTraining || phase === 0 ? ""
+        : phase === 1 ? `ROUND ${round}`
+        : phase === 2 && elapsed < 42 ? "FIGHT!"
+        : phase === 3 ? state.roundReason === "time" ? "TIME OVER" : "K.O."
+        : phase === 4 ? winner ? `${winner} WINS` : "DRAW GAME" : "";
+      const banner = host.querySelector(".core-announcement");
+      if (banner.textContent !== announcement) banner.textContent = announcement;
+      banner.hidden = !announcement;
     }
   }
   function pause(value = !paused) {
@@ -323,6 +343,10 @@ export async function openCoreBattle({
     }),
   );
   host.scrollIntoView({ block: "start", behavior: "instant" });
+  // Detect touch/handheld rendering once on the UI thread; workers do not
+  // have matchMedia, so forward only this boolean to the simulation host.
+  const mobile = typeof window.matchMedia === "function"
+    && window.matchMedia("(pointer: coarse)").matches;
   let canvas = host.querySelector("canvas");
   try {
     if (
@@ -373,7 +397,7 @@ export async function openCoreBattle({
             message: event.message || "The game worker stopped.",
           });
         worker.postMessage(
-          { type: "start", files, selection, sampleRate, quality },
+          { type: "start", files, selection, sampleRate, quality, mobile },
           [...new Set(Object.values(files).map((bytes) => bytes.buffer))],
         );
       } catch (error) {
@@ -391,7 +415,7 @@ export async function openCoreBattle({
       const { createCoreRuntime } = await import("./runtime.js");
       if (closed) throw Error("Match cancelled.");
       runtime = createCoreRuntime(update);
-      await runtime.start({ files, selection, canvas, sampleRate, quality });
+      await runtime.start({ files, selection, canvas, sampleRate, quality, mobile });
     }
     pads();
     visibility();

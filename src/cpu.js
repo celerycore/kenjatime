@@ -43,10 +43,81 @@ export function commandInputPlan(command){
   return segments;
 }
 
+/**
+ * Classic Winane-style AI activation is encoded in the character's own
+ * StateDef -1 branches rather than in the AILevel trigger. The old native
+ * engine's setCom() activated these authored branches, whereas generic Core
+ * key simulation could incorrectly select the character's human branch.
+ *
+ * Detect the exact paired CPU/human variable without hard-coding a fighter
+ * name or mutating any unrelated character variables.
+ */
+/**
+ * Some classic MUGEN fighters put their entire native CPU state machine in
+ * StateDef -3 and bootstrap it with impossible AI0..AI60 command sequences.
+ * Native MUGEN activates this variable for CPU players; web key synthesis
+ * cannot realistically type that sequence. Recognize the authored handshake,
+ * but never infer AI identity from an arbitrary variable or fighter name.
+ */
+// Both native VarSet forms are valid CNS syntax: v=59/value=11 and
+// var(59)=11 (as authored in Dark Donald's AI.cns).
+function nativeAIBootstrap(program) {
+  const controllers=program?.states?.get(-3)?.controllers||[];
+  for (const controller of controllers) {
+    if (controller.type!=='varset')continue;
+    const direct=Object.entries(controller.values||{}).find(([key])=>/^var\s*\(\s*\d+\s*\)$/.test(key));
+    const index=direct?Number(/^var\s*\(\s*(\d+)\s*\)$/.exec(direct[0])[1]):Number(controller.values?.v);
+    if(!Number.isInteger(index)||index<0||index>=60)continue;
+    const triggers=(controller.entries||[]).filter(entry=>/^trigger(?:all|[1-9]\d*)$/.test(entry.key)).map(entry=>entry.value).join('\n');
+    if(!/\bcommand\s*=\s*["']AI\d+["']/i.test(triggers))continue;
+    const hasAIBranch=item=>(item.entries||[]).some(entry=>{
+      if(!/^trigger(?:all|[1-9]\d*)$/.test(entry.key))return false;
+      const condition=String(entry.value).replace(/\s+/g,'').toLowerCase();
+      return condition.includes('var('+index+')!=0')||
+        condition.includes('var('+index+')>0')||
+        condition.includes('var('+index+')>=1');
+    });
+    if(controllers.filter(item=>['changestate','selfstate'].includes(item.type)&&hasAIBranch(item)).length<2)continue;
+    const value=Number(direct?direct[1]:controller.values?.value);
+    return {index,value:Number.isFinite(value)&&value>0?value:1};
+  }
+  return null;
+}
+export function nativeCnsAIActivationVariable(program) {
+  return nativeAIBootstrap(program)?.index??null;
+}
+export function nativeCnsAIActivationValue(program,index) {
+  const bootstrap=nativeAIBootstrap(program);
+  return bootstrap?.index===index?bootstrap.value:1;
+}
+export function legacyAIActivationVariable(program) {
+  const state = program?.states?.get(-1);
+  if (!state?.controllers?.length) return nativeCnsAIActivationVariable(program);
+  const text = state.controllers.flatMap(controller => (controller.entries || [])
+    .filter(entry => /^trigger(?:all|[1-9]\d*)$/.test(entry.key))
+    .map(entry => entry.value)).join('\n');
+  const cpu = [...text.matchAll(/\bvar\s*\(\s*(\d{1,2})\s*\)\s*(?:>=|>)\s*1\b/gi)]
+    .map(match => +match[1]);
+  const human = new Set([...text.matchAll(/\bvar\s*\(\s*(\d{1,2})\s*\)\s*<=\s*0\b/gi)]
+    .map(match => +match[1]));
+  return cpu.find(index => index < 60 && human.has(index)) ?? nativeCnsAIActivationVariable(program);
+}
+
+/** An authored ZSS AILevel branch or a legacy Winane variable enables the
+ * active aerial-movement policy. Generic sample fighters retain conservative
+ * CPU input cadence to preserve their authored ground combat. */
+export function authoredAIProgram(program) {
+  if (legacyAIActivationVariable(program) !== null) return true;
+  const state=program?.states?.get(-1);
+  const legacy=(state?.controllers||[]).flatMap(c=>(c.entries||[])
+    .filter(e=>/^trigger(?:all|[1-9]\d*)$/.test(e.key)).map(e=>e.value));
+  return [...legacy,...(program?.zssExpressions||[])].some(value=>/\bailevel\b/i.test(String(value)));
+}
+
 /** Generic CPU input planning. Character-authored AI still runs in CNS using AILevel. */
 export class CpuController{
-  constructor(parsed,{level=4,seed=0x6d2b79f5}={}){
-    this.level=normalizeAILevel(level);this.seed=(seed>>>0)||1;this.buffer=new CommandBuffer(parsed);
+  constructor(parsed,{level=4,seed=0x6d2b79f5,authoredAI=false,nativeAI=false}={}){
+    this.level=normalizeAILevel(level);this.authoredAI=!!authoredAI;this.nativeAI=!!nativeAI;this.seed=(seed>>>0)||1;this.buffer=new CommandBuffer(parsed);
     this.inverse=new Map();for(const physical of buttons){const logical=parsed.remap?.[physical]??physical;if(logical&&!this.inverse.has(logical))this.inverse.set(logical,physical);}
     const reachable=parsed.commands.filter(command=>command.sequence.every(symbol=>symbol.kind!=='button'||symbol.keys.every(key=>this.inverse.has(key))));
     this.attacks=reachable.filter(command=>!command.holdOnly&&command.sequence.some(symbol=>symbol.kind==='button'&&symbol.keys.some(key=>key!=='s'))).slice(0,512);
@@ -57,7 +128,7 @@ export class CpuController{
     this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.lastCommand=null;
     // A separate, deterministic cadence permits ordinary jumps between
     // attacks without replacing character-authored CPU or movement scripts.
-    this.jumpWait=170+(this.seed%115);
+    this.jumpWait=this.authoredAI?18+(this.seed%31):170+(this.seed%115);
   }
   random(){let value=this.seed;value^=value<<13;value^=value>>>17;value^=value<<5;this.seed=value>>>0;return this.seed/4294967296;}
   physical(relative,facing){return new Set([...relative].map(key=>key==='F'?(facing<0?'L':'R'):key==='B'?(facing<0?'R':'L'):this.inverse.get(key)||key));}
@@ -83,22 +154,30 @@ export class CpuController{
       if(available.length)this.queue([available[this.recoveryButton++%available.length]],1);
     }
   }
-  choose(fighter,opponent){
+  /** Let physical Up movement compete before generic command cooldown,
+   * never force an authored jump state or interrupt an active command. */
+  canJump(fighter) {
+    return fighter.ctrl && fighter.moveType !== 'H' &&
+      fighter.stateType === 'S' && fighter.pos.y >= -0.01 &&
+      fighter.program?.states.has(40) && !fighter.asserted?.has('nojump');
+  }
+  chooseJump(fighter,opponent) {
+    const distance=Math.abs(opponent.pos.x-fighter.pos.x);
+    const scale=fighter.coordinateScale||1;
+    const range=fighter.constant('size.ground.front')*scale+
+      opponent.constant('size.ground.front')*(opponent.coordinateScale||1)+20*scale;
+    const advance=distance>range||this.random()<.65;
+    const retreat=!advance&&this.random()<.25;
+    this.queue(advance?['U','F']:retreat?['U','B']:['U'],3+Math.floor(this.random()*3));
+    this.lastCommand=advance?'jump-forward':retreat?'jump-back':'jump-neutral';
+    this.jumpWait=this.authoredAI?Math.max(40,115-this.level*10)+Math.floor(this.random()*35):Math.max(260,500-this.level*20)+Math.floor(this.random()*85);
+    return true;
+  }
+  choose(fighter,opponent) {
     if(!fighter.ctrl||fighter.moveType==='H')return;
     const distance=Math.abs(opponent.pos.x-fighter.pos.x),scale=fighter.coordinateScale||1;
     const range=fighter.constant('size.ground.front')*scale+opponent.constant('size.ground.front')*(opponent.coordinateScale||1)+20*scale;
-    // Request jumps through physical Up input, never by forcing state 40.
-    // The original CMD/CNS/ZSS and AssertSpecial nojump still decide legality.
-    const canJump=fighter.stateType==='S'&&fighter.pos.y>=-0.01&&
-      fighter.program?.states.has(40)&&!fighter.asserted?.has('nojump');
-    if(canJump&&this.jumpWait<=0){
-      const advance=distance>range || this.random()<.55;
-      const retreat=!advance&&this.random()<.3;
-      this.queue(advance?['U','F']:retreat?['U','B']:['U'],3+Math.floor(this.random()*4));
-      this.lastCommand=advance?'jump-forward':retreat?'jump-back':'jump-neutral';
-      this.jumpWait=Math.max(260,500-this.level*20)+Math.floor(this.random()*85);
-      return;
-    }
+    if(this.canJump(fighter)&&this.jumpWait<=0){this.chooseJump(fighter,opponent);return;}
     if(distance>range){this.queue(['F'],4+Math.floor(this.random()*9));return;}
     if(opponent.moveType==='A'&&this.random()<.12+.07*this.level){this.queue(this.random()<.3?['D','B']:['B'],4+this.level);return;}
     if(this.attacks.length){
@@ -108,6 +187,26 @@ export class CpuController{
     }else this.queue([],2);
   }
   tick(fighter,opponent,{paused=false,enabled=true}={}){
+    // Let the native StateDef -3 script own attacks and combo transitions.
+    // Supplement only safe, neutral-state physical Up inputs, at a bounded
+    // cadence, to restore jump frequency without forcing a character state.
+    if(this.nativeAI){
+      if(!this.level||!enabled||!fighter.alive||!opponent?.alive){
+        this.plan=[];this.index=0;this.remaining=0;this.raw=new Set();
+      }else if(!paused){
+        if(this.jumpWait>0)this.jumpWait--;
+        if(this.index>=this.plan.length && this.jumpWait<=0 &&
+            fighter.moveType==='I' && [0,20,100].includes(fighter.stateNo) &&
+            this.canJump(fighter))this.chooseJump(fighter,opponent);
+        const segment=this.plan[this.index];
+        if(segment){
+          if(this.remaining<=0)this.remaining=segment.duration;
+          this.raw=this.physical(segment.keys,fighter.facing);
+          if(--this.remaining<=0)this.index++;
+        }else this.raw=new Set();
+      }
+      return this.buffer.update(this.raw,fighter.facing);
+    }
     if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;}
     else if(!paused){
       if(this.jumpWait>0)this.jumpWait--;
@@ -115,6 +214,13 @@ export class CpuController{
       if(recovering!==this.recovering){this.plan=[];this.index=0;this.remaining=0;this.cooldown=recovering?10-this.level:0;this.raw=new Set();this.recovering=recovering;}
       const eligible=recovering&&['A','L'].includes(fighter.stateType)&&!!fighter.resolveTrigger?.('canrecover');
       if(recovering&&!eligible){this.plan=[];this.index=0;this.remaining=0;this.cooldown=10-this.level;this.raw=new Set();}
+      if(this.authoredAI && !recovering && this.jumpWait<=0 && this.canJump(fighter) &&
+          this.index>=this.plan.length) {
+        // Native-style Up input is eligible as soon as a completed command
+        // releases control, rather than waiting on its generic cooldown.
+        this.chooseJump(fighter,opponent);
+        this.cooldown=0;
+      }
       if(this.index>=this.plan.length){
         if(this.cooldown>0)this.cooldown--;
         else if(recovering){if(eligible)this.chooseRecovery(fighter);this.cooldown=14-this.level;}

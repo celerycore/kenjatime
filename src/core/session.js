@@ -105,6 +105,7 @@ export class CoreSession {
       programs,
       manageInputs: true,
       orderedPhases: true,
+      cameraFollow: true,
       expressionEvaluator: (s, c) => this.expressions.evaluate(s, c),
       stage,
       playerPalette: selection.palette || 1,
@@ -117,7 +118,8 @@ export class CoreSession {
       rules:
         selection.mode === "training"
           ? null
-          : { roundsToWin: 2, preIntro: 0, introHold: 30 },
+          : { roundsToWin: 2, preIntro: 0, introHold: 60, overTime: 60,
+              resultTime: 120, maxIntroTime: 900, maxOutroTime: 300 },
     });
     this.commands = [
       this.match.inputBuffers.get(this.match.player),
@@ -495,7 +497,7 @@ export class CoreSession {
     const m = this.match,
       v = m.view,
       scale = Math.min(960 / 320, 540 / (v.displayHeight || 240)),
-      camera = m.stage?.camera || { x: 0, y: 0, zoom: 1 },
+      camera = m.cameraRuntime.camera,
       ground =
         (540 - (v.displayHeight || 240) * scale) / 2 +
         (v.groundY || 200) * scale,
@@ -799,6 +801,12 @@ export class CoreSession {
       })),
       ticks: this.match.ticks,
       roundState: this.match.roundFlow?.roundState ?? 2,
+      roundNo: this.match.roundFlow?.roundNo ?? 1,
+      roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
+      roundTimeLeft: this.match.roundFlow?.timeLeft ?? -1,
+      roundWinner: this.match.roundFlow?.roundWinner ?? null,
+      roundReason: this.match.roundFlow?.reason ?? null,
+      matchOver: this.match.roundFlow?.matchOver ?? false,
       expressions: this.expressions.stats,
       capabilities: this.capabilities,
       diagnostics: [...this.match.diagnostics, ...this.issues.values()],

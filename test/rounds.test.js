@@ -49,7 +49,8 @@ value=0
 ctrl=0`);
   const world=new TrainingMatch(c,{rules:{preIntro:0,introHold:0},skipIntro:false});
   for(let i=0;i<5;i++){world.tick();assert.notEqual(world.roundFlow.roundState,2);assert.equal(world.player.ctrl,0);}
-  world.tick();assert.equal(world.roundFlow.roundState,2);assert.equal(world.player.stateNo,0);assert.equal(world.player.ctrl,1);
+  world.tick();assert.equal(world.roundFlow.roundState,1);assert.equal(world.player.stateNo,0);
+  world.tick();assert.equal(world.roundFlow.roundState,2);assert.equal(world.player.ctrl,1);
 });
 
 test('Timeout compares life percentage and double KO draws do not award wins',()=>{
@@ -98,3 +99,129 @@ flag2=noko`);
 test('Match rules reject invalid timer and score settings',()=>{
   assert.throws(()=>new RoundFlow({roundsToWin:0}),/bounds/);assert.throws(()=>new RoundFlow({roundTime:NaN}),/Invalid/);
 });
+
+test('Missing AIR action 5900 falls back to the character-owned intro animation',()=>{
+  const c=character(String.raw`
+[Statedef 5900]
+type=U
+anim=5900
+[State Init]
+type=ChangeState
+trigger1=roundno=1
+value=190
+[Statedef 190]
+type=S
+ctrl=0
+anim=5901
+[State Intro]
+type=AssertSpecial
+trigger1=time<4
+flag=intro
+[State End]
+type=ChangeState
+trigger1=time>=4
+value=0
+ctrl=0`);
+  c.animations.push({id:5901,frames:[{group:30,number:0,x:0,y:0,ticks:8,clsn1:[],clsn2:[]}]});
+  const world=new TrainingMatch(c,{rules:{preIntro:0,introHold:0},skipIntro:false});
+  assert.equal(world.player.anim,5901,'startup should use a supplied intro action');
+  assert.equal(world.player.stateNo,5900);
+  world.tick();
+  assert.equal(world.player.stateNo,190);
+  assert.equal(world.player.anim,5901);
+  for(let i=0;i<6;i++)world.tick();
+  assert.equal(world.roundFlow.roundState,2);
+});
+
+
+test('Scripted introductions finish before ROUND announcement, and FIGHT begins afterward',()=>{
+  const c=character(String.raw`
+[Statedef 190]
+type=S
+ctrl=0
+anim=0
+[State 190, own intro]
+type=AssertSpecial
+trigger1=time<4
+flag=intro
+[State 190, finish]
+type=ChangeState
+trigger1=time>=4
+value=0
+ctrl=0
+[Statedef 180]
+type=S
+ctrl=0
+anim=0
+[State 180, authored branch]
+type=ChangeState
+trigger1=time>=2
+value=181
+[Statedef 181]
+type=S
+ctrl=0
+anim=0`);
+  const match=new TrainingMatch(c,{rules:{roundsToWin:2,preIntro:0,introHold:4,
+    overTime:2,resultTime:4,maxIntroTime:40,maxOutroTime:16},skipIntro:false});
+  assert.equal(match.player.stateNo,190);
+  assert.equal(match.opponent.stateNo,190);
+  for(let i=0;i<4;i++){
+    match.tick();
+    assert.equal(match.roundFlow.roundState,0,'ROUND 1 must not interrupt character intro');
+  }
+  match.tick();
+  assert.equal(match.roundFlow.roundState,1);
+  assert.equal(match.presentationEvents[0].event,'round');
+  assert.equal(match.presentationEvents[0].roundNo,1);
+  for(let i=0;i<3;i++){
+    match.tick();assert.equal(match.roundFlow.roundState,1);
+    assert.equal(match.roundFlow.timeLeft,99*60,'intro/announcement must not count down');
+  }
+  match.tick();
+  assert.equal(match.roundFlow.roundState,2);
+  assert.equal(match.presentationEvents[0].event,'fight');
+  assert.equal(match.player.ctrl,1);
+  match.opponent.life=0;
+  match.tick();assert.equal(match.roundFlow.roundState,3);
+  assert.equal(match.presentationEvents[0].event,'round-over');
+  match.tick();match.tick();
+  assert.equal(match.roundFlow.roundState,4);
+  assert.equal(match.player.stateNo,180,'winner should enter its own authored victory state');
+  for(let i=0;i<3;i++)match.tick();
+  assert.equal(match.player.stateNo,181,'outro must continue into the character-owned pose');
+  assert.equal(match.roundFlow.roundNo,1);
+  for(let i=0;i<20&&match.roundFlow.roundNo===1;i++)match.tick();
+  assert.equal(match.roundFlow.roundNo,2,'looping outro must not trap the next round forever');
+  assert.equal(match.roundFlow.roundState,0);
+  assert.equal(match.player.stateNo,190,'new round must initialize the authored intro again');
+});
+
+test('An infinitely asserted Intro is bounded and cannot softlock the announcement',()=>{
+  const flow=new RoundFlow({preIntro:0,introHold:2,maxIntroTime:5});
+  for(let i=0;i<4;i++){flow.step({players:players(),introPending:true,intro:true});assert.equal(flow.roundState,0);}
+  const announced=flow.step({players:players(),introPending:true,intro:true});
+  assert.equal(flow.roundState,1);assert.equal(announced[0].type,'round');
+  flow.step({players:players(),intro:true});assert.equal(flow.roundState,1);
+  const fighting=flow.step({players:players(),intro:true});
+  assert.equal(flow.roundState,1,'an asserted intro holds the fight cue until it is released');
+  const free=flow.step({players:players(),intro:false});
+  assert.equal(flow.roundState,2);assert.equal(free[0].type,'fight');
+});
+
+test('Training matches skip scripted intros and preserve immediate player control',()=>{
+  const c=character(String.raw`
+[Statedef 190]
+type=S
+ctrl=0
+anim=0
+[State Hold Intro]
+type=AssertSpecial
+trigger1=1
+flag=intro`);
+  const match=new TrainingMatch(c,{skipIntro:true,rules:null});
+  assert.equal(match.player.stateNo,0);
+  match.tick();
+  assert.equal(match.player.stateNo,0);
+  assert.equal(match.player.ctrl,1);
+});
+
