@@ -67,6 +67,11 @@ export async function loadKotlinCore(moduleUrl) {
           return typeof api.ktCoreContacts === "function"
             ? JSON.parse(api.ktCoreContacts(handle)) : [];
         },
+        entities() {
+          assertOpen();
+          return typeof api.ktCoreEntities === "function"
+            ? JSON.parse(api.ktCoreEntities(handle)) : { helpers: 0, projectiles: 0 };
+        },
         issues() {
           assertOpen();
           return api.ktCoreIssues(handle).split("\n").filter(Boolean);
