@@ -1,7 +1,7 @@
 {
   "project": "Kenjatime Core browser QA",
   "branch": "qa/rare-akuma-native-ai-jump-parity-20261110",
-  "commit": "048f8e986e4873b082a00a01fceb000518f9fc55",
+  "commit": "9f35c61ba423ed5bc949682a473a6502555a39a7",
   "build": "0.5.8-core-preview",
   "characterArchivesIncluded": false,
   "source": "celerycore/kenjatime"
