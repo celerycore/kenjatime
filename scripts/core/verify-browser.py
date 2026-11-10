@@ -20,6 +20,16 @@ try:
   try:
    page.wait_for_function('window.__kenjatimeCoreState?.ticks>30',timeout=30000);page.wait_for_function('window.__kenjatimeCoreState.players.every(p=>p.state===0)',timeout=30000)
    assert page.evaluate('window.__kenjatimeCoreBattle.backend()')==('worker' if mode=='worker' else 'main')
+   # Verify actual keyboard-to-Core jump in both player slots and the rendered airborne trajectory.
+   for key,side in [('ArrowUp',0),('KeyI',1)]:
+    page.keyboard.down(key)
+    try:
+     page.wait_for_function(f'window.__kenjatimeCoreState.players[{side}].y < -20',timeout=12000)
+     result['checks'][f'player{side+1}KeyboardJump']=True
+    finally:
+     page.keyboard.up(key)
+    page.wait_for_function(f'window.__kenjatimeCoreState.players[{side}].y===0',timeout=12000)
+   page.wait_for_function('window.__kenjatimeCoreState.players.every(p=>p.state===0)',timeout=12000)
    page.keyboard.down('ArrowRight');page.wait_for_function('Math.abs(window.__kenjatimeCoreState.players[1].x-window.__kenjatimeCoreState.players[0].x)<=35',timeout=10000);page.keyboard.up('ArrowRight');page.wait_for_timeout(100)
    before=page.evaluate('window.__kenjatimeCoreState.players[1].life');page.keyboard.down('KeyA');page.wait_for_timeout(100);page.keyboard.up('KeyA');page.wait_for_function(f'window.__kenjatimeCoreState.players[1].life<{before}',timeout=10000)
    state=page.evaluate('window.__kenjatimeCoreState');result['checks']['attackDamage']=before-state['players'][1]['life'];result['checks']['compiled']=state['expressions'];result['checks']['gpu']=page.evaluate('window.__kenjatimeCoreBattle.gpu()');page.wait_for_function('window.__kenjatimeCoreBattle.audioStatus().cachedSounds>0');result['checks']['audio']=page.evaluate('window.__kenjatimeCoreBattle.audioStatus()');assert page.locator('.core-hud meter:visible').count()==2;box=page.locator('.kenjatime-battle canvas').bounding_box();assert abs(box['width']/box['height']-16/9)<.02;page.locator('.kenjatime-battle canvas').screenshot(path=str(OUT/('independent-fight-'+mode+'.png')))
