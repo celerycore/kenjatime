@@ -91,3 +91,62 @@ test('both sample KFM CPUs walk, recognize native commands and deal actual colli
   // Correct power awards can reach KFM's recoil spark; the standalone ZIP omits fightfx.air.
   assert.deepEqual(match.diagnostics.filter(issue=>!(issue.controller==='explod'&&issue.state===1027&&issue.message==='Explod common animation 72 does not exist or has no frames.')),[]);
 });
+
+test('Legacy StateDef -3 command handshake activates native combo AI at its authored strength',()=>{
+  // Minimal faithful contract of Dark Donald's AI.cns: an impossible AI0
+  // command sets var(59)=11, followed by authored -3 attack/jump branches.
+  const source=character(String.raw`
+[Statedef -3]
+[State AI activate]
+type=VarSet
+triggerall=var(59)=0
+triggerall=RoundState=[1,2]
+trigger1=command="AI0"
+v=59
+value=11
+[State AI combo]
+type=ChangeState
+triggerall=var(59)!=0
+triggerall=ctrl=1
+trigger1=stateno=0
+value=700
+[State AI jump]
+type=ChangeState
+triggerall=var(59)!=0
+triggerall=ctrl=1
+trigger1=random<100
+value=40
+[Statedef 700]
+type=S
+physics=N
+ctrl=1
+[State 700]
+type=ChangeState
+trigger1=time>=1
+value=0
+[Statedef 40]
+type=S
+physics=N
+ctrl=0
+`, String.raw`
+[Command]
+name="AI0"
+command=a,a,a,a,a,a,a,a,a,a,a,a,a,a,a
+time=0
+[Command]
+name="x"
+command=x
+time=1
+`);
+  const ai=new TrainingMatch(source,{playerAILevel:5,initialize:false});
+  assert.equal(ai.player.legacyAIFlag,59);
+  assert.equal(ai.player.vars[59],11);
+  assert.equal(ai.cpus.get(ai.player).nativeAI,true);
+  ai.tick();
+  assert.equal(ai.player.stateNo,700,'authored native CNS attack must execute without generic input spam');
+  assert.equal(ai.cpus.get(ai.player).raw.size,0);
+  assert.equal(ai.opponent.vars[59],0,'human opponent must never activate native CPU variable');
+  ai.player.vars[59]=0;
+  ai.tick();
+  assert.equal(ai.player.vars[59],11,'engine restores the authored activation value');
+});
