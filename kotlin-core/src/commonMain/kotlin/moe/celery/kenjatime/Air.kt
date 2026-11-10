@@ -51,7 +51,8 @@ object MugenAirParser {
         val default = mutableListOf<AirBox>()
         val pending = mutableListOf<AirBox>()
         var usePending = false
-        fun flush() { id?.let { actions[it] = AirAction(it, frames.toList()) }; frames.clear(); default.clear(); pending.clear(); usePending = false }
+        val overridden = mutableSetOf<Boolean>()
+        fun flush() { id?.let { actions[it] = AirAction(it, frames.toList()) }; frames.clear(); default.clear(); pending.clear(); overridden.clear(); usePending = false }
         for (raw in source.lineSequence()) {
             val line = raw.substringBefore(';').trim()
             if (line.isEmpty()) continue
@@ -65,7 +66,9 @@ object MugenAirParser {
                     }
                     line.startsWith("Clsn1:", true) || line.startsWith("Clsn2:", true) -> {
                         usePending = true
-                        pending.removeAll { it.attack == line.startsWith("Clsn1", true) }
+                        val attacking = line.startsWith("Clsn1", true)
+                        overridden.add(attacking)
+                        pending.removeAll { it.attack == attacking }
                     }
                     else -> {
                         val m = boxLine.matchEntire(line)
@@ -86,8 +89,9 @@ object MugenAirParser {
             if (numbers.any { it == null }) continue
             frames.add(AirFrame(numbers[0]!!, numbers[1]!!, numbers[2]!!,
                 numbers[3]!!, numbers[4]!!,
-                values.getOrNull(5) ?: "", if (usePending) default + pending else default.toList()))
+                values.getOrNull(5) ?: "", if (usePending) default.filterNot { it.attack in overridden } + pending else default.toList()))
             pending.clear()
+            overridden.clear()
             usePending = false
         }
         flush()
