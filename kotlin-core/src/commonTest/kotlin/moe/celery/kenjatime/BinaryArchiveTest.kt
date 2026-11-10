@@ -29,6 +29,7 @@ class BinaryArchiveTest {
         assertEquals(2, samples[0].number)
         assertContentEquals(byteArrayOf(1,2,3,4), samples[0].wav)
         put32(snd, 512, 512)
+        put32(snd, 16, 2) // Count includes a second linked entry; detect the cycle.
         assertFailsWith<IllegalArgumentException> { MugenSndParser.parse(snd) }
     }
     @Test fun sffV1PcxPaletteAndLinkedSprite() {
