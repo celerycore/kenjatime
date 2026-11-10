@@ -152,6 +152,7 @@ class FightingCharacter(
     var activeHitDef: HitDefinition? = null
         private set
     private val struck = mutableSetOf<Int>()
+    private val controllerActivation = mutableMapOf<Pair<Int,Int>,Int>()
     private var evaluationIssues: MutableSet<String> = linkedSetOf()
     var animation: AirAnimationPlayer? = null
         private set
@@ -163,6 +164,7 @@ class FightingCharacter(
         control = state < 5000
         activeHitDef = null
         struck.clear()
+        controllerActivation.clear()
         moveContact = false
         moveHit = false
         moveGuarded = false
@@ -329,10 +331,20 @@ class FightingCharacter(
         }
         return false
     }
-    private fun executeState(n: Int, errors: MutableSet<String>): Boolean {
+    private fun executeState(n: Int, errors: MutableSet<String>, paused: Boolean): Boolean {
         val p = definition.states[n] ?: return false
-        for (c in p.controllers) if (CoreTriggers.controllerEnabled(c, this, errors)) {
-            if (runController(c, errors)) return true
+        for ((index, controller) in p.controllers.withIndex()) {
+            val opts = controller.params
+            if (paused && opts["ignorehitpause"]?.trim() != "1") continue
+            if (!CoreTriggers.controllerEnabled(controller, this, errors)) continue
+            val persistence = opts["persistent"]?.trim()?.toIntOrNull() ?: 1
+            val key = n to index
+            val activations = controllerActivation[key] ?: 0
+            // persistent=0: first valid activation only; persistent=N: every Nth.
+            val allow = persistence != 0 || activations == 0
+            controllerActivation[key] = activations + 1
+            if (!allow || persistence > 1 && activations % persistence != 0) continue
+            if (runController(controller, errors)) return true
         }
         return false
     }
@@ -340,17 +352,15 @@ class FightingCharacter(
         if (destroyed) return
         asserted.clear()
         evaluationIssues = errors
-        if (hitPauseLeft > 0) {
-            hitPauseLeft--
-            // ignorehitpause is a future compatibility gate; do not advance physics.
-            return
-        }
-        if (hitStunLeft > 0) hitStunLeft--
-        // Global states are ordered separately from the current state.
-        val changed = executeState(-3, errors) ||
-            executeState(-2, errors) || executeState(-1, errors) ||
-            executeState(stateNo, errors)
-        if (changed) return
+        val paused = hitPauseLeft > 0
+        if (paused) hitPauseLeft--
+        if (!paused && hitStunLeft > 0) hitStunLeft--
+        // Global state controllers participate in the pause only when explicitly opted in.
+        val changed = executeState(-3, errors, paused) ||
+            executeState(-2, errors, paused) ||
+            executeState(-1, errors, paused) ||
+            executeState(stateNo, errors, paused)
+        if (changed || paused) return
         posX += velX
         posY += velY
         timeInState++
