@@ -5,11 +5,12 @@ package moe.celery.kenjatime
  * Saturation is intentional: malformed CNS expressions cannot wrap world coordinates.
  * Conversion from source decimals belongs at character load time, not inside ticks.
  *
- * This is a new opt-in representation. Existing Fixed (1/256 pixel) remains the
+ * This opt-in wrapper is for import-time validation; the simulation must use
+ * primitive raw integers instead of allocating wrapper objects per tick.
+ * Existing Fixed (1/256 pixel) remains the
  * authoritative game simulation until native capture parity has been established.
  */
-@JvmInline
-value class Fixed16(val raw: Int) {
+data class Fixed16(val raw: Int) {
     companion object {
         const val SHIFT = 16
         const val SCALE = 1 shl SHIFT
