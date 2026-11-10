@@ -3,7 +3,7 @@ import {FighterRuntime} from './runtime.js';
 import {ProjectileRuntime} from './projectiles.js';
 import {StageRuntime,ArenaCamera} from './stages.js';
 import {RoundFlow} from './rounds.js';
-import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable,nativeCnsAIActivationVariable,authoredAIProgram} from './cpu.js';
+import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable,nativeCnsAIActivationVariable,nativeCnsAIActivationValue,authoredAIProgram} from './cpu.js';
 import {baseScale,bodyWidthWorld,animationSource} from './coordinates.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
 import {CommandBuffer} from './commands.js';
@@ -121,7 +121,7 @@ export class TrainingMatch {
     // Detect the variable from the character's own StateDef -1 controllers.
     for (const actor of [this.player,this.opponent]) if (actor.aiLevel>0) {
       const flag=legacyAIActivationVariable(actor.program);
-      if(flag!==null){actor.vars[flag]=1;actor.legacyAIFlag=flag;}
+      if(flag!==null){actor.legacyAIFlag=flag;actor.legacyAIValue=nativeCnsAIActivationValue(actor.program,nativeCnsAIActivationVariable(actor.program));actor.vars[flag]=actor.legacyAIValue;}
     }
     this.player.teamSide = 1;
     this.opponent.teamSide = 2;
@@ -245,7 +245,7 @@ export class TrainingMatch {
     if(!this.roundFlow || this.roundFlow.roundState===2)
       for(const actor of [this.player,this.opponent])
         if(actor.aiLevel>0 && actor.legacyAIFlag!==undefined)
-          actor.vars[actor.legacyAIFlag]=1;
+          if(actor.vars[actor.legacyAIFlag]<=0)actor.vars[actor.legacyAIFlag]=actor.legacyAIValue||1;
     if(this.cpus.has(this.player))commands=this.cpus.get(this.player).tick(this.player,this.opponent,{paused:this.isFrozen(this.player)||this.player.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
     if(this.cpus.has(this.opponent))opponentCommands=this.cpus.get(this.opponent).tick(this.opponent,this.player,{paused:this.isFrozen(this.opponent)||this.opponent.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
     if(this.cpus.has(this.player))playerInput=this.cpus.get(this.player).raw;
