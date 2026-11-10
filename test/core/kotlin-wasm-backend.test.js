@@ -32,6 +32,7 @@ test("opt-in Wasm adapter passes CMD data and fixed-point stage positions", asyn
   assert.equal(fight.snapshot(1).cmd2, "[Command]");
   assert.equal(fight.step({directions:8,buttons:"a"}), "1:8,a,0,");
   assert.deepEqual(fight.contacts(), [{attacker:1,defender:2,guarded:true,damage:3}]);
+  assert.deepEqual(fight.entities(), {helpers:1,projectiles:0});
   assert.deepEqual(fight.issues(), ["Unsupported controller: Explod"]);
   fight.close();
   fight.close();
