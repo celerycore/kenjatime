@@ -16,6 +16,7 @@ function mockModule() {
     "export function ktCoreStep(n,...raw) { const f=fights.get(n); f.tick++; return f.tick+':'+raw.join(','); }",
     "export function ktCoreSnapshot(n,side) { const f=fights.get(n); return JSON.stringify({frame:f.tick,side,positions:f.positions,cmd1:f.args[6],cmd2:f.args[7]}); }",
     "export function ktCoreContacts() { return '[{\"attacker\":1,\"defender\":2,\"guarded\":true,\"damage\":3}]'; }",
+    "export function ktCoreEvents() { return '[{\"type\":\"playsnd\",\"group\":0,\"number\":1,\"channel\":2}]'; }",
     "export function ktCoreEntities() { return '{\"helpers\":1,\"projectiles\":0}'; }",
     "export function ktCoreIssues() { return 'Unsupported controller: Explod\\n'; }",
     "export function ktCoreRelease(n) { fights.delete(n); }"
@@ -36,6 +37,7 @@ test("opt-in Wasm adapter passes CMD data and fixed-point stage positions", asyn
   assert.equal(fight.snapshot(1).cmd2, "[Command]");
   assert.equal(fight.step({directions:8,buttons:"a"}), "1:8,a,0,");
   assert.deepEqual(fight.contacts(), [{attacker:1,defender:2,guarded:true,damage:3}]);
+  assert.deepEqual(fight.presentationEvents(), [{type:"playsnd",group:0,number:1,channel:2}]);
   assert.deepEqual(fight.entities(), {helpers:1,projectiles:0});
   assert.deepEqual(fight.issues(), ["Unsupported controller: Explod"]);
   fight.close();

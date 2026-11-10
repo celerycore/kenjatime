@@ -29,7 +29,11 @@
     "destroyself",
     "varrandom",
     "varrangeset",
-    "parentvarset"
+    "parentvarset",
+    "varmul",
+    "parentvaradd",
+    "playsnd",
+    "stopsnd"
   ],
   "knownIncomplete": [
     "Complex CNS/ZSS expression evaluation and evaluation order",
@@ -37,7 +41,8 @@
     "Helper binding/state inheritance, projectile clashes, projectiles multi-hit",
     "Full hitguard/guardstun, juggling, KO, rebounds and throws",
     "Pause/superpause, effects, sound/video, AI decisions",
-    "Original character timing parity and performance on physical mobile hardware"
+    "Original character timing parity and performance on physical mobile hardware",
+    "Playback of queued PlaySnd/StopSnd events remains browser-adapter responsibility"
   ],
   "characterEvidence": {
     "kfm": {
