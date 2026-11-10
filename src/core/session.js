@@ -105,6 +105,7 @@ export class CoreSession {
       programs,
       manageInputs: true,
       orderedPhases: true,
+      cameraFollow: true,
       expressionEvaluator: (s, c) => this.expressions.evaluate(s, c),
       stage,
       playerPalette: selection.palette || 1,
