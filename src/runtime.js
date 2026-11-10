@@ -605,8 +605,19 @@ export class FighterRuntime {
     number = integer(number);
     if(number<0){this.diagnostic('animation-value','Negative animation number; using action 0.');number=0;}
     if (!owner.animations.has(number)) {
-      this.diagnostic('missing-animation', `Animation ${number} does not exist.`);
-      return false;
+      // Classic character intro initializers sometimes randomly select an
+      // unassigned action 5900 while shipping valid 5901..5999 intro actions.
+      // Select the character's own first valid initializer action instead of
+      // leaving its startup frame static or blank. Never change ordinary move
+      // or combat animation lookups.
+      const fallback=this._initializing&&this.stateNo===5900&&number===5900
+        ? [...owner.animations.keys()].filter(id=>id>5900&&id<6000).sort((a,b)=>a-b)[0]
+        : undefined;
+      if(fallback!==undefined)number=fallback;
+      else {
+        this.diagnostic('missing-animation', `Animation ${number} does not exist.`);
+        return false;
+      }
     }
     const frames = owner.animations.get(number).frames;
     const requested=integer(element)-1,index=requested>=0&&requested<frames.length?requested:0;
