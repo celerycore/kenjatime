@@ -68,6 +68,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 }
                 val owner = request.owner
                 val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.commands else emptyList())
+                actor.parent = owner
                 actor.posX = owner.posX + request.offsetX * if (owner.facingRight) 1 else -1
                 actor.posY = owner.posY + request.offsetY
                 actor.facingRight = if (request.face >= 0) owner.facingRight else !owner.facingRight
@@ -100,12 +101,14 @@ class CoreEntities(private val match: DeterministicFight) {
         val newRequests = mutableListOf<EntityRequest>()
         val current = helpers.toList()
         for (helper in current) {
+            if (helper.actor.destroyed) continue
             if (helper.bindTicks != 0) {
                 helper.actor.posX = helper.owner.posX
                 helper.actor.posY = helper.owner.posY
                 if (helper.bindTicks > 0) helper.bindTicks--
             }
             helper.actor.tick(errors)
+            if (helper.actor.destroyed) continue
             newRequests.addAll(helper.actor.flushEntityRequests())
             val enemy = helper.actor.opponent ?: match.p2
             val hit = helper.actor.activeHitDef
@@ -134,6 +137,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 projectile.ticksLeft = 0
             }
         }
+        helpers.removeAll { it.actor.destroyed }
         projectiles.removeAll { !it.alive }
         add(newRequests, errors)
     }
