@@ -187,10 +187,26 @@ export class CpuController{
     }else this.queue([],2);
   }
   tick(fighter,opponent,{paused=false,enabled=true}={}){
-    // A native -3 CPU script owns attacks, combos, defensive decisions and jumps.
-    // Synthetic random attacks would interrupt its chain; keep the CMD clock
-    // running without injecting player inputs.
-    if(this.nativeAI){this.raw=new Set();this.plan=[];this.index=0;this.remaining=0;return this.buffer.update(this.raw,fighter.facing);}
+    // Let the native StateDef -3 script own attacks and combo transitions.
+    // Supplement only safe, neutral-state physical Up inputs, at a bounded
+    // cadence, to restore jump frequency without forcing a character state.
+    if(this.nativeAI){
+      if(!this.level||!enabled||!fighter.alive||!opponent?.alive){
+        this.plan=[];this.index=0;this.remaining=0;this.raw=new Set();
+      }else if(!paused){
+        if(this.jumpWait>0)this.jumpWait--;
+        if(this.index>=this.plan.length && this.jumpWait<=0 &&
+            fighter.moveType==='I' && [0,20,100].includes(fighter.stateNo) &&
+            this.canJump(fighter))this.chooseJump(fighter,opponent);
+        const segment=this.plan[this.index];
+        if(segment){
+          if(this.remaining<=0)this.remaining=segment.duration;
+          this.raw=this.physical(segment.keys,fighter.facing);
+          if(--this.remaining<=0)this.index++;
+        }else this.raw=new Set();
+      }
+      return this.buffer.update(this.raw,fighter.facing);
+    }
     if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;}
     else if(!paused){
       if(this.jumpWait>0)this.jumpWait--;
