@@ -180,3 +180,38 @@ export class StageRuntime{
   frame(element){return element.animated?this.animations.get(element.anim)?.frames[element.drawFrameIndex??element.frameIndex]:{group:element.spriteno[0],number:element.spriteno[1],x:0,y:0,flip:'',ticks:-1};}
   variable(name){const [section,...keys]=String(name).toLowerCase().split('.'),value=this.definition.def[section]?.[keys.join('.')];if(value===undefined)throw Error(`StageVar ${name} is not implemented or missing.`);const n=Number(value);return Number.isFinite(n)?n:words(value);}
 }
+
+
+/**
+ * A real 2-D camera for the built-in grid arena. The original no-stage
+ * fallback returned a fixed 320x240 view and prevented vertical scrolling.
+ * Keep this independent of a custom StageRuntime so imported stages retain
+ * their own [Camera] bounds, tension and zoom settings.
+ */
+export class ArenaCamera {
+  constructor(){this.reset();}
+  reset(){this.camera={x:0,y:0,zoom:1};}
+  updateCamera(players,{advance=true}={}){
+    if(!advance)return;
+    const actors=(players||[]).filter(p=>!p.destroyed&&!p.isProjectile&&!p.parent);
+    const xs=actors.filter(p=>p.moveCamera?.x!==false&&Number.isFinite(p.pos?.x));
+    const ys=actors.filter(p=>p.moveCamera?.y!==false&&Number.isFinite(p.pos?.y));
+    if(xs.length){
+      const midpoint=(Math.min(...xs.map(p=>p.pos.x))+Math.max(...xs.map(p=>p.pos.x)))/2;
+      this.camera.x+= (clamp(midpoint,-150,150)-this.camera.x)*.16;
+      if(Math.abs(midpoint-this.camera.x)<.01)this.camera.x=clamp(midpoint,-150,150);
+    }
+    if(ys.length){
+      // Leave space above the highest jumper; ease back to ground on landing.
+      const highest=Math.min(0,...ys.map(p=>p.pos.y));
+      const target=clamp(highest+48,-600,0);
+      this.camera.y+=(target-this.camera.y)*.22;
+      if(Math.abs(target-this.camera.y)<.01)this.camera.y=target;
+    }
+  }
+  view(){
+    const {x,y}=this.camera;
+    return {left:x-160,right:x+160,top:y-200,bottom:y+40,
+      width:320,height:240,displayHeight:240,groundY:200,zoom:1};
+  }
+}
