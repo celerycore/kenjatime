@@ -65,10 +65,21 @@ export function legacyAIActivationVariable(program) {
   return cpu.find(index => index < 60 && human.has(index)) ?? null;
 }
 
+/** An authored ZSS AILevel branch or a legacy Winane variable enables the
+ * active aerial-movement policy. Generic sample fighters retain conservative
+ * CPU input cadence to preserve their authored ground combat. */
+export function authoredAIProgram(program) {
+  if (legacyAIActivationVariable(program) !== null) return true;
+  const state=program?.states?.get(-1);
+  const legacy=(state?.controllers||[]).flatMap(c=>(c.entries||[])
+    .filter(e=>/^trigger(?:all|[1-9]\d*)$/.test(e.key)).map(e=>e.value));
+  return [...legacy,...(program?.zssExpressions||[])].some(value=>/\bailevel\b/i.test(String(value)));
+}
+
 /** Generic CPU input planning. Character-authored AI still runs in CNS using AILevel. */
 export class CpuController{
-  constructor(parsed,{level=4,seed=0x6d2b79f5}={}){
-    this.level=normalizeAILevel(level);this.seed=(seed>>>0)||1;this.buffer=new CommandBuffer(parsed);
+  constructor(parsed,{level=4,seed=0x6d2b79f5,authoredAI=false}={}){
+    this.level=normalizeAILevel(level);this.authoredAI=!!authoredAI;this.seed=(seed>>>0)||1;this.buffer=new CommandBuffer(parsed);
     this.inverse=new Map();for(const physical of buttons){const logical=parsed.remap?.[physical]??physical;if(logical&&!this.inverse.has(logical))this.inverse.set(logical,physical);}
     const reachable=parsed.commands.filter(command=>command.sequence.every(symbol=>symbol.kind!=='button'||symbol.keys.every(key=>this.inverse.has(key))));
     this.attacks=reachable.filter(command=>!command.holdOnly&&command.sequence.some(symbol=>symbol.kind==='button'&&symbol.keys.some(key=>key!=='s'))).slice(0,512);
@@ -79,7 +90,7 @@ export class CpuController{
     this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.lastCommand=null;
     // A separate, deterministic cadence permits ordinary jumps between
     // attacks without replacing character-authored CPU or movement scripts.
-    this.jumpWait=18+(this.seed%31);
+    this.jumpWait=this.authoredAI?18+(this.seed%31):170+(this.seed%115);
   }
   random(){let value=this.seed;value^=value<<13;value^=value>>>17;value^=value<<5;this.seed=value>>>0;return this.seed/4294967296;}
   physical(relative,facing){return new Set([...relative].map(key=>key==='F'?(facing<0?'L':'R'):key==='B'?(facing<0?'R':'L'):this.inverse.get(key)||key));}
@@ -121,7 +132,7 @@ export class CpuController{
     const retreat=!advance&&this.random()<.25;
     this.queue(advance?['U','F']:retreat?['U','B']:['U'],3+Math.floor(this.random()*3));
     this.lastCommand=advance?'jump-forward':retreat?'jump-back':'jump-neutral';
-    this.jumpWait=Math.max(40,115-this.level*10)+Math.floor(this.random()*35);
+    this.jumpWait=this.authoredAI?Math.max(40,115-this.level*10)+Math.floor(this.random()*35):Math.max(260,500-this.level*20)+Math.floor(this.random()*85);
     return true;
   }
   choose(fighter,opponent) {
@@ -145,7 +156,7 @@ export class CpuController{
       if(recovering!==this.recovering){this.plan=[];this.index=0;this.remaining=0;this.cooldown=recovering?10-this.level:0;this.raw=new Set();this.recovering=recovering;}
       const eligible=recovering&&['A','L'].includes(fighter.stateType)&&!!fighter.resolveTrigger?.('canrecover');
       if(recovering&&!eligible){this.plan=[];this.index=0;this.remaining=0;this.cooldown=10-this.level;this.raw=new Set();}
-      if(!recovering && this.jumpWait<=0 && this.canJump(fighter) &&
+      if(this.authoredAI && !recovering && this.jumpWait<=0 && this.canJump(fighter) &&
           this.index>=this.plan.length) {
         // Native-style Up input is eligible as soon as a completed command
         // releases control, rather than waiting on its generic cooldown.
