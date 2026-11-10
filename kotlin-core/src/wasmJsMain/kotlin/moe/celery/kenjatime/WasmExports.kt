@@ -59,6 +59,16 @@ private object Fights {
     actor.life = life.coerceIn(0, actor.definition.maxLife)
     actor.power = power.coerceIn(0, 3000)
 }
+@JsExport fun ktCoreEnableRoundFlow(
+    handle: Int, introFrames: Int, roundFrames: Int, fightFrames: Int,
+    koFrames: Int, outroFrames: Int, timerSeconds: Int
+) {
+    Fights.get(handle).enableRoundFlow(
+        CoreRoundRules(introFrames,roundFrames,fightFrames,koFrames,outroFrames,timerSeconds)
+    )
+}
+@JsExport fun ktCoreRoundState(handle: Int): String =
+    Fights.get(handle).roundFlow?.statusJson() ?: "{\"enabled\":false}"
 @JsExport fun ktCoreCamera(handle: Int): String {
     val camera = Fights.get(handle).camera
     return if (camera == null) "{\"enabled\":false}" else
