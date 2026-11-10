@@ -73,6 +73,7 @@ class InputBuffer(private val capacity: Int = 60) {
     private val history = ArrayList<InputFrame>()
     init { require(capacity in 1..360) }
     fun clear() = history.clear()
+    fun latest(): InputFrame? = history.firstOrNull()
     fun update(frame: InputFrame) {
         history.add(0, frame)
         if (history.size > capacity) history.removeAt(history.lastIndex)
