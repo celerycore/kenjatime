@@ -1,9 +1,9 @@
 import {inGuardDistance} from './guard-distance.js';
 import {FighterRuntime} from './runtime.js';
 import {ProjectileRuntime} from './projectiles.js';
-import {StageRuntime} from './stages.js';
+import {StageRuntime,ArenaCamera} from './stages.js';
 import {RoundFlow} from './rounds.js';
-import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable,authoredAIProgram} from './cpu.js';
+import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable,nativeCnsAIActivationVariable,authoredAIProgram} from './cpu.js';
 import {baseScale,bodyWidthWorld,animationSource} from './coordinates.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
 import {CommandBuffer} from './commands.js';
@@ -103,7 +103,7 @@ export class TrainingMatch {
     this.initialize=initialize;this.skipIntro=skipIntro;
     this.playerPalette=playerPalette;this.opponentPalette=opponentPalette;
     this.playerAILevel=normalizeAILevel(playerAILevel);this.opponentAILevel=normalizeAILevel(opponentAILevel);
-    this.stage=stage?new StageRuntime(stage):null;this.rules=rules;this.gameMode=rules?'versus':'training';
+    this.stage=stage?new StageRuntime(stage):null;this.cameraRuntime=this.stage||new ArenaCamera();this.rules=rules;this.gameMode=rules?'versus':'training';
     if(this.stage){this.leftBound=stage.leftBound;this.rightBound=stage.rightBound;}
     this.reset();
   }
@@ -112,6 +112,7 @@ export class TrainingMatch {
     const prior=preserveMatch?{players:[this.player,this.opponent],flow:this.roundFlow,ticks:this.ticks,diagnostics:this.diagnostics}:null;
     this.roundFlow=prior?.flow||(this.rules?new RoundFlow(this.rules):null);this.roundGeneration=(this.roundGeneration||0)+1;
     if(this.stage)this.stage.reset({backgrounds:!preserveMatch||this.stage.definition.resetBG});
+    else this.cameraRuntime.reset();
     const starts=this.stage?.definition.starts||[{x:-70,y:0,facing:1},{x:70,y:0,facing:-1}];
     this.player = new FighterRuntime(this.character, {world:this,program:this.programs?.get(this.character),expressionEvaluator:this.expressionEvaluator,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[0], facing:starts[0].facing, id: 1, teamSide: 1,paletteNo:this.playerPalette,aiLevel:this.playerAILevel});
     this.opponent = new FighterRuntime(this.opponentCharacter, {world:this,program:this.programs?.get(this.opponentCharacter),expressionEvaluator:this.expressionEvaluator,commonAnimations:this.commonAnimations,commonText: this.commonText, position:starts[1], facing:starts[1].facing, id: 2, teamSide: 2,paletteNo:this.opponentPalette,aiLevel:this.opponentAILevel});
@@ -133,7 +134,7 @@ export class TrainingMatch {
     this.inputBuffers=new Map();this.inputProfiles=new Map();if(this.manageInputs)for(const actor of this._entities){if(!this.inputProfiles.has(actor.character))this.inputProfiles.set(actor.character,characterCommands(actor.character));this.inputBuffers.set(actor,new CommandBuffer(this.inputProfiles.get(actor.character)));}
     this.events = [];
     this.cpus=new Map();
-    for(const actor of this._entities)if(actor.aiLevel){const parsed=characterCommands(actor.character);this.cpus.set(actor,new CpuController(parsed,{level:actor.aiLevel,authoredAI:authoredAIProgram(actor.program),seed:0x6d2b79f5^(actor.id*0x9e3779b9)^(this.roundFlow?.roundNo||1)}));for(const issue of parsed.diagnostics)actor.diagnostic('command',issue.message,{source:actor.character.def.files.cmd,line:issue.line});}
+    for(const actor of this._entities)if(actor.aiLevel){const parsed=characterCommands(actor.character);this.cpus.set(actor,new CpuController(parsed,{level:actor.aiLevel,authoredAI:authoredAIProgram(actor.program),nativeAI:nativeCnsAIActivationVariable(actor.program)!==null,seed:0x6d2b79f5^(actor.id*0x9e3779b9)^(this.roundFlow?.roundNo||1)}));for(const issue of parsed.diagnostics)actor.diagnostic('command',issue.message,{source:actor.character.def.files.cmd,line:issue.line});}
     this.ticks = prior?.ticks||0;
     this.winner = null;
     if(prior){
@@ -161,10 +162,10 @@ export class TrainingMatch {
   }
 
   get entities() { return this._entities.filter(p=>!p.destroyed); }
-  get view(){return this.stage?.view()||{left:-160,right:160,top:-200,bottom:40,width:320,height:240,displayHeight:240,groundY:200,zoom:1};}
+  get view(){return this.cameraRuntime.view();}
   get matchOver(){return this.roundFlow?.matchOver||false;}
   syncEnvironment(){for(const actor of this._entities||[]){
-    if(this.stage){actor.cameraPos=this.stage.camera;actor.cameraZoom=this.stage.camera.zoom;}
+    actor.cameraPos=this.cameraRuntime.camera;actor.cameraZoom=this.cameraRuntime.camera.zoom;
     if(this.roundFlow){actor.roundState=this.roundFlow.roundState;actor.roundNo=this.roundFlow.roundNo;actor.roundsExisted=this.roundFlow.roundsExisted;}
   }}
   findPlayer(id) { return this.entities.find(p=>p.id === id); }
@@ -278,10 +279,12 @@ export class TrainingMatch {
       this.activeActor=fighter;try{fighter.tick({commands:input,opponent:other,paused:stopped,input:fighter.keyCtrl?physical:new Set()});}finally{this.activeActor=null;}
     }
     for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile._hitPausedThisTick=projectile.hitPauseTime>0;projectile.tick({paused:stopped}); }
-    if(this.stage){for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));this.stage.updateCamera(this.entities);this.syncEnvironment();this.stage.tick({paused:backgroundPaused});}
+    if(this.stage)for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));
+    this.cameraRuntime.updateCamera(this.entities,{advance:!globallyPaused});this.syncEnvironment();
+    if(this.stage)this.stage.tick({paused:backgroundPaused});
     if(this.orderedPhases)this.advanceCornerPush(frozen);
     const pushed=this.constrainPositions();
-    if(pushed&&this.stage){this.stage.updateCamera(this.entities,{advance:false});this.syncEnvironment();this.constrainPositions({push:false});}
+    if(pushed){this.cameraRuntime.updateCamera(this.entities,{advance:false});this.syncEnvironment();this.constrainPositions({push:false});}
     const fighters = this.entities;
     for(const defender of fighters)if(defender.moveType!=='H'&&defender.stateType!=='L')for(const records of this.juggles.values())records.delete(defender.id);
     const projectiles = this.projectiles.filter(p=>!p.removed && !p.removing);
