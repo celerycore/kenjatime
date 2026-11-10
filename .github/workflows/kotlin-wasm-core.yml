@@ -18,6 +18,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check opt-in JavaScript browser bridge
+        run: node --test test/core/kotlin-wasm-backend.test.js
       - name: Verify deterministic Kotlin/JVM tests
         run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
       - name: Execute shared deterministic tests in Kotlin/Wasm Node
