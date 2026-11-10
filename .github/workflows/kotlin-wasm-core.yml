@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '24'
       - name: Check opt-in JavaScript browser bridge
-        run: node --test test/core/kotlin-wasm-backend.test.js
+        run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js
       - name: Verify deterministic Kotlin/JVM tests
         run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
       - name: Execute shared deterministic tests in Kotlin/Wasm Node
@@ -44,3 +44,23 @@ jobs:
           name: kenjatime-kotlin-wasm
           path: kotlin-core/wasm-package/
           if-no-files-found: error
+
+  js-reference-baseline:
+    name: Existing JavaScript/native capture baseline (NOT Kotlin parity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Verify 16 captured native interactions against existing JS engine
+        run: npm run verify:core:interactions
+      - name: Verify 147 recorded KFM scenarios against existing JS engine
+        run: npm run verify:core:movesets
+      - name: Exercise Rare Akuma synthetic and inventory regression suite in existing JS engine
+        run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/rare-akuma-dual.test.js test/core/rare-akuma-hardening.test.js test/core/rare-akuma-jump.test.js test/core/rare-akuma-ai-activation.test.js
