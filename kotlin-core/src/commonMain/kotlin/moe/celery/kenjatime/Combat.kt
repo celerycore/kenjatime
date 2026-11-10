@@ -98,64 +98,9 @@ object CoreTriggers {
     private val comparison = Regex(
         """(?i)^(time|stateno|life|power|pos x|pos y|vel x|vel y|ctrl|p2dist x|p2dist y|roundstate|var\(\d+\)|fvar\(\d+\)|statetype|movetype)\s*(=|!=|<=|>=|<|>)\s*("?[a-z]+?"?|-?\d+(?:\.\d+)?)$"""
     )
-    fun test(expr: String, actor: FightingCharacter, errors: MutableSet<String>): Boolean {
-        val e = expr.trim().removeSurrounding("(", ")").trim()
-        if (e.contains("||")) return e.split("||").any { test(it, actor, errors) }
-        if (e.contains("&&")) return e.split("&&").all { test(it, actor, errors) }
-        if (e.equals("1") || e.equals("true", true)) return true
-        if (e.equals("0") || e.equals("false", true)) return false
-        val command = commandPattern.matchEntire(e)
-        if (command != null) return actor.commands.any {
-            it.name.equals(command.groupValues[1], true) && actor.input.matches(it, actor.facingRight)
-        }
-        val m = comparison.matchEntire(e)
-        if (m != null) {
-            val lhs = m.groupValues[1].lowercase()
-            val rhs = m.groupValues[3].trim('"', '\'')
-            if (lhs == "statetype" || lhs == "movetype") {
-                val x = if (lhs == "statetype") actor.stateType else actor.moveType
-                return when (m.groupValues[2]) {
-                    "=" -> x.equals(rhs, true)
-                    "!=" -> !x.equals(rhs, true)
-                    else -> false
-                }
-            }
-            val x: Double = when {
-                lhs == "time" -> actor.timeInState.toDouble()
-                lhs == "stateno" -> actor.stateNo.toDouble()
-                lhs == "life" -> actor.life.toDouble()
-                lhs == "power" -> actor.power.toDouble()
-                lhs == "pos x" -> Fixed.pixels(actor.posX)
-                lhs == "pos y" -> Fixed.pixels(actor.posY)
-                lhs == "vel x" -> Fixed.pixels(actor.velX)
-                lhs == "vel y" -> Fixed.pixels(actor.velY)
-                lhs == "ctrl" -> if (actor.control) 1.0 else 0.0
-                lhs == "roundstate" -> actor.roundState.toDouble()
-                lhs == "p2dist x" -> actor.opponent?.let { Fixed.pixels(it.posX - actor.posX) } ?: 0.0
-                lhs == "p2dist y" -> actor.opponent?.let { Fixed.pixels(it.posY - actor.posY) } ?: 0.0
-                lhs.startsWith("var(") -> {
-                    val i = lhs.substringAfter("(").substringBefore(")").toIntOrNull()
-                    actor.vars.getOrNull(i ?: -1)?.toDouble() ?: 0.0
-                }
-                lhs.startsWith("fvar(") -> {
-                    val i = lhs.substringAfter("(").substringBefore(")").toIntOrNull()
-                    actor.fvars.getOrNull(i ?: -1) ?: 0.0
-                }
-                else -> 0.0
-            }
-            val y = rhs.toDoubleOrNull()
-            if (y != null) return when (m.groupValues[2]) {
-                "=" -> x == y
-                "!=" -> x != y
-                "<=" -> x <= y
-                ">=" -> x >= y
-                "<" -> x < y
-                else -> x > y
-            }
-        }
-        errors.add("Unsupported trigger: " + e.take(160))
-        return false
-    }
+    fun test(expr: String, actor: FightingCharacter, errors: MutableSet<String>): Boolean =
+        CoreExpression.test(expr, actor, errors)
+
     fun controllerEnabled(c: StateController, fighter: FightingCharacter, errors: MutableSet<String>): Boolean {
         if (c.triggerGroups.isEmpty()) return false
         if (!c.triggerAll.all { test(it, fighter, errors) }) return false
@@ -175,6 +120,10 @@ class FightingCharacter(
     val vars = IntArray(60)
     val fvars = DoubleArray(40)
     var opponent: FightingCharacter? = null
+    var world: DeterministicFight? = null
+    var moveContact = false
+    var moveHit = false
+    var moveGuarded = false
     var parent: FightingCharacter? = null
     var destroyed = false
     var hitCount = 0
@@ -203,6 +152,7 @@ class FightingCharacter(
     var activeHitDef: HitDefinition? = null
         private set
     private val struck = mutableSetOf<Int>()
+    private var evaluationIssues: MutableSet<String> = linkedSetOf()
     var animation: AirAnimationPlayer? = null
         private set
     init { changeState(0) }
@@ -213,6 +163,9 @@ class FightingCharacter(
         control = state < 5000
         activeHitDef = null
         struck.clear()
+        moveContact = false
+        moveHit = false
+        moveGuarded = false
         val program = definition.states[state]
         stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
         moveType = program?.moveType ?: (if (state >= 5000) "H" else "I")
@@ -232,8 +185,10 @@ class FightingCharacter(
         ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
-    private fun number(raw: String?, default: Int = 0): Int = raw?.trim()?.toDoubleOrNull()?.let(Fixed::of) ?: default
-    private fun integer(raw: String?, default: Int = 0): Int = raw?.trim()?.toIntOrNull() ?: default
+    private fun number(raw: String?, default: Int = 0): Int =
+        raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(Fixed::of) } ?: default
+    private fun integer(raw: String?, default: Int = 0): Int =
+        raw?.let { CoreExpression.number(it, this, evaluationIssues)?.toInt() } ?: default
     private fun runController(c: StateController, errors: MutableSet<String>): Boolean {
         val args = c.params
         when (c.type.lowercase()) {
@@ -384,6 +339,7 @@ class FightingCharacter(
     fun tick(errors: MutableSet<String>) {
         if (destroyed) return
         asserted.clear()
+        evaluationIssues = errors
         if (hitPauseLeft > 0) {
             hitPauseLeft--
             // ignorehitpause is a future compatibility gate; do not advance physics.
@@ -450,6 +406,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         require(p1.id != p2.id)
         p1.opponent = p2
         p2.opponent = p1
+        p1.world = this
+        p2.world = this
     }
     fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame()) {
         contacts.clear()
@@ -480,11 +438,17 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         val guardA = bh != null && p1.blocks(bh)
         if (ah != null) {
             p1.markHit(p2.id)
+            p1.moveContact = true
+            p1.moveHit = !guardB
+            p1.moveGuarded = guardB
             p1.hitPauseLeft = if (guardB) ah.guardPause else ah.hitPause
             contacts.add(FightContact(p1.id, p2.id, guardB, if (guardB) ah.guardDamage else ah.damage))
         }
         if (bh != null) {
             p2.markHit(p1.id)
+            p2.moveContact = true
+            p2.moveHit = !guardA
+            p2.moveGuarded = guardA
             p2.hitPauseLeft = if (guardA) bh.guardPause else bh.hitPause
             contacts.add(FightContact(p2.id, p1.id, guardA, if (guardA) bh.guardDamage else bh.damage))
         }
