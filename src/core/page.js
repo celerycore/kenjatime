@@ -32,7 +32,7 @@ guide.innerHTML = `
     <h2>Rare Akuma · 2007 + 2026 Core testing</h2>
     <span class="qa-state">BROWSER QA PREVIEW</span>
   </div>
-  <p>Test both original classic and newer ZSS editions in the independent Core engine. No copyrighted character package is hosted here.</p>
+  <p>Test both original classic and newer ZSS editions in the independent Core engine. This preview restores the classic fighter's authored CPU AI and adds responsive jumping for both editions. No copyrighted character package is hosted here.</p>
   <details open>
     <summary>How to run the compatibility match</summary>
     <ol>
