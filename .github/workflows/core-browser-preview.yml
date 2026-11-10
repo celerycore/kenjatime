@@ -5,6 +5,7 @@ on:
       - qa/rare-akuma-native-ai-jump-parity-20261110
     paths:
       - 'src/**'
+      - 'test/core/rare-akuma-ai-activation.test.js'
       - 'core/**'
       - 'scripts/core/**'
       - 'package*.json'
