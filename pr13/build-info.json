@@ -1,0 +1,11 @@
+{
+  "project": "Kenjatime Core PR #13 isolated website preview",
+  "source": "celerycore/kenjatime",
+  "originalPr": "https://github.com/celerycore/kenjatime/pull/13",
+  "branch": "preview/pr13-website-20261111",
+  "commit": "e47d30bc33a51663309ea650ca57ffa4d9419f2a",
+  "runtime": "existing JavaScript Core match engine",
+  "kotlinWasm": "experimental foundations present in source, not default browser gameplay",
+  "originalCharacterArchivesIncluded": false,
+  "productionReplaced": false
+}
