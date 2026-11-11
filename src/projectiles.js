@@ -3,6 +3,16 @@ import {spawnPosition} from './entities.js';
 
 const vector = (value, fallback = [0,0]) => Array.isArray(value) ? [Number(value[0] ?? fallback[0]),Number(value[1] ?? fallback[1])] : value === undefined ? [...fallback] : [Number(value),fallback[1]];
 
+/** Sparse, per-projectile overrides backed by immutable shared character constants.
+ * Avoid copying the (potentially large) CNS constants Map for every projectile.
+ * The normal Map API remains available for the four override keys.
+ */
+export class ProjectileConstants extends Map {
+  constructor(base) { super(); this.base = base; }
+  get(name) { return super.has(name) ? super.get(name) : this.base?.get(name); }
+  has(name) { return super.has(name) || !!this.base?.has(name); }
+}
+
 /** A projectile is not a helper: it has an AIR clock and a HitDef, but no CNS state machine. */
 export class ProjectileRuntime {
   constructor(creator, spec, {id} = {}) {
@@ -12,7 +22,7 @@ export class ProjectileRuntime {
     this.teamSide = creator.teamSide; this.character = creator.character; this.coordinateScale = creator.coordinateScale;
     this.baseCoordinateScale=this.coordinateScale;this.paletteParent=paletteOwner(creator);
     this.guardDistance=creator.constant('size.proj.attack.dist')*creator.coordinateScale;
-    this.animations = creator.animations; this.program = {...creator.program,constants:new Map(creator.program.constants)};
+    this.animations = creator.animations; this.program = {...creator.program,constants:new ProjectileConstants(creator.program.constants)};
     this.spec = spec; this.events = []; this.diagnostics = []; this.asserted = new Set();
     if(Number(spec.projid)<0)this.diagnostic('projectile-id','Negative ProjID was clamped to 0.');
     Object.assign(this,spawnPosition(creator,spec,true));
@@ -22,6 +32,12 @@ export class ProjectileRuntime {
     this.program.constants.set('size.draw.offset.x',0); this.program.constants.set('size.draw.offset.y',0);
     const velocity = vector(spec.velocity); this.vel = {x:velocity[0]*this.coordinateScale,y:velocity[1]*this.coordinateScale};
     this.accel = vector(spec.accel).map(v=>v*this.coordinateScale); this.velmul = vector(spec.velmul,[1,1]);
+    // Projectile controller specifications are immutable after spawn. Precalculate
+    // view/stage/height thresholds instead of creating vectors each combat tick.
+    this.heightBounds = vector(spec.projheightbound,[-240/this.coordinateScale,1/this.coordinateScale]).map(v=>v*this.coordinateScale);
+    this.edgeBound=(spec.projedgebound??40/this.coordinateScale)*this.coordinateScale;
+    this.stageBound=(spec.projstagebound??40/this.coordinateScale)*this.coordinateScale;
+    this.removeTime=spec.projremovetime??-1;
     this.anim = Math.trunc(spec.projanim ?? 0); this.frameIndex = 0; this.frameTime = 0; this.collisionFrame = null;
     this.hitDef = spec.hitDef; this.proximityHitDef=spec.hitDef; this.hitPauseTime = 0; this.hitCount = 0;
     this.moveType = 'A'; this.stateType = (this.hitDef?.attr || 'S')[0].toUpperCase();
@@ -117,11 +133,10 @@ export class ProjectileRuntime {
     this._inTick=true;this._loopedThisTick=false;
     if(this.removing&&!this.removalStarted)this.beginRemoval();
     if(!this.removing){
-      const height=vector(this.spec.projheightbound,[-240/this.coordinateScale,1/this.coordinateScale]).map(v=>v*this.coordinateScale);
-      const edge=(this.spec.projedgebound??40/this.coordinateScale)*this.coordinateScale;
-      const stage=(this.spec.projstagebound??40/this.coordinateScale)*this.coordinateScale;
-      const left=this.world?.leftBound??-160,right=this.world?.rightBound??160,screenLeft=this.world?.view.left??left,screenRight=this.world?.view.right??right;
-      const lifetime=this.spec.projremovetime??-1,vx=this.vel.x*this.facing;
+      const height=this.heightBounds,edge=this.edgeBound,stage=this.stageBound;
+      const left=this.world?.leftBound??-160,right=this.world?.rightBound??160;
+      const view=this.world?.view,screenLeft=view?.left??left,screenRight=view?.right??right;
+      const lifetime=this.removeTime,vx=this.vel.x*this.facing;
       // Test the current position before moving. Stage/height bounds only
       // retire shots travelling outwards; an offstage returning shot can enter.
       if(lifetime>=0&&this.time>=lifetime||lifetime<=-2&&this.animationLooped||
