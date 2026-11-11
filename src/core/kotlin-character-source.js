@@ -17,6 +17,46 @@ function decodeText(bytes) {
 const STATE_KEY = /^(cns|st\d*)$/i;
 const ZSS_DECLARATION = /^\s*\[\s*(?:statedef\s+-?\d+\s*;|function\s+\w+\s*\()/im;
 const MAX_SCRIPT_BYTES = 16 * 1024 * 1024;
+// This vocabulary mirrors the implemented Kotlin subset, not full controller
+// semantics; parameters, timing, targeting and effects may remain incomplete.
+const CORE_CONTROLLER_TYPES = new Set([
+  "null","velset","veladd","posadd","posset","ctrlset","changestate",
+  "selfstate","changeanim","statetypeset","lifeadd","poweradd","varset",
+  "varadd","helper","projectile","hitdef","velmul","gravity","turn",
+  "lifeset","hitadd","assertspecial","destroyself","varrandom",
+  "varrangeset","parentvarset","varmul","parentvaradd","playsnd","stopsnd"
+]);
+function auditLegacyStates(sources) {
+  const states = new Map(), controllers = new Set();
+  for (const text of sources) {
+    let inController = false;
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.split(";")[0].trim();
+      const state = /^\[\s*statedef\s+(-?\d+)\s*\]$/i.exec(line);
+      if (state) {
+        const id = Number(state[1]);
+        states.set(id,(states.get(id) ?? 0)+1);
+        inController = false;
+        continue;
+      }
+      const header = /^\[\s*([^\]]+)\s*\]$/.exec(line);
+      if (header) {
+        inController = /^state\s+-?\d+\s*,/i.test(header[1]);
+        continue;
+      }
+      if (inController) {
+        const type = /^type\s*=\s*([a-z0-9_]+)/i.exec(line);
+        if (type) controllers.add(type[1].toLowerCase());
+      }
+    }
+  }
+  return {
+    stateCount: states.size,
+    duplicates: [...states].filter(([,count]) => count > 1).map(([id,count])=>({id,count})),
+    unsupported: [...controllers].filter(type=>!CORE_CONTROLLER_TYPES.has(type)).sort(),
+    supported: [...controllers].filter(type=>CORE_CONTROLLER_TYPES.has(type)).sort(),
+  };
+}
 
 export function kotlinFighterFromImportedCharacter(character) {
   if (!character?.def?.files || !character?.files || !Array.isArray(character.checks))
@@ -73,6 +113,13 @@ export function kotlinFighterFromImportedCharacter(character) {
   if (stateFiles.length === 0) failures.push("No supported authored CNS/ST sources");
   if (stateFiles.join("\n").length > MAX_SCRIPT_BYTES)
     failures.push("Combined CNS/ST scripts exceed the Kotlin parser's 16 MiB limit");
+  const audit = auditLegacyStates([...stateFiles,cmd]);
+  if (audit.duplicates.length)
+    warnings.push("Repeated StateDef IDs need authored load-order validation: " +
+      audit.duplicates.map(item=>item.id+" ("+item.count+")").join(", "));
+  if (audit.unsupported.length)
+    warnings.push("Kotlin/Wasm currently lacks " + audit.unsupported.length +
+      " authored controller types; unsupported branches will be reported at runtime");
   // Fail before constructing any Wasm handle: no silent idle fighter fallback.
   if (failures.length)
     throw new Error("Kotlin/Wasm character preflight failed: " + [...new Set(failures)].join("; "));
@@ -83,6 +130,11 @@ export function kotlinFighterFromImportedCharacter(character) {
     cmd,
     warnings,
     sourceFiles: references.filter(c => c.path).map(c => c.path),
+    supportedControllerTypes: audit.supported,
+    unsupportedControllerTypes: audit.unsupported,
+    duplicateStateDefs: audit.duplicates,
+    stateDeclarationCount: audit.stateCount,
+    productionReady: false,
     requiresNativeParity: true,
   };
 }
