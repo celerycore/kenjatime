@@ -1,0 +1,31 @@
+name: Kenjatime Dark Donald Rare Akuma compatibility regression
+on:
+  push:
+    branches: [release/gpu-camera-js-fallback-20261111]
+    paths:
+      - 'src/cpu.js'
+      - 'src/runtime.js'
+      - 'src/core/session.js'
+      - 'src/core/endless-benchmark.js'
+      - 'test/core/donald-akuma-scripted-ko.test.js'
+      - '.github/workflows/qa-dark-donald-rare-akuma.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  js-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Test authored KO attribution and bounded CPU jump retries
+        run: node --test test/core/donald-akuma-scripted-ko.test.js test/core/rare-akuma-ai-activation.test.js test/core/endless-rounds.test.js test/cpu.test.js
+      - name: Full JavaScript Core regression
+        run: npm run test:core
+      - name: Verify standalone browser build isolation
+        run: npm run build:core
