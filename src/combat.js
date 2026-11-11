@@ -86,11 +86,14 @@ function chooseContacts(contacts) {
 
 /** Deterministic, two-fighter training. Stage bounds and ground push separation are intentionally simple. */
 export class TrainingMatch {
-  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0,expressionEvaluator=null,programs=null,manageInputs=false,orderedPhases=false,cameraFollow=false} = {}) {
+  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0,expressionEvaluator=null,programs=null,manageInputs=false,orderedPhases=false,cameraFollow=false,strictPrefightIdle=false} = {}) {
     this.expressionEvaluator=expressionEvaluator;
     this.programs=programs;
     this.manageInputs=manageInputs;
     this.orderedPhases=orderedPhases;
+    // Strict round start for hostile custom AI: normal idle only until FIGHT.
+    // Training and legacy authored-intro matches preserve their old behavior.
+    this.strictPrefightIdle=!!strictPrefightIdle && !!rules;
     this.combatRules=readCombatRules(character.files,combatRules);
     if (!Number.isFinite(leftBound) || !Number.isFinite(rightBound) || leftBound >= rightBound) throw Error('Invalid training stage bounds.');
     this.character = character;
@@ -146,7 +149,7 @@ export class TrainingMatch {
       }
     }
     this.syncEnvironment();
-    if(this.initialize)for(const fighter of this._entities){
+    if(this.initialize&&!this.strictPrefightIdle)for(const fighter of this._entities){
       if(fighter.program.states.has(5900)){
         fighter._initializing=true;
         fighter.options.skipIntro=this.skipIntro;
@@ -248,6 +251,9 @@ export class TrainingMatch {
     const backgroundPaused=!!(this.superPause?.remaining>0||this.pause?.remaining>0&&this.pause.pausebg!==0);
     const globallyPaused=!!(this.superPause?.remaining>0||this.pause?.remaining>0);
     const effectPause=this.pause?.remaining>0?this.pause:null,effectSuperPause=this.superPause?.remaining>0?this.superPause:null;
+    // Capture before RoundFlow.step advances the cue; no authored controllers,
+    // helpers or projectiles may attack during ROUND 1 / FIGHT announcement.
+    const prefightIdle=this.strictPrefightIdle && this.roundFlow?.roundState<2;
     this.syncEnvironment();
     // Pre-fight StateDef -2 scripts may reset the AI variable during intros.
     // Reactivate CPU-owned legacy AI for every fighting tick, including the
@@ -269,6 +275,9 @@ export class TrainingMatch {
       updatedActors.push(fighter);
       let input = fighter.root === this.player ? commands : opponentCommands;
       let physical=fighter.root===this.player?playerInput:opponentInput;
+      // Discard both physical and asserted inputs so a buffered pre-round
+      // button cannot trigger an attack at the FIGHT cue boundary.
+      if(prefightIdle)physical=new Set();
       if(this.manageInputs&&fighter.keyCtrl){
         physical=new Set(physical||[]);for(const flag of fighter.pendingAssertedInputs){physical.add(flag==='F'?(fighter.facing===1?'R':'L'):flag==='B'?(fighter.facing===1?'L':'R'):flag);}if(!this.isFrozen(fighter))fighter.pendingAssertedInputs.clear();
         if(!this.inputBuffers.has(fighter))this.inputBuffers.set(fighter,new CommandBuffer(this.inputProfiles.get(fighter.root.character)));
@@ -286,9 +295,29 @@ export class TrainingMatch {
           for (const command of input) this.commandBuffers.get(fighter).add(command);
         }
       } else if (this.commandBuffers.has(fighter)) { input = new Set([...input,...this.commandBuffers.get(fighter)]); this.commandBuffers.delete(fighter); }
+      if(prefightIdle) {
+        // Do not run -4/-3/-2/-1, state controllers, or physics: an authored
+        // character AI can change state and inflict damage with zero input.
+        // Advance only the visible idle animation at 60 Hz.
+        if(fighter.parent)continue;
+        if(fighter.stateNo!==0&&fighter.program.states.has(0))fighter.changeState(0,0,fighter);
+        fighter.ctrl=0;
+        fighter.vel.x=0;fighter.vel.y=0;
+        fighter.hitDef=null;
+        fighter.commands=new Set();
+        fighter.rawInput=new Set();
+        fighter.pendingAssertedInputs.clear();
+        fighter.events=[];
+        fighter.opponent=other;
+        fighter.advanceAnimation();
+        fighter.syncAnimationFrame();
+        fighter.collisionFrame=fighter.currentFrame;
+        fighter.time++;fighter.gameTime++;
+        continue;
+      }
       this.activeActor=fighter;try{fighter.tick({commands:input,opponent:other,paused:stopped,input:fighter.keyCtrl?physical:new Set()});}finally{this.activeActor=null;}
     }
-    for (const projectile of this.projectiles) { const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile._hitPausedThisTick=projectile.hitPauseTime>0;projectile.tick({paused:stopped}); }
+    for (const projectile of this.projectiles) { if(prefightIdle)continue; const stopped = this.isFrozen(projectile); if (stopped) frozen.add(projectile); projectile._hitPausedThisTick=projectile.hitPauseTime>0;projectile.tick({paused:stopped}); }
     if(this.stage)for(const fighter of this.entities)if(fighter.screenBound!==false)fighter.pos.x=Math.max(this.leftBound,Math.min(this.rightBound,fighter.pos.x));
     if(this.stage||this.cameraFollow)this.cameraRuntime.updateCamera(this.entities,{advance:!globallyPaused});this.syncEnvironment();
     if(this.stage)this.stage.tick({paused:backgroundPaused});
@@ -411,7 +440,7 @@ export class TrainingMatch {
         &&!winningActor.animationEnded;
       const events=flow.step({players,paused:globallyPaused,intro,introPending,victoryPending,
         roundNotOver:asserted('roundnotover'),timerFreeze:asserted('timerfreeze'),
-        noKO:players.map(()=>asserted('noko'))});
+        noKO:players.map(p=>this.entities.some(e=>e.root===p&&e.asserted.has('noko')))});
       this.syncEnvironment();
       for(const event of events){
         if(event.type==='fight')for(const p of players)if(p.stateNo===0)p.ctrl=1;

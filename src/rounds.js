@@ -32,6 +32,7 @@ export class RoundFlow{
     this.roundState=0;this.phaseTime=0;
     this.timeLeft=this.rules.roundTime?Math.round(this.rules.roundTime*60):-1;
     this.roundWinner=null;this.reason=null;this._awarded=false;
+    this.suppressedKoTicks=0;
   }
   step({players,paused=false,intro=false,introPending=false,victoryPending=false,
     roundNotOver=false,timerFreeze=false,noKO=[false,false]}={}){
@@ -53,7 +54,14 @@ export class RoundFlow{
     }
     if(this.roundState===2){
       this.phaseTime++;
-      const knockout=players.some((p,i)=>p.life<=0&&!noKO[i]);
+      // An authored NoKO can delay a scripted death, but malicious or
+      // persistent mirror-match assertions must not trap the round forever.
+      // Keep the original per-side NoKO contract; force the KO after 90
+      // consecutive active frames at zero health, even with TimerFreeze.
+      const zeroHealth=players.some(p=>p.life<=0);
+      this.suppressedKoTicks=zeroHealth?this.suppressedKoTicks+1:0;
+      const knockout=players.some((p,i)=>p.life<=0&&!noKO[i]) ||
+        (zeroHealth&&this.suppressedKoTicks>=90);
       if(!timerFreeze&&this.timeLeft>0)this.timeLeft--;
       if(knockout||this.timeLeft===0){
         this.roundWinner=winner(players);

@@ -1,0 +1,81 @@
+name: Kotlin/Wasm fighting core
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'kotlin-core/**'
+      - 'src/core/kotlin-wasm-backend.js'
+      - 'src/core/session.js'
+      - 'src/combat.js'
+      - 'src/rounds.js'
+      - 'test/rounds.test.js'
+      - 'test/core/round-readiness.test.js'
+      - '.github/workflows/kotlin-wasm-core.yml'
+permissions:
+  contents: read
+jobs:
+  portable-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check opt-in JavaScript browser bridge
+        run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js test/core/kotlin-character-source.test.js
+      - name: Verify deterministic Kotlin/JVM tests
+        run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
+      - name: Execute shared deterministic tests in Kotlin/Wasm Node
+        run: ./android/gradlew -p kotlin-core wasmJsNodeTest --stacktrace
+      - name: Build browser Kotlin/Wasm artifact
+        run: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack --stacktrace
+      - name: Execute the actual compiled Kotlin/Wasm JavaScript ABI
+        run: node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
+      - name: Install benchmark archive decoder
+        run: npm ci
+      - name: Smoke and profile actual bundled KFM scripts inside compiled Wasm
+        run: node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs
+      - name: Package raw Kotlin/Wasm ESM exports and Wasm companion
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p kotlin-core/wasm-package
+          RAW=$(find kotlin-core/build -type f -name 'kenjatime-kotlin-core.mjs' -print -quit)
+          test -n "$RAW"
+          cp "$(dirname "$RAW")"/kenjatime-kotlin-core* kotlin-core/wasm-package/
+          ls -lh kotlin-core/wasm-package/
+          test -f kotlin-core/wasm-package/kenjatime-kotlin-core.wasm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-kotlin-wasm
+          path: kotlin-core/wasm-package/
+          if-no-files-found: error
+
+  js-reference-baseline:
+    name: Existing JavaScript/native capture baseline (NOT Kotlin parity)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Regression tests for Round 1 idle lock and Rare Akuma zero-health mirror
+        run: node --test test/rounds.test.js test/core/round-readiness.test.js
+      - name: Audit 16 native interactions against existing JS engine (known mismatches reported)
+        continue-on-error: true
+        run: npm run verify:core:interactions
+      - name: Audit 147 recorded KFM scenarios against existing JS engine (not Kotlin parity)
+        continue-on-error: true
+        run: npm run verify:core:movesets
+      - name: Exercise Rare Akuma synthetic and inventory regression suite in existing JS engine
+        run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/rare-akuma-dual.test.js test/core/rare-akuma-hardening.test.js test/core/rare-akuma-jump.test.js test/core/rare-akuma-ai-activation.test.js

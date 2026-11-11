@@ -106,6 +106,7 @@ export class CoreSession {
       manageInputs: true,
       orderedPhases: true,
       cameraFollow: true,
+      strictPrefightIdle: selection.mode !== "training",
       expressionEvaluator: (s, c) => this.expressions.evaluate(s, c),
       stage,
       playerPalette: selection.palette || 1,

@@ -1,0 +1,71 @@
+{
+  "format": "kenjatime-user-supplied-original-character-audit-v1",
+  "auditedOn": "2026-11-11",
+  "source": "User-supplied archives inspected without redistribution or execution of their code",
+  "semantics": "Static archive/script/SFF index inspection, NOT original Kotlin/Wasm native gameplay parity",
+  "cases": {
+    "rareAkuma2007": {
+      "filename": "Rare Akuma.zip",
+      "sha256": "1482540feca04a9dba1eec529e99ea36dceb41730fb3a00a3450de67faa8e08d",
+      "scriptFormat": "MUGEN CMD/CNS/ST",
+      "stateDefs": 137,
+      "controllerBlocks": 1033,
+      "controllerTypes": 61,
+      "commandDefinitions": 150,
+      "uniqueCommandNames": 74,
+      "airActions": 309,
+      "sffVersion": 1,
+      "sffSprites": 872,
+      "sndSamples": 89,
+      "helperControllers": 45,
+      "projectileControllers": 3,
+      "distinctAirSpriteReferencesWithoutSffIndex": 291,
+      "supportedControllerNameOverlap": 28,
+      "unsupportedControllerTypes": 33,
+      "originalKotlinFightValidated": false
+    },
+    "darkDonald": {
+      "filename": "Dark Donald.rar",
+      "sha256": "26d014d0b0e7d3aadea6512bc2885782ae8703582e6dd68d9490386eb11a5162",
+      "scriptFormat": "MUGEN CMD/CNS and OPTION.txt states",
+      "uniqueStateDefs": 277,
+      "stateDefDeclarations": 279,
+      "duplicateStateDefIds": [
+        -3,
+        3503
+      ],
+      "repeatedFileReference": "Donald.cns",
+      "controllerBlocks": 3442,
+      "controllerTypes": 69,
+      "commandDefinitions": 120,
+      "airActions": 282,
+      "sffVersion": 1,
+      "sffSprites": 1121,
+      "helperControllers": 103,
+      "projectileControllers": 405,
+      "distinctAirSpriteReferencesWithoutSffIndex": 12,
+      "supportedControllerNameOverlap": 28,
+      "unsupportedControllerTypes": 41,
+      "originalKotlinFightValidated": false
+    },
+    "rareAkuma2026": {
+      "filename": "RareAkuma.zip",
+      "sha256": "c626441be701eb104f20b5a5673ab9078555bfad17b298256daf4fcb5d9e349b",
+      "scriptFormat": "ZSS 2026",
+      "zssStateFiles": 6,
+      "zssStateDefs": 222,
+      "commandFile": "Command.cns",
+      "commandDefinitions": 165,
+      "airActions": 327,
+      "sffVersion": 1,
+      "sffSprites": 956,
+      "sndSamples": 134,
+      "distinctAirSpriteReferencesWithoutSffIndex": 9,
+      "kotlinZssRuntimeSupported": false,
+      "originalKotlinFightValidated": false
+    }
+  },
+  "sharedCommonState": "common1.cns is an external engine-provided dependency, not included in these archives",
+  "ciOriginalArchivesPresent": false,
+  "safety": "Do not commit original character binaries or script sources to a public repository"
+}
