@@ -2,6 +2,7 @@
  * Rendering, archive codecs and platform input are separate adapters.
  */
 import { charactersFromFiles, decodeText, sff } from "../formats.js";
+import {normalizePresentation,presentationAspect} from "./presentation.js";
 import {loadCommonEffects} from "./common-effects.js";
 import { parseProgram } from "../runtime.js";
 import { TrainingMatch } from "../combat.js";
@@ -67,6 +68,7 @@ export class CoreSession {
   constructor(files, selection = {}) {
     this.files = files;
     this.selection = selection;
+    this.presentation = normalizePresentation(selection.presentation);
     this.characters = charactersFromFiles(files);
     this.commonEffects = loadCommonEffects(files, {fightDef:selection.fightDef, effectsPackage:selection.effectsPackage, character:selection.character, stage:selection.stage});
     const p1 =
@@ -144,7 +146,7 @@ export class CoreSession {
     this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
     this.videoSprites = new Map();
-    if (this.match.stage) this.match.stage.viewportAspect = 16 / 9;
+    if (this.match.stage) this.match.stage.viewportAspect = presentationAspect(this.presentation);
     this.modelReady = false;
     this.lua = null;
     this.luaModules = luaModules(files, selection);
@@ -167,6 +169,12 @@ export class CoreSession {
         "Unverified character families and extended controller combinations",
       ],
     };
+  }
+  /** Update the stage-camera viewport without changing any authored fighter physics. */
+  setPresentation(value) {
+    this.presentation = normalizePresentation(value);
+    if (this.match.stage) this.match.stage.viewportAspect = presentationAspect(this.presentation);
+    return this.presentation;
   }
   issue(type, message) {
     const key = type + ":" + message;
