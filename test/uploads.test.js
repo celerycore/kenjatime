@@ -6,7 +6,7 @@ import {readZipFile,zipAccept} from '../src/uploads.js';
 import {FighterRuntime} from '../src/runtime.js';
 import {characterCommands} from '../src/cpu.js';
 import {COMMON_STATES} from '../src/common.js';
-import {MAX_ZIP_BYTES,MAX_EXPANDED_BYTES} from '../src/archive-limits.js';
+import {MAX_ZIP_BYTES,MAX_EXPANDED_BYTES,MAX_ARCHIVE_BYTES} from '../src/archive-limits.js';
 
 const definition='[Info]\nname=Mobile Hero\n[Files]\nsprite=hero.sff\ncns=hero.cns\nstcommon=../data/common1.cns';
 test('phone ZIP directory markers, archive-root slashes, Windows separators and contained dot segments import',()=>{
@@ -35,7 +35,7 @@ test('mobile file providers can omit or mislabel MIME types and extensions; ZIP 
   }
   assert.match(zipAccept,/application\/zip/);assert.equal(await readZipFile(null),null);
   await assert.rejects(()=>readZipFile({size:10,arrayBuffer:async()=>strToU8('not a zip').buffer}),/Choose a ZIP or RAR/);
-  await assert.rejects(()=>readZipFile({size:128*1024*1024+1,arrayBuffer:async()=>{throw Error('should not read');}}),/128 MB/);
+  await assert.rejects(()=>readZipFile({size:MAX_ARCHIVE_BYTES+1,arrayBuffer:async()=>{throw Error('should not read');}}),/256 MB/);
   await assert.rejects(()=>readZipFile({size:10,arrayBuffer:async()=>{throw Error('SecurityError');}}),/Download the archive to your device/);
 });
 
@@ -44,5 +44,5 @@ test('expanded-size and entry-count limits reject before expanding oversized pay
   for(let i=0;i<bytes.length-4;i++)if(view.getUint32(i,true)===0x02014b50){central=i;break;}
   assert.ok(central);view.setUint32(central+24,MAX_EXPANDED_BYTES+1,true);assert.throws(()=>packageFiles(bytes),/512 MB expanded/);
   assert.throws(()=>packageFiles(zipSync(Object.fromEntries(Array.from({length:5001},(_,i)=>['entry'+i,new Uint8Array()])))),/5,000 files/);
-  assert.throws(()=>packageFiles({length:MAX_ZIP_BYTES+1}),/128 MB/);
+  assert.throws(()=>packageFiles({length:MAX_ZIP_BYTES+1}),/256 MB/);
 });

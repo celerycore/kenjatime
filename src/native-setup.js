@@ -2,6 +2,7 @@ import './style.css';
 import './mobile.css';
 import {appShell} from './app-shell.js';
 import {sff,animations} from './formats.js';
+import {compactSffV1Preview} from './core/large-sff-preview.js';
 import {libraryResetURL} from './library-recovery.js';
 import {exportFile} from './export-file.js';
 
@@ -62,25 +63,36 @@ async function preview(){
 }
 async function drawPreview(step){
  disposePreview();const epoch=previewEpoch;if(!selected)return;$('#empty').hidden=true;
- const rival=catalog.characters.find(c=>c.id===$('#opponent-select').value)||selected,entries=[selected,rival],banks=new Map();
+ const rival=catalog.characters.find(c=>c.id===$('#opponent-select').value)||selected,entries=[selected,rival],banks=new Map(),previewProblems=[];
  const images=await Promise.all(entries.map(async(entry,side)=>{
   try{
-   if(!entry.sprite||entry.spriteBytes>64*1024*1024)throw Error('Preview unavailable');
-   if(!banks.has(entry.sprite))banks.set(entry.sprite,resource(entry.sprite).then(r=>r.arrayBuffer()).then(b=>sff(new Uint8Array(b))));
+   if(!entry.sprite)throw Error('Missing SFF file');
+   if(!banks.has(entry.sprite))banks.set(entry.sprite,resource(entry.sprite).then(async blob=>{
+    // Preview giant SFF v1 banks through a bounded prefix; the full original
+    // archive remains intact and is handed to the actual match renderer.
+    const bytes=entry.spriteBytes>64*1024*1024
+      ? await compactSffV1Preview(blob)
+      : new Uint8Array(await blob.arrayBuffer());
+    if(!bytes)throw Error('Large SFF preview unavailable');
+    return sff(bytes);
+   }));
    const bank=await banks.get(entry.sprite);if(epoch!==previewEpoch)return null;let frame;
    if(entry.anim)frame=animations(await (await resource(entry.anim)).text()).find(a=>a.id===0)?.frames[0];
    if(epoch!==previewEpoch)return null;
    const index=frame?bank.sprites.findIndex(s=>s.group===frame.group&&s.number===frame.number):bank.sprites.findIndex(s=>s.group===0&&s.number===0);if(index<0)throw Error('No idle preview');
    let sprite=bank.decode(index);try{sprite=bank.decodeWithPalette(index,1,+$(side?'#opponent-palette-select':'#palette-select').value);}catch{}
    const image=document.createElement('canvas');image.width=sprite.w;image.height=sprite.h;image.getContext('2d').putImageData(new ImageData(sprite.rgba,sprite.w,sprite.h),0,0);return image;
-  }catch{return null;}
+  }catch(error){previewProblems[side]=String(error?.message||error);return null;}
  }));
  for(const promise of banks.values())promise.then(bank=>bank.clearDecodedCache()).catch(()=>{});
  step?.note({decodedPreviews:images.filter(Boolean).length});
  if(epoch!==previewEpoch)return;grid();ctx.imageSmoothingEnabled=false;
  entries.forEach((entry,side)=>{const center=side?690:270,image=images[side];ctx.fillStyle=side?'#8fcfff':'#d3fb8d';ctx.font='28px system-ui';ctx.textAlign='center';ctx.fillText(`P${side+1} · ${entry.name}`,center,68,360);
   if(image){const scale=Math.min(2.2,340/image.width,320/image.height);ctx.save();ctx.translate(center,440);ctx.scale(side?-scale:scale,scale);ctx.drawImage(image,-image.width/2,-image.height);ctx.restore();}
-  else{ctx.font='15px system-ui';ctx.fillText('Preview unavailable',center,280);ctx.fillText('Ready to use in a match',center,305);}
+  else{ctx.font='15px system-ui';const cause=previewProblems[side]||'Unknown sprite error';
+   ctx.fillText(!entry.sprite?'Missing SFF sprite bank':entry.spriteBytes>64*1024*1024?'Large SFF preview unavailable':'Sprite preview unavailable',center,280);
+   ctx.font='12px system-ui';ctx.fillText(!entry.sprite?'Reimport a complete character archive':entry.spriteBytes>64*1024*1024?'Full sprite bank remains available in fights':cause.slice(0,46),center,305);
+  }
  });canvas.dataset.previewCount=String(images.filter(Boolean).length);canvas.setAttribute('aria-label',`Match preview: Player 1 ${selected.name}, Player 2 ${rival.name}`);
 }
 function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,fxPackage:$('#effects-select').value,mode:$('#arena-mode').value}));}catch{}}
