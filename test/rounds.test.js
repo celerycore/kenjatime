@@ -91,7 +91,8 @@ trigger1=1
 flag=timerfreeze
 flag2=noko`);
   const world=new TrainingMatch(c,{rules:{preIntro:0,introHold:0},initialize:false});world.tick();world.tick();
-  const helper=world.spawnHelper(world.player,{stateno:700,id:70}),remaining=world.roundFlow.timeLeft;
+  // NoKO protects its declaring team, not the other fighter.
+  const helper=world.spawnHelper(world.opponent,{stateno:700,id:70}),remaining=world.roundFlow.timeLeft;
   world.opponent.life=0;world.tick();assert.equal(world.roundFlow.roundState,2);assert.equal(world.roundFlow.timeLeft,remaining);
   helper.destroyed=true;world.tick();assert.equal(world.roundFlow.roundState,3);assert.equal(world.roundFlow.roundWinner,'player');
 });
