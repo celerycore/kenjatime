@@ -1,9 +1,14 @@
 package io.github.celerycore.kenjatime;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import android.webkit.WebView;
+import android.graphics.Bitmap;
+import java.io.File;
+import java.io.FileOutputStream;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.core.app.ActivityScenario;
 import java.util.concurrent.CountDownLatch;
@@ -68,6 +73,20 @@ public class CoreWebViewSmokeTest {
                 "document.querySelector('.kenjatime-battle canvas') !== null").equals("true"));
             assertTrue(eval(scenario,
                 "window.__kenjatimeCoreBattle?.gpu()?.frames > 5").equals("true"));
+            // Capture the *live* match before ActivityScenario closes, not
+            // the Android launcher that appears after instrumentation exits.
+            Bitmap screenshot=InstrumentationRegistry.getInstrumentation()
+                .getUiAutomation().takeScreenshot();
+            assertNotNull("Android UI screenshot is unavailable", screenshot);
+            scenario.onActivity(a -> {
+                File destination=new File(a.getExternalFilesDir(null),"kenjatime-kfm-verified.png");
+                try(FileOutputStream output=new FileOutputStream(destination)){
+                    assertTrue(screenshot.compress(Bitmap.CompressFormat.PNG,100,output));
+                }catch(Exception error){
+                    throw new AssertionError("Could not persist live WebView screenshot",error);
+                }
+            });
+            screenshot.recycle();
         }
     }
 }
