@@ -221,6 +221,8 @@ class FightingCharacter(
     var facingRight = true
     var stateNo = 0
         private set
+    var previousStateNo = 0
+        private set
     var timeInState = 0
         private set
     var hitPauseLeft = 0
@@ -242,6 +244,7 @@ class FightingCharacter(
     init { changeState(0) }
     fun changeState(state: Int) {
         val oldAnim = animation?.action?.number
+        previousStateNo = stateNo
         stateNo = state
         timeInState = 0
         control = state < 5000

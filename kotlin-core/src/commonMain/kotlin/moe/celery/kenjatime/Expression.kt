@@ -24,6 +24,7 @@ object CoreExpression {
             val v = when (key) {
                 "time" -> f.timeInState.toDouble()
                 "stateno" -> f.stateNo.toDouble()
+                "prevstateno" -> f.previousStateNo.toDouble()
                 "life" -> f.life.toDouble()
                 "lifemax" -> f.definition.maxLife.toDouble()
                 "power" -> f.power.toDouble()
@@ -42,6 +43,12 @@ object CoreExpression {
                 } ?: 0.0
                 "p2bodydist y" -> p?.let { Fixed.pixels(it.posY-f.posY) } ?: 0.0
                 "p2stateno" -> p?.stateNo?.toDouble() ?: 0.0
+                "p2ctrl" -> if(p?.control==true) 1.0 else 0.0
+                "p2pos x" -> p?.let { Fixed.pixels(it.posX) } ?: 0.0
+                "p2pos y" -> p?.let { Fixed.pixels(it.posY) } ?: 0.0
+                "p2vel x" -> p?.let { Fixed.pixels(it.velX) } ?: 0.0
+                "p2vel y" -> p?.let { Fixed.pixels(it.velY) } ?: 0.0
+                "numenemy" -> if (p!=null) 1.0 else 0.0
                 "p2life" -> p?.life?.toDouble() ?: 0.0
                 "anim" -> f.animation?.action?.number?.toDouble() ?: -1.0
                 "animelem" -> f.animation?.index?.plus(1)?.toDouble() ?: 0.0
@@ -65,6 +72,8 @@ object CoreExpression {
                     if (key=="p2statetype") return Value.str(p?.stateType ?: "")
                     if (key=="p2movetype") return Value.str(p?.moveType ?: "")
                     if (key=="command") return Value.str("@command")
+                    if (key=="name") return Value.str(f.definition.name)
+                    if (key=="p2name") return Value.str(p?.definition?.name ?: "")
                     throw IllegalArgumentException("Unsupported identifier: " + key)
                 }
             }
@@ -183,7 +192,7 @@ object CoreExpression {
             if(t.type=='s')return Literal(Value.str(t.value))
             if(t.type!='i')throw IllegalArgumentException("Invalid token "+t.value)
             var name=t.value.lowercase()
-            if(name in setOf("pos","vel","p2dist","p2bodydist") &&
+            if(name in setOf("pos","vel","p2pos","p2vel","p2dist","p2bodydist") &&
                 (peek().equals("x",true)||peek().equals("y",true)))
                 name+=" "+consume().value.lowercase()
             if(accept("(")){
@@ -230,9 +239,21 @@ object CoreExpression {
         return result
     }
     private val cache=linkedMapOf<String,Node>()
-    private fun parse(s:String):Node=cache[s]?:Parser(tokenize(s)).parse().also{
+    // Legacy Dark Donald uses EnemyNear,Name and EnemyNear,StateType inside
+    // intros/AI. Only explicitly understood redirects are rewritten; unknown
+    // redirected properties still fail closed with diagnostics.
+    private val redirected = Regex(
+        """(?i)\b(?:enemynear|p2)\s*,\s*(name|statetype|movetype|stateno|life|ctrl|pos\s+[xy]|vel\s+[xy])\b"""
+    )
+    private fun normalize(s:String):String = redirected.replace(s) { match ->
+        "p2" + match.groupValues[1].lowercase().replace(Regex("""\s+""")," ")
+    }
+    private fun parse(s:String):Node {
+        val normalized = normalize(s)
+        return cache[normalized]?:Parser(tokenize(normalized)).parse().also{
         if(cache.size>=4096)cache.clear()
-        cache[s]=it
+        cache[normalized]=it
+        }
     }
     fun number(raw:String,actor:FightingCharacter,errors:MutableSet<String>):Double?=try{
         val n=parse(raw.trim()).read(actor).number()
