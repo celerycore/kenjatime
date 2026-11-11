@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { kotlinFighterFromImportedCharacter } from "../../src/core/kotlin-character-source.js";
+import { createKotlinFightFromImported } from "../../src/core/kotlin-wasm-backend.js";
 
 const bytes = text => new TextEncoder().encode(text);
 function legacyPackage() {
@@ -61,4 +62,21 @@ test("character package preflight validates shape before allocating Wasm handles
   const c=legacyPackage();
   c.checks[4].value="required-custom-common.cns";
   assert.throws(()=>kotlinFighterFromImportedCharacter(c),/Missing required shared state/);
+});
+
+
+test("optional create-from-imported API preserves compatibility diagnostics", () => {
+  let passed=null;
+  const core={create(options) {passed=options;return {checksum:()=>"experimental",close(){}};}};
+  const fight=createKotlinFightFromImported(core,{
+    player1:legacyPackage(),player2:legacyPackage(),
+    arena:{left:-150,right:150}
+  });
+  assert.equal(passed.player1.name,"Dark Donald");
+  assert.equal(passed.player2.name,"Dark Donald");
+  assert.equal(fight.checksum(),"experimental");
+  assert.equal(fight.productionReady,false);
+  assert.deepEqual(passed.arena,{left:-150,right:150});
+  assert.ok(fight.sourceWarnings.some(x=>x.warning.includes("common1.cns")));
+  assert.throws(()=>createKotlinFightFromImported(null,{player1:legacyPackage(),player2:legacyPackage()}),/initialized/);
 });
