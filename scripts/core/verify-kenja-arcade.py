@@ -49,6 +49,28 @@ def main():
                 assert page.locator(".kenja-showcase img").evaluate_all(
                     "(images) => images.every(img => img.complete && img.naturalWidth > 0)"
                 ), "Arcade portrait artwork failed to load"
+                # Check the actual compiled HUD rules in Chromium. The green
+                # fallback silhouette must not cover a loaded portrait.
+                assert page.evaluate("""() => {
+                    const host = document.createElement("section");
+                    host.className = "kenjatime-battle";
+                    host.innerHTML = '<div class="core-hud kt-reference-hud">' +
+                      '<div data-player="0"><div class="kt-hud-portrait kt-hud-has-image">' +
+                      '<img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">' +
+                      '<svg hidden viewBox="0 0 96 120"><circle cx="48" cy="40" r="21"/></svg>' +
+                      '</div></div></div>';
+                    document.body.append(host);
+                    const frame = host.querySelector(".kt-hud-portrait");
+                    const art = frame.querySelector("img");
+                    const fallback = frame.querySelector("svg");
+                    const cleared = getComputedStyle(fallback).display === "none" &&
+                      getComputedStyle(art).display !== "none";
+                    frame.classList.remove("kt-hud-has-image");
+                    fallback.removeAttribute("hidden");
+                    const absent = getComputedStyle(fallback).display !== "none";
+                    host.remove();
+                    return cleared && absent;
+                }"""), "HUD SVG fallback obscures imported fighter portrait"
                 page.locator("#kenja-font").select_option("digital")
                 assert page.locator("body").get_attribute("data-kenja-font") == "digital"
                 page.reload(wait_until="domcontentloaded")
