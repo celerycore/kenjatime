@@ -60,7 +60,7 @@ const box=[[-10,-28,10,0]];
 const fighter={
   path:'wasm-real.def',
   def:{info:{name:'Wasm runtime fixture'},files:{cns:'fixture.cns'}},
-  files:{'fixture.cns':encode('[Data]\\nlife=10000\\npower=3000\\n[Statedef 0]\\ntype=S\\nmovetype=I\\nphysics=N\\nctrl=0\\nanim=0\\n')},
+  files:{'fixture.cns':encode('[Data]\nlife=10000\npower=3000\n[Statedef 0]\ntype=S\nmovetype=I\nphysics=N\nctrl=0\nanim=0\n')},
   animations:[0,200].map(id=>({id,frames:[{group:0,number:0,ticks:-1,clsn1:id===200?box:[],clsn2:box}]})),
 };
 const shotSpec={projanim:200,projremove:0,projhits:10000,
@@ -95,9 +95,9 @@ live.kotlinCombatKernel.dispose();
 // Validate the compiled scheduler through CoreSession and authored ZSS.
 const baseFiles=unzipSync(readFileSync(new URL('../../public/kfm.zip',import.meta.url)));
 const text=new TextDecoder().decode(baseFiles['kfm/kfm.def']);
-baseFiles['kfm/kfm.def']=encode(text.replace('[Files]','[Files]\\nst88=wasm-globals.zss\\n'));
+baseFiles['kfm/kfm.def']=encode(text.replace('[Files]','[Files]\nst88=wasm-globals.zss\n'));
 baseFiles['kfm/wasm-globals.zss']=encode(
-  '[StateDef -4]\\nvar(50):=var(50)+1;\\n[StateDef +1]\\nvar(51):=var(51)+2;\\n'
+  '[StateDef -4]\nvar(50):=var(50)+1;\n[StateDef +1]\nvar(51):=var(51)+2;\n'
 );
 const jsSession=new CoreSession(baseFiles,{mode:'training',character:'kfm/kfm.def'});
 const wasmSession=new CoreSession(baseFiles,{mode:'training',character:'kfm/kfm.def',kotlinCombatBackend:backend});
