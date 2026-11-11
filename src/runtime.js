@@ -781,6 +781,30 @@ export class FighterRuntime {
     const ordered=this.world?.orderedPhases;
     // Global IKEMEN state -4 executes even during game pause.
     this._zssSteps=0;
+    // Kotlin/Wasm selects executable phase slots; JavaScript still owns script
+    // evaluation. Guard the opt-in decision against the proven JS semantics
+    // and fall back immediately on disagreement or a broken Wasm instance.
+    const phaseEnabled=(bit,expected)=>{
+      const kernel=this.world?.kotlinCombatKernel;
+      if(!kernel)return expected;
+      let mask;
+      try {
+        mask=kernel.phaseMask(!this.parent,!!this.keyCtrl,
+          this.stateOwner===this,!!worldPaused,!!this._initializing,!!this.destroyed);
+        if(!Number.isInteger(mask)||mask<0||mask>63)
+          throw Error('Invalid Kotlin global scheduling mask');
+      }catch(error){
+        this.world.kotlinCombatKernel=null;
+        this.diagnostic('kotlin-wasm-fallback',String(error?.message||error));
+        return expected;
+      }
+      if(Boolean(mask&bit)!==expected){
+        this.world.kotlinCombatKernel=null;
+        this.diagnostic('kotlin-wasm-fallback','Global phase mismatch at bit '+bit);
+        return expected;
+      }
+      return Boolean(mask&bit);
+    };
     let resumedAnimation=false;
     if(ordered&&!worldPaused&&this._pausedAnimation){
       if(this._pausedAnimation.serial===this._animationSerial){restoreAnimationClock(this,this._pausedAnimation.logic);resumedAnimation=true;}
@@ -803,10 +827,10 @@ export class FighterRuntime {
     if(!this.destroyed){
       this.asserted=new Set();
       this._executing=null;
-      this.runState(-4,false,this);
+      if(phaseEnabled(1,true))this.runState(-4,false,this);
     }
     if (worldPaused || this.destroyed) {
-      if(!this.destroyed)this.runState('global+1',false,this);
+      if(!this.destroyed&&phaseEnabled(32,true))this.runState('global+1',false,this);
       if(!this.world)this.updateExplods({forceFrozen:true});
       this.gameTime++; return this.events;
     }
@@ -838,17 +862,18 @@ export class FighterRuntime {
     for(let slot=0;slot<2;slot++){const filter=this.hitFilters[slot];if(filter?.time>0&&--filter.time===0)this.hitFilters[slot]=null;}
     for (const [slot, override] of this.hitOverrides) if(override.time>0&&--override.time===0)this.hitOverrides.delete(slot);
     if (!this.parent) {
-      if (this.stateOwner === this) this.runState(-3, paused, this);
-      this.runState(-2, paused, this);
+      if (this.stateOwner === this&&phaseEnabled(2,true)) this.runState(-3, paused, this);
+      if (phaseEnabled(4,true))this.runState(-2, paused, this);
     }
-    if (this.keyCtrl && this.stateOwner === this&&!this._initializing) this.runState(-1, paused, this.parent ? this.root : this);
+    if (this.keyCtrl && this.stateOwner === this&&!this._initializing&&phaseEnabled(8,true))
+      this.runState(-1, paused, this.parent ? this.root : this);
     if(this.destroyed){this.finishPausedAnimation();this.gameTime++;return this.events;}
     if (!paused&&!this._initializing) this.automaticTransitions();
     if(!paused&&this.stateNo===5110&&this.time>=1&&this.alive&&(this.getHitVars.recovertime??1)<=0&&this.stateOwner.program.states.has(5120))this.changeState(5120);
     let serial;
     do { serial = this._entrySerial;
       if(this._initializing&&this.options.skipIntro&&[190,191].includes(this.stateNo)){this.changeState(0);this.ctrl=1;}
-      else this.runState(this.stateNo, paused);
+      else if(phaseEnabled(16,true))this.runState(this.stateNo, paused);
     }
     while (serial !== this._entrySerial && this._changeCount <= 64);
     // IKEMEN post-state global +1 runs after current-state controllers even
