@@ -42,15 +42,13 @@ test('large literal persistent is usable while dynamic persistent remains invali
  const broken=parseProgram({path:'bad.def',def:{files:{cns:'bad.cns'}},files:{'bad.cns':bytes(cns.replace('999999999999','var(3)'))}});
  assert.ok(broken.diagnostics.some(d=>d.type==='controller-parameter'&&/persistent/.test(d.message)));
 });
-test('StateDef ownpal gives helpers independent remap snapshot',()=>{
- const root=actor();
- assert.equal(root.program.diagnostics.filter(d=>d.type==='unsupported-state-parameter').length,0);
- const helper=root.createHelper({stateno:0,id:9});
- assert.ok(helper&&!helper.destroyed);
- assert.equal(helper.ownPal,false);
- helper.changeState(2050);
- assert.equal(helper.ownPal,true);
- assert.notEqual(helper.paletteRemaps,root.paletteRemaps);
+test('StateDef ownpal remains unsupported exactly as native IKEMEN GO warns',()=>{
+  const root=actor();
+  assert.ok(root.program.diagnostics.some(d=>d.type==='unsupported-state-parameter'&&/ownpal/.test(d.message)));
+  const helper=root.createHelper({stateno:0,id:9});
+  assert.ok(helper&&!helper.destroyed);
+  helper.changeState(2050);
+  assert.equal(helper.ownPal,false);
 });
 test('authored gurad.pausetime typo is ignored instead of silently altering hitpause',()=>{
  const f=actor();
