@@ -1,0 +1,120 @@
+name: Kenjatime PR 13 isolated website preview
+
+on:
+  push:
+    branches:
+      - preview/pr13-website-20261111
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kenjatime-pr13-website-preview
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    name: Build PR 13 site and publish under /pr13/ only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install exact locked dependencies before tests
+        run: npm ci
+
+      - name: Test PR 13 blueprint UI bridges
+        run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js test/core/blueprint-foundations.test.js
+
+      - name: Build independent browser website
+        run: npm run build:core
+
+      - name: Mark build and visibly identify experimental PR 13 preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const dir='dist-core';
+          const page=dir+'/core/index.html';
+          const source=readFileSync(page,'utf8');
+          if (!source.includes('</body>')) throw Error('Core HTML entry point missing');
+          const banner=`<style>
+          #pr13-site-mark{position:fixed;right:10px;top:10px;z-index:2147483647;
+            display:flex;gap:8px;align-items:center;max-width:calc(100vw - 20px);
+            box-sizing:border-box;padding:6px 9px;background:rgba(10,18,30,.92);
+            color:#eef6ff;border:1px solid #7897c6;border-radius:8px;
+            font:600 11px/1.25 system-ui,sans-serif;box-shadow:0 2px 14px #0006}
+          #pr13-site-mark a{color:#cce5ff;text-decoration:none;white-space:nowrap}
+          #pr13-site-mark span{font-size:10px;opacity:.75;white-space:nowrap}
+          #pr13-site-mark button{border:0;background:none;color:white;font-size:15px;
+            line-height:1;cursor:pointer;padding:0 3px}
+          @media(max-width:420px){#pr13-site-mark span{display:none}}
+          </style><div id="pr13-site-mark" role="note" aria-label="PR 13 development preview">
+          <a href="https://github.com/celerycore/kenjatime/pull/13" target="_blank"
+          rel="noopener noreferrer">PR #13 PREVIEW</a>
+          <span>Experimental foundations · JS gameplay</span>
+          <button type="button" aria-label="Hide preview label"
+          onclick="this.parentNode.remove()">×</button></div>`;
+          writeFileSync(page,source.replace('</body>',banner+'</body>'));
+          const info={
+            project:'Kenjatime Core PR #13 isolated website preview',
+            source:'celerycore/kenjatime',
+            originalPr:'https://github.com/celerycore/kenjatime/pull/13',
+            branch:process.env.GITHUB_REF_NAME,
+            commit:process.env.GITHUB_SHA,
+            runtime:'existing JavaScript Core match engine',
+            kotlinWasm:'experimental foundations present in source, not default browser gameplay',
+            originalCharacterArchivesIncluded:false,
+            productionReplaced:false
+          };
+          writeFileSync(dir+'/build-info.json',JSON.stringify(info,null,2)+'\n');
+          NODE
+          test -f dist-core/index.html
+          test -f dist-core/core/index.html
+          test -f dist-core/provenance.json
+
+      - name: Checkout public pages without replacing live website
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: existing-pages
+          persist-credentials: true
+
+      - name: Publish only /pr13/ preview directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f existing-pages/index.html
+          test -f existing-pages/.nojekyll
+          mkdir -p existing-pages/pr13
+          rsync -a --delete dist-core/ existing-pages/pr13/
+          test -f existing-pages/pr13/index.html
+          test -f existing-pages/pr13/core/index.html
+          cd existing-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- pr13
+          if git diff --cached --quiet; then
+            echo "Preview already up to date"
+          else
+            git commit -m "Publish isolated PR 13 website preview from ${GITHUB_SHA}"
+            git push origin HEAD:gh-pages
+          fi
+
+      - name: Upload build archive for independent review
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-pr13-preview-site
+          path: dist-core/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Show standalone preview address
+        run: echo "https://celerycore.github.io/kenjatime/pr13/"
