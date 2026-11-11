@@ -1,0 +1,87 @@
+name: Core Preview Android APK and emulator gameplay gate
+
+on:
+  push:
+    branches: [feature/kotlin-wasm-blueprint-20261111]
+    paths:
+      - 'android/app/src/androidTest/**'
+      - 'android/app/build.gradle'
+      - '.github/workflows/core-preview-android-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  apk-and-webview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Build exact offline Core Preview web assets
+        run: npm run android:core:copy
+      - name: Build debug Android APK and instrumented test APK
+        run: |
+          cd android
+          ./gradlew -PkenjatimeCorePreview=true :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Inspect APK signature, offline asset hashes and embedded metadata
+        run: python scripts/core/verify-android.py
+      - name: Enable KVM for the Android emulator
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm
+          fi
+      - name: Boot Android 35 WebView and run actual KFM fight
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            set +e
+            cd android
+            ./gradlew -PkenjatimeCorePreview=true :app:connectedDebugAndroidTest --stacktrace
+            test_status=$?
+            cd ..
+            mkdir -p work/core
+            adb shell screencap -p /sdcard/kenjatime-core-preview.png
+            adb pull /sdcard/kenjatime-core-preview.png work/core/android-emulator-kfm.png
+            adb shell getprop ro.build.version.release > work/core/android-emulator-release.txt
+            adb shell getprop ro.product.model > work/core/android-emulator-model.txt
+            adb logcat -d -v time > work/core/android-emulator-logcat.txt
+            adb shell dumpsys gfxinfo io.github.celerycore.kenjatime.core.preview > work/core/android-emulator-gfxinfo.txt
+            exit "$test_status"
+      - name: Save emulator instrumentation and APK evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-core-preview-android-emulator-evidence
+          path: |
+            android/app/build/outputs/apk/debug/*.apk
+            android/app/build/outputs/apk/androidTest/debug/*.apk
+            android/app/build/reports/androidTests/**
+            android/app/build/outputs/androidTest-results/**
+            work/core/android-evidence.json
+            work/core/android-emulator-kfm.png
+            work/core/android-emulator-release.txt
+            work/core/android-emulator-model.txt
+            work/core/android-emulator-logcat.txt
+            work/core/android-emulator-gfxinfo.txt
+          if-no-files-found: warn
+          retention-days: 7
