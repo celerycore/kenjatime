@@ -11,7 +11,12 @@ function decodeText(bytes) {
   if (bytes[0] === 0xfe && bytes[1] === 0xff)
     return new TextDecoder("utf-16be").decode(bytes);
   try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
-  catch { return new TextDecoder("windows-1252").decode(bytes); }
+  catch {
+    // The uploaded Dark Donald/legacy Rare Akuma sources include CP932 text.
+    // WHATWG "shift_jis" implements the Windows-31J-compatible map.
+    try { return new TextDecoder("shift_jis", { fatal: true }).decode(bytes); }
+    catch { return new TextDecoder("windows-1252").decode(bytes); }
+  }
 }
 
 const STATE_KEY = /^(cns|st\d*)$/i;
