@@ -1,7 +1,7 @@
 {
   "repository": "celerycore/kenjatime",
   "branch": "feature/kotlin-wasm-blueprint-20261111",
-  "commit": "7c446c7867827edd74c2192a3b0e327b2deca9da",
+  "commit": "056634872b4de4b7a854b2d2b0105df33c8696b5",
   "channel": "gpu-camera-test",
   "fixes": [
     "texture-lru",
