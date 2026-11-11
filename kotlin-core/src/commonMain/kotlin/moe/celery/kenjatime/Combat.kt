@@ -479,6 +479,30 @@ class FightingCharacter(
         }
         return false
     }
+    /**
+     * A scripted -3/-2/-1 controller can attack with no input at all.
+     * Before FIGHT, display only the authored standing animation and
+     * suppress all scripts, hits, velocity, and command buffering.
+     */
+    fun tickPreFightIdle() {
+        if (destroyed) return
+        if (stateNo != 0) changeState(0)
+        commandCache.clear()
+        asserted.clear()
+        control = false
+        velX = 0
+        velY = 0
+        activeHitDef = null
+        moveContact = false
+        moveHit = false
+        moveGuarded = false
+        animation?.advance()
+    }
+    fun releasePreFightIdle() {
+        if (destroyed) return
+        // State time and scripted AI start from FIGHT, never from ROUND 1.
+        changeState(0)
+    }
     fun tick(errors: MutableSet<String>) {
         if (destroyed) return
         asserted.clear()
@@ -550,6 +574,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         private set
     fun enableRoundFlow(rules: CoreRoundRules = CoreRoundRules()) {
         roundFlow = CoreRoundFlow(rules)
+        p1.control = false
+        p2.control = false
     }
     var arena: ArenaRules? = null
         private set
@@ -583,6 +609,23 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         val allowCombat = sequence == null || sequence.active
         p1.input.update(if (allowCombat) a else InputFrame())
         p2.input.update(if (allowCombat) b else InputFrame())
+        // No scripts, velocities, contact or summoned entities during the
+        // intro/ROUND/FIGHT cue. The opponent cannot attack while the
+        // announcer is still speaking, even via its global -3 AI state.
+        val prefight = sequence != null && !allowCombat &&
+            sequence.phase in setOf(CoreRoundPhase.INTRO, CoreRoundPhase.ROUND, CoreRoundPhase.FIGHT_CUE)
+        if (prefight) {
+            p1.tickPreFightIdle()
+            p2.tickPreFightIdle()
+            camera?.update(p1,p2)
+            sequence!!.step(p1,p2)
+            if (sequence.active) {
+                p1.releasePreFightIdle()
+                p2.releasePreFightIdle()
+            }
+            frame++
+            return
+        }
         val p1Frozen = p1.hitPauseLeft > 0
         val p2Frozen = p2.hitPauseLeft > 0
         p1.tick(issues)
