@@ -1,37 +1,134 @@
-name: Kenjatime Forest Ako Asuna Fix — browser build artifact
+name: Kenjatime isolated Forest GPU camera test site
 on:
   push:
     branches: [feature/kotlin-wasm-blueprint-20261111]
     paths:
+      - 'src/**'
+      - 'core/**'
+      - 'scripts/core/**'
+      - 'test/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.core.config.js'
       - '.github/workflows/forest-ako-asuna-preview.yml'
   workflow_dispatch:
+
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: kenjatime-forest-gpu-camera-pages
+  cancel-in-progress: false
+
 jobs:
-  browser-build:
+  verify-and-publish-isolated-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - run: npm ci
-      - name: Verify GPU residency and legacy stage camera behavior
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked browser runtime dependencies
+        run: npm ci
+      - name: Verify texture residency and native-scale camera
         run: node --test test/core/gpu-residency-regression.test.js test/core/legacy-stage-viewport-regression.test.js
-      - name: Run full Kenjatime Core suite
+      - name: Run all Core unit tests
         run: npm run test:core
-      - name: Build isolated, import-ready Kenjatime Core browser preview
+      - name: Verify compiled parser and controller contracts
+        run: npm run test:core:compiled
+      - name: Build isolated Core test site (without user archives)
         run: npm run build:core
-      - name: Stamp build provenance and confirm no character archives included
+      - name: Verify actual browser startup and fight
         run: |
-          test -d dist-core
-          printf '{"repo":"celerycore/kenjatime","commit":"%s","branch":"%s","stageFix":"Forest of King Cruel 16:9 camera and 64MiB LRU GPU","characterArchivesIncluded":false}\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist-core/build-info.json
-      - name: Publish isolated downloadable preview without deploying website
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+          npm run verify:core:browser
+      - name: Stamp build identity
+        run: |
+          node --input-type=module -e '
+            import {writeFileSync} from "node:fs";
+            writeFileSync("dist-core/build-info.json",JSON.stringify({
+              repository:"celerycore/kenjatime",
+              branch:process.env.GITHUB_REF_NAME,
+              commit:process.env.GITHUB_SHA,
+              channel:"gpu-camera-test",
+              fixes:["texture-lru","sff-texture-recovery","legacy-widescreen-framing"],
+              charactersIncluded:false,
+              stageIncluded:false,
+              kotlinWasmDefault:false
+            },null,2)+"\n");
+          '
+          test -f dist-core/index.html
+          test -f dist-core/core/index.html
+          test -f dist-core/build-info.json
+          # Character packages were supplied privately and are never checked into this build.
+          if find dist-core -type f | grep -Ei '/(Ako|Asuna|Forest.of.King.Cruel)\.(zip|rar)$'; then
+            echo "Original private archives must not be embedded" >&2
+            exit 1
+          fi
+      - name: Preserve verified standalone browser build
         uses: actions/upload-artifact@v4
         with:
-          name: kenjatime-ako-asuna-forest-gpu-camera-fixed-web-preview
+          name: kenjatime-forest-gpu-camera-verified-site
           path: dist-core/
           retention-days: 14
           if-no-files-found: error
+      - name: Checkout existing GitHub Pages site separately
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: existing-pages
+          persist-credentials: true
+      - name: Publish only /gpu-camera-test/ without touching the live site
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f existing-pages/index.html
+          test -f existing-pages/.nojekyll
+          test -f existing-pages/arcade/core/index.html
+          test -f existing-pages/core-test/core/index.html
+          sha256sum existing-pages/index.html existing-pages/.nojekyll existing-pages/arcade/core/index.html existing-pages/core-test/core/index.html > /tmp/kenjatime-live-checksums
+          mkdir -p existing-pages/gpu-camera-test
+          rsync -a --delete dist-core/ existing-pages/gpu-camera-test/
+          test -f existing-pages/gpu-camera-test/core/index.html
+          test -f existing-pages/gpu-camera-test/build-info.json
+          sha256sum -c /tmp/kenjatime-live-checksums
+          cd existing-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- gpu-camera-test
+          if git diff --cached --quiet; then
+            echo "The isolated test site already matches the checked-in build."
+          else
+            if git diff --cached --name-only | grep -v '^gpu-camera-test/'; then
+              echo "Refusing to publish changes outside gpu-camera-test/" >&2
+              exit 1
+            fi
+            git commit -m "Publish isolated GPU/camera test site from ${GITHUB_SHA}"
+            git pull --rebase origin gh-pages
+            git push origin HEAD:gh-pages
+          fi
+      - name: Confirm actual public GitHub Pages build
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://celerycore.github.io/kenjatime/gpu-camera-test"
+          for attempt in $(seq 1 36); do
+            metadata="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "${base}/build-info.json?rev=${GITHUB_SHA}" || true)"
+            if [[ "$metadata" == *"$GITHUB_SHA"* ]]; then
+              curl -fsSL --max-time 20 "${base}/core/index.html" | grep -q 'Kenjatime Core'
+              echo "Verified published test site: ${base}/"
+              exit 0
+            fi
+            echo "Waiting for GitHub Pages to serve source ${GITHUB_SHA} (attempt ${attempt})"
+            sleep 10
+          done
+          echo "GitHub Pages did not serve the expected test build; check deployment logs." >&2
+          exit 1
