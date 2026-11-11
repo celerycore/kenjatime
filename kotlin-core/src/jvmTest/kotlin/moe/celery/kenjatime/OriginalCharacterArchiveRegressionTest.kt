@@ -46,7 +46,7 @@ class OriginalCharacterArchiveRegressionTest {
         private val files = names.associateBy { it.replace('\\','/').lowercase() }
         val defPath = names.singleOrNull { it.lowercase().endsWith(".def") }
             ?: error("Expected exactly one character DEF")
-        private val base = defPath.substringBeforeLast('/','').let { if (it.isEmpty()) "" else "$it/" }
+        private val base = defPath.substringBeforeLast('/',"").let { if (it.isEmpty()) "" else "$it/" }
         val def = MugenDefParser.parse(load(defPath))
         val filesSection = def.section("Files") ?: error("Character DEF has no [Files]")
         fun getFile(key: String): String {
