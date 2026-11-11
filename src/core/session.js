@@ -134,6 +134,7 @@ export class CoreSession {
     this.indices = new Map();
     this.bankIds = new Map();
     this.spriteMetadata = new Map();
+    this.paletteFallbacks = new Map();
     this.sent = new Set();
     this.assets = [];
     this.events = [];
@@ -395,6 +396,9 @@ export class CoreSession {
           pixels,
           indexed: false,
         });
+        // A missing authored palette can use this per-palette 1 KiB fallback
+        // when GPU eviction later requires it again.
+        this.paletteFallbacks.set(paletteId, pixels.slice());
         this.sent.add(paletteId);
       }
       return {
@@ -411,6 +415,40 @@ export class CoreSession {
       return null;
     }
   }
+  /** Reconstruct only images explicitly missing from the active GPU frame. */
+  restoreAssets(ids) {
+    const assets = [];
+    if (this.closed) return assets;
+    const resources = new Map([...this.bankIds].map(([resource, id]) => [String(id), resource]));
+    for (const id of new Set(ids || [])) {
+      if (typeof id !== 'string' || id.startsWith('@')) continue;
+      const split = id.indexOf(':'),resource = resources.get(id.slice(0, split));
+      if (split < 1 || !resource) continue;
+      const bank = this.banks.get(resource);
+      if (!bank) continue;
+      try {
+        if (id.includes(':pal:')) {
+          const pair = id.slice(id.indexOf(':pal:') + 5).split(',').map(Number);
+          if (pair.length !== 2 || pair.some(n => !Number.isSafeInteger(n))) continue;
+          const pixels = this.paletteFallbacks.get(id) || bank.paletteColors(...pair);
+          if (!pixels || pixels.length < 1024) continue;
+          assets.push({id,width:256,height:1,indexed:false,pixels:new Uint8Array(pixels.slice(0,1024))});
+        } else {
+          const index = Number(id.slice(split+1)), meta = this.spriteMetadata.get(id);
+          if (!Number.isSafeInteger(index) || index < 0 || !meta) continue;
+          const decoded = bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) || bank.decode(index);
+          const pixels = meta.indexed ? decoded.indices : decoded.rgba;
+          if (!pixels || pixels.length !== meta.w * meta.h * (meta.indexed ? 1 : 4)) continue;
+          assets.push({id,width:meta.w,height:meta.h,indexed:meta.indexed,pixels:new Uint8Array(pixels)});
+          bank.clearDecodedCache?.();
+        }
+      } catch (error) {
+        this.issue('texture-restore', 'Could not restore sprite ' + id + ': ' + error.message);
+      }
+    }
+    return assets;
+  }
+
   quad(
     draws,
     resource,
@@ -829,6 +867,7 @@ export class CoreSession {
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
     this.sent.clear();
+    this.paletteFallbacks.clear();
     this.gameEffects=[];
     this.events = [];
   }
