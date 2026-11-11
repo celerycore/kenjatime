@@ -36,7 +36,7 @@ test("PR12 strict round lock keeps both aggressive scripted AI fighters neutral 
     playerAILevel:4,opponentAILevel:4, pushboxes:false
   });
   const x=[m.player.pos.x,m.opponent.pos.x];
-  for(let tick=0;tick<5;tick++){
+  for(let tick=0;tick<6;tick++){
     const before=m.roundFlow.roundState;
     assert.notEqual(before,2);
     m.tick(new Set(["jab"]),new Set(["jab"]),{
