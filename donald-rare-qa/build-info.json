@@ -1,0 +1,16 @@
+{
+  "channel": "dark-donald-rare-akuma-qa",
+  "repository": "celerycore/kenjatime",
+  "branch": "release/gpu-camera-js-fallback-20261111",
+  "commit": "df3e605ac511213dbf5a19a7d89a0ddf950297ab",
+  "production": false,
+  "defaultEngine": "JavaScript",
+  "kotlinWasmDefault": false,
+  "characterArchivesIncluded": false,
+  "fixes": [
+    "bounded-cpu-jump-retry",
+    "authored-scripted-ko-attribution",
+    "csv-scripted-ko-fields",
+    "gpu-and-camera"
+  ]
+}
