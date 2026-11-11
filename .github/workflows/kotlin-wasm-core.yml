@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '24'
       - name: Check opt-in JavaScript browser bridge
-        run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js
+        run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js test/core/kotlin-character-source.test.js
       - name: Verify deterministic Kotlin/JVM tests
         run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
       - name: Execute shared deterministic tests in Kotlin/Wasm Node
