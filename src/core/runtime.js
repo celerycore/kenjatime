@@ -1,4 +1,5 @@
 import { CoreSession } from "./session.js";
+import {normalizePresentation} from "./presentation.js";
 import { CoreThreeRenderer } from "./three-renderer.js";
 import { FrameClock } from "../frame-clock.js";
 import { TickInputBuffer } from "../input-buffer.js";
@@ -158,6 +159,7 @@ export function createCoreRuntime(emit) {
         renderer.render(packet, {
           width: Math.round(960 * scale),
           height: Math.round(540 * scale),
+          restoreAssets: ids=>session.restoreAssets(ids),
         });
         // Let the simulation know which GPU textures were evicted or could
         // not fit this frame. Source SFF remains intact; only reappearing
@@ -338,6 +340,12 @@ export function createCoreRuntime(emit) {
       clock.suspend();
       dirty = true;
       if (started) schedule();
+    }
+    if (data.type === "presentation") {
+      if(session)session.setPresentation(normalizePresentation(data.value));
+      dirty=true;
+      if(started)schedule();
+      return;
     }
     if (data.type === "quality") {
       quality = data.value;
