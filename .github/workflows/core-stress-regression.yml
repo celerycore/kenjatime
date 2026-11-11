@@ -1,0 +1,42 @@
+name: Kenjatime Core Stress Regression
+
+on:
+  push:
+    branches:
+      - feature/kotlin-wasm-blueprint-20261111
+    paths:
+      - 'src/**'
+      - 'test/core/**'
+      - 'scripts/core/**'
+      - '.github/workflows/core-stress-regression.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'test/core/**'
+      - 'scripts/core/**'
+      - '.github/workflows/core-stress-regression.yml'
+  workflow_dispatch:
+
+jobs:
+  combat-and-zss:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Projectile memory and broadphase regression
+        run: node --test test/core/projectile-stress-optimization.test.js
+      - name: Extended ZSS globals regression
+        run: node --test test/core/extended-global-scheduler.test.js
+      - name: Existing ZSS compatibility fixtures
+        run: node --test test/core/zss.test.js
+      - name: Full Core unit suite
+        run: npm run test:core
+      - name: Original interaction compatibility comparison
+        run: npm run verify:core:interactions
+      - name: KFM 147-scenario native compatibility gate
+        run: npm run verify:core:movesets
