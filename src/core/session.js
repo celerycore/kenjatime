@@ -109,6 +109,7 @@ export class CoreSession {
       manageInputs: true,
       orderedPhases: true,
       cameraFollow: true,
+      kotlinCombatBackend: selection.kotlinCombatBackend || null,
       expressionEvaluator: (s, c) => this.expressions.evaluate(s, c),
       stage,
       playerPalette: selection.palette || 1,
