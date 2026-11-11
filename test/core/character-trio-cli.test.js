@@ -31,14 +31,24 @@ test('Three-package runtime CLI accepts distinct self-contained KFM-derived fixt
         }else writeFileSync(dest,data);
       }
     }
+    // Exercise the optional matched fightfx import with synthetic assets.
+    // Actual official engine art stays outside the repository.
+    const effects=join(tmp,'native-fx');
+    mkdirSync(effects);
+    writeFileSync(join(effects,'fightfx.air'),encode(
+      '[Begin Action 2]\\n0,0,0,0,-1\\n[Begin Action 60]\\n0,0,0,0,-1\\n'
+    ));
+    writeFileSync(join(effects,'fightfx.sff'),source['kfm/kfm.sff']);
     const output=join(tmp,'results.json');
     const child=spawnSync(process.execPath,[
       resolve(root,'scripts/core/verify-character-trio.mjs'),...paths,
-      '--ticks=2','--runs=1','--render','--output='+output,'--strict'
+      '--ticks=2','--runs=1','--render','--fightfx-dir='+effects,'--output='+output,'--strict'
     ],{cwd:root,encoding:'utf8',timeout:120000,maxBuffer:1048576*4});
     assert.equal(child.status,0,[child.stdout,child.stderr].join('\n').slice(-5000));
     const report=JSON.parse(readFileSync(output,'utf8'));
     assert.equal(report.results.length,3);
+    assert.ok(report.matchedFightFx?.sha256?.['fightfx.air']);
+    assert.ok(report.matchedFightFx?.sha256?.['fightfx.sff']);
     for(const item of report.results){
       assert.equal(item.deterministic,true,item.label);
       assert.equal(item.runs.length,1);
