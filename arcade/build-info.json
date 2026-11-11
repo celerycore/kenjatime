@@ -1,0 +1,16 @@
+{
+  "project": "Kenjatime Arcade Browser UI",
+  "source": "celerycore/kenjatime",
+  "sourceCommit": "47b78dad1009cf38bfbab328c189f2d128a9872f",
+  "sourceBranch": "feature/kenjatime-arcade-browser-ui-20261111",
+  "runtime": "unchanged JavaScript Core",
+  "kotlinWasmLive": false,
+  "futureDefaultCharacters": [
+    "Gart Bernstein",
+    "Edelweiss"
+  ],
+  "futureCharactersPlayable": false,
+  "thirdPartyFighterArchivesIncluded": false,
+  "importArchiveFeaturePreserved": true,
+  "stageImportFeaturePreserved": true
+}

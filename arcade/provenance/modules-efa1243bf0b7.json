@@ -1,0 +1,11 @@
+{
+  "sources": {
+    "src/archive-export-worker.js": "aac951042a3806b0a6394f65b6d39354d563096d7228456b9a481abacef9b502",
+    "src/archive-limits.js": "f3890d703c9aa16ce6ba5f96f4700fecf69b0461cc289a4c3e92dae56269d70e",
+    "src/archive-volumes.js": "5c4f6c1274aaa0add7c442f1dbed4082fe29dee3c759ff9f169530f4ba40c5ff"
+  },
+  "thirdPartyPackages": [
+    "fflate"
+  ],
+  "scope": "Distribution dependency boundary. Third-party graphics, audio, archive and platform libraries retain their own authorship and licenses. This policy does not certify universal behavioral compatibility."
+}
