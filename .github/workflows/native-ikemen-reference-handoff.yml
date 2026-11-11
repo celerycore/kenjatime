@@ -29,3 +29,5 @@ jobs:
             reference/SHA256SUMS.txt
           retention-days: 1
           if-no-files-found: error
+
+# Re-run for November 11 character compatibility and native/Android validation gates.
