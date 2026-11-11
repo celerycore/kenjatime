@@ -84,3 +84,173 @@
 .core-announcement[hidden] {
   display: none;
 }
+
+
+/* Kenjatime reference HUD — 1350 × 191 layout, scaled with arena width.
+   Read-only presentation: native meter values, timer, and round state remain authoritative.
+   No new WebGL textures or canvas compositing. */
+.kenjatime-battle-screen { container-type: inline-size; }
+.kenjatime-battle .core-hud.kt-reference-hud {
+  position: absolute !important;
+  inset: 0 auto auto 0 !important;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1350 / 191;
+  display: block !important;
+  overflow: hidden;
+  isolation: isolate;
+  z-index: 5;
+  font-family: var(--kt-ui,"Rajdhani",sans-serif);
+  color: #fff;
+  pointer-events: none;
+  text-shadow: none;
+}
+.kenjatime-battle .core-hud.kt-reference-hud > .kt-hud-backdrop,
+.kenjatime-battle .core-hud.kt-reference-hud > .kt-hud-logo,
+.kenjatime-battle .core-hud.kt-reference-hud > .kt-hud-clock {
+  position: absolute; display: block;
+  padding: 0 !important; margin: 0 !important;
+  border: none !important; border-radius: 0 !important;
+  background: transparent !important; box-shadow: none !important;
+}
+.kt-reference-hud .kt-hud-backdrop { inset: 0; width: 100%; height: 100%; z-index: 0; }
+.kt-reference-hud .kt-hud-backdrop svg { width:100%; height:100%; display:block; }
+.kenjatime-battle .core-hud.kt-reference-hud > div[data-player] {
+  position: absolute !important; top: 0; left: 0; right: auto; bottom: auto;
+  height: 100%; width: 50%;
+  display: block !important;
+  padding: 0 !important; margin: 0 !important; border: 0 !important;
+  background: transparent !important; box-shadow: none !important;
+  z-index: 2; text-align: left;
+  color: white;
+}
+.kenjatime-battle .core-hud.kt-reference-hud > div[data-player="1"] {
+  left: auto; right: 0; text-align: right;
+}
+.kenjatime-battle .core-hud.kt-reference-hud > div[data-player] b {
+  display: block; position: absolute;
+  left: 21.5%; top: 76%;
+  width: 34%; padding:0; margin:0;
+  font: italic 900 2.6cqw / 1 var(--kt-display,"Russo One",sans-serif) !important;
+  color: #fff !important;
+  letter-spacing: -.08em; text-transform: uppercase;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  -webkit-text-stroke: .04cqw #080a0e;
+  text-shadow: .16cqw .14cqw 0 #020403;
+  transform: skewX(-8deg); z-index: 5;
+}
+.kenjatime-battle .core-hud.kt-reference-hud > div[data-player="1"] b {
+  left:auto; right:21.5%; text-align:right;
+}
+.kenjatime-battle .core-hud.kt-reference-hud > div[data-player] meter {
+  position: absolute !important;
+  left: 26.9%; top: 52%; width: 60.8% !important;
+  height: 2.65cqw !important; min-height:0 !important;
+  padding:0 !important; margin:0 !important; border:0 !important;
+  -webkit-appearance:none !important; appearance:none !important;
+  background:#24420d !important;
+  border-radius:0 !important;
+  clip-path:polygon(1% 0,97% 0,100% 50%,96% 100%,0 100%);
+  transform:none !important;
+  z-index:3;
+}
+.kenjatime-battle .core-hud.kt-reference-hud > div[data-player="1"] meter {
+  left:12.3%; transform:scaleX(-1) !important;
+}
+.kenjatime-battle .core-hud.kt-reference-hud meter::-webkit-meter-bar {
+  background:#1b380a !important; border:0 !important; border-radius:0 !important;
+  box-shadow:inset 0 .2cqw .1cqw #091a00;
+}
+.kenjatime-battle .core-hud.kt-reference-hud meter::-webkit-meter-optimum-value,
+.kenjatime-battle .core-hud.kt-reference-hud meter::-webkit-meter-suboptimum-value {
+  background:linear-gradient(180deg,#f0ffa1 0%,#d0ff14 17%,#83ff00 66%,#159100 100%) !important;
+  box-shadow:inset 0 .2cqw .09cqw #fff8;
+}
+.kenjatime-battle .core-hud.kt-reference-hud meter::-webkit-meter-even-less-good-value {
+  background:linear-gradient(180deg,#ffe45c,#ff375d) !important;
+}
+.kenjatime-battle .core-hud.kt-reference-hud meter::-moz-meter-bar {
+  background:linear-gradient(180deg,#f2ffa1,#acff0a 45%,#219d00) !important;
+}
+.kenjatime-battle .core-hud.kt-reference-hud > div[data-player] > small { display:none !important; }
+.kt-reference-hud .kt-hud-portrait {
+  position:absolute; top:.5%; left:0;
+  width:27%; height:97%;
+  background:linear-gradient(145deg,#26733f,#08180e);
+  clip-path:polygon(20% 10%,53% 0,84% 9%,99% 46%,73% 94%,28% 100%,0 67%,1% 39%);
+  overflow:hidden; z-index:1;
+}
+.kt-reference-hud [data-player="1"] .kt-hud-portrait {
+  left:auto; right:0;
+  background:linear-gradient(225deg,#41344d,#121421);
+  clip-path:polygon(47% 0,79% 10%,99% 39%,100% 67%,72% 100%,27% 94%,1% 46%,16% 9%);
+}
+.kt-reference-hud .kt-hud-portrait img {
+  width:100%; height:100%; display:block;
+  object-fit:cover; object-position:center 18%;
+  filter:saturate(1.24) contrast(1.07);
+}
+.kt-reference-hud .kt-hud-portrait img[hidden],
+.kt-reference-hud .kt-hud-portrait span[hidden] {display:none !important;}
+.kt-reference-hud .kt-hud-portrait span {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:#c6ff20; font:italic 900 6.3cqw/1 var(--kt-display,"Russo One",sans-serif);
+  text-shadow:0 0 .6cqw #8aff00;
+}
+.kt-reference-hud .kt-hud-player-tag {
+  position:absolute; left:30%; top:29%;
+  font:italic 900 1.7cqw/1 var(--kt-display,"Russo One",sans-serif);
+  color:#fff; letter-spacing:-.025em;
+  transform:skewX(-8deg);
+  text-shadow:.15cqw .1cqw #000; z-index:5;
+}
+.kt-reference-hud [data-player="1"] .kt-hud-player-tag {left:auto;right:30%;}
+.kt-reference-hud .kt-hud-rounds {
+  display:flex; gap:.38cqw; position:absolute;
+  top:78.5%;right:15%; align-items:center;z-index:5;
+}
+.kt-reference-hud [data-player="1"] .kt-hud-rounds {right:auto;left:15%;}
+.kt-reference-hud .kt-hud-rounds i {
+  width:1.7cqw; height:1.7cqw; display:block;
+  border:.18cqw solid #f3fff3; border-radius:50%; background:#090b11;
+  box-shadow:0 0 0 .13cqw #05060a;
+}
+.kt-reference-hud .kt-hud-rounds i.kt-round-won {
+  background:#ff1492; box-shadow:0 0 0 .13cqw #05060a,0 0 .38cqw #ff2999;
+}
+.kt-reference-hud .kt-hud-logo {
+  top:3%; left:39%;width:22%;height:31%;z-index:5;
+  display:flex !important;align-items:center;justify-content:center;
+  gap:.6cqw;transform:skewX(-10deg);white-space:nowrap;
+}
+.kt-reference-hud .kt-hud-logo > span:nth-child(2) {
+  font:italic 900 3.6cqw/1 var(--kt-display,"Russo One",sans-serif);
+  color:white;letter-spacing:-.14cqw;
+  text-shadow:.2cqw .15cqw 0 #020b08,.35cqw .27cqw 0 #020604;
+}
+.kt-reference-hud .kt-hud-burst {
+  font:900 1.9cqw/1 system-ui,sans-serif;color:white;
+  letter-spacing:-.6cqw;transform:rotate(-30deg) skewX(-15deg);
+}
+.kt-reference-hud .kt-hud-logo i {
+  position:absolute;right:0;bottom:-18%;width:5.3cqw;height:.9cqw;
+  border-top:.55cqw solid #ff1492;border-radius:50%;transform:rotate(-14deg);
+}
+.kt-reference-hud .kt-hud-clock {
+  left:45.4%;top:34%;width:9.2%;height:50%;z-index:6;
+  display:flex !important;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  transform:skewX(-5deg);
+}
+.kt-reference-hud .kt-hud-clock span {
+  font:italic 900 1.65cqw/.95 var(--kt-display,"Russo One",sans-serif);
+  color:#f2f5f4;text-shadow:.12cqw .1cqw #000;
+}
+.kt-reference-hud .kt-hud-clock strong {
+  font:italic 900 5.65cqw/.93 var(--kt-number,"Oxanium",monospace);
+  color:#d1ff12;letter-spacing:-.5cqw;
+  text-shadow:.18cqw .19cqw 0 #040e04;
+  -webkit-text-stroke:.05cqw #e5ff67;
+}
+.kt-reference-hud .kt-hud-clock strong.kt-time-long {font-size:4.25cqw;letter-spacing:-.3cqw;}
+.kenjatime-battle .core-hud.kt-reference-hud > .core-round {display:none !important;}
