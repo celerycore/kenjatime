@@ -1,11 +1,10 @@
 package kenjatime.core
 
 /**
- * 16.16 signed fixed point. Operations intentionally wrap Int32 after widened multiplication.
+ * 16.16 signed fixed point. This portable wrapper is not used in inner loops;\n * raw IntArray registers avoid boxing on both JVM and Kotlin/Wasm.\n * Operations intentionally wrap Int32 after widened multiplication.
  * Do not convert live MUGEN float32 expressions to fixed point without differential tests.
  */
-@JvmInline
-value class Fixed16(val raw: Int) {
+data class Fixed16(val raw: Int) {
     companion object {
         const val SHIFT = 16
         val ZERO = Fixed16(0)
