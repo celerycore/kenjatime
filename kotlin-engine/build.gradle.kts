@@ -6,7 +6,6 @@ kotlin {
     wasmJs {
         nodejs()
         browser()
-        binaries.library()
     }
     sourceSets {
         commonTest.dependencies { implementation(kotlin("test")) }
