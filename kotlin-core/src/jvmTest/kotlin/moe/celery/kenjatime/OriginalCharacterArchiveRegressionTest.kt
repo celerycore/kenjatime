@@ -83,7 +83,7 @@ class OriginalCharacterArchiveRegressionTest {
             fun load(path: String): String {
                 val e = index[path.replace('\\','/').lowercase()]
                     ?: error("Missing package entry: $path")
-                assertTrue(e.size in 0..2_097_152, "State script exceeds 2 MiB")
+                assertTrue(e.size in 0L..2_097_152L, "State script exceeds 2 MiB")
                 return archive.getInputStream(e).use { source(it.readBytes()) }
             }
             block(Scripts(entries.map { it.name }, ::load))
@@ -99,7 +99,7 @@ class OriginalCharacterArchiveRegressionTest {
         fun load(path: String): String {
             val file = index[path.replace('\\','/').lowercase()]
                 ?: error("Missing extracted file: $path")
-            assertTrue(file.length() in 0..2_097_152, "State script exceeds 2 MiB")
+            assertTrue(file.length() in 0L..2_097_152L, "State script exceeds 2 MiB")
             return source(file.readBytes())
         }
         block(Scripts(names, ::load))
