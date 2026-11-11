@@ -89,6 +89,19 @@ data class FighterDefinition(
 }
 
 object MugenCnsParser {
+    /** Identify repeated authored StateDef declarations without guessing whether
+     * their load order means override or accumulation in the original engine.
+     */
+    fun duplicateStateDefs(source: String): Map<Int, Int> {
+        val counts = linkedMapOf<Int, Int>()
+        val heading = Regex("""(?i)^statedef\s+(-?\d+)$""")
+        for (section in MugenDefParser.parse(source).sections) {
+            val match = heading.matchEntire(section.name) ?: continue
+            val id = match.groupValues[1].toInt()
+            counts[id] = (counts[id] ?: 0) + 1
+        }
+        return counts.filterValues { it > 1 }
+    }
     /** Read fighter base constants without coupling actors to script text. */
     fun constants(source: String): MugenConstants {
         val script = MugenDefParser.parse(source)
