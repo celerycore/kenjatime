@@ -243,7 +243,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
             if((key===-4||key==='global+1')&&existing)
               states.set(key,{id,source:value.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),value]});
             else states.set(key,value);
-            const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
+            const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle','ownpal']);
             for(const entry of value.entries)if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
           }
         }
@@ -267,7 +267,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
         if((key===-4||key==='global+1')&&existing)
           program.states.set(key,{id:current.id,source:current.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),current]});
         else program.states.set(key,current);
-        const properties = new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
+        const properties = new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle','ownpal']);
         for (const entry of section.entries) if (!properties.has(entry.key)) program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
       } else if (/^state(?:\s|$)/.test(section.name)) {
         if (!current) {
@@ -707,6 +707,17 @@ export class FighterRuntime {
         const [x = 0, y = 0] = this.vector(state, 'velset'); this.vel = { x: x * this.coordinateScale, y: y * this.coordinateScale };
       }
       if (state.values.sprpriority !== undefined) this.sprPriority = integer(this.value(state, 'sprpriority', 0));
+      if(state.values.ownpal!==undefined&&this.parent){
+        // Compatibility extension used in Dark Donald's authored Statedefs.
+        // Root fighters already own a palette. Helper opt-in gets a snapshot;
+        // helper opt-out resumes sharing the parent palette remap table.
+        const own=truth(this.value(state,'ownpal',0));
+        if(own&&!this.ownPal){
+          this._paletteRemaps=copyPaletteRemaps(this.parent.paletteRemaps);
+          this.events.push({type:'palettesnapshot',target:this});
+        }
+        this.ownPal=own;
+      }
       if (state.values.juggle !== undefined) {this.juggleCost=Math.max(0,integer(this.value(state,'juggle',0)));this._juggleSerial++;}
       if (state.values.poweradd !== undefined) this.power = clamp(this.power + this.value(state, 'poweradd', 0), 0, this.maxPower);
       if (truth(this.value(state, 'facep2', 0)) && this.opponent) this.facing = this.opponent.pos.x >= this.pos.x ? 1 : -1;
@@ -1364,10 +1375,11 @@ export class FighterRuntime {
     // 'gurad' is an authored typo, not a native parameter. Apply as a
     // compatibility alias only if the correct spelling is absent and emit
     // a nonportable warning rather than silently claiming native fidelity.
-    if(hit['gurad.pausetime']!==undefined&&hit['guard.pausetime']===undefined){
-      hit['guard.pausetime']=hit['gurad.pausetime'];
-      this.diagnostic('nonportable-hitdef-typo',
-        'Interpreting authored gurad.pausetime as guard.pausetime; native behavior unverified.',controller);
+    if(hit['gurad.pausetime']!==undefined){
+      // This misspelling is not a native HitDef parameter. Preserve the
+      // authored source and normal fallback instead of changing guard timing.
+      this.diagnostic('ignored-author-typo',
+        'Unrecognized HitDef gurad.pausetime was ignored (not guard.pausetime).',controller);
     }
     hit.guardPauseTime = vector('guard.pausetime', hit.pauseTime);
     hit.groundVelocity = vector('ground.velocity', [0, 0]); hit.airVelocity = vector('air.velocity', [0, 0]);
@@ -1393,7 +1405,7 @@ export class FighterRuntime {
     hit.sparkno ??= this.constant('data.sparkno'); hit['guard.sparkno'] ??= this.constant('data.guard.sparkno');
     const consumed = new Set(['attr','damage','pausetime','guard.pausetime','gurad.pausetime','ground.velocity','air.velocity','guard.velocity','airguard.velocity','ground.hittime','air.hittime','guard.hittime','ground.slidetime','guard.slidetime','ground.ctrltime','guard.ctrltime','guardflag','hitflag','fall','forcenofall','kill','guard.kill','fall.kill','fall.damage','fall.xvelocity','fall.yvelocity','fall.recover','fall.recovertime','yaccel','animtype','air.animtype','ground.type','air.type','chainid','id','p1stateno','p2stateno','p2getp1state','p1facing','p1getp2facing','p2facing','p1sprpriority','p2sprpriority','sprpriority','numhits','getpower','givepower','priority','affectteam','guard.dist','down.velocity','down.hittime','air.fall','forcestand','air.juggle','fall.envshake.time','fall.envshake.ampl','fall.envshake.freq','fall.envshake.phase','sparkno','guard.sparkno','sparkxy','hitsound','guardsound','envshake.time','envshake.freq','envshake.ampl','envshake.phase','palfx.time','palfx.add','palfx.mul','palfx.sinadd','palfx.color','palfx.invertall']);
     for(const key of ['fall.animtype','mindist','maxdist','snap','ground.cornerpush.veloff','air.cornerpush.veloff','down.cornerpush.veloff','guard.cornerpush.veloff','airguard.cornerpush.veloff','airguard.ctrltime'])consumed.add(key);
-    consumed.add('hitonce');consumed.add('nochainid');consumed.add('down.bounce');
+    consumed.add('hitonce');consumed.add('nochainid');consumed.add('down.bounce');consumed.add('gurad.pausetime');
     for (const entry of controller.entries) {
       if (/^(type|triggerall|trigger\d+|persistent|ignorehitpause)$/.test(entry.key) || consumed.has(entry.key) || entry.key === 'reversal.attr') continue;
       this.diagnostic('unsupported-hitdef-parameter', `HitDef parameter ${entry.key} is parsed but its engine behavior is not implemented.`, { ...controller, line: entry.line });
