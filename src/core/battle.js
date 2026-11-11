@@ -48,7 +48,7 @@ export async function openCoreBattle({
   let presentation = normalizePresentation(selection.presentation);
   selection.presentation = presentation;
   const screen = host.querySelector('.kenjatime-battle-screen');
-  const framingButton = host.querySelector('[data-presentation]');
+  const framingButton = host.querySelector('button[data-presentation]');
   function applyPresentation(value, notify = true) {
     presentation = normalizePresentation(value);
     screen.dataset.presentation = presentation;
