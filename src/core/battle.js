@@ -5,6 +5,7 @@ import { CoreVideos } from "./video-source.js";
 import "./battle.css";
 import "./hud.css";
 import { mountKenjatimeReferenceHud } from "./hud-skin.js";
+import { decodeSelectPortraits } from "./select-portrait.js";
 let active;
 const p1 = {
   ArrowUp: "U",
@@ -109,6 +110,9 @@ export async function openCoreBattle({
   );
   touch.panel.hidden = false;
   const hudSkin = mountKenjatimeReferenceHud(host.querySelector(".core-hud"));
+  // The SFF buffers are transferable to a worker, so extract only the tiny
+  // select portraits before transferring them. Do not send URLs each frame.
+  hudSkin.setPortraits(decodeSelectPortraits(files, selection.hudPortraits));
   function update(data) {
     if (closed) return;
     if (data.type === "video-init") {
