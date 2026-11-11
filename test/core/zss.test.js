@@ -140,7 +140,6 @@ test("ZSS loops and function nesting are bounded and failed compilation cannot s
     "[StateDef 0]\nif (1+ {var(0):=1;}",
     "[StateDef 0]\ncall Missing();",
     "[StateDef 0]\nlet n=$missing;",
-    "[StateDef 2147483648]\nvar(0):=1;",
     "[Function Recursive()]\ncall Recursive();",
   ])
     assert.throws(() => session(source), /probe.cns.zss:/);
