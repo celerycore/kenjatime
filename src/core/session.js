@@ -834,8 +834,17 @@ export class CoreSession {
     };
   }
   snapshot() {
+    const stage = this.match.stage, view = this.match.view;
     return {
       engine: "Kenjatime Core",
+      presentation: this.presentation,
+      viewport: stage ? {
+        displayWidth: view.displayWidth, displayHeight: view.displayHeight,
+        left: view.left, right: view.right, top: view.top, bottom: view.bottom,
+        cameraX: stage.camera.x, cameraY: stage.camera.y, zoom: stage.camera.zoom,
+        backgroundScale: stage.definition.backgroundScale,
+        screenLeft: stage.definition.screenLeft, screenRight: stage.definition.screenRight,
+      } : null,
       players: [this.match.player, this.match.opponent].map((a) => ({
         id: a.id,
         name: a.name,
