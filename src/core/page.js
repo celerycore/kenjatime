@@ -40,7 +40,7 @@ guide.innerHTML = `
       <li>Import Forest of King Cruel.rar using <strong>Add stage</strong> and select it under <strong>Stage</strong>.</li>
       <li>Select Ako vs Asuna. Choose <strong>Screen format</strong> (16:9 or 4:3), then <strong>Fight now</strong>. Use the <strong>Screen</strong> button during the match to compare instantly.</li>
     </ol>
-    <p class="qa-note">Character and stage files remain in your browser. Native-style 4:3 reproduces the framing and coordinate aspect, not frame-perfect IKEMEN behavior. Tests do not claim physical-phone frame rates.</p>
+    <p class="qa-note">Character and stage files remain in your browser. Native-style 4:3 reproduces the framing and coordinate aspect, not frame-perfect behavior from external fighting-game engines. Tests do not claim physical-phone frame rates.</p>
     <p class="qa-note">The graphics texture cache evicts inactive sprites automatically to avoid cumulative GPU-budget errors on long matches. This preview stays isolated from the live Kenjatime game.</p>
   </details>`;
 document.querySelector(".heading")?.insertAdjacentElement("afterend", guide);
