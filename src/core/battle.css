@@ -114,3 +114,10 @@
     background: #141b24bc;
   }
 }
+
+/* Keep touch controls for touch devices, not mouse/keyboard desktops. */
+@media (hover: hover) and (pointer: fine) {
+  .kenjatime-battle .touch-controls {
+    display: none;
+  }
+}
