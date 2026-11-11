@@ -61,7 +61,7 @@ data class FighterDefinition(
 ) {
     companion object {
         private val zssDeclaration =
-            Regex("""(?im)^\s*\[\s*(?:statedef\s+-?\d+\s*;|function\s+\w+\s*\()""")
+            Regex("""(?im)^\s*(?:\[\s*(?:statedef\s+-?\d+\s*;|function\s+\w+\s*\()|(?:if|else|while|switch|let)\b[^\r\n]*\{|(?:changestate|helper|hitdef|assertspecial)\s*\{)""")
         fun fromScripts(
             name: String, air: String, orderedStateFiles: List<String>, cmd: String = ""
         ): FighterDefinition {
