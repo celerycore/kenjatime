@@ -57,6 +57,12 @@ jobs:
           node-version: '22'
       - run: npm ci
       - run: npm ci --prefix baseline
+      - name: Baseline interaction comparison (diagnostic only)
+        run: npm run verify:core:interactions --prefix baseline
+        continue-on-error: true
+      - name: Baseline KFM comparison (diagnostic only)
+        run: npm run verify:core:movesets --prefix baseline
+        continue-on-error: true
       - name: Benchmark baseline Core
         run: CORE_BENCH_SOURCE="$GITHUB_WORKSPACE/baseline" node --expose-gc scripts/core/benchmark-projectile-stress.mjs
       - name: Benchmark optimized Core
