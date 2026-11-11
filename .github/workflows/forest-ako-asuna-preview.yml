@@ -3,6 +3,13 @@ on:
   push:
     branches: [feature/kotlin-wasm-blueprint-20261111]
     paths:
+      - 'src/**'
+      - 'core/**'
+      - 'scripts/core/**'
+      - 'test/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.core.config.js'
       - '.github/workflows/forest-ako-asuna-preview.yml'
   workflow_dispatch:
 
@@ -50,7 +57,7 @@ jobs:
               branch:process.env.GITHUB_REF_NAME,
               commit:process.env.GITHUB_SHA,
               channel:"gpu-camera-test",
-              fixes:["texture-lru","sff-texture-recovery","legacy-widescreen-framing"],
+              fixes:["texture-lru","sff-texture-recovery","legacy-widescreen-framing","native-4-3-mode","widescreen-16-9-mode","live-presentation-toggle"],
               charactersIncluded:false,
               stageIncluded:false,
               kotlinWasmDefault:false
