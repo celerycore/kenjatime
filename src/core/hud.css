@@ -254,3 +254,13 @@
 }
 .kt-reference-hud .kt-hud-clock strong.kt-time-long {font-size:4.25cqw;letter-spacing:-.3cqw;}
 .kenjatime-battle .core-hud.kt-reference-hud > .core-round {display:none !important;}
+
+/* Non-text fallback when the imported fighter has no select portrait. */
+.kt-reference-hud .kt-hud-portrait svg {
+  position: absolute;
+  left: 17%; top: 8%;
+  width: 66%; height: 84%;
+  opacity: .8;
+  filter: drop-shadow(0 0 .25cqw #d2ff64);
+}
+.kt-reference-hud .kt-hud-portrait svg[hidden] { display: none !important; }
