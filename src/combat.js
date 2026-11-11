@@ -340,6 +340,7 @@ export class TrainingMatch {
         // Native fallback is essential: a missing/invalid Wasm module must
         // never prevent a match from progressing.
         this.kotlinCombatKernel=null;
+        try{combatKernel.dispose?.();}catch{/* Preserve JS fallback */}
         this.player.diagnostic('kotlin-wasm-fallback',String(error?.message||error));
         wasmPairs=-1;
         this.projectileClashStats.pairsVisited=0;
