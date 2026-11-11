@@ -120,6 +120,9 @@ async function runOne(asset,character,index,useBackend){
           life:session.match.player.life,round:session.match.roundFlow?.roundState??2});
     }
     firstIssue=session.match.diagnostics.slice(0,15);
+    // Never silently report a JavaScript fallback as successful Wasm replay.
+    if(useBackend&&!session.match.kotlinCombatKernel)
+      throw Error('Kotlin/Wasm backend fell back during live combat');
     if(includeStates){
       // Forced entry is a crash/finite smoke probe, NOT natural state
       // reachability or authoritative native IKEMEN/MUGEN parity.
