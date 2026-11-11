@@ -20,11 +20,11 @@ try:
   page.locator('#fight-now').click()
   page.wait_for_function("document.querySelector('.kenjatime-battle-screen')?.dataset.presentation==='native-4-3'")
   assert page.evaluate("window.__kenjatimeCoreBattle.presentation()")=='native-4-3'
-  assert page.evaluate("document.querySelector('[data-presentation]').getAttribute('aria-pressed')")=='true'
-  page.locator('[data-presentation]').click()
+  assert page.evaluate("document.querySelector('button[data-presentation]').getAttribute('aria-pressed')")=='true'
+  page.locator('button[data-presentation]').click()
   page.wait_for_function("window.__kenjatimeCoreBattle?.presentation()==='widescreen-16-9'")
   assert page.locator('#presentation-select').input_value()=='widescreen-16-9'
-  page.locator('[data-presentation]').click()
+  page.locator('button[data-presentation]').click()
   page.wait_for_function("window.__kenjatimeCoreBattle?.presentation()==='native-4-3'")
   assert page.locator('#presentation-select').input_value()=='native-4-3'
   result['checks']['presentationModes']=['4:3','16:9','4:3']
