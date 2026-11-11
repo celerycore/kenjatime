@@ -3,13 +3,6 @@ on:
   push:
     branches: [feature/kotlin-wasm-blueprint-20261111]
     paths:
-      - 'src/**'
-      - 'core/**'
-      - 'scripts/core/**'
-      - 'test/core/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'vite.core.config.js'
       - '.github/workflows/forest-ako-asuna-preview.yml'
   workflow_dispatch:
 
