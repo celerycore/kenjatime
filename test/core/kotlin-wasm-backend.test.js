@@ -21,6 +21,8 @@ function mockModule() {
     "export function ktCoreEvents() { return '[{\"type\":\"playsnd\",\"group\":0,\"number\":1,\"channel\":2}]'; }",
     "export function ktCoreEntities() { return '{\"helpers\":1,\"projectiles\":0}'; }",
     "export function ktCoreIssues() { return 'Unsupported controller: Explod\\n'; }",
+    "export function ktCoreExportMacro(n,side,name) { return '[Command]\\nname = '+name+'\\ncommand = a\\n'; }",
+    "export function ktCoreAssetRegistrySize() { return fights.size; }",
     "export function ktCoreRelease(n) { fights.delete(n); }"
   ].join("\n");
   return "data:text/javascript," + encodeURIComponent(source);
@@ -44,6 +46,8 @@ test("opt-in Wasm adapter passes CMD data and fixed-point stage positions", asyn
   assert.deepEqual(fight.presentationEvents(), [{type:"playsnd",group:0,number:1,channel:2}]);
   assert.deepEqual(fight.entities(), {helpers:1,projectiles:0});
   assert.deepEqual(fight.issues(), ["Unsupported controller: Explod"]);
+  assert.match(fight.exportMacro(0,"trace"), /name = trace/);
+  assert.equal(fight.sharedAssetCount(),1);
   fight.close();
   fight.close();
   assert.throws(()=>fight.step(),/released/);

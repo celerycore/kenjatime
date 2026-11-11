@@ -5,6 +5,11 @@ on:
     paths:
       - 'kotlin-core/**'
       - 'src/core/kotlin-wasm-backend.js'
+      - 'src/core/blueprint-*.js'
+      - 'src/archive-worker.js'
+      - 'test/core/blueprint-*.test.js'
+      - 'scripts/core/package-kotlin-android.mjs'
+      - 'android/app/src/main/java/io/github/celerycore/kenjatime/WasmShellActivity.java'
       - '.github/workflows/kotlin-wasm-core.yml'
 permissions:
   contents: read
@@ -22,7 +27,7 @@ jobs:
         with:
           node-version: '24'
       - name: Check opt-in JavaScript browser bridge
-        run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js
+        run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js test/core/blueprint-foundations.test.js
       - name: Verify deterministic Kotlin/JVM tests
         run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
       - name: Execute shared deterministic tests in Kotlin/Wasm Node
@@ -45,6 +50,13 @@ jobs:
           cp "$(dirname "$RAW")"/kenjatime-kotlin-core* kotlin-core/wasm-package/
           ls -lh kotlin-core/wasm-package/
           test -f kotlin-core/wasm-package/kenjatime-kotlin-core.wasm
+      - name: Stage secure HTTPS Android WebView shell (opt-in preview)
+        run: node scripts/core/package-kotlin-android.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-android-wasm-shell
+          path: android/app/src/main/assets/www/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: kenjatime-kotlin-wasm

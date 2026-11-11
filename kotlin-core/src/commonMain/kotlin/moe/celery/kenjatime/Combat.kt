@@ -161,6 +161,7 @@ class FightingCharacter(
     val commands: List<MugenCommand> = emptyList()
 ) {
     val input = InputBuffer()
+    val packedInput = PackedInputHistory(60)
     private val commandCache = mutableMapOf<String,Boolean>()
     fun commandActive(name: String): Boolean {
         val normalized = name.lowercase()
@@ -516,6 +517,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val contacts: MutableList<FightContact> = ArrayList()
     val presentation: MutableList<CorePresentationEvent> = ArrayList()
     val entities = CoreEntities(this)
+    private val flatCollision = FlatCollisionScratch()
     var roundFlow: CoreRoundFlow? = null
         private set
     fun enableRoundFlow(rules: CoreRoundRules = CoreRoundRules()) {
@@ -551,8 +553,12 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         p2.roundState = sequence?.roundState() ?: 2
         if (sequence?.finished == true) { frame++; return }
         val allowCombat = sequence == null || sequence.active
-        p1.input.update(if (allowCombat) a else InputFrame())
-        p2.input.update(if (allowCombat) b else InputFrame())
+        val activeA = if (allowCombat) a else InputFrame()
+        val activeB = if (allowCombat) b else InputFrame()
+        p1.input.update(activeA)
+        p2.input.update(activeB)
+        p1.packedInput.record(activeA.directions and 15, PackedInputHistory.buttonMask(activeA.buttons))
+        p2.packedInput.record(activeB.directions and 15, PackedInputHistory.buttonMask(activeB.buttons))
         val p1Frozen = p1.hitPauseLeft > 0
         val p2Frozen = p2.hitPauseLeft > 0
         p1.tick(issues)
@@ -602,11 +608,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         sequence?.step(p1,p2)
         frame++
     }
-    private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean {
-        val attacks = attacker.attackBoxes()
-        val hurt = defender.hurtBoxes()
-        return attacks.any { a -> hurt.any { h -> a.intersects(h) } }
-    }
+    private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean =
+        flatCollision.connects(attacker, defender)
     fun checksum(): String = listOf(frame, p1.life, p1.posX, p1.posY, p1.velX, p1.velY,
         p1.stateNo, p1.timeInState, p2.life, p2.posX, p2.posY, p2.velX, p2.velY,
         p2.stateNo, p2.timeInState).joinToString(":")

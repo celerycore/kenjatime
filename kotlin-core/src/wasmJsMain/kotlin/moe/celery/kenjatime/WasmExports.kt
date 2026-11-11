@@ -6,7 +6,11 @@ import kotlin.js.JsExport
 private object Fights {
     var next = 1
     val active = mutableMapOf<Int, DeterministicFight>()
+    val assets = SharedAssetRegistry<SharedCharacterAsset>(32)
+    val leased = mutableMapOf<Int, Pair<String, String>>()
     fun get(handle: Int): DeterministicFight = active[handle] ?: error("Unknown fight handle")
+    fun assetKey(name: String, air: String, cns: String, cmd: String): String =
+        name + "\u0000" + air + "\u0000" + cns + "\u0000" + cmd
 }
 @JsExport fun ktCoreVersion(): String = "0.2.0-wasm-combat-preview"
 @JsExport fun ktCoreCreate(
@@ -21,15 +25,34 @@ private object Fights {
     cns1: String, cns2: String, cmd1: String, cmd2: String
 ): Int {
     require(Fights.active.size < 8) { "Too many active fights" }
-    val a = FighterDefinition.fromScript(name1, air1, cns1, cmd1)
-    val b = FighterDefinition.fromScript(name2, air2, cns2, cmd2)
-    val id = Fights.next++
-    val left = FightingCharacter(a, 1, MugenCommandParser.parseFile(cmd1))
-    val right = FightingCharacter(b, 2, MugenCommandParser.parseFile(cmd2))
-    left.facingRight = true
-    right.facingRight = false
-    Fights.active[id] = DeterministicFight(left, right)
-    return id
+    val key1 = Fights.assetKey(name1, air1, cns1, cmd1)
+    val key2 = Fights.assetKey(name2, air2, cns2, cmd2)
+    val leftAsset = Fights.assets.acquire(key1) {
+        SharedCharacterAsset(FighterDefinition.fromScript(name1, air1, cns1, cmd1),
+            MugenCommandParser.parseFile(cmd1))
+    }
+    try {
+        val rightAsset = Fights.assets.acquire(key2) {
+            SharedCharacterAsset(FighterDefinition.fromScript(name2, air2, cns2, cmd2),
+                MugenCommandParser.parseFile(cmd2))
+        }
+        try {
+            val id = Fights.next++
+            val left = FightingCharacter(leftAsset.definition, 1, leftAsset.commands)
+            val right = FightingCharacter(rightAsset.definition, 2, rightAsset.commands)
+            left.facingRight = true
+            right.facingRight = false
+            Fights.active[id] = DeterministicFight(left, right)
+            Fights.leased[id] = key1 to key2
+            return id
+        } catch (e: Throwable) {
+            Fights.assets.release(key2)
+            throw e
+        }
+    } catch (e: Throwable) {
+        Fights.assets.release(key1)
+        throw e
+    }
 }
 @JsExport fun ktCoreSetup(handle: Int, p1x256: Int, p1y256: Int, p2x256: Int, p2y256: Int) {
     val fight = Fights.get(handle)
@@ -122,7 +145,19 @@ private object Fights {
     ",\"number\":" + e.number + ",\"channel\":" + e.channel + "}"
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
-@JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
+@JsExport fun ktCoreRelease(handle: Int): Unit {
+    Fights.active.remove(handle)
+    val lease = Fights.leased.remove(handle) ?: return
+    Fights.assets.release(lease.first)
+    Fights.assets.release(lease.second)
+}
+@JsExport fun ktCoreAssetRegistrySize(): Int = Fights.assets.size
+@JsExport fun ktCoreExportMacro(handle: Int, side: Int, name: String): String {
+    require(side == 0 || side == 1)
+    val fight = Fights.get(handle)
+    val player = if (side == 0) fight.p1 else fight.p2
+    return player.packedInput.exportCmd(name)
+}
 @JsExport fun ktCoreReadDef(source: String, section: String, key: String): String? =
     MugenDefParser.parse(source).section(section)?.get(key)
 

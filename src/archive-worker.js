@@ -1,3 +1,4 @@
+import {readArchiveBlob} from './core/blueprint-archive-stream.js';
 import {charactersFromFiles} from './formats.js';
 import {unpackArchiveBytes} from './archive-reader.js';
 import {stageDefinitions} from './stages.js';
@@ -8,9 +9,12 @@ import multiWasmUrl from 'libarchive-wasm/dist/libarchive.wasm?url';
 import sevenWasmUrl from '7z-wasm/7zz.wasm?url';
 
 self.onmessage=async({data})=>{
-  const bytes=data.bytes||data,password=data.password||'';
+  const password=data.password||'';
   try{
     self.postMessage({progress:'Checking archive…'});
+    const bytes=data.blob ? await readArchiveBlob(data.blob, {
+      onProgress:({bytes:loaded,total})=>self.postMessage({progress:'Reading archive '+loaded+'/'+total+' bytes'})
+    }) : (data.bytes||data);
     const decoderOptions={password,onProgress:progress=>self.postMessage({progress}),loadSevenWasm:async()=>{const response=await fetch(sevenWasmUrl);if(!response.ok)throw Error('The archive decoder could not load.');return response.arrayBuffer();},loadMultiWasm:async()=>{
       const response=await fetch(multiWasmUrl);if(!response.ok)throw Error('The archive decoder could not load. Refresh and try again.');return response.arrayBuffer();
     },loadWasm:async()=>{

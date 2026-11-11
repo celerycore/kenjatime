@@ -53,6 +53,7 @@ class CoreProjectile(
  * across clones. Limits are intentionally conservative for mobile browsers.
  */
 class CoreEntities(private val match: DeterministicFight) {
+    private val flatCollision = FlatCollisionScratch()
     val helpers: MutableList<HelperEntity> = ArrayList()
     val projectiles: MutableList<CoreProjectile> = ArrayList()
     private var nextId = 3
@@ -115,7 +116,7 @@ class CoreEntities(private val match: DeterministicFight) {
             val hit = helper.actor.activeHitDef
             if (hit != null && helper.actor.hitPauseLeft == 0 && enemy.canReceive(hit) &&
                 helper.actor.canHit(enemy.id) &&
-                helper.actor.attackBoxes().any { a -> enemy.hurtBoxes().any { a.intersects(it) } }) {
+                flatCollision.connects(helper.actor, enemy)) {
                 val guarded = enemy.blocks(hit)
                 helper.actor.markHit(enemy.id)
                 helper.actor.moveContact = true
@@ -132,7 +133,7 @@ class CoreEntities(private val match: DeterministicFight) {
             projectile.step()
             val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue
-            if (projectile.hitBoxes().any { box -> enemy.hurtBoxes().any { box.intersects(it) } }) {
+            if (flatCollision.projectileConnects(projectile, enemy)) {
                 val guarded = enemy.blocks(projectile.hit)
                 projectile.markHit(enemy.id)
                 match.contacts.add(FightContact(projectile.entityId, enemy.id, guarded,
