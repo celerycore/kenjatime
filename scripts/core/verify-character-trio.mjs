@@ -6,12 +6,13 @@
  *   '/local/RareAkuma(1).zip' '/local/Rare Akuma(1).zip' \
  *   '/local/Dark-Donald-extracted' [--ticks=240] [--runs=2] \
  *   [--states] [--render] [--wasm=/absolute/build-output.mjs] [--strict]
+ *   [--fightfx-dir=/local/verified/engine/data]
  *
  * This script intentionally requires all three *real* assets. It never
  * substitutes KFM and labels it "Dark Donald" or "Rare Akuma". Original
  * archives remain local: no uploads, check-ins, or remote API requests.
  */
-import {readFileSync,readdirSync,statSync,lstatSync,mkdirSync,writeFileSync} from 'node:fs';
+import {readFileSync,readdirSync,statSync,lstatSync,mkdirSync,writeFileSync,existsSync} from 'node:fs';
 import {resolve,relative,join,extname,dirname} from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -29,6 +30,23 @@ const ticks=Number(get('ticks','240')),runs=Number(get('runs','2'));
 if(!Number.isSafeInteger(ticks)||ticks<1||ticks>1800||!Number.isSafeInteger(runs)||runs<1||runs>6)
   throw Error('--ticks must be 1..1800 and --runs 1..6');
 const includeStates=options.includes('--states'),render=options.includes('--render'),strict=options.includes('--strict');
+const fightfxDir=get('fightfx-dir',null);
+const fxFiles={};
+const fxSha={};
+if(fightfxDir){
+  // Load ONLY a matched genuine AIR/SFF pair. Never invent F2/F60 frames,
+  // combine incompatible installations, or commit redistributable assets.
+  for(const name of ['fightfx.air','fightfx.sff','fight.def']){
+    const disk=resolve(fightfxDir,name);
+    if(existsSync(disk)&&statSync(disk).isFile()){
+      const bytes=readFileSync(disk);
+      fxFiles['data/'+name]=bytes;
+      fxSha[name]=createHash('sha256').update(bytes).digest('hex');
+    }
+  }
+  if(!fxFiles['data/fightfx.air']||!fxFiles['data/fightfx.sff'])
+    throw Error('--fightfx-dir must contain fightfx.air and fightfx.sff from one engine installation');
+}
 const wasmPath=get('wasm',null);
 const backend=wasmPath?await importKotlinWasmCombatBackend(pathToFileURL(resolve(wasmPath)).href):null;
 const kfmArchive=readFileSync(resolve(root,'public/kfm.zip'));
@@ -88,7 +106,7 @@ function checkFinite(match){
       if(!Number.isFinite(v))throw Error('Non-finite match state in entity '+actor.id);
 }
 async function runOne(asset,character,index,useBackend){
-  const files={...kfmFiles,...asset.files};
+  const files={...kfmFiles,...asset.files,...fxFiles};
   let session,hash=createHash('sha256'),samples=[],firstIssue=null,peakEntities=0,peakShots=0,frameMs=0,tickMs=0,setupMs=0,renderedFrames=0;
   let probe={attempted:0,accepted:0,failures:[]};
   try{
@@ -158,7 +176,8 @@ const report={kind:'Kenjatime Core real three-package runtime benchmark',
     'Headless AI-driven script simulation, selected render-packet checks, optional forced-state smoke probes',
     'Not native MUGEN/IKEMEN parity, GPU frame-rate, Android, human gameplay or exhaustive combo verification',
     'No source asset uploaded; results are from the supplied local packages only'
-  ],ticks,runs,render,includeStates,compiledWasmProvided:!!backend,results:[]};
+  ],ticks,runs,render,includeStates,compiledWasmProvided:!!backend,
+  matchedFightFx: fightfxDir?{directory:fightfxDir,sha256:fxSha}:null,results:[]};
 for(const [i,path] of paths.entries()){
   const label=['Rare Akuma 2026 ZSS','Rare Akuma 2007 legacy','Dark Donald 2011'][i];
   const asset=load(path);
