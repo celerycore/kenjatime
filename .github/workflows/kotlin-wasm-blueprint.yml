@@ -1,0 +1,30 @@
+name: Kotlin WASM blueprint foundations
+on:
+  push:
+    paths:
+      - 'kotlin-engine/**'
+      - '.github/workflows/kotlin-wasm-blueprint.yml'
+  pull_request:
+    paths:
+      - 'kotlin-engine/**'
+      - '.github/workflows/kotlin-wasm-blueprint.yml'
+  workflow_dispatch:
+jobs:
+  deterministic-core:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kotlin-engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
+      - name: JVM deterministic core tests
+        run: gradle jvmTest --stacktrace
+      - name: Kotlin/Wasm Node tests
+        run: gradle wasmJsNodeTest --stacktrace
