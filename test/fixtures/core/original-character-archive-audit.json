@@ -26,7 +26,7 @@
     },
     "darkDonald": {
       "filename": "Dark Donald.rar",
-      "sha256": "26d014d0b0e7d3aadea6512b7b16e5e9cb74fe00570e4f95ea5dca899",
+      "sha256": "26d014d0b0e7d3aadea6512bc2885782ae8703582e6dd68d9490386eb11a5162",
       "scriptFormat": "MUGEN CMD/CNS and OPTION.txt states",
       "uniqueStateDefs": 277,
       "stateDefDeclarations": 279,
@@ -50,7 +50,7 @@
     },
     "rareAkuma2026": {
       "filename": "RareAkuma.zip",
-      "sha256": "c626441be701eb104f20b5a5b2f9f2d5da0414b31ca6c4f52c3cfb48db677",
+      "sha256": "c626441be701eb104f20b5a5673ab9078555bfad17b298256daf4fcb5d9e349b",
       "scriptFormat": "ZSS 2026",
       "zssStateFiles": 6,
       "zssStateDefs": 222,
