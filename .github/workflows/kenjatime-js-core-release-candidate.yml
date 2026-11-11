@@ -32,11 +32,6 @@ jobs:
       # the current Core and new camera regression suites remain mandatory.
       - name: Audit standalone production Core artifact
         run: npm run build:core
-      - name: Exercise desktop/mobile arcade UI and battle screen toggle
-        run: |
-          python -m pip install 'playwright>=1.57,<2'
-          python -m playwright install --with-deps chromium
-          python scripts/core/verify-kenja-arcade.py
       - name: Mark artifact as an unapproved release candidate
         run: |
           node --input-type=module <<'NODE'
@@ -64,3 +59,9 @@ jobs:
           path: dist-core/
           retention-days: 14
           if-no-files-found: error
+      - name: Exercise desktop/mobile arcade screen preference and responsive layout
+        timeout-minutes: 6
+        run: |
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+          timeout 110s python scripts/core/verify-kenja-arcade.py
