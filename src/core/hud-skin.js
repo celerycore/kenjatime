@@ -6,7 +6,7 @@ export function mountKenjatimeReferenceHud(hud) {
   const backdrop = document.createElement('div');
   backdrop.className = 'kt-hud-backdrop';
   backdrop.setAttribute('aria-hidden', 'true');
-  backdrop.innerHTML = \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1350 191" preserveAspectRatio="none">
+  backdrop.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1350 191" preserveAspectRatio="none">
   <defs>
     <linearGradient id="kh-green" x1="0" x2="1" y1="0" y2="0"><stop stop-color="#00702c"/><stop offset=".5" stop-color="#00351c"/><stop offset="1" stop-color="#00772e"/></linearGradient>
     <pattern id="kh-dots" width="10" height="10" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="#c0ff00" opacity=".65"/></pattern>
@@ -45,7 +45,7 @@ export function mountKenjatimeReferenceHud(hud) {
   <path d="M604 90L620 111 603 155 593 133ZM746 90L730 111 747 155 757 133Z" fill="#ff168e"/>
   <path d="M631 62H719L706 75H644Z" fill="#e4ffe1"/>
   <path d="M555 61L577 82 597 82 610 63M795 61L773 82 753 82 740 63" fill="none" stroke="#c4ff12" stroke-width="6"/>
-  </svg>\`;
+  </svg>`;
   hud.prepend(backdrop);
   const logo = document.createElement('div');
   logo.className = 'kt-hud-logo';
