@@ -1,7 +1,7 @@
 {
   "project": "Kenjatime Arcade Browser UI",
   "source": "celerycore/kenjatime",
-  "sourceCommit": "a6411fb76a5ecd91cdf42d66d7a893277028928d",
+  "sourceCommit": "b151375dcb061762d11d94e3ca8ab92a356c60fd",
   "sourceBranch": "feature/kenjatime-arcade-browser-ui-20261111",
   "runtime": "unchanged JavaScript Core",
   "kotlinWasmLive": false,
