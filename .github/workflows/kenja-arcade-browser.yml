@@ -29,7 +29,7 @@ jobs:
       - name: Install locked Core browser dependencies
         run: npm ci
       - name: Assert character import, stage import and battle launcher were preserved
-        run: node --test test/core/kenja-arcade.test.js test/core/round-readiness.test.js test/core/session.test.js test/rounds.test.js test/uploads.test.js test/core/large-sff-preview.test.js
+        run: node --test test/core/kenja-arcade.test.js test/core/round-readiness.test.js test/core/session.test.js test/rounds.test.js test/uploads.test.js test/core/large-sff-preview.test.js test/core/gpu-sprite-budget.test.js
       - name: Build standalone core browser engine and validate isolated artifacts
         run: npm run build:core
       - name: Install headless mobile and desktop browser QA
