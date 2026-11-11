@@ -57,6 +57,24 @@ The runner never uploads the three original character archives. It records failu
 - `test/core/character-trio-cli.test.js` creates **synthetic KFM-derived fixtures** to test the marathon command; it does not certify the uploaded characters.
 - Existing baseline-vs-feature 16 interaction and 147 KFM trace comparisons verify no introduced divergences. Both branches still have known mismatches to native MUGEN fixtures.
 
+## Verified actual compiled WebAssembly integration
+
+GitHub Actions run `42982615045` completed successfully after correcting a generated
+test fixture. The **actual Kotlin/Wasm executable** was imported by Node and ran
+the production `TrainingMatch` host integration for **90 ticks with 96
+projectiles**, matching the JavaScript-only match state every tick.
+The same module ran the production `CoreSession` with authored `-4` and
+`+1` ZSS globals for **60 ticks**, again matching the JS-only session.
+Both required a live Wasm kernel throughout (no fallback).
+
+The JVM test suite, Kotlin/Wasm Node tests, cross-language ABI probes and
+handle disposal also passed. This verifies a runnable binary, not merely
+an emulated JavaScript class or source-level unit test. It is still a
+synthetic/KFM test and says nothing about native Dark Donald or Rare Akuma
+gameplay parity.
+
+See: https://github.com/celerycore/kenjatime/actions/runs/42982615045
+
 ## Outstanding engineering steps
 
 - Execute real-package CPU match replay + forced-state exploration on the three supplied archives with both backends. The local uploaded archives cannot be automatically read by the separate GitHub Actions runner without a user-controlled transfer; original assets remain off-repo.
