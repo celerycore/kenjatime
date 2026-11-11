@@ -23,7 +23,7 @@ export function mountArcadeChrome(doc = document, store = globalThis.localStorag
   hero.setAttribute('aria-label', 'Kenjatime fighting game engine home');
   hero.innerHTML = [
     '<div class="kenja-showcase-copy">',
-    '<p class="kenja-kicker">● LOCAL ENGINE · MUGEN / IKEMEN GO COMPATIBILITY IN PROGRESS</p>',
+    '<p class="kenja-kicker">● LOCAL ENGINE · MUGEN-FAMILY COMPATIBILITY IN PROGRESS</p>',
     '<div class="kenja-showcase-logo">KENJA<span>TIME</span><b>↗</b></div>',
     '<h2>YOUR FIGHTERS.<br><em>YOUR ARENA.</em></h2>',
     '<p class="kenja-showcase-sub">Import your own characters and stages, build a roster, and fight. Kenjatime stays an engine—not a fixed-character game.</p>',
