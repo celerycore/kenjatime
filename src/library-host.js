@@ -484,6 +484,12 @@ export function createLibraryHost(options) {
             level: data.level || 4,
             palette: data.palette || 1,
             opponentPalette: data.opponentPalette || 1,
+            // The real MUGEN/IKEMEN character-select sprites are decoded
+            // locally before the match archive buffers reach the worker.
+            hudPortraits: [
+              { sprite: p1.sprite || null, palette: data.palette || 1 },
+              { sprite: p2.sprite || null, palette: data.opponentPalette || 1 },
+            ],
             effectsPackage: fxPackage ? `imports/${fxPackage.id}/` : undefined,
           },
           onProgress: (m) => window.__kenjatimeNativeProgress?.(m),
