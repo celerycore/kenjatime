@@ -58,17 +58,13 @@ export function mountKenjatimeReferenceHud(hud) {
   clock.innerHTML = '<span>TIME</span><strong>99</strong>';
   hud.append(clock);
   const clockValue = clock.querySelector('strong');
-  const portraits = [
-    document.querySelector('.kenja-concept-gart img')?.src || new URL('../assets/gart--bF9Uo4C.webp', document.baseURI).href,
-    document.querySelector('.kenja-concept-edelweiss img')?.src || new URL('../assets/edelweiss-TZn_2b1e.webp', document.baseURI).href
-  ];
   const sides = [0, 1].map(side => {
     const row = hud.querySelector('[data-player="' + side + '"]');
     if (!row) return null;
     const frame = document.createElement('div');
     frame.className = 'kt-hud-portrait';
     frame.setAttribute('aria-hidden', 'true');
-    frame.innerHTML = '<img alt="" hidden><span>?</span>';
+    frame.innerHTML = '<img alt="" hidden><svg viewBox="0 0 96 120" aria-hidden="true" focusable="false"><circle cx="48" cy="40" r="21" fill="#adc9b0"/><path d="M13 111c0-30 14-46 35-46s35 16 35 46Z" fill="#adc9b0"/><path d="M27 35q21-39 42 0" fill="none" stroke="#263d2d" stroke-width="8"/></svg>';
     row.prepend(frame);
     const tag = document.createElement('span');
     tag.className = 'kt-hud-player-tag';
@@ -88,21 +84,6 @@ export function mountKenjatimeReferenceHud(hud) {
     const value = state.roundTimeLeft == null || left < 0 || !Number.isFinite(left) ? '∞' : String(Math.max(0, Math.ceil(left / 60)));
     if (clockValue.textContent !== value) clockValue.textContent = value;
     clockValue.classList.toggle('kt-time-long', value.length > 2);
-    sides.forEach((slot, side) => {
-      if (!slot) return;
-      const name = String(state.players?.[side]?.name || (side ? 'CPU' : 'PLAYER 1'));
-      if (name === slot.name) return;
-      slot.name = name;
-      const image = slot.frame.querySelector('img');
-      const fallback = slot.frame.querySelector('span');
-      const src = /\b(gart|kenja)\b/i.test(name) ? portraits[0] : /\b(edelweiss|rayn)\b/i.test(name) ? portraits[1] : '';
-      if (src) {
-        image.src = src; image.hidden = false; fallback.hidden = true;
-      } else {
-        image.removeAttribute('src'); image.hidden = true; fallback.hidden = false;
-        fallback.textContent = name.trim().slice(0,2).toUpperCase();
-      }
-    });
     if ((state.roundState === 3 || state.roundState === 4) && state.roundWinner) {
       const side = state.roundWinner === 'player' ? 0 : state.roundWinner === 'opponent' ? 1 : -1;
       const key = String(state.roundNo || 1) + '-' + side;
@@ -116,5 +97,28 @@ export function mountKenjatimeReferenceHud(hud) {
       }
     }
   }
-  return (hud.__kenjaHudSkin = {update});
+  function setPortraits(portraits = []) {
+    sides.forEach((slot, side) => {
+      if (!slot) return;
+      const image = slot.frame.querySelector('img');
+      const silhouette = slot.frame.querySelector('svg');
+      const src = portraits[side];
+      image.onerror = null;
+      if (typeof src === 'string' && src.startsWith('data:image/')) {
+        image.onerror = () => {
+          if (image.src !== src) return;
+          image.hidden = true;
+          silhouette.hidden = false;
+        };
+        image.src = src;
+        image.hidden = false;
+        silhouette.hidden = true;
+      } else {
+        image.removeAttribute('src');
+        image.hidden = true;
+        silhouette.hidden = false;
+      }
+    });
+  }
+  return (hud.__kenjaHudSkin = {update, setPortraits});
 }
