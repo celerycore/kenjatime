@@ -40,3 +40,24 @@ jobs:
         run: npm run verify:core:interactions
       - name: KFM 147-scenario native compatibility gate
         run: npm run verify:core:movesets
+
+  synthetic-stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout optimized branch
+        uses: actions/checkout@v4
+      - name: Checkout unmodified comparison branch
+        uses: actions/checkout@v4
+        with:
+          ref: rewrite/kotlin-wasm-core-20261111
+          path: baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm ci --prefix baseline
+      - name: Benchmark baseline Core
+        run: CORE_BENCH_SOURCE="$GITHUB_WORKSPACE/baseline" node --expose-gc scripts/core/benchmark-projectile-stress.mjs
+      - name: Benchmark optimized Core
+        run: node --expose-gc scripts/core/benchmark-projectile-stress.mjs
