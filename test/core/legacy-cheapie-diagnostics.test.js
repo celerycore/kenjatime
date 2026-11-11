@@ -39,22 +39,22 @@ test('safe oversized positive persistent remains executable but explicitly nonpo
   assert.equal(m.opponent.vars[1],7);
 });
 
-test('guard pause typo is an explicit nonportable compatibility alias',()=>{
+test('misspelled guard pause is ignored without inventing native hitpause behavior',()=>{
   const m=match('');
   const source=parseSections('[State 20]\ntype=HitDef\ntrigger1=1\nattr=S,SA\npausetime=30,30\ngurad.pausetime=12,12\n')[0];
   m.player.execute({...source,type:'hitdef'});
-  assert.deepEqual(m.player.hitDef.guardPauseTime,[12,12]);
-  assert.ok(m.player.diagnostics.some(d=>d.type==='nonportable-hitdef-typo'));
+  assert.deepEqual(m.player.hitDef.guardPauseTime,[30,30]);
+  assert.ok(m.player.diagnostics.some(d=>d.type==='ignored-author-typo'));
   assert.ok(!m.player.diagnostics.some(d=>d.type==='unsupported-hitdef-parameter'&&/gurad/.test(d.message)));
   const valid=parseSections('[State 20]\ntype=HitDef\ntrigger1=1\nattr=S,SA\ngurad.pausetime=12,12\nguard.pausetime=5,6\n')[0];
   m.player.execute({...valid,type:'hitdef'});
   assert.deepEqual(m.player.hitDef.guardPauseTime,[5,6]);
 });
 
-test('nonstandard StateDef ownpal and missing required HitDef attr remain diagnosed',()=>{
+test('nonstandard StateDef ownpal remains explicitly nonportable while authored HitDef attr remains required',()=>{
   const c=character('[Statedef 20]\ntype=A\nanim=0\nownpal=1\n[State noattr]\ntype=HitDef\ntrigger1=1\nreversal.attr=SCA,AA,AP,AT\n');
   const diags=parseProgram(c).diagnostics;
-  assert.ok(diags.some(d=>d.type==='unsupported-state-parameter'&&/ownpal/.test(d.message)));
+  assert.ok(diags.some(d=>d.type==='nonportable-state-parameter'&&/ownpal/.test(d.message)));
   assert.ok(diags.some(d=>d.type==='controller-parameter'&&/hitdef requires attr/.test(d.message)));
 });
 
