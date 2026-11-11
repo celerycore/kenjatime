@@ -110,7 +110,10 @@ test("advanced camera controls delay zoom, damp motion, honor disabled movers an
   stage.updateCamera(players);
   assert.equal(stage.camera.zoom, 0.75);
   assert.equal(stage.camera.x, 87.5);
-  assert.equal(stage.view().bottom - stage.camera.y, 12);
+  // Native widescreen framing preserves the stage's full 240-unit height
+  // rather than cropping it to 180; bottom anchor stays 40 units from floor.
+  assert.equal(stage.view().bottom - stage.camera.y, 40);
+  assert.ok(stage.view().displayWidth > 426);
   const before = { ...stage.camera };
   stage.updateCamera(players, { advance: false });
   assert.deepEqual(stage.camera, before);
