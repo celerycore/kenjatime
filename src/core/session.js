@@ -822,7 +822,9 @@ export class CoreSession {
     return events;
   }
   close() {
+    if(this.closed)return;
     this.lua?.close();
+    try{this.match?.kotlinCombatKernel?.dispose?.();}finally{if(this.match)this.match.kotlinCombatKernel=null;}
     this.closed = true;
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
