@@ -5,6 +5,11 @@ on:
     paths:
       - 'kotlin-core/**'
       - 'src/core/kotlin-wasm-backend.js'
+      - 'src/core/session.js'
+      - 'src/combat.js'
+      - 'src/rounds.js'
+      - 'test/rounds.test.js'
+      - 'test/core/round-readiness.test.js'
       - '.github/workflows/kotlin-wasm-core.yml'
 permissions:
   contents: read
@@ -64,6 +69,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci
+      - name: Regression tests for Round 1 idle lock and Rare Akuma zero-health mirror
+        run: node --test test/rounds.test.js test/core/round-readiness.test.js
       - name: Audit 16 native interactions against existing JS engine (known mismatches reported)
         continue-on-error: true
         run: npm run verify:core:interactions
