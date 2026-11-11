@@ -28,3 +28,8 @@ jobs:
         run: gradle jvmTest --stacktrace
       - name: Kotlin/Wasm Node tests
         run: gradle wasmJsNodeTest --stacktrace
+      - name: Compile Kotlin/Wasm host executable
+        run: gradle wasmJsNodeDevelopmentRun --stacktrace
+      - name: Probe real Kotlin/Wasm JavaScript exports
+        working-directory: .
+        run: node scripts/core/verify-kotlin-wasm-native.mjs kotlin-engine/build
