@@ -484,6 +484,7 @@ export function createLibraryHost(options) {
             level: data.level || 4,
             palette: data.palette || 1,
             opponentPalette: data.opponentPalette || 1,
+            presentation: data.presentation === "native-4-3" ? "native-4-3" : "widescreen-16-9",
             effectsPackage: fxPackage ? `imports/${fxPackage.id}/` : undefined,
           },
           onProgress: (m) => window.__kenjatimeNativeProgress?.(m),
