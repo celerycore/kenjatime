@@ -224,8 +224,14 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
           if(isFunction)functions.set(value.name,value);
           else{
             const id=staticValue(value.idExpression);if(!Number.isInteger(id)||id< -2147483648||id>2147483647)throw new ZssError('State number must be a signed 32-bit integer constant.',source,value.line);
-            if(value.idExpression.replace(/\s/g,'')==='+1')throw new ZssError('Extended global state +1 is not scheduled by this preview.',source,value.line);
-            value.id=id;states.set(id,value);
+            value.id=id;
+            // IKEMEN's +1 is a distinct *post-state global slot*, not numeric
+            // StateDef 1. Global -4/+1 declarations append across CNS/ZSS files.
+            const key=value.idExpression.replace(/\s/g,'')==='+1'?'global+1':id;
+            const existing=states.get(key);
+            if((key===-4||key==='global+1')&&existing)
+              states.set(key,{globalParts:[...(existing.globalParts||[existing]),value]});
+            else states.set(key,value);
             const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
             for(const entry of value.entries)if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
           }
@@ -242,10 +248,14 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
     if(/\.lua$/i.test(source)){program.diagnostics.push({source,line:1,type:'script-language',fatal:true,message:'Lua character-state execution is not implemented.'});continue;}
     let current;
     for (const section of sectionCache.get(source)||parseSections(text, source)) {
-      const statedef = section.name.match(/^statedef\s+(-?\d+)\s*$/);
+      const statedef = section.name.match(/^statedef\s+([+-]?\d+)\s*$/);
       if (statedef) {
+        const key=statedef[1]==='+1'?'global+1':+statedef[1];
         current = { id: +statedef[1], ...section, controllers: [] };
-        program.states.set(current.id, current);
+        const existing=program.states.get(key);
+        if((key===-4||key==='global+1')&&existing)
+          program.states.set(key,{globalParts:[...(existing.globalParts||[existing]),current]});
+        else program.states.set(key,current);
         const properties = new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
         for (const entry of section.entries) if (!properties.has(entry.key)) program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
       } else if (/^state(?:\s|$)/.test(section.name)) {
@@ -712,17 +722,22 @@ export class FighterRuntime {
   runState(number, paused, owner = this.stateOwner) {
     const state = owner.program.states.get(number);
     if (!state) return;
-    if(state.zssNodes){runZss(this,state,owner,paused);return;}
-    const entry = this._entrySerial;
-    for (const controller of state.controllers) {
-      const previousOwner=this._scriptOwner;this._scriptOwner=owner;
-      this._executing = controller;
-      try { if (this.shouldRun(controller, paused)) this.execute(controller); }
-      catch (error) {
-        if (!this.diagnostics.some(d => d.message.includes(error.message) && d.source === controller.source)) this.diagnostic('controller', error.message, controller);
+    const entry=this._entrySerial;
+    // Only extended IKEMEN global slots are composite. Preserve original
+    // single-state precedence for legacy normal states and -1/-2/-3.
+    for(const part of state.globalParts||[state]) {
+      if(part.zssNodes) runZss(this,part,owner,paused);
+      else for(const controller of part.controllers) {
+        const previousOwner=this._scriptOwner;this._scriptOwner=owner;
+        this._executing = controller;
+        try { if (this.shouldRun(controller, paused)) this.execute(controller); }
+        catch (error) {
+          if (!this.diagnostics.some(d => d.message.includes(error.message) && d.source === controller.source)) this.diagnostic('controller', error.message, controller);
+        }
+        this._executing = null;this._scriptOwner=previousOwner;
+        if (this.destroyed||this._entrySerial !== entry) break;
       }
-      this._executing = null;this._scriptOwner=previousOwner;
-      if (this.destroyed||this._entrySerial !== entry) break;
+      if(this.destroyed||this._entrySerial!==entry)break;
     }
   }
 
@@ -790,7 +805,11 @@ export class FighterRuntime {
       this._executing=null;
       this.runState(-4,false,this);
     }
-    if (worldPaused || this.destroyed) {if(!this.world)this.updateExplods({forceFrozen:true});this.gameTime++; return this.events; }
+    if (worldPaused || this.destroyed) {
+      if(!this.destroyed)this.runState('global+1',false,this);
+      if(!this.world)this.updateExplods({forceFrozen:true});
+      this.gameTime++; return this.events;
+    }
     this._executing = null;
     const paused = this.hitPauseTime > 0;
     const shaking=ordered&&(this.getHitVars.hitshaketime||0)>0&&this.moveType==='H';
@@ -832,6 +851,9 @@ export class FighterRuntime {
       else this.runState(this.stateNo, paused);
     }
     while (serial !== this._entrySerial && this._changeCount <= 64);
+    // IKEMEN post-state global +1 runs after current-state controllers even
+    // during hitpause. Like -4, helpers run it regardless of keyctrl.
+    if(!this.destroyed)this.runState('global+1',false,this);
     if(this.destroyed){this.finishPausedAnimation();this.gameTime++;return this.events;}
     if(!paused)this._initializing=false;
     if(ordered&&!paused&&this._animationLoopReset){this.animationTime=this.animationCycleTime;this._animationLoopReset=false;}
