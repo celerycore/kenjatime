@@ -7,6 +7,7 @@ mkdir -p work/core
 result=$?
 adb shell screencap -p /sdcard/kenjatime-core-preview.png
 adb pull /sdcard/kenjatime-core-preview.png work/core/android-emulator-kfm.png
+adb pull '/sdcard/Android/data/io.github.celerycore.kenjatime.core.preview/files/kenjatime-kfm-verified.png' work/core/android-emulator-kfm-live.png || true
 adb shell getprop ro.build.version.release > work/core/android-emulator-release.txt
 adb shell getprop ro.product.model > work/core/android-emulator-model.txt
 adb logcat -d -v time > work/core/android-emulator-logcat.txt
