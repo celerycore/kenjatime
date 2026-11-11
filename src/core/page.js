@@ -29,19 +29,19 @@ guide.id = "core-qa-guide";
 guide.setAttribute("aria-label", "Kenjatime Core compatibility test guide");
 guide.innerHTML = `
   <div class="qa-header">
-    <h2>Rare Akuma · 2007 + 2026 Core testing</h2>
+    <h2>GPU + Camera QA · Ako / Asuna / Forest</h2>
     <span class="qa-state">BROWSER QA PREVIEW</span>
   </div>
-  <p>Test both original classic and newer ZSS editions in the independent Core engine. This preview restores the classic fighter's authored CPU AI and adds responsive jumping for both editions. No copyrighted character package is hosted here.</p>
+  <p>Compare full-height 16:9 widescreen with pillarboxed 4:3 native-style framing. Upload Ako, Asuna and Forest of King Cruel locally; their source jump and sprite scale values are preserved. No character files are hosted here.</p>
   <details open>
     <summary>How to run the compatibility match</summary>
     <ol>
-      <li>Use <strong>Import character / archive</strong> to add the original Rare Akuma 2007 ZIP and the 2026 ZSS ZIP separately.</li>
-      <li>Import your verified <strong>original common-effects ZIP</strong> from this chat. Select it under <strong>Common effects</strong>.</li>
-      <li>Select one Rare Akuma version in the roster and the other under <strong>Opponent</strong>. Choose <strong>Watch CPU match</strong> or <strong>Training</strong>, then <strong>Fight now</strong>.</li>
+      <li>Use <strong>Import character / archive</strong> to add Ako.zip and Asuna.zip.</li>
+      <li>Import Forest of King Cruel.rar using <strong>Add stage</strong> and select it under <strong>Stage</strong>.</li>
+      <li>Select Ako vs Asuna. Choose <strong>Screen format</strong> (16:9 or 4:3), then <strong>Fight now</strong>. Use the <strong>Screen</strong> button during the match to compare instantly.</li>
     </ol>
-    <p class="qa-note">Character and stage files stay in this browser. Known source limitations: old-version missing sprites and seven truncated 2026 PCX records; incomplete sprites remain explicitly diagnosed. This preview is not a frame-by-frame native engine parity certificate.</p>
-    <p class="qa-note">The authentic shared-effects resource pack and its source attribution are documented in <a href="https://github.com/celerycore/kenjatime/pull/6" target="_blank" rel="noopener noreferrer">the compatibility implementation and test evidence</a>.</p>
+    <p class="qa-note">Character and stage files remain in your browser. Native-style 4:3 reproduces the framing and coordinate aspect, not frame-perfect IKEMEN behavior. Tests do not claim physical-phone frame rates.</p>
+    <p class="qa-note">The graphics texture cache evicts inactive sprites automatically to avoid cumulative GPU-budget errors on long matches. This preview stays isolated from the live Kenjatime game.</p>
   </details>`;
 document.querySelector(".heading")?.insertAdjacentElement("afterend", guide);
 connectCorePlatform(host.diagnostics);
