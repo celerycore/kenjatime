@@ -26,6 +26,7 @@ import {
   GLSL3,
   DoubleSide,
 } from "three";
+import {planSpriteEvictions} from "./gpu-sprite-budget.js";
 const vertex = `precision highp float;
 in vec3 position;in vec2 uv;uniform mat4 projectionMatrix,modelViewMatrix;uniform vec2 size,warpBounds;uniform bool warped;out vec2 texUV,localPoint;
 void main(){texUV=uv;localPoint=position.xy*size;if(warped)localPoint.x=mix(warpBounds.x,warpBounds.y,position.x);gl_Position=projectionMatrix*modelViewMatrix*vec4(localPoint,0.,1.);}`;
@@ -73,6 +74,10 @@ export class CoreThreeRenderer {
     this.textureBytes = 0;
     this.textures = new Map();
     this.slots = [];
+    this.evictionCount = 0;
+    this.deferredUploadCount = 0;
+    this.textureChanges = { evicted: [], deferred: [], missing: [] };
+    this.frameProtected = null;
     this.frames = 0;
     this.scene = new Scene();
     this.camera = new OrthographicCamera(0, 960, 0, 540, -10, 10);
@@ -121,7 +126,10 @@ export class CoreThreeRenderer {
     this.upload({ id: "@spark", width: 8, height: 8, pixels });
   }
   upload(asset) {
-    if (this.textures.has(asset.id)) return;
+    if (this.textures.has(asset.id)) {
+      this.textures.get(asset.id).userData.lastUsedFrame = this.frames;
+      return true;
+    }
     const pixels = asset.pixels,
       expected = asset.width * asset.height * (asset.indexed ? 1 : 4);
     if (
@@ -138,10 +146,41 @@ export class CoreThreeRenderer {
       throw Error("Sprite exceeds this graphics device’s texture limit.");
     if (!(pixels instanceof Uint8Array) || pixels.length !== expected)
       throw Error("Invalid GPU asset dimensions.");
-    if (this.textureBytes + pixels.length > this.limit)
-      throw Error(
-        "GPU texture budget exceeded. Close this match or use a smaller stage.",
-      );
+    // Original MUGEN/IKEMEN sprite banks can contain thousands of large PCX
+    // frames. Keep only recently visible textures, not the entire move set.
+    // Stage model/video and built-in textures cannot be evicted by this path.
+    const plan = this.textureBytes + pixels.length <= this.limit
+      ? {fits:true,evictions:[]}
+      : planSpriteEvictions(
+      [...this.textures].filter(([,t]) => Number.isFinite(t.userData.coreSpriteBytes))
+        .map(([id,t]) => ({
+          id,
+          bytes: t.userData.coreSpriteBytes,
+          lastUsedFrame: t.userData.lastUsedFrame || 0,
+        })),
+      {
+        requiredBytes: pixels.length,
+        residentBytes: this.textureBytes,
+        maxBytes: this.limit,
+        pinned: this.frameProtected || new Set(["@white", "@spark"]),
+      },
+    );
+    if (!plan.fits) {
+      // A single oversized sprite or too many simultaneous effects should
+      // not terminate the entire fight. Retry when residency changes.
+      this.textureChanges.deferred.push(asset.id);
+      this.deferredUploadCount++;
+      return false;
+    }
+    for (const id of plan.evictions) {
+      const previous=this.textures.get(id);
+      if (!previous) continue;
+      this.textureBytes -= previous.userData.coreSpriteBytes;
+      previous.dispose();
+      this.textures.delete(id);
+      this.textureChanges.evicted.push(id);
+      this.evictionCount++;
+    }
     const texture = new DataTexture(
       pixels,
       asset.width,
@@ -155,8 +194,11 @@ export class CoreThreeRenderer {
     texture.flipY = false;
     texture.unpackAlignment = 1;
     texture.needsUpdate = true;
+    texture.userData.coreSpriteBytes = pixels.length;
+    texture.userData.lastUsedFrame = this.frames;
     this.textures.set(asset.id, texture);
     this.textureBytes += pixels.length;
+    return true;
   }
   slot(index) {
     if (this.slots[index]) return this.slots[index];
@@ -275,9 +317,7 @@ export class CoreThreeRenderer {
       );
     if (this.canvas.width !== width || this.canvas.height !== height)
       this.renderer.setSize(width, height, false);
-    for (const asset of frame.assets || []) this.upload(asset);
-    this.grid.visible = !!frame.grid;
-    this.grid.material.uniforms.ground.value = frame.ground || 450;
+    this.textureChanges = { evicted: [], deferred: [], missing: [] };
     const draws = frame.draws.concat(
       (frame.sparks || []).map((s) => {
         const scale = (12 - s.age) * 0.3 + 1;
@@ -292,6 +332,26 @@ export class CoreThreeRenderer {
         };
       }),
     );
+    // Never trade a current player sprite for decorative background effects.
+    // Keep resident assets used in this frame while admitting new ones.
+    const essential = new Set(["@white", "@spark"]);
+    for (const draw of draws) if (draw.essential) {
+      essential.add(draw.texture);
+      if (draw.palette) essential.add(draw.palette);
+    }
+    this.frameProtected = essential;
+    const pending = frame.assets || [];
+    for (const asset of pending) if (essential.has(asset.id))
+      if (this.upload(asset)) this.frameProtected.add(asset.id);
+    for (const draw of draws) {
+      if (this.textures.has(draw.texture)) this.frameProtected.add(draw.texture);
+      if (draw.palette && this.textures.has(draw.palette))
+        this.frameProtected.add(draw.palette);
+    }
+    for (const asset of pending) if (!essential.has(asset.id))
+      if (this.upload(asset)) this.frameProtected.add(asset.id);
+    this.grid.visible = !!frame.grid;
+    this.grid.material.uniforms.ground.value = frame.ground || 450;
     for (let i = 0; i < Math.max(draws.length, this.slots.length); i++) {
       if (i >= draws.length) {
         this.slots[i].visible = false;
@@ -303,7 +363,14 @@ export class CoreThreeRenderer {
       mesh.visible = true;
       mesh.layers.set((q.pass ?? 1) + 1);
       const image = this.textures.get(q.texture);
-      if (!image) throw Error("GPU texture was not delivered: " + q.texture);
+      if (!image || (q.indexed && !this.textures.has(q.palette))) {
+        mesh.visible = false;
+        this.textureChanges.missing.push(q.texture);
+        if (q.indexed) this.textureChanges.missing.push(q.palette);
+        continue;
+      }
+      image.userData.lastUsedFrame = this.frames;
+      if (q.palette) this.textures.get(q.palette).userData.lastUsedFrame=this.frames;
       u.image.value = image;
       u.palette.value =
         this.textures.get(q.palette) || this.textures.get("@white");
@@ -363,12 +430,16 @@ export class CoreThreeRenderer {
     }
     this.renderer.setScissorTest(false);
     this.frames++;
+    this.frameProtected = null;
     this.stats = {
       backend: "Kenjatime Core · Three.js",
       frames: this.frames,
       draws: draws.length,
       textureBytes: this.textureBytes,
       textures: this.textures.size,
+      spriteEvictions: this.evictionCount,
+      deferredSpriteUploads: this.deferredUploadCount,
+      maxTextureBytes: this.limit,
       width,
       height,
       videoUploads: this.videoUploads || 0,

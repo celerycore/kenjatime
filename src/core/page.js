@@ -1,4 +1,6 @@
 import "./browser-test.css";
+import "./kenja-arcade.css";
+import { mountArcadeChrome } from "./kenja-arcade.js";
 import { connectCorePlatform } from "./platform.js";
 import { mountSetup } from "../native-setup.js";
 import { createLibraryHost } from "../library-host.js";
@@ -24,15 +26,16 @@ const host = createLibraryHost({
   ],
 });
 mountSetup(host);
+mountArcadeChrome();
 const guide = document.createElement("section");
 guide.id = "core-qa-guide";
 guide.setAttribute("aria-label", "Kenjatime Core compatibility test guide");
 guide.innerHTML = `
   <div class="qa-header">
-    <h2>Rare Akuma · 2007 + 2026 Core testing</h2>
+    <h2>MUGEN-family compatibility lab</h2>
     <span class="qa-state">BROWSER QA PREVIEW</span>
   </div>
-  <p>Test both original classic and newer ZSS editions in the independent Core engine. This preview restores the classic fighter's authored CPU AI and adds responsive jumping for both editions. No copyrighted character package is hosted here.</p>
+  <p>Original MUGEN-family characters and stages can be imported for compatibility testing. Full engine parity is not yet verified, including many advanced controllers and ZSS features. No copyrighted third-party fighter package is hosted here.</p>
   <details open>
     <summary>How to run the compatibility match</summary>
     <ol>
@@ -43,7 +46,7 @@ guide.innerHTML = `
     <p class="qa-note">Character and stage files stay in this browser. Known source limitations: old-version missing sprites and seven truncated 2026 PCX records; incomplete sprites remain explicitly diagnosed. This preview is not a frame-by-frame native engine parity certificate.</p>
     <p class="qa-note">The authentic shared-effects resource pack and its source attribution are documented in <a href="https://github.com/celerycore/kenjatime/pull/6" target="_blank" rel="noopener noreferrer">the compatibility implementation and test evidence</a>.</p>
   </details>`;
-document.querySelector(".heading")?.insertAdjacentElement("afterend", guide);
+document.querySelector(".roster")?.insertAdjacentElement("afterend", guide);
 connectCorePlatform(host.diagnostics);
 document.title = "Kenjatime Core";
 document.querySelector(".notice").textContent =

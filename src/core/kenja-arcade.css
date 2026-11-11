@@ -1,0 +1,179 @@
+/* Kenjatime arcade presentation — gameplay, file import and controllers remain unchanged */
+.kenja-arcade {
+  --kt-green:#b8ff16; --kt-pink:#ff188c; --kt-ice:#5be5ff;
+  --kt-black:#07110b; --kt-ink:#102719;
+  --kt-display:"Russo One","Arial Black",sans-serif;
+  --kt-ui:"Rajdhani","Arial Narrow",sans-serif;
+  --kt-number:"Oxanium",monospace;
+  color:#f5fff3;
+  background:radial-gradient(ellipse at 84% 0%,#19552a 0,transparent 32%),
+    repeating-linear-gradient(130deg,transparent 0 105px,#b8ff160a 105px 125px),
+    #060e0a;
+  font-family:var(--kt-ui);
+}
+.kenja-arcade[data-kenja-font="condensed"]{--kt-display:"Teko","Arial Narrow",sans-serif}
+.kenja-arcade[data-kenja-font="digital"]{--kt-display:"Oxanium",monospace}
+.kenja-arcade[data-kenja-font="industrial"]{--kt-display:"Rajdhani","Arial Narrow",sans-serif}
+.kenja-arcade button,.kenja-arcade select{font-family:var(--kt-ui);font-weight:700;letter-spacing:.03em}
+.kenja-arcade :is(button,select,a,[role="button"],summary):focus-visible{
+  outline:3px solid var(--kt-pink);outline-offset:3px
+}
+.kenja-arcade aside{
+  background:linear-gradient(160deg,#0e3e1c,#08190e 60%,#030a06);
+  border-right:2px solid #7fbf32;box-shadow:5px 0 26px #0007
+}
+.kenja-arcade .brand{padding:0 6px;letter-spacing:0;line-height:1}
+.kenja-wordmark{font:italic 900 clamp(20px,2.1vw,31px)/1 var(--kt-display);color:#f9fff5}
+.kenja-wordmark span{color:var(--kt-green)}
+.kenja-wordmark i{font-size:.6em;font-style:normal;color:var(--kt-pink)}
+.kenja-arcade .brand small{margin:11px 0 45px;font-size:9px;letter-spacing:1.3px;color:#b5e4b5}
+.kenja-arcade .navtitle{color:#83b78b}
+.kenja-arcade .nav{
+  font-family:var(--kt-display);font-size:11px;border-radius:0;
+  color:#c5dfc7;clip-path:polygon(0 0,94% 0,100% 50%,94% 100%,0 100%)
+}
+.kenja-arcade .nav:is(:hover,.active){background:var(--kt-green);color:#11210b}
+.kenja-arcade main{max-width:1900px}
+.kenja-arcade main>header{
+  min-height:76px;height:auto;gap:8px;flex-wrap:wrap;
+  border-color:#467c38;color:#bed5bd
+}
+.kenja-arcade main>header b{color:#eaffdc;margin-right:6px}
+.kenja-arcade .tag{
+  background:#142918;border:1px solid #4d8136;border-radius:0;
+  padding:9px 11px;color:#e4f4e4
+}
+.kenja-arcade .tag i{color:var(--kt-green);margin-left:7px}
+.kenja-font-picker{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:1px;margin-left:auto;color:#c6dbc6}
+.kenja-font-picker select{background:#102518;border:1px solid #70a644;color:#edf8e9;padding:7px 8px;min-height:36px;border-radius:0;max-width:180px}
+.kenja-showcase{
+  position:relative;isolation:isolate;display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(260px,.8fr);
+  gap:25px;align-items:center;margin-top:26px;
+  padding:clamp(19px,3vw,44px);overflow:hidden;
+  border:2px solid var(--kt-green);
+  background:radial-gradient(circle at 90% 20%,#26833880,transparent 40%),
+    repeating-linear-gradient(120deg,transparent 0 42px,#b8ff160a 43px 46px),
+    linear-gradient(120deg,#092c12 0%,#0d301b 45%,#07110c 100%);
+  box-shadow:0 0 0 4px #001207,0 12px 37px #0009,inset 0 1px 0 #e6ffd349
+}
+.kenja-showcase:after{content:"";position:absolute;inset:auto auto 0 0;width:42%;height:5px;background:var(--kt-pink);box-shadow:250px 0 var(--kt-green)}
+.kenja-kicker{color:#bfeabb;letter-spacing:1px;font:800 11px/1.2 var(--kt-ui)}
+.kenja-showcase-logo{
+  margin:16px 0 14px;white-space:nowrap;
+  color:#fff;font:italic 900 clamp(31px,4.5vw,62px)/1 var(--kt-display);
+  letter-spacing:-2px;text-shadow:3px 4px #06140b,5px 6px #0008
+}
+.kenja-showcase-logo span{color:var(--kt-green)}
+.kenja-showcase-logo b{font-size:.7em;color:var(--kt-pink)}
+.kenja-showcase h2{
+  font:italic 900 clamp(28px,3.2vw,46px)/1.12 var(--kt-display);
+  margin:14px 0;color:#fff;letter-spacing:-.025em
+}
+.kenja-showcase h2 em{font-style:inherit;color:var(--kt-green)}
+.kenja-showcase-sub{font:600 clamp(14px,1.2vw,17px)/1.35 var(--kt-ui);color:#d4ead6;max-width:570px}
+.kenja-showcase-actions{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 13px}
+.kenja-arcade .kenja-action{
+  border:2px solid #8cc657;border-radius:0;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+  padding:11px 15px;min-height:45px;font:800 15px/1 var(--kt-ui)
+}
+.kenja-arcade .kenja-action:first-child{background:var(--kt-pink);color:#fff;border-color:#ffbadc}
+.kenja-arcade .kenja-action:hover{filter:brightness(1.14)}
+.kenja-local-note{font:600 11px/1.4 var(--kt-ui);color:#a4c8ab}
+.kenja-future-roster{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.kenja-concept{
+  overflow:hidden;min-width:0;transform:skewX(-3deg);
+  border:2px solid var(--kt-green);background:#13291a;
+  box-shadow:3px 5px 0 #03100a
+}
+.kenja-concept-edelweiss{border-color:var(--kt-ice);background:#142634}
+.kenja-concept img{display:block;width:100%;height:clamp(125px,15vw,194px);object-fit:cover}
+.kenja-concept b{display:block;background:#07120df1;padding:10px 7px 2px;color:#fff;font:italic 900 clamp(13px,1.3vw,19px)/1 var(--kt-ui)}
+.kenja-concept small{display:block;background:#07120df1;padding:2px 7px 10px;color:var(--kt-green);font:700 clamp(8px,.75vw,10px)/1.1 var(--kt-ui)}
+.kenja-concept-edelweiss small{color:var(--kt-ice)}
+.kenja-vs{
+  position:absolute;left:50%;top:36%;transform:translate(-50%,-50%) rotate(-9deg);
+  z-index:1;background:var(--kt-pink);color:#fff;padding:6px 9px;
+  border:3px solid #fff;box-shadow:3px 3px 0 #000;font:900 16px var(--kt-display)
+}
+.kenja-future-roster>p{grid-column:1/-1;text-align:center;color:#cce3cf;font:600 11px/1.3 var(--kt-ui)}
+.kenja-future-roster>p strong{color:var(--kt-green)}
+.kenja-arcade .heading{padding:31px 0 22px}
+.kenja-arcade .eyebrow{color:var(--kt-pink);font:800 12px var(--kt-ui);letter-spacing:1px}
+.kenja-arcade h1{font:italic 900 clamp(24px,2.9vw,39px)/1.1 var(--kt-display);color:#fff}
+.kenja-arcade h1 span{color:var(--kt-pink)}
+.kenja-arcade .heading p,.kenja-arcade .roster p{font:600 14px/1.4 var(--kt-ui);color:#b8d2bb}
+.kenja-arcade .primary{background:var(--kt-green);border:1px solid #e7ff9e;border-radius:0;color:#09200a;font:800 14px var(--kt-ui)}
+.kenja-arcade .secondary{background:#15281b;border:1px solid #477e3a;border-radius:0;color:#e5f8e0;font:800 13px var(--kt-ui)}
+.kenja-arcade :is(.stage-library,.arena-launch,.mobile-library,.viewer,.details,.drop,.runtime-report){
+  border:1px solid #4b8737;border-radius:0;background:linear-gradient(150deg,#102919,#0a1510)
+}
+.kenja-arcade .panelhead{border-color:#497a3d;background:linear-gradient(90deg,#163d23,#0e2718);font:800 13px var(--kt-ui);color:#eaffdf}
+.kenja-arcade .stage{background:#051409}
+.kenja-arcade select{background:#13251a;border:1px solid #537f43;color:#efffea;border-radius:0}
+.kenja-arcade .stage-library label,.kenja-arcade .arena-launch label{color:#e0f4da;font:800 14px var(--kt-ui)}
+.kenja-arcade .stage-library,.kenja-arcade .arena-launch{border-left:4px solid var(--kt-green)}
+.kenja-arcade #fight-now{background:var(--kt-pink);color:#fff;border-color:#ff89bd;font:900 20px var(--kt-ui);padding:11px 30px}
+.kenja-arcade #fight-now:before{content:"▶ ";font-size:.75em}
+.kenja-arcade .details .avatar,.kenja-arcade .mini{border-color:#9ed435;background:#1a3621;color:var(--kt-green)}
+.kenja-arcade .sectionlabel span,.kenja-arcade .ok,.kenja-arcade .card-arrow{color:var(--kt-green)}
+.kenja-arcade .card{background:#14271b;border:1px solid #487843;border-radius:0;color:#f0ffed}
+.kenja-arcade .card.selected{background:#174b23;border:2px solid var(--kt-pink);box-shadow:3px 3px 0 #6c123c}
+.kenja-arcade .drop{border:2px dashed #6dac4b;background:linear-gradient(120deg,#204022,#0b2014)}
+.kenja-arcade .upload-icon{background:#270d1b;border:1px solid var(--kt-pink);color:var(--kt-pink)}
+.kenja-arcade .drop b{color:#fff;font:800 19px var(--kt-ui)}
+.kenja-arcade .drop button,.kenja-arcade .upload-browse{color:var(--kt-green)}
+.kenja-arcade .roster h2{font:900 22px var(--kt-display)}
+.kenja-arcade .roster h2 span{color:var(--kt-green)}
+.kenja-arcade footer{border-color:#3b773c;color:#c1d9b8}
+.kenja-arcade #core-qa-guide{border-color:#427f4a;background:#0c2115}
+.kenja-arcade #core-qa-guide h2{font:800 20px var(--kt-ui)}
+/* Fighting HUD — only the overlay skin changes, not simulation or timing. */
+.kenja-arcade .kenjatime-battle{background:#06130b}
+.kenja-arcade .kenjatime-battle-screen{border:2px solid #9fea37}
+.kenja-arcade .kenjatime-battle-bar{background:#0a1c10;border-color:#508745}
+.kenja-arcade .kenjatime-battle-bar button{background:#142d1a;border-color:#74b04a;color:#eaffe6;font:800 14px var(--kt-ui)}
+.kenja-arcade .core-hud{inset:8px 10px auto;gap:8px;align-items:start;font:800 clamp(11px,1.4vw,17px) var(--kt-ui)}
+.kenja-arcade .core-hud>div{padding:4px 7px;border:2px solid #9eff31;background:linear-gradient(160deg,#03120ce8,#154229e9)}
+.kenja-arcade .core-hud>div:last-child{border-color:var(--kt-ice)}
+.kenja-arcade .core-hud b{font:italic 900 clamp(10px,1.4vw,20px)/1 var(--kt-ui);text-transform:uppercase}
+.kenja-arcade .core-hud meter{height:clamp(10px,1.5vw,20px);background:#07120a;border:2px solid #eeffd2}
+.kenja-arcade .core-hud meter::-webkit-meter-optimum-value{background:linear-gradient(90deg,#7ffa10,#deff4e)}
+.kenja-arcade .core-hud>div:last-child meter::-webkit-meter-optimum-value{background:linear-gradient(90deg,#afff4c,#65ec9d)}
+.kenja-arcade .core-hud small{font:600 11px var(--kt-ui);color:#d4f0d6}
+.kenja-arcade .core-round{min-width:70px;background:#091c0de9;padding:7px 9px;border:2px solid var(--kt-green);font:900 clamp(20px,2.9vw,40px)/1 var(--kt-number);color:var(--kt-green);text-shadow:2px 2px 0 #000;text-align:center;transform:skewX(-8deg)}
+.kenja-arcade .core-announcement{font:italic 900 clamp(36px,8vw,100px)/1 var(--kt-display);color:#eaffd8;text-shadow:5px 5px 0 var(--kt-pink),-3px -3px 0 var(--kt-green);-webkit-text-stroke:2px #031108;transform:translate(-50%,-50%) skewX(-7deg)}
+@media(max-width:1020px){
+  .kenja-showcase{grid-template-columns:1fr 255px;gap:15px;padding:22px}
+  .kenja-concept img{height:135px}
+  .kenja-showcase h2{font-size:clamp(25px,3vw,36px)}
+}
+@media(max-width:800px){
+  .kenja-arcade aside{border-right:0;border-bottom:2px solid var(--kt-green);box-shadow:none}
+  .kenja-arcade main>header{min-height:64px}
+  .kenja-header-tail{display:none}
+  .kenja-showcase{grid-template-columns:1fr;margin-top:14px;padding:23px 16px}
+  .kenja-showcase-logo{font-size:clamp(31px,6vw,51px)}
+  .kenja-showcase h2{font-size:clamp(29px,5.5vw,43px)}
+  .kenja-future-roster{width:100%;max-width:500px;margin:auto}
+  .kenja-concept img{height:152px}
+  .kenja-font-picker span{display:none}
+  .kenja-arcade .heading{padding:22px 0}
+}
+@media(max-width:480px){
+  .kenja-arcade .brand small{display:none}
+  .kenja-arcade main>header .tag{display:none}
+  .kenja-font-picker select{max-width:146px}
+  .kenja-showcase-logo{font-size:clamp(28px,8vw,43px)}
+  .kenja-kicker{font-size:9px}
+  .kenja-showcase h2{font-size:29px}
+  .kenja-showcase-actions{gap:7px}
+  .kenja-arcade .kenja-action{width:100%}
+  .kenja-concept img{height:122px}
+  .kenja-arcade .core-hud{gap:3px;inset:5px 3px auto}
+  .kenja-arcade .core-hud>div{padding:3px}
+  .kenja-arcade .core-hud small{display:none}
+  .kenja-arcade .core-hud b{font-size:10px}
+  .kenja-arcade .core-round{min-width:43px;padding:6px 2px;font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){.kenja-arcade *{scroll-behavior:auto!important}}

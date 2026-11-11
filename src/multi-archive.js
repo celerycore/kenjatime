@@ -2,12 +2,12 @@ import {libarchiveWasm} from 'libarchive-wasm';
 import {Decompress} from 'fzstd';
 import {archiveKind} from './archive-kind.js';
 import {normalizedPackageFiles,packageEntryPath} from './formats.js';
-import {MAX_ARCHIVE_BYTES,MAX_EXPANDED_BYTES,MAX_ARCHIVE_FILES} from './archive-limits.js';
+import {MAX_ARCHIVE_BYTES,MAX_EXPANDED_BYTES,MAX_ARCHIVE_FILES,ARCHIVE_LIMIT_MB} from './archive-limits.js';
 
 /** Runs inside the disposable archive worker. Reads fixed-size blocks before
  * accepting data; archive header sizes alone never authorize an allocation. */
 export async function unpackMultiArchive(bytes,{wasmBinary,password='',onProgress=()=>{}}={}){
- if(bytes.byteLength>MAX_ARCHIVE_BYTES)throw Error('Archive exceeds the 128 MB limit.');
+ if(bytes.byteLength>MAX_ARCHIVE_BYTES)throw Error(`Archive exceeds the ${ARCHIVE_LIMIT_MB} MB limit.`);
  if(archiveKind(bytes)==='zstd'){
   let size=0;const chunks=[],decoder=new Decompress(chunk=>{size+=chunk.length;if(size>MAX_EXPANDED_BYTES)throw Error('Archive exceeds 512 MB expanded.');chunks.push(chunk);});
   decoder.push(bytes,true);bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}

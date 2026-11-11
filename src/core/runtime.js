@@ -159,6 +159,10 @@ export function createCoreRuntime(emit) {
           width: Math.round(960 * scale),
           height: Math.round(540 * scale),
         });
+        // Let the simulation know which GPU textures were evicted or could
+        // not fit this frame. Source SFF remains intact; only reappearing
+        // sprites are decoded/resubmitted in a later frame.
+        session.invalidateGpuAssets(renderer.textureChanges);
         const elapsed = performance.now() - start;
         dirty = false;
         if (quality === "auto" && !packet.assets.length && !paused) {

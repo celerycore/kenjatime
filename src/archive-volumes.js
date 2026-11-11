@@ -9,7 +9,7 @@ export function archiveVolumePlan(parts){
   const name=part.name?.normalize('NFC');
   if(!name||name.length>255||/[\\/\x00-\x1f\x7f]/.test(name)||name==='.'||name==='..')throw Error('Invalid archive part name.');
   if(names.has(name.toLowerCase()))throw Error('Duplicate archive part name.');names.add(name.toLowerCase());
-  const size=part.size??part.bytes?.length;if(!Number.isSafeInteger(size)||size<0||(total+=size)>MAX_ARCHIVE_BYTES)throw Error('Archive parts together exceed the 128 MB limit.');
+  const size=part.size??part.bytes?.length;if(!Number.isSafeInteger(size)||size<0||(total+=size)>MAX_ARCHIVE_BYTES)throw Error('Archive parts together exceed the 256 MB limit.');
  }
  const sorted=[...parts].sort((a,b)=>a.name.localeCompare(b.name,'en',{numeric:true}));
  const lower=sorted.map(p=>p.name.normalize('NFC').toLowerCase());let first;

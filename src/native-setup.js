@@ -2,6 +2,7 @@ import './style.css';
 import './mobile.css';
 import {appShell} from './app-shell.js';
 import {sff,animations} from './formats.js';
+import {compactSffV1Preview} from './core/large-sff-preview.js';
 import {libraryResetURL} from './library-recovery.js';
 import {exportFile} from './export-file.js';
 
@@ -27,7 +28,7 @@ $('.aside-bottom small').textContent='Your character files stay on this device.'
 $('#upload').textContent='＋ Import character / archive';$('#add-stage').textContent='＋ Add stage';$('#file').remove();$('#stage-file').remove();
 $('.heading').insertAdjacentHTML('afterend','<section class="stage-library" aria-label="Stage setup"><label>Stage <select id="stage-select"></select></label><span id="stage-summary"></span></section>');
 $('.stage-library').insertAdjacentHTML('afterend','<section class="stage-library" aria-label="Common effects"><label>Common effects <select id="effects-select"><option value="">From chosen stage / fighter (if included)</option></select></label><span>Optional original fightfx AIR/SFF pack</span></section>');
-$('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" aria-label="Match setup"><label>Play mode <select id="arena-mode"><option value="solo">Player vs CPU</option><option value="versus">Two players</option><option value="cpu">Watch CPU match</option><option value="training">Training</option></select></label><button type="button" class="primary" id="fight-now">Fight now</button><span>Choose your fighter in the roster and your rival under Opponent.</span></section>');
+$('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" aria-label="Match setup"><label>Play mode <select id="arena-mode"><option value="solo">Player vs CPU</option><option value="versus">Two players</option><option value="cpu">Watch CPU match</option><option value="training">Training</option></select></label><label class="endless-rounds-option"><input type="checkbox" id="endless-rounds" aria-describedby="endless-rounds-note"><b>∞ Endless Rounds</b></label><button type="button" class="primary" id="fight-now">Fight now</button><span>Choose your fighter in the roster and your rival under Opponent.</span><small id="endless-rounds-note" class="endless-rounds-note">Automatically starts the next round after KO or time-out. Use Watch CPU match for unattended benchmarking.</small></section>');
 $('.transport').insertAdjacentHTML('afterend','<div id="training-tools" class="training-tools"><label>Opponent <select id="opponent-select"></select></label><label>CPU level <select id="cpu-level">'+Array.from({length:8},(_,i)=>`<option value="${i+1}" ${i===3?'selected':''}>${i+1}</option>`).join('')+'</select></label><label>P1 palette <select id="palette-select"></select></label><label>P2 palette <select id="opponent-palette-select"></select></label></div>');
 $('.roster').insertAdjacentHTML('beforebegin','<section class="mobile-library"><details open><summary>Saved on this device <span id="library-count">0</span></summary><p id="library-status">Imported archives are installed here and stay available after restarting the app.</p><div id="library-items"></div></details></section>');
 if(engineHost.canResetLibrary){const recovery=document.createElement('p');recovery.className='library-recovery';recovery.innerHTML='<a class="secondary" id="reset-library">Reset library</a> <span>Removes installed fighters, stages and saved archive copies. Your original downloaded files stay intact.</span>';recovery.querySelector('a').href=libraryResetURL();$('.mobile-library').append(recovery);}
@@ -62,28 +63,46 @@ async function preview(){
 }
 async function drawPreview(step){
  disposePreview();const epoch=previewEpoch;if(!selected)return;$('#empty').hidden=true;
- const rival=catalog.characters.find(c=>c.id===$('#opponent-select').value)||selected,entries=[selected,rival],banks=new Map();
+ const rival=catalog.characters.find(c=>c.id===$('#opponent-select').value)||selected,entries=[selected,rival],banks=new Map(),previewProblems=[];
  const images=await Promise.all(entries.map(async(entry,side)=>{
   try{
-   if(!entry.sprite||entry.spriteBytes>64*1024*1024)throw Error('Preview unavailable');
-   if(!banks.has(entry.sprite))banks.set(entry.sprite,resource(entry.sprite).then(r=>r.arrayBuffer()).then(b=>sff(new Uint8Array(b))));
+   if(!entry.sprite)throw Error('Missing SFF file');
+   if(!banks.has(entry.sprite))banks.set(entry.sprite,resource(entry.sprite).then(async blob=>{
+    // Preview giant SFF v1 banks through a bounded prefix; the full original
+    // archive remains intact and is handed to the actual match renderer.
+    const bytes=entry.spriteBytes>64*1024*1024
+      ? await compactSffV1Preview(blob)
+      : new Uint8Array(await blob.arrayBuffer());
+    if(!bytes)throw Error('Large SFF preview unavailable');
+    return sff(bytes);
+   }));
    const bank=await banks.get(entry.sprite);if(epoch!==previewEpoch)return null;let frame;
    if(entry.anim)frame=animations(await (await resource(entry.anim)).text()).find(a=>a.id===0)?.frames[0];
    if(epoch!==previewEpoch)return null;
    const index=frame?bank.sprites.findIndex(s=>s.group===frame.group&&s.number===frame.number):bank.sprites.findIndex(s=>s.group===0&&s.number===0);if(index<0)throw Error('No idle preview');
    let sprite=bank.decode(index);try{sprite=bank.decodeWithPalette(index,1,+$(side?'#opponent-palette-select':'#palette-select').value);}catch{}
    const image=document.createElement('canvas');image.width=sprite.w;image.height=sprite.h;image.getContext('2d').putImageData(new ImageData(sprite.rgba,sprite.w,sprite.h),0,0);return image;
-  }catch{return null;}
+  }catch(error){previewProblems[side]=String(error?.message||error);return null;}
  }));
  for(const promise of banks.values())promise.then(bank=>bank.clearDecodedCache()).catch(()=>{});
  step?.note({decodedPreviews:images.filter(Boolean).length});
  if(epoch!==previewEpoch)return;grid();ctx.imageSmoothingEnabled=false;
  entries.forEach((entry,side)=>{const center=side?690:270,image=images[side];ctx.fillStyle=side?'#8fcfff':'#d3fb8d';ctx.font='28px system-ui';ctx.textAlign='center';ctx.fillText(`P${side+1} · ${entry.name}`,center,68,360);
   if(image){const scale=Math.min(2.2,340/image.width,320/image.height);ctx.save();ctx.translate(center,440);ctx.scale(side?-scale:scale,scale);ctx.drawImage(image,-image.width/2,-image.height);ctx.restore();}
-  else{ctx.font='15px system-ui';ctx.fillText('Preview unavailable',center,280);ctx.fillText('Ready to use in a match',center,305);}
+  else{ctx.font='15px system-ui';const cause=previewProblems[side]||'Unknown sprite error';
+   ctx.fillText(!entry.sprite?'Missing SFF sprite bank':entry.spriteBytes>64*1024*1024?'Large SFF preview unavailable':'Sprite preview unavailable',center,280);
+   ctx.font='12px system-ui';ctx.fillText(!entry.sprite?'Reimport a complete character archive':entry.spriteBytes>64*1024*1024?'Full sprite bank remains available in fights':cause.slice(0,46),center,305);
+  }
  });canvas.dataset.previewCount=String(images.filter(Boolean).length);canvas.setAttribute('aria-label',`Match preview: Player 1 ${selected.name}, Player 2 ${rival.name}`);
 }
-function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,fxPackage:$('#effects-select').value,mode:$('#arena-mode').value}));}catch{}}
+function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,fxPackage:$('#effects-select').value,mode:$('#arena-mode').value,endlessRounds:$('#endless-rounds').checked}));}catch{}}
+function updateEndlessOption(){
+ const training=$('#arena-mode').value==='training';
+ $('#endless-rounds').disabled=training;
+ $('#endless-rounds-note').textContent=training
+   ? 'Endless Rounds requires a regular match, not Training mode.'
+   : 'Automatically starts the next round after KO or time-out. Use Watch CPU match for unattended benchmarking.';
+}
 function choose(id){
  selected=catalog.characters.find(c=>c.id===id)||catalog.characters[0];if(!selected)return;
  $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent=selected.version||'SFF / AIR';$('#viewtitle').textContent='MATCH PREVIEW · P1 / P2';
@@ -104,6 +123,7 @@ function drawCatalog(data){
  $('#effects-select').innerHTML='<option value="">From chosen stage / fighter (if included)</option>'+catalog.packages.filter(p=>p.commonEffects).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('');
  if(catalog.stages.some(s=>s.id===saved.stage))$('#stage-select').value=saved.stage;if(catalog.characters.some(c=>c.id===saved.opponent))$('#opponent-select').value=saved.opponent;if(catalog.packages.some(p=>p.id===saved.fxPackage&&p.commonEffects))$('#effects-select').value=saved.fxPackage;
  if(['solo','versus','cpu','training'].includes(saved.mode))$('#arena-mode').value=saved.mode;
+ $('#endless-rounds').checked=saved.endlessRounds===true;updateEndlessOption();
  $('#stage-summary').textContent='Your stage selection is used for the next match.';$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';
  $('#library-count').textContent=catalog.packages.length;$('#library-items').replaceChildren();
  for(const pkg of catalog.packages){const row=document.createElement('div');row.className='library-item';const name=document.createElement('span'),open=document.createElement('button'),remove=document.createElement('button');name.textContent=pkg.name;open.textContent='Open';remove.textContent='Delete';open.className=remove.className='secondary';
@@ -126,10 +146,10 @@ if(engineHost.importFile){
  $('#drop').addEventListener('drop',event=>{event.preventDefault();const files=Array.from(event.dataTransfer.files);if(files.length)void run('Reading archive…',async()=>{applyInstalled(await engineHost.importFile(files,{password:$('#archive-password').value}));$('#archive-password').value='';status('Archive installed. Your fighters and stages are ready to select.');});});
 }
 $('#sample').onclick=()=>choose(catalog.characters.find(c=>!c.packageId)?.id);$('#lab').onclick=()=>{$('.viewer').scrollIntoView({block:'start'});};$('#training').onclick=()=>{$('.arena-launch').scrollIntoView({block:'start'});};
-for(const id of ['stage-select','effects-select','opponent-select','arena-mode','palette-select','opponent-palette-select'])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
+for(const id of ['stage-select','effects-select','opponent-select','arena-mode','endless-rounds','palette-select','opponent-palette-select'])$('#'+id).onchange=()=>{if(id==='arena-mode')updateEndlessOption();remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
 $('#fight-now').onclick=()=>void run('Preparing your match…',async()=>{
  if(!selected)throw Error('Import a character before starting a match.');
- const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value,fightfxPackageId:$('#effects-select').value};remember();disposePreview();await native('launch',match);
+ const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value,endlessRounds:$('#endless-rounds').checked&&$('#arena-mode').value!=='training',fightfxPackageId:$('#effects-select').value};remember();disposePreview();await native('launch',match);
 });
 window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview();status('Ready when you are.');}});
 grid();void run('Opening your library…',async()=>{try{const data=await native('catalog');if(startup)startup.measure('catalog-render',()=>drawCatalog(data));else drawCatalog(data);startup?.finish(data.warning?'degraded':'ready');status(data.warning||'Ready when you are.');}catch(error){startup?.finish('failed');throw error;}});
