@@ -31,14 +31,17 @@ export function programExpressions(programs) {
   const sources = new Set();
   for (const p of programs) {
     for (const source of p.zssExpressions || []) sources.add(source);
+    // Extended IKEMEN globals may contain multiple CNS/ZSS definitions.
+    // Flatten each part when precompiling numeric expressions.
     for (const state of p.states.values())
-      for (const section of [state, ...state.controllers])
-        for (const entry of section.entries) {
-          sources.add(entry.value);
-          try {
-            for (const part of splitArguments(entry.value)) sources.add(part);
-          } catch {}
-        }
+      for (const definition of state.globalParts||[state])
+        for (const section of [definition, ...(definition.controllers||[])])
+          for (const entry of section.entries||[]) {
+            sources.add(entry.value);
+            try {
+              for (const part of splitArguments(entry.value)) sources.add(part);
+            } catch {}
+          }
   }
   return sources;
 }
