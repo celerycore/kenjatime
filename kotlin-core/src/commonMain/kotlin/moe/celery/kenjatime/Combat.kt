@@ -60,7 +60,21 @@ data class FighterDefinition(
     val yScale: Int = Fixed.ONE
 ) {
     companion object {
+        private val zssDeclaration =
+            Regex("""(?im)^\s*\[\s*(?:statedef\s+-?\d+\s*;|function\s+\w+\s*\()""")
+        fun fromScripts(
+            name: String, air: String, orderedStateFiles: List<String>, cmd: String = ""
+        ): FighterDefinition {
+            require(orderedStateFiles.size in 1..128) { "Expected 1-128 ordered CNS/ST script sources" }
+            require(orderedStateFiles.none { zssDeclaration.containsMatchIn(it) }) {
+                "ZSS source detected: Kotlin/Wasm cannot yet execute structured ZSS scripts; use the JS interpreter"
+            }
+            return fromScript(name, air, orderedStateFiles.joinToString("\n"), cmd)
+        }
         fun fromScript(name: String, air: String, cns: String, cmd: String = ""): FighterDefinition {
+            require(!zssDeclaration.containsMatchIn(cns) && !zssDeclaration.containsMatchIn(cmd)) {
+                "ZSS source detected: Kotlin/Wasm cannot yet execute structured ZSS scripts; use the JS interpreter"
+            }
             val constants = MugenCnsParser.constants(cns)
             // MUGEN CMD embeds StateDef -1 and controllers AFTER [Command] sections.
             // Motion definitions alone cannot activate any authored combat move.
