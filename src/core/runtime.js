@@ -158,6 +158,7 @@ export function createCoreRuntime(emit) {
         renderer.render(packet, {
           width: Math.round(960 * scale),
           height: Math.round(540 * scale),
+          restoreAssets: ids => session.restoreAssets(ids),
         });
         const elapsed = performance.now() - start;
         dirty = false;
