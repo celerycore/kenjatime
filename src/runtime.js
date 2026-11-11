@@ -106,6 +106,7 @@ const CONTROLLERS = new Set([
 ]);
 export const supportedControllers = new Set(CONTROLLERS);
 export const supportedTriggers = new Set(['time','stateno','prevstateno','anim','animelem','animtime','ctrl','statetype','movetype','physics','life','lifemax','power','powermax','facing','alive','gametime','hitpausetime','hitshakeover','hitover','movecontact','movehit','moveguarded','movereversed','hitcount','uniqhitcount','numhelper','numexplod','numtarget','numenemy','numpartner','ishelper','roundstate','roundno','matchno','teamside','teampower','tickspersecond','ailevel','palno','id','name','authorname','numproj','win','lose','drawgame','inguarddist','canrecover','pos x','pos y','vel x','vel y','screenpos x','screenpos y','command','const','const240p','const480p','const720p','random','animexist','selfanimexist','animelemtime','animelemno','gethitvar','playeridexist','p2name','p2life','p2stateno','p2statetype','p2movetype','p2bodydist x','p2dist x','p2bodydist y','p2dist y','hitdefattr','reversaldefattr','pausetime','incustomstate','ailevelf','gamemode','standby','attack','defence','sprpriority','inputtime','receiveddamage','receivedhits','roundsexisted','camerapos x','camerapos y','hitfall','hitvel x','hitvel y','frontedgedist','backedgedist','frontedgebodydist','backedgebodydist','var','fvar','sysvar','sysfvar']);
+for(const trigger of ['projhit','projcontact','projguarded'])supportedTriggers.add(trigger);
 supportedTriggers.add('teammode');
 supportedTriggers.add('map');
 supportedTriggers.add('ishometeam');
@@ -121,7 +122,7 @@ const controllerMetadata=new WeakMap();
 for(const type of ['mapset','mapadd','rootmapset','rootmapadd'])requiredParameters.set(type,['map','value']);
 function controllerRules(controller){
   if(controllerMetadata.has(controller))return controllerMetadata.get(controller);
-  const rules={ignorehitpause:0,persistent:1,groups:new Map(),errors:[],warnings:[]};
+  const rules={ignorehitpause:0,persistent:1,groups:new Map(),errors:[],warnings:[],compatWarnings:[]};
   for(const key of requiredParameters.get(controller.type)||[])if(controller.values[key]===undefined)rules.errors.push({line:controller.line,message:`${controller.type} requires ${key}.`});
   if(['varset','varadd','varmul','parentvarset','parentvaradd'].includes(controller.type)&&!controller.entries.some(e=>/^(?:var|fvar|sysvar|sysfvar)\s*\(/.test(e.key))){
     if(controller.values.v===undefined&&controller.values.fv===undefined&&controller.values.sysv===undefined&&controller.values.sysfv===undefined)rules.errors.push({line:controller.line,message:`${controller.type} requires v or fv (or alternate variable assignment syntax).`});
@@ -132,8 +133,18 @@ function controllerRules(controller){
   for(const key of ['ignorehitpause','persistent'])if(controller.values[key]!==undefined){
     if(key==='ignorehitpause'&&controller.language==='zss'&&controller.type==='explod')continue;
     const raw=controller.values[key],value=Number(raw);
-    if(!/^[+-]?\d+$/.test(raw)||!Number.isSafeInteger(value)||value< -2147483648||value>2147483647||key==='persistent'&&value<0)rules.errors.push({line:controller.entries.find(e=>e.key===key)?.line||controller.line,message:`${key} requires ${key==='persistent'?'a nonnegative':'a signed 32-bit'} integer constant; expressions are not allowed.`});
-    else rules[key]=value;
+    if(!/^[+-]?\d+$/.test(raw)||!Number.isSafeInteger(value)||value< -2147483648||key==='ignorehitpause'&&value>2147483647||key==='persistent'&&value<0){
+      rules.errors.push({line:controller.entries.find(e=>e.key===key)?.line||controller.line,message:`${key} requires a ${key==='persistent'?'nonnegative safe':'signed 32-bit'} integer literal; expressions are not allowed.`});
+    }else{
+      rules[key]=value;
+      // Oversized literals are authored in legacy 'cheap' characters. A
+      // positive safe integer preserves infrequent activation rather than
+      // disabling the controller. Native 32-bit behavior is NOT verified.
+      if(key==='persistent'&&value>2147483647)rules.compatWarnings.push({
+        line:controller.entries.find(e=>e.key===key)?.line||controller.line,
+        message:`Persistent ${raw} exceeds signed 32-bit MUGEN range; interpreting as a safe JavaScript integer (native behavior unverified).`
+      });
+    }
   }
   for(const entry of controller.entries){const match=/^trigger([1-9]\d*)$/.exec(entry.key);if(match){const n=Number(match[1]);if(!rules.groups.has(n))rules.groups.set(n,[]);rules.groups.get(n).push(entry);}}
   if(!rules.groups.has(1))rules.errors.push({line:controller.line,message:'A state controller requires at least one trigger1.'});
@@ -268,7 +279,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
         current.controllers.push(controller);
         program.controllerTypes.add(type);
         const rules=controllerRules(controller);
-        for(const [kind,items]of [['controller-parameter',rules.errors],['trigger-numbering',rules.warnings]])for(const item of items)program.diagnostics.push({source,line:item.line,type:kind,message:item.message});
+        for(const [kind,items]of [['controller-parameter',rules.errors],['trigger-numbering',rules.warnings],['nonportable-persistent',rules.compatWarnings]])for(const item of items)program.diagnostics.push({source,line:item.line,type:kind,message:item.message});
         if (!CONTROLLERS.has(type)) program.diagnostics.push({ source, line: section.line, type: 'unsupported-controller', name: type || '(missing type)', message: `Controller ${type || '(missing type)'} is not implemented.` });
       } else if(section.name==='quotes'){
         for(const entry of section.entries){const match=/^victory(\d{1,2})$/.exec(entry.key);if(!match)continue;
@@ -544,6 +555,17 @@ export class FighterRuntime {
     if(name==='stagevar'){if(!this.world?.stage)throw Error('StageVar requires an imported stage.');return this.world.stage.variable(args[0]);}
     if (name === 'ishelper' && args.length) return +(!!this.parent && this.helperId === +args[0]);
     if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === Math.max(0,Math.trunc(+args[0]))).length;
+    // Legacy scripts also use parenthesized ProjHit(id), although the
+    // official syntax uses a numeric suffix. Preserve the one-tick contact
+    // flag using the existing projectile history.
+    if(['projhit','projcontact','projguarded'].includes(name)){
+      const wanted=Math.max(0,Math.trunc(+args[0]||0)),now=this.world?.ticks??this.gameTime;
+      return +this.projectileHistory.some(record=>
+        (!wanted||record.projId===wanted) &&
+        (name==='projcontact'?['hit','guarded'].includes(record.type):record.type===name.slice(4)) &&
+        now-record.tick>=0 && now-record.tick<=1
+      );
+    }
     if (/^proj(contact|hit|guarded|cancel)time$/.test(name)) {
       const kind = name.slice(4, -4), wanted = Math.max(0,+args[0] || 0), record = this.projectileHistory.at(-1);
       return record && (!wanted || record.projId === wanted) && (kind === 'contact' ? ['hit','guarded'].includes(record.type) : record.type === kind) ? (this.world?.ticks ?? this.gameTime) - record.tick : -1;
@@ -1339,6 +1361,14 @@ export class FighterRuntime {
     if(noChain.length>2)throw Error('HitDef nochainID takes at most two IDs.');
     hit.nochainid=noChain.map(integer);hit.hitonce=hit.hitonce===undefined?+/^[SCA]\s*,\s*[NSH]T$/i.test(hit.attr):+truth(numeric(hit.hitonce));
     hit.damage = vector('damage', [0, 0]); hit.pauseTime = vector('pausetime', [0, 0]);
+    // 'gurad' is an authored typo, not a native parameter. Apply as a
+    // compatibility alias only if the correct spelling is absent and emit
+    // a nonportable warning rather than silently claiming native fidelity.
+    if(hit['gurad.pausetime']!==undefined&&hit['guard.pausetime']===undefined){
+      hit['guard.pausetime']=hit['gurad.pausetime'];
+      this.diagnostic('nonportable-hitdef-typo',
+        'Interpreting authored gurad.pausetime as guard.pausetime; native behavior unverified.',controller);
+    }
     hit.guardPauseTime = vector('guard.pausetime', hit.pauseTime);
     hit.groundVelocity = vector('ground.velocity', [0, 0]); hit.airVelocity = vector('air.velocity', [0, 0]);
     hit.guardVelocity = vector('guard.velocity', [hit.groundVelocity[0], 0]);
@@ -1361,7 +1391,7 @@ export class FighterRuntime {
     hit.sparkCommon = !/^s/i.test(raw.sparkno || ''); hit.guardSparkCommon = !/^s/i.test(raw['guard.sparkno'] || '');
     hit.hitSoundCommon = !/^s/i.test(raw.hitsound || ''); hit.guardSoundCommon = !/^s/i.test(raw.guardsound || '');
     hit.sparkno ??= this.constant('data.sparkno'); hit['guard.sparkno'] ??= this.constant('data.guard.sparkno');
-    const consumed = new Set(['attr','damage','pausetime','guard.pausetime','ground.velocity','air.velocity','guard.velocity','airguard.velocity','ground.hittime','air.hittime','guard.hittime','ground.slidetime','guard.slidetime','ground.ctrltime','guard.ctrltime','guardflag','hitflag','fall','forcenofall','kill','guard.kill','fall.kill','fall.damage','fall.xvelocity','fall.yvelocity','fall.recover','fall.recovertime','yaccel','animtype','air.animtype','ground.type','air.type','chainid','id','p1stateno','p2stateno','p2getp1state','p1facing','p1getp2facing','p2facing','p1sprpriority','p2sprpriority','sprpriority','numhits','getpower','givepower','priority','affectteam','guard.dist','down.velocity','down.hittime','air.fall','forcestand','air.juggle','fall.envshake.time','fall.envshake.ampl','fall.envshake.freq','fall.envshake.phase','sparkno','guard.sparkno','sparkxy','hitsound','guardsound','envshake.time','envshake.freq','envshake.ampl','envshake.phase','palfx.time','palfx.add','palfx.mul','palfx.sinadd','palfx.color','palfx.invertall']);
+    const consumed = new Set(['attr','damage','pausetime','guard.pausetime','gurad.pausetime','ground.velocity','air.velocity','guard.velocity','airguard.velocity','ground.hittime','air.hittime','guard.hittime','ground.slidetime','guard.slidetime','ground.ctrltime','guard.ctrltime','guardflag','hitflag','fall','forcenofall','kill','guard.kill','fall.kill','fall.damage','fall.xvelocity','fall.yvelocity','fall.recover','fall.recovertime','yaccel','animtype','air.animtype','ground.type','air.type','chainid','id','p1stateno','p2stateno','p2getp1state','p1facing','p1getp2facing','p2facing','p1sprpriority','p2sprpriority','sprpriority','numhits','getpower','givepower','priority','affectteam','guard.dist','down.velocity','down.hittime','air.fall','forcestand','air.juggle','fall.envshake.time','fall.envshake.ampl','fall.envshake.freq','fall.envshake.phase','sparkno','guard.sparkno','sparkxy','hitsound','guardsound','envshake.time','envshake.freq','envshake.ampl','envshake.phase','palfx.time','palfx.add','palfx.mul','palfx.sinadd','palfx.color','palfx.invertall']);
     for(const key of ['fall.animtype','mindist','maxdist','snap','ground.cornerpush.veloff','air.cornerpush.veloff','down.cornerpush.veloff','guard.cornerpush.veloff','airguard.cornerpush.veloff','airguard.ctrltime'])consumed.add(key);
     consumed.add('hitonce');consumed.add('nochainid');consumed.add('down.bounce');
     for (const entry of controller.entries) {
