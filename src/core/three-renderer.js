@@ -149,7 +149,9 @@ export class CoreThreeRenderer {
     // Original MUGEN/IKEMEN sprite banks can contain thousands of large PCX
     // frames. Keep only recently visible textures, not the entire move set.
     // Stage model/video and built-in textures cannot be evicted by this path.
-    const plan = planSpriteEvictions(
+    const plan = this.textureBytes + pixels.length <= this.limit
+      ? {fits:true,evictions:[]}
+      : planSpriteEvictions(
       [...this.textures].filter(([,t]) => Number.isFinite(t.userData.coreSpriteBytes))
         .map(([id,t]) => ({
           id,
