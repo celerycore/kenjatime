@@ -32,6 +32,8 @@ jobs:
         run: node --test test/core/projectile-stress-optimization.test.js
       - name: Extended ZSS globals regression
         run: node --test test/core/extended-global-scheduler.test.js
+      - name: Experimental Kotlin/Wasm host adapter parity
+        run: node --test test/core/kotlin-wasm-combat-bridge.test.js
       - name: Existing ZSS compatibility fixtures
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite
