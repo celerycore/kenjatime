@@ -46,20 +46,3 @@ jobs:
           path: kotlin-engine/build/compileSync/wasmJs/main/developmentExecutable/kotlin/
           if-no-files-found: error
           retention-days: 7
-
-      - name: Package offline Core runner for original local character files
-        working-directory: .
-        run: |
-          mkdir -p /tmp/kenjatime-local-handoff
-          printf '%s\n' "$GITHUB_SHA" > SOURCE_COMMIT.txt
-          tar -czf /tmp/kenjatime-local-handoff/runtime.tar.gz \
-            SOURCE_COMMIT.txt src scripts/core test/core test/fixtures \
-            public/kfm.zip package.json package-lock.json node_modules
-          sha256sum /tmp/kenjatime-local-handoff/runtime.tar.gz
-          du -h /tmp/kenjatime-local-handoff/runtime.tar.gz
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kenjatime-offline-headless-source-and-dependencies
-          path: /tmp/kenjatime-local-handoff/runtime.tar.gz
-          if-no-files-found: error
-          retention-days: 1
