@@ -1,0 +1,14 @@
+{
+  "repository": "celerycore/kenjatime",
+  "branch": "feature/kotlin-wasm-blueprint-20261111",
+  "commit": "7c446c7867827edd74c2192a3b0e327b2deca9da",
+  "channel": "gpu-camera-test",
+  "fixes": [
+    "texture-lru",
+    "sff-texture-recovery",
+    "legacy-widescreen-framing"
+  ],
+  "charactersIncluded": false,
+  "stageIncluded": false,
+  "kotlinWasmDefault": false
+}
