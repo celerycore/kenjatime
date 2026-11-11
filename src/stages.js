@@ -129,12 +129,13 @@ export class StageRuntime{
     const d=this.definition,c=d.camera,xPlayers=players.filter(p=>p.moveCamera?.x!==false),yPlayers=players.filter(p=>p.moveCamera?.y!==false);
     if(xPlayers.length){
       const low=Math.min(...xPlayers.map(p=>p.pos.x)),high=Math.max(...xPlayers.map(p=>p.pos.x));
-      const target=clamp(320/Math.max(1,high-low+2*c.tension),c.zoomOut,c.zoomIn);
+      const viewportWidth=this.view().displayWidth;
+      const target=clamp(viewportWidth/Math.max(1,high-low+2*c.tension),c.zoomOut,c.zoomIn);
       if(advance){
         if(target>this.camera.zoom){if(this.zoomWait++>=c.zoomInDelay)this.camera.zoom+=(target-this.camera.zoom)*c.zoomInSpeed;}
         else{this.zoomWait=0;this.camera.zoom+=(target-this.camera.zoom)*c.zoomOutSpeed;}
       }
-      const half=Math.max(1,160/this.camera.zoom-c.tension),left=high-half,right=low+half;
+      const half=Math.max(1,this.view().displayWidth/(2*this.camera.zoom)-c.tension),left=high-half,right=low+half;
       const x=c.autoCenter?(low+high)/2:left<=right?clamp(this.camera.x,left,right):(low+high)/2;
       if(advance||c.tensionVelocity===1)this.camera.x=clamp(this.camera.x+(x-this.camera.x)*c.tensionVelocity,c.left,c.right);
     }
@@ -142,14 +143,20 @@ export class StageRuntime{
       const y=clamp(Math.min(0,Math.min(...yPlayers.map(p=>p.pos.y))+c.floorTension)*follow,c.high,c.low);this.camera.y+=(y-this.camera.y)*c.yScrollSpeed;}
   }
   view(aspect=this.viewportAspect){
-    const d=this.definition,height=aspect||d.cropHigh+d.cropLow?320/(aspect||16/9):d.localcoord[1]*d.coordinateScale,crop=Math.max(0,d.localcoord[1]*d.coordinateScale-height);
+    const d=this.definition,ratio=aspect||16/9,authoredHeight=d.localcoord[1]*d.coordinateScale;
+    // A 320x240 MUGEN stage on 16:9 normally expands the horizontal fight
+    // area. Cropping it to 320x180 magnified fighters by 4/3 and made jumps
+    // appear short. Honor explicit cuthigh/cutlow as a deliberate crop.
+    const height=d.cropHigh+d.cropLow?320/ratio:Math.max(authoredHeight,320/ratio);
+    const displayWidth=Math.max(320,height*ratio);
+    const crop=Math.max(0,authoredHeight-height);
     let ground=d.zoffset;
     if(d.zoffsetlink!==null){const index=this.elements.findIndex(e=>e.id===d.zoffsetlink);if(index>=0)ground=this.position(index).y*d.coordinateScale;}
     // Explicit crop guidelines retain their authored ratio. Without guidelines,
     // keep a small strip below the floor rather than shrinking legacy fighters.
     const cropTop=d.cropHigh+d.cropLow?crop*d.cropHigh/(d.cropHigh+d.cropLow):clamp(ground-height+12,0,crop);
-    const groundY=ground-cropTop,width=320/this.camera.zoom,worldHeight=height/this.camera.zoom,anchor=d.camera.zoomAnchor==='bottom'?height-(height-groundY)*this.camera.zoom:groundY;
-    return{left:this.camera.x-width/2,right:this.camera.x+width/2,top:this.camera.y-anchor/this.camera.zoom,bottom:this.camera.y+(height-anchor)/this.camera.zoom,width,height:worldHeight,displayHeight:height,groundY:anchor,zoffset:ground,cropTop,zoom:this.camera.zoom};
+    const groundY=ground-cropTop,width=displayWidth/this.camera.zoom,worldHeight=height/this.camera.zoom,anchor=d.camera.zoomAnchor==='bottom'?height-(height-groundY)*this.camera.zoom:groundY;
+    return{left:this.camera.x-width/2,right:this.camera.x+width/2,top:this.camera.y-anchor/this.camera.zoom,bottom:this.camera.y+(height-anchor)/this.camera.zoom,width,height:worldHeight,displayWidth,displayHeight:height,groundY:anchor,zoffset:ground,cropTop,zoom:this.camera.zoom};
   }
   position(index){
     let x=0,y=0,delta=[1,1],depth=0;
