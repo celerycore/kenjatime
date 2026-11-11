@@ -1,4 +1,36 @@
 /** Kenjatime reference lifebar: UI only; never touches combat or GPU rendering. */
+/**
+ * Toggle SVG fallback with real DOM attributes. SVGElement.hidden is not a
+ * reliable reflected attribute in all browsers: assigning it can create an
+ * inert property, leaving the silhouette painted over a loaded portrait.
+ * This helper is intentionally DOM-only; no character image is altered.
+ */
+export function setKenjatimeHudPortrait(frame, src) {
+  const image = frame?.querySelector('img');
+  const silhouette = frame?.querySelector('svg');
+  if (!image || !silhouette) return;
+  const fallback = () => {
+    image.hidden = true;
+    image.removeAttribute('src');
+    silhouette.removeAttribute('hidden');
+    frame.classList.remove('kt-hud-has-image');
+  };
+  image.onerror = null;
+  if (typeof src !== 'string' || !src.startsWith('data:image/')) {
+    fallback();
+    return;
+  }
+  image.onerror = () => {
+    if (image.src !== src) return; // ignore stale loading errors
+    fallback();
+  };
+  // Keep this order: load the actual artwork, disable the decorative SVG,
+  // then expose the image. CSS provides a second safeguard.
+  image.src = src;
+  silhouette.setAttribute('hidden', '');
+  frame.classList.add('kt-hud-has-image');
+  image.hidden = false;
+}
 export function mountKenjatimeReferenceHud(hud) {
   if (!hud) return {update() {}};
   if (hud.classList.contains('kt-reference-hud')) return hud.__kenjaHudSkin;
@@ -99,25 +131,7 @@ export function mountKenjatimeReferenceHud(hud) {
   }
   function setPortraits(portraits = []) {
     sides.forEach((slot, side) => {
-      if (!slot) return;
-      const image = slot.frame.querySelector('img');
-      const silhouette = slot.frame.querySelector('svg');
-      const src = portraits[side];
-      image.onerror = null;
-      if (typeof src === 'string' && src.startsWith('data:image/')) {
-        image.onerror = () => {
-          if (image.src !== src) return;
-          image.hidden = true;
-          silhouette.hidden = false;
-        };
-        image.src = src;
-        image.hidden = false;
-        silhouette.hidden = true;
-      } else {
-        image.removeAttribute('src');
-        image.hidden = true;
-        silhouette.hidden = false;
-      }
+      if (slot) setKenjatimeHudPortrait(slot.frame, portraits[side]);
     });
   }
   return (hud.__kenjaHudSkin = {update, setPortraits});
