@@ -42,18 +42,6 @@ jobs:
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite
         run: npm run test:core
-      - name: Package tested source for local original Ako/Asuna/Forest validation
-        run: |
-          mkdir -p /tmp/kenjatime-forest-qa
-          echo "$GITHUB_SHA" > SOURCE_COMMIT.txt
-          tar -czf /tmp/kenjatime-forest-qa/runtime.tar.gz SOURCE_COMMIT.txt src scripts/core test/core public/kfm.zip node_modules package.json package-lock.json
-      - name: Save private-asset validation runner (no user archives included)
-        uses: actions/upload-artifact@v4
-        with:
-          name: kenjatime-forest-render-memory-qa
-          path: /tmp/kenjatime-forest-qa/runtime.tar.gz
-          retention-days: 1
-          if-no-files-found: error
       - name: Original interaction compatibility comparison (known baseline gap)
         run: npm run verify:core:interactions
         continue-on-error: true
