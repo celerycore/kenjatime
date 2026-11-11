@@ -1,0 +1,31 @@
+name: Native IKEMEN GO v1.0.0 reference handoff (offline comparison)
+on:
+  push:
+    branches: [feature/kotlin-wasm-blueprint-20261111]
+    paths: ['.github/workflows/native-ikemen-reference-handoff.yml']
+  workflow_dispatch:
+jobs:
+  fetch-unmodified-native-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download pinned official unmodified Linux release
+        run: |
+          set -euo pipefail
+          mkdir -p reference
+          cd reference
+          base='https://github.com/ikemen-engine/Ikemen-GO/releases/download/v1.0.0'
+          curl -fsSL --retry 3 "$base/Ikemen_GO-v1.0.0-linux.zip" -o Ikemen_GO-v1.0.0-linux.zip
+          curl -fsSL --retry 3 "$base/SHA256SUMS.txt" -o SHA256SUMS.txt
+          grep 'Ikemen_GO-v1.0.0-linux.zip' SHA256SUMS.txt
+          grep 'Ikemen_GO-v1.0.0-linux.zip' SHA256SUMS.txt | sha256sum -c -
+          unzip -l Ikemen_GO-v1.0.0-linux.zip | head -n 35 || true
+      - name: Archive native reference for local original assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-ikemen-go-v1.0.0-linux
+          path: |
+            reference/Ikemen_GO-v1.0.0-linux.zip
+            reference/SHA256SUMS.txt
+          retention-days: 1
+          if-no-files-found: error
