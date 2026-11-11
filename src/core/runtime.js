@@ -1,4 +1,5 @@
 import { CoreSession } from "./session.js";
+import {normalizePresentation} from "./presentation.js";
 import { CoreThreeRenderer } from "./three-renderer.js";
 import { FrameClock } from "../frame-clock.js";
 import { TickInputBuffer } from "../input-buffer.js";
@@ -335,6 +336,12 @@ export function createCoreRuntime(emit) {
       clock.suspend();
       dirty = true;
       if (started) schedule();
+    }
+    if (data.type === "presentation") {
+      if (session) session.setPresentation(normalizePresentation(data.value));
+      dirty = true;
+      if (started) schedule();
+      return;
     }
     if (data.type === "quality") {
       quality = data.value;
