@@ -76,6 +76,7 @@ export class CoreThreeRenderer {
     this.slots = [];
     this.evictionCount = 0;
     this.deferredUploadCount = 0;
+    this.recoveredSpriteUploads = 0;
     this.textureChanges = { evicted: [], deferred: [], missing: [] };
     this.frameProtected = null;
     this.frames = 0;
@@ -309,7 +310,7 @@ export class CoreThreeRenderer {
     this.textureBytes += model?.textureBytes || 0;
     return !!model;
   }
-  render(frame, { width = 960, height = 540 } = {}) {
+  render(frame, { width = 960, height = 540, restoreAssets = null } = {}) {
     if (this.closed) return;
     if (this.lost)
       throw Error(
@@ -350,6 +351,26 @@ export class CoreThreeRenderer {
     }
     for (const asset of pending) if (!essential.has(asset.id))
       if (this.upload(asset)) this.frameProtected.add(asset.id);
+    // Some previously delivered sprites were evicted on earlier frames.
+    // Recover directly from the original SFF archive during this same draw,
+    // without allowing new uploads to evict currently visible art.
+    if(restoreAssets){
+      const missing=new Set();
+      for(const draw of draws){
+        if(draw.texture&&!this.textures.has(draw.texture))missing.add(draw.texture);
+        if(draw.indexed&&draw.palette&&!this.textures.has(draw.palette))missing.add(draw.palette);
+      }
+      if(missing.size){
+        const requested=restoreAssets([...missing])||[];
+        for(const asset of requested){
+          if(!missing.has(asset.id))continue;
+          if(this.upload(asset)){
+            this.frameProtected.add(asset.id);
+            this.recoveredSpriteUploads++;
+          }
+        }
+      }
+    }
     this.grid.visible = !!frame.grid;
     this.grid.material.uniforms.ground.value = frame.ground || 450;
     for (let i = 0; i < Math.max(draws.length, this.slots.length); i++) {
@@ -439,6 +460,8 @@ export class CoreThreeRenderer {
       textures: this.textures.size,
       spriteEvictions: this.evictionCount,
       deferredSpriteUploads: this.deferredUploadCount,
+      recoveredSpriteUploads: this.recoveredSpriteUploads,
+      missingFrameSprites: this.textureChanges.missing.length,
       maxTextureBytes: this.limit,
       width,
       height,
