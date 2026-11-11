@@ -80,3 +80,14 @@ test("optional create-from-imported API preserves compatibility diagnostics", ()
   assert.ok(fight.sourceWarnings.some(x=>x.warning.includes("common1.cns")));
   assert.throws(()=>createKotlinFightFromImported(null,{player1:legacyPackage(),player2:legacyPackage()}),/initialized/);
 });
+
+
+test("Shift-JIS legacy character comments survive source assembly", () => {
+  const character=legacyPackage();
+  character.files["dark/option.txt"]=Uint8Array.from([
+    ...new TextEncoder().encode("[Statedef -3]\n; "),
+    0x83,0x65,0x83,0x58,0x83,0x67,10
+  ]); // Windows-31J/Shift-JIS: テスト (synthetic comment, not original source)
+  const payload=kotlinFighterFromImportedCharacter(character);
+  assert.ok(payload.cns.includes("テスト"));
+});
