@@ -16,7 +16,18 @@ try:
     response=route.fetch();route.fulfill(response=response,body="OffscreenCanvas.prototype.getContext=function(){throw Error('Fixture: worker GPU unavailable');};\n"+response.text())
    page.route('**/assets/worker-*.js',fail_worker_gpu)
   if os.environ.get('CORE_MAIN'):page.add_init_script('HTMLCanvasElement.prototype.transferControlToOffscreen=undefined;')
-  page.goto(base+'core/index.html');page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'",timeout=30000);assert page.locator('#core-qa-guide').is_visible();assert page.locator('#effects-select').count()==1;assert page.locator('#name').inner_text()=='Kung Fu Man';page.locator('#arena-mode').select_option('training');page.locator('#opponent-palette-select').select_option('1');page.locator('#fight-now').click()
+  page.goto(base+'core/index.html');page.wait_for_function("document.querySelector('#status').textContent==='Ready when you are.'",timeout=30000);assert page.locator('#core-qa-guide').is_visible();assert page.locator('#effects-select').count()==1;assert page.locator('#name').inner_text()=='Kung Fu Man';page.locator('#arena-mode').select_option('training');page.locator('#opponent-palette-select').select_option('1');page.locator('#presentation-select').select_option('native-4-3')
+  page.locator('#fight-now').click()
+  page.wait_for_function("document.querySelector('.kenjatime-battle-screen')?.dataset.presentation==='native-4-3'")
+  assert page.evaluate("window.__kenjatimeCoreBattle.presentation()")=='native-4-3'
+  assert page.evaluate("document.querySelector('[data-presentation]').getAttribute('aria-pressed')")=='true'
+  page.locator('[data-presentation]').click()
+  page.wait_for_function("window.__kenjatimeCoreBattle?.presentation()==='widescreen-16-9'")
+  assert page.locator('#presentation-select').input_value()=='widescreen-16-9'
+  page.locator('[data-presentation]').click()
+  page.wait_for_function("window.__kenjatimeCoreBattle?.presentation()==='native-4-3'")
+  assert page.locator('#presentation-select').input_value()=='native-4-3'
+  result['checks']['presentationModes']=['4:3','16:9','4:3']
   try:
    page.wait_for_function('window.__kenjatimeCoreState?.ticks>30',timeout=30000);page.wait_for_function('window.__kenjatimeCoreState.players.every(p=>p.state===0)',timeout=30000)
    assert page.evaluate('window.__kenjatimeCoreBattle.backend()')==('worker' if mode=='worker' else 'main')
