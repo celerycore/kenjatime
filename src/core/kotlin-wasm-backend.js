@@ -1,3 +1,31 @@
+import { kotlinFighterFromImportedCharacter } from "./kotlin-character-source.js";
+
+/**
+ * Bridge two safely imported ZIP/RAR character objects to the experimental
+ * Kotlin runtime. This never installs Kotlin as the browser's default backend.
+ */
+export function createKotlinFightFromImported(core, {
+  player1, player2, positions, arena, round
+} = {}) {
+  if (!core || typeof core.create !== "function")
+    throw new TypeError("An initialized experimental Kotlin/Wasm core is required");
+  const left = kotlinFighterFromImportedCharacter(player1);
+  const right = kotlinFighterFromImportedCharacter(player2);
+  const fight = core.create({player1:left,player2:right,positions,arena,round});
+  return {
+    ...fight,
+    sourceWarnings:[
+      ...left.warnings.map(warning=>({player:1,warning})),
+      ...right.warnings.map(warning=>({player:2,warning})),
+    ],
+    unsupportedControllers:{
+      p1:left.unsupportedControllerTypes,
+      p2:right.unsupportedControllerTypes,
+    },
+    productionReady:false,
+  };
+}
+
 /**
  * Opt-in Kotlin/Wasm adapter. The production JS CoreSession is not changed.
  * Use the generated Kotlin ESM module with its relative .wasm/import-object files.
