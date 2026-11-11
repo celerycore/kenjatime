@@ -264,3 +264,13 @@
   filter: drop-shadow(0 0 .25cqw #d2ff64);
 }
 .kt-reference-hud .kt-hud-portrait svg[hidden] { display: none !important; }
+/* Never paint the generic two-circle fallback over an imported portrait.
+   The state class is a redundant safeguard for browser SVG hidden quirks. */
+.kt-reference-hud .kt-hud-portrait.kt-hud-has-image svg {
+  display: none !important;
+}
+.kt-reference-hud .kt-hud-portrait.kt-hud-has-image img:not([hidden]) {
+  position: relative;
+  z-index: 2;
+}
+
