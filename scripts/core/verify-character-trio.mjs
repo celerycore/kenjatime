@@ -13,14 +13,14 @@
  */
 import {readFileSync,readdirSync,statSync,lstatSync,mkdirSync,writeFileSync} from 'node:fs';
 import {resolve,relative,join,extname,dirname} from 'node:path';
-import {pathToFileURL} from 'node:url';
+import {pathToFileURL,fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {performance} from 'node:perf_hooks';
 import {packageFiles,normalizedPackageFiles,charactersFromFiles} from '../../src/formats.js';
 import {CoreSession} from '../../src/core/session.js';
 import {importKotlinWasmCombatBackend} from '../../src/core/kotlin-wasm-combat.js';
 
-const root=resolve(new URL('../../',import.meta.url).pathname);
+const root=fileURLToPath(new URL('../../',import.meta.url));
 const input=process.argv.slice(2),options=input.filter(a=>a.startsWith('--'));
 const paths=input.filter(a=>!a.startsWith('--'));
 if(paths.length!==3)throw Error('Required: 2026 RareAkuma ZIP, 2007 Rare Akuma ZIP, extracted Dark Donald directory');
@@ -157,7 +157,6 @@ for(const [i,path] of paths.entries()){
   const label=['Rare Akuma 2026 ZSS','Rare Akuma 2007 legacy','Dark Donald 2011'][i];
   const asset=load(path);
   const character=chosenCharacter(asset.files,i===2?/donald/i:/rare\s*akuma/i);
-  const archives=[...asset.files?Object.keys(asset.files):[]];
   const entry={label,source:path,archiveSha256:asset.sha256,archiveBytes:asset.bytes,
     character:character.path,resources:character.checks,
     animationActions:character.animations.length,runs:[]};
