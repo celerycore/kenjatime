@@ -59,3 +59,55 @@ The broadphase only culls candidate entity pairs; exact Clsn1/Clsn2 overlap chec
 6. Rollback replay/late-input divergence tests (new)
 
 The old Core remains the fallback until the new pipelines satisfy those gates.
+
+
+## Phase 3 integration (feature-gated)
+
+The Kotlin/Wasm module now exports a primitive handle API for projectile
+collision **candidate generation** and phase-mask selection. It is *not* a
+complete port of the JavaScript state machine or of MUGEN/IKEMEN damage,
+hit, AI, camera, sprite rendering or audio.
+
+The `src/core/kotlin-wasm-combat.js` loader adapts actual Gradle-generated
+Wasm exports to the existing `CoreSession` interface. Example after hosting
+the compiled `.mjs` and adjacent `.wasm` together:
+
+```js
+import {importKotlinWasmCombatBackend} from './src/core/kotlin-wasm-combat.js';
+import {CoreSession} from './src/core/session.js';
+const backend = await importKotlinWasmCombatBackend(
+  '/opt-in/kenjatime-kotlin-engine.mjs'
+);
+const session = new CoreSession(normalizedFiles, {
+  character: 'kfm/kfm.def',
+  mode: 'training',
+  kotlinCombatBackend: backend,
+});
+// Always call session.close() to release the Wasm kernel handle.
+```
+
+Compile and verify the actual runnable module from `kotlin-engine/`:
+
+```sh
+gradle jvmTest wasmJsNodeTest wasmJsNodeDevelopmentRun
+cd ..
+npm ci
+node scripts/core/verify-kotlin-wasm-native.mjs kotlin-engine/build
+```
+
+The generated host module appears in:
+`kotlin-engine/build/compileSync/wasmJs/main/developmentExecutable/kotlin/`.
+The GitHub workflow also publishes this build directory as a temporary
+review artifact **only after its host integration tests pass**.
+
+`scripts/core/verify-character-trio.mjs` accepts the two actual Rare Akuma
+ZIPs and an extracted Dark Donald RAR directory for AI, finite-state,
+hash, render-packet and optional forced-state verification. With
+`--wasm=/absolute/path/to/module.mjs` it checks against the same live
+JavaScript runtime. See
+`docs/benchmarks/phase3-kotlin-wasm-combat-character-trio.md` for exact
+commands and limitations.
+
+All experimental functionality is off by default. Do **not** ship or
+claim the three uploaded characters are fully compatible merely because
+KFM and synthetic stress fixtures pass.
