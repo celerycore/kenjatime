@@ -51,10 +51,10 @@ test('misspelled guard pause is ignored without inventing native hitpause behavi
   assert.deepEqual(m.player.hitDef.guardPauseTime,[5,6]);
 });
 
-test('nonstandard StateDef ownpal remains explicitly nonportable while authored HitDef attr remains required',()=>{
+test('native-rejected StateDef ownpal and authored missing HitDef attr remain reported',()=>{
   const c=character('[Statedef 20]\ntype=A\nanim=0\nownpal=1\n[State noattr]\ntype=HitDef\ntrigger1=1\nreversal.attr=SCA,AA,AP,AT\n');
   const diags=parseProgram(c).diagnostics;
-  assert.ok(diags.some(d=>d.type==='nonportable-state-parameter'&&/ownpal/.test(d.message)));
+  assert.ok(diags.some(d=>d.type==='unsupported-state-parameter'&&/ownpal/.test(d.message)));
   assert.ok(diags.some(d=>d.type==='controller-parameter'&&/hitdef requires attr/.test(d.message)));
 });
 
