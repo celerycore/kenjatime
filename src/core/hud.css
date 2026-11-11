@@ -188,7 +188,8 @@
 .kt-reference-hud .kt-hud-portrait img {
   width:100%; height:100%; display:block;
   object-fit:cover; object-position:center 18%;
-  filter:saturate(1.24) contrast(1.07);
+  /* Preserve original sprite colors; no saturation/contrast postprocessing. */
+  filter:none;
 }
 .kt-reference-hud .kt-hud-portrait img[hidden],
 .kt-reference-hud .kt-hud-portrait span[hidden] {display:none !important;}

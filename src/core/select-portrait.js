@@ -36,13 +36,11 @@ export function decodeSelectPortraits(files, fighters = [], {
       bank = bankCache.get(path);
       for (const index of selectPortraitSpriteIndices(bank.sprites)) {
         try {
-          const paletteNumber = Number(fighter.palette) || 1;
-          let sprite;
-          try {
-            sprite = bank.decodeWithPalette(index, 1, paletteNumber);
-          } catch {
-            sprite = bank.decode(index);
-          }
+          // 9000,x artwork frequently carries a dedicated PCX/SFF palette.
+          // Forcing the player's gameplay palette can recolor skin and hair
+          // into inverted/false colors. Respect the portrait's native colors
+          // for both SFF v1 and v2, regardless of P1/P2 palette selection.
+          const sprite = bank.decode(index);
           if (!sprite?.w || !sprite?.h ||
               sprite.w * sprite.h > 4_000_000 ||
               !sprite.rgba || sprite.rgba.byteLength !== sprite.w * sprite.h * 4) {
@@ -63,7 +61,7 @@ export function decodeSelectPortraits(files, fighters = [], {
           out.imageSmoothingEnabled = true;
           out.imageSmoothingQuality = "high";
           out.drawImage(source, 0, 0, output.width, output.height);
-          const dataURL = output.toDataURL("image/webp", 0.85);
+          const dataURL = output.toDataURL("image/png");
           // Release short-lived 2D backing stores before moving the match
           // archives into the WebGL/WebGPU worker.
           source.width = source.height = 0;
