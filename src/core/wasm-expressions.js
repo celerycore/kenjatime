@@ -25,7 +25,7 @@ const floatFields = new Set(
   ),
 );
 const integerCalls = new Set(
-  "var sysvar animelemtime animelemno animexist selfanimexist numprojid playeridexist projcanceltime projcontacttime projguardedtime projhittime numhelper numexplod numtarget ishelper".split(
+  "var sysvar animelemtime animelemno animexist selfanimexist projhit projcontact projguarded numprojid playeridexist projcanceltime projcontacttime projguardedtime projhittime numhelper numexplod numtarget ishelper".split(
     " ",
   ),
 );
