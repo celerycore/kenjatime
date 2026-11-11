@@ -76,3 +76,5 @@ jobs:
             work/core/android-emulator-gfxinfo.txt
           if-no-files-found: warn
           retention-days: 7
+
+# Re-run for November 11 character compatibility and native/Android validation gates.
