@@ -336,22 +336,28 @@ export class CoreSession {
       const bankId = this.bankIds.get(resource),
         id = bankId + ":" + index;
       let sprite = this.spriteMetadata.get(id);
-      if (!sprite) {
+      if (!sprite || !this.sent.has(id)) {
+        // A previously uploaded frame may have been evicted by the bounded
+        // GPU cache. Decode and resend only when that frame becomes visible
+        // again, without discarding source SFF or corrupting animation state.
         const decoded = bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) || bank.decode(index),
           indexed = !!decoded.indices;
         if(decoded.sourceIncomplete)this.issue('sprite-incomplete',
           (resource?.sprite?.path||resource?.path||'SFF')+' sprite '+frame.group+','+frame.number+
           ': original PCX contains '+decoded.decodedPrefixPixels+'/'+decoded.totalSourcePixels+
           ' encoded pixels. Remaining pixels are transparent; replace source art for native parity.');
-        sprite = {
-          w: decoded.w,
-          h: decoded.h,
-          x: decoded.x || 0,
-          y: decoded.y || 0,
-          palette: decoded.palette,
-          indexed,
-          colors: decoded.colors,
-        };
+        if (!sprite) {
+          sprite = {
+            w: decoded.w,
+            h: decoded.h,
+            x: decoded.x || 0,
+            y: decoded.y || 0,
+            palette: decoded.palette,
+            indexed,
+            colors: decoded.colors,
+          };
+          this.spriteMetadata.set(id, sprite);
+        }
         this.assets.push({
           id,
           width: sprite.w,
@@ -360,7 +366,6 @@ export class CoreSession {
           pixels: new Uint8Array(indexed ? decoded.indices : decoded.rgba),
         });
         this.sent.add(id);
-        this.spriteMetadata.set(id, sprite);
         bank.clearDecodedCache();
       }
       const indexed = sprite.indexed,
@@ -432,6 +437,7 @@ export class CoreSession {
       warp = null,
       sprite = null,
       axisY = null,
+      essential = false,
       pass = 1,
     } = {},
   ) {
@@ -491,8 +497,17 @@ export class CoreSession {
       corners,
       warp,
       pass,
+      essential,
     });
     return sp;
+  }
+  invalidateGpuAssets({evicted=[],deferred=[],missing=[]}={}) {
+    // GPU residency is NOT the same as the source sprite cache. Clearing
+    // these delivery markers permits on-demand re-upload next visible frame.
+    const changed=new Set([...evicted,...deferred,...missing]);
+    for (const id of changed) if (typeof id==='string') this.sent.delete(id);
+    if (deferred.length) this.issue('texture-budget',
+      'Simultaneous sprite textures exceeded the GPU cache; optional layers were deferred, but combat continues.');
   }
   frame() {
     const m = this.match,
@@ -735,6 +750,7 @@ export class CoreSession {
         remaps: actor.paletteRemaps,
         palette: this.effects.paletteFor(actor),
         trans: actor.trans,
+        essential: actor === m.player || actor === m.opponent,
       });
     }
     stageLayer(1);
