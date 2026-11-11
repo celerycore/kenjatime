@@ -1,0 +1,37 @@
+name: Kenjatime Forest Ako Asuna Fix — browser build artifact
+on:
+  push:
+    branches: [feature/kotlin-wasm-blueprint-20261111]
+    paths:
+      - '.github/workflows/forest-ako-asuna-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify GPU residency and legacy stage camera behavior
+        run: node --test test/core/gpu-residency-regression.test.js test/core/legacy-stage-viewport-regression.test.js
+      - name: Run full Kenjatime Core suite
+        run: npm run test:core
+      - name: Build isolated, import-ready Kenjatime Core browser preview
+        run: npm run build:core
+      - name: Stamp build provenance and confirm no character archives included
+        run: |
+          test -d dist-core
+          printf '{"repo":"celerycore/kenjatime","commit":"%s","branch":"%s","stageFix":"Forest of King Cruel 16:9 camera and 64MiB LRU GPU","characterArchivesIncluded":false}\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" > dist-core/build-info.json
+      - name: Publish isolated downloadable preview without deploying website
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-ako-asuna-forest-gpu-camera-fixed-web-preview
+          path: dist-core/
+          retention-days: 14
+          if-no-files-found: error
