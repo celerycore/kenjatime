@@ -60,19 +60,19 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix baseline
       - name: Baseline interaction comparison (diagnostic only)
-        run: npm run verify:core:interactions --prefix baseline
+        run: CORE_TRACE=1 npm run verify:core:interactions --prefix baseline
         continue-on-error: true
       - name: Baseline KFM comparison (diagnostic only)
-        run: npm run verify:core:movesets --prefix baseline
+        run: CORE_TRACE=1 npm run verify:core:movesets --prefix baseline
         continue-on-error: true
       - name: Compare candidate interactions with baseline
         run: |
-          npm run verify:core:interactions || true
-          node scripts/core/compare-baseline-traces.mjs baseline/work/core/interactions-native-comparison.json work/core/interactions-native-comparison.json
+          CORE_TRACE=1 npm run verify:core:interactions || true
+          node scripts/core/compare-baseline-traces.mjs baseline/work/core/interactions-native-comparison.json work/core/interactions-native-comparison.json baseline/work/core work/core
       - name: Compare candidate KFM with baseline
         run: |
-          npm run verify:core:movesets || true
-          node scripts/core/compare-baseline-traces.mjs baseline/work/core/kfm-classic-native-comparison.json work/core/kfm-classic-native-comparison.json
+          CORE_TRACE=1 npm run verify:core:movesets || true
+          node scripts/core/compare-baseline-traces.mjs baseline/work/core/kfm-classic-native-comparison.json work/core/kfm-classic-native-comparison.json baseline/work/core work/core
       - name: Benchmark baseline Core
         run: CORE_BENCH_SOURCE="$GITHUB_WORKSPACE/baseline" node --expose-gc scripts/core/benchmark-projectile-stress.mjs
       - name: Benchmark optimized Core
