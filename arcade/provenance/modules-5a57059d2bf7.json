@@ -31,7 +31,7 @@
     "src/core/platform.js": "fa64c33678e7ce5f5888bed82f86f82ada6e548beee0599d79990eea38fb0fc1",
     "src/core/runtime.js": "f5593330d712b224785067a3f0391a9f50adfc7f82de372ef2c8b9652de6ec86",
     "src/core/select-portrait.js": "1fe268723eb6d662fcd56f194d0a1cd0b3a933c1b08ed66cfb7fad8361d1f004",
-    "src/core/session.js": "ebe1e87b51979f65ec2c47597a82677b0e7e7cb14b942a718202f3404102b1d8",
+    "src/core/session.js": "8809fbdd5014055345013e199b53aac86330ee62fd2809aa61511bfa55fae4a0",
     "src/core/stage-draw.js": "40a62ec009502edc2c56301df3cb0e911b5ae975cbd1df204a594c5019a961fa",
     "src/core/three-renderer.js": "086679ba35ccc056da59ab6e1403600c0baf0eeb18f30446aa6bf079142b8506",
     "src/core/video-source.js": "4983c7a32ac9da0f087e6a5129ea758fcd5c3d9050a8a92ac08061202bfd2d1e",
