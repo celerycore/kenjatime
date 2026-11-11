@@ -1,0 +1,113 @@
+name: Dark Donald versus Rare Akuma isolated phone QA site
+on:
+  push:
+    branches: [release/gpu-camera-js-fallback-20261111]
+    paths:
+      - '.github/workflows/qa-donald-rare-site.yml'
+      - 'src/cpu.js'
+      - 'src/runtime.js'
+      - 'src/core/session.js'
+      - 'src/core/endless-benchmark.js'
+      - 'test/core/donald-akuma-scripted-ko.test.js'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: kenjatime-donald-rare-pages-only
+  cancel-in-progress: false
+jobs:
+  verify-and-publish-private-character-free-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Verify CPU jump retry and Dark Donald authored instant KO regression
+        run: node --test test/core/donald-akuma-scripted-ko.test.js test/cpu.test.js test/core/endless-rounds.test.js
+      - name: Full Core JavaScript regression
+        run: npm run test:core
+      - name: Build portable arcade test assets
+        run: npm run build:core
+      - name: Stamp test identity, explicitly exclude original user archives
+        run: |
+          node --input-type=module <<'NODE'
+          import {writeFileSync} from 'node:fs';
+          writeFileSync('dist-core/build-info.json',JSON.stringify({
+            channel:'dark-donald-rare-akuma-qa',
+            repository:'celerycore/kenjatime',
+            branch:process.env.GITHUB_REF_NAME,
+            commit:process.env.GITHUB_SHA,
+            production:false,
+            defaultEngine:'JavaScript',
+            kotlinWasmDefault:false,
+            characterArchivesIncluded:false,
+            fixes:['bounded-cpu-jump-retry','authored-scripted-ko-attribution','csv-scripted-ko-fields','gpu-and-camera']
+          },null,2)+'\n');
+          NODE
+          test -f dist-core/index.html
+          test -f dist-core/core/index.html
+          test -f dist-core/build-info.json
+          if find dist-core -type f | grep -Ei '/(Rare.?Akuma|Dark.?Donald|Donald|Ako|Asuna|Forest.of.King.Cruel)\.(rar|zip)$'; then
+            echo "No original character/stage packages may ship" >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-donald-rare-akuma-local-qa-build
+          path: dist-core/
+          retention-days: 14
+          if-no-files-found: error
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: existing-pages
+          persist-credentials: true
+      - name: Publish only /donald-rare-qa/; refuse modification of production and existing previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f existing-pages/index.html
+          test -f existing-pages/.nojekyll
+          test -f existing-pages/arcade/core/index.html
+          test -f existing-pages/core-test/core/index.html
+          test -f existing-pages/gpu-camera-test/core/index.html
+          sha256sum existing-pages/index.html existing-pages/.nojekyll existing-pages/arcade/core/index.html existing-pages/core-test/core/index.html existing-pages/gpu-camera-test/core/index.html >/tmp/live-site-unchanged
+          mkdir -p existing-pages/donald-rare-qa
+          rsync -a --delete dist-core/ existing-pages/donald-rare-qa/
+          test -f existing-pages/donald-rare-qa/core/index.html
+          sha256sum -c /tmp/live-site-unchanged
+          cd existing-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- donald-rare-qa
+          if ! git diff --cached --quiet; then
+            if git diff --cached --name-only | grep -v '^donald-rare-qa/'; then
+              echo "Refusing changes outside donald-rare-qa/" >&2
+              exit 1
+            fi
+            git commit -m "Publish isolated Dark Donald/Rare Akuma QA build from ${GITHUB_SHA}"
+            git pull --rebase origin gh-pages
+            git push origin HEAD:gh-pages
+          fi
+      - name: Verify public build serves the expected commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://celerycore.github.io/kenjatime/donald-rare-qa"
+          for n in $(seq 1 36); do
+            got=$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "${base}/build-info.json?rev=${GITHUB_SHA}" || true)
+            if [[ "$got" == *"$GITHUB_SHA"* ]]; then
+              curl -fsSL --max-time 20 "${base}/core/index.html" | grep -q "Kenjatime Core"
+              echo "PASS ${base}/ served commit ${GITHUB_SHA}"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "GitHub Pages did not serve latest QA source" >&2
+          exit 1
