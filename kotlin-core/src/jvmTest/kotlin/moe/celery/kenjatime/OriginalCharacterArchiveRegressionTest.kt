@@ -151,6 +151,26 @@ class OriginalCharacterArchiveRegressionTest {
         }
     }
 
+    @Test fun originalRareAkumaSffV1AndSndV1BinaryIndices() {
+        for ((environment, expectedSprites, expectedSounds) in listOf(
+            Triple("KENJATIME_RARE_AKUMA_2007_ZIP", 872, 89),
+            Triple("KENJATIME_RARE_AKUMA_2026_ZIP", 956, 134)
+        )) {
+            val file = requiredLocation(environment) ?: continue
+            ZipFile(file).use { archive ->
+                val entries = archive.entries().asSequence().toList()
+                val spriteEntry = entries.single { it.name.lowercase().endsWith(".sff") }
+                val soundEntry = entries.single { it.name.lowercase().endsWith(".snd") }
+                assertTrue(spriteEntry.size in 512L..32_000_000L)
+                assertTrue(soundEntry.size in 24L..32_000_000L)
+                val sff = MugenSffV1(archive.getInputStream(spriteEntry).use { it.readBytes() })
+                val snd = MugenSndParser.parse(archive.getInputStream(soundEntry).use { it.readBytes() })
+                assertEquals(expectedSprites, sff.entries.size, "Original Rare Akuma SFF-v1 sprite index")
+                assertEquals(expectedSounds, snd.size, "Original Rare Akuma SND-v1 audio index")
+            }
+        }
+    }
+
     @Test fun realDarkDonaldLegacyIntroAndStateFilesLoadWithoutDuplicateRefs() {
         val directory = requiredLocation("KENJATIME_DARK_DONALD_DIR") ?: return
         extractedScripts(directory) { source ->
