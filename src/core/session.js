@@ -31,14 +31,17 @@ export function programExpressions(programs) {
   const sources = new Set();
   for (const p of programs) {
     for (const source of p.zssExpressions || []) sources.add(source);
+    // Extended IKEMEN globals may contain multiple CNS/ZSS definitions.
+    // Flatten each part when precompiling numeric expressions.
     for (const state of p.states.values())
-      for (const section of [state, ...state.controllers])
-        for (const entry of section.entries) {
-          sources.add(entry.value);
-          try {
-            for (const part of splitArguments(entry.value)) sources.add(part);
-          } catch {}
-        }
+      for (const definition of state.globalParts||[state])
+        for (const section of [definition, ...(definition.controllers||[])])
+          for (const entry of section.entries||[]) {
+            sources.add(entry.value);
+            try {
+              for (const part of splitArguments(entry.value)) sources.add(part);
+            } catch {}
+          }
   }
   return sources;
 }
@@ -106,6 +109,7 @@ export class CoreSession {
       manageInputs: true,
       orderedPhases: true,
       cameraFollow: true,
+      kotlinCombatBackend: selection.kotlinCombatBackend || null,
       expressionEvaluator: (s, c) => this.expressions.evaluate(s, c),
       stage,
       playerPalette: selection.palette || 1,
@@ -818,7 +822,9 @@ export class CoreSession {
     return events;
   }
   close() {
+    if(this.closed)return;
     this.lua?.close();
+    try{this.match?.kotlinCombatKernel?.dispose?.();}finally{if(this.match)this.match.kotlinCombatKernel=null;}
     this.closed = true;
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
