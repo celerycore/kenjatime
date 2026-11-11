@@ -127,6 +127,10 @@ export class TrainingMatch {
     this.opponent.teamSide = 2;
     this.player.opponent=this.opponent;this.opponent.opponent=this.player;
     this._entities = [this.player,this.opponent]; this.projectiles = []; this.nextEntityId = 3;
+    // Reused broadphase storage: minX,minY,maxX,maxY for every active projectile.
+    // Typed-array capacity is fixed by the existing bounded projectile limit.
+    this._projectileClashBounds ||= new Float64Array(this.maxProjectiles * 4);
+    this.projectileClashStats = {pairsVisited:0, narrowphaseCalls:0};
     this.orphanEffectOwners=[];this.renderEntities=[...this._entities];this.drawProjectiles=[];this.helperCommands=new Map();
     this.usedHits = new Map();this.juggles=new Map();this.cornerPushActors=new Set(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
     this.commandBuffers = new Map(); this.presentationEvents = [];this.eventEntities=[];
@@ -301,12 +305,33 @@ export class TrainingMatch {
     // Cache projectile hurt boxes for this collision pass. Resolve overlapping
     // cancellation candidates by distance, then stable creation ID.
     const clashBoxes=projectiles.map(p=>transformedBoxes(p,'clsn2'));
+    const clashBounds=this._projectileClashBounds;
+    this.projectileClashStats.pairsVisited=0;
+    this.projectileClashStats.narrowphaseCalls=0;
+    for(let i=0;i<clashBoxes.length;i++){
+      const o=i*4,boxes=clashBoxes[i];
+      let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+      for(const box of boxes){
+        if(box[0]<x0)x0=box[0];if(box[1]<y0)y0=box[1];
+        if(box[2]>x1)x1=box[2];if(box[3]>y1)y1=box[3];
+      }
+      clashBounds[o]=x0;clashBounds[o+1]=y0;
+      clashBounds[o+2]=x1;clashBounds[o+3]=y1;
+    }
     for(let i=0;i<projectiles.length;i++){
       const a=projectiles[i];if(a.removing||!clashBoxes[i].length)continue;
       const candidates=[];
       for(let j=i+1;j<projectiles.length;j++){
         const b=projectiles[j];
-        if(a.teamSide===b.teamSide||b.removing||frozen.has(a)&&frozen.has(b)||!contactArea(clashBoxes[i],clashBoxes[j],this.orderedPhases))continue;
+        if(a.teamSide===b.teamSide||b.removing||frozen.has(a)&&frozen.has(b))continue;
+        this.projectileClashStats.pairsVisited++;
+        const ai=i*4,bj=j*4,inclusive=this.orderedPhases;
+        const overlapX=inclusive?clashBounds[ai]<=clashBounds[bj+2]&&clashBounds[ai+2]>=clashBounds[bj]:clashBounds[ai]<clashBounds[bj+2]&&clashBounds[ai+2]>clashBounds[bj];
+        if(!overlapX)continue;
+        const overlapY=inclusive?clashBounds[ai+1]<=clashBounds[bj+3]&&clashBounds[ai+3]>=clashBounds[bj+1]:clashBounds[ai+1]<clashBounds[bj+3]&&clashBounds[ai+3]>clashBounds[bj+1];
+        if(!overlapY)continue;
+        this.projectileClashStats.narrowphaseCalls++;
+        if(!contactArea(clashBoxes[i],clashBoxes[j],inclusive))continue;
         candidates.push(b);
       }
       const distance=p=>(p.pos.x-a.pos.x)**2+(p.pos.y-a.pos.y)**2;
