@@ -3,7 +3,16 @@
  * to the opt-in Kotlin/Wasm text ABI. Never run untrusted ZSS as CNS.
  * Does not mutate files, decode sprites, load common1.cns, or install a match.
  */
-import { decodeText } from "../formats.js";
+// Standalone text decoding mirrors formats.decodeText without loading the ZIP
+// decoder into the lightweight opt-in combat bridge.
+function decodeText(bytes) {
+  if (bytes[0] === 0xff && bytes[1] === 0xfe)
+    return new TextDecoder("utf-16le").decode(bytes);
+  if (bytes[0] === 0xfe && bytes[1] === 0xff)
+    return new TextDecoder("utf-16be").decode(bytes);
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+  catch { return new TextDecoder("windows-1252").decode(bytes); }
+}
 
 const STATE_KEY = /^(cns|st\d*)$/i;
 const ZSS_DECLARATION = /^\s*\[\s*(?:statedef\s+-?\d+\s*;|function\s+\w+\s*\()/im;
