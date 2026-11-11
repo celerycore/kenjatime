@@ -32,10 +32,10 @@ guide.id = "core-qa-guide";
 guide.setAttribute("aria-label", "Kenjatime Core compatibility test guide");
 guide.innerHTML = `
   <div class="qa-header">
-    <h2>MUGEN / IKEMEN GO compatibility lab</h2>
+    <h2>MUGEN-family compatibility lab</h2>
     <span class="qa-state">BROWSER QA PREVIEW</span>
   </div>
-  <p>Original MUGEN and IKEMEN GO characters and stages can be imported for compatibility testing. Full engine parity is not yet verified, including many advanced controllers and ZSS features. No copyrighted third-party fighter package is hosted here.</p>
+  <p>Original MUGEN-family characters and stages can be imported for compatibility testing. Full engine parity is not yet verified, including many advanced controllers and ZSS features. No copyrighted third-party fighter package is hosted here.</p>
   <details open>
     <summary>How to run the compatibility match</summary>
     <ol>
