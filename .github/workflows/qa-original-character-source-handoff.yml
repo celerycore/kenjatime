@@ -1,0 +1,31 @@
+name: Kenjatime original-character local diagnostic source
+on:
+  push:
+    branches: [release/gpu-camera-js-fallback-20261111]
+    paths:
+      - '.github/workflows/qa-original-character-source-handoff.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export-source-to-local-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Package exact engine source + deps (never character archives)
+        run: |
+          set -e
+          echo "$GITHUB_SHA" > SOURCE_COMMIT.txt
+          tar -czf /tmp/kenjatime-original-character-diagnostics.tar.gz SOURCE_COMMIT.txt src test scripts package.json package-lock.json public/kfm.zip node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-source-for-original-character-local-diagnostics
+          path: /tmp/kenjatime-original-character-diagnostics.tar.gz
+          retention-days: 1
+          if-no-files-found: error
