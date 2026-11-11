@@ -86,7 +86,7 @@ function chooseContacts(contacts) {
 
 /** Deterministic, two-fighter training. Stage bounds and ground push separation are intentionally simple. */
 export class TrainingMatch {
-  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0,expressionEvaluator=null,programs=null,manageInputs=false,orderedPhases=false,cameraFollow=false} = {}) {
+  constructor(character, {commonText = '', commonAnimations = new Map(), opponentCharacter = character, leftBound = -150, rightBound = 150, pushboxes = true, maxHelpers = 56, maxProjectiles = 256,initialize=true,skipIntro=true,stage=null,rules=null,combatRules={},playerPalette=1,opponentPalette=1,playerAILevel=0,opponentAILevel=0,expressionEvaluator=null,programs=null,manageInputs=false,orderedPhases=false,cameraFollow=false,kotlinCombatBackend=null} = {}) {
     this.expressionEvaluator=expressionEvaluator;
     this.programs=programs;
     this.manageInputs=manageInputs;
@@ -100,6 +100,8 @@ export class TrainingMatch {
     this.rightBound = rightBound;
     this.pushboxes = pushboxes;
     this.commonAnimations = commonAnimations; this.maxHelpers = Math.min(256,Math.max(0,maxHelpers)); this.maxProjectiles = Math.min(1024,Math.max(0,maxProjectiles));
+    // Opt-in Kotlin/Wasm host bridge. The same JS hit logic remains authoritative.
+    this.kotlinCombatKernel=kotlinCombatBackend?.createProjectileKernel(this.maxProjectiles)??null;
     this.initialize=initialize;this.skipIntro=skipIntro;
     this.playerPalette=playerPalette;this.opponentPalette=opponentPalette;
     this.playerAILevel=normalizeAILevel(playerAILevel);this.opponentAILevel=normalizeAILevel(opponentAILevel);
@@ -318,10 +320,49 @@ export class TrainingMatch {
       clashBounds[o]=x0;clashBounds[o+1]=y0;
       clashBounds[o+2]=x1;clashBounds[o+3]=y1;
     }
+    // Experimental Kotlin/Wasm path: hand off pair generation using only
+    // primitive data. Keep both the JS narrowphase and deterministic clash
+    // resolution order unchanged. Feature disabled unless explicitly injected.
+    const combatKernel=this.kotlinCombatKernel;
+    let wasmPairs=-1,wasmCursor=0;
+    if(combatKernel){
+      try{
+        combatKernel.clear();
+        for(let i=0;i<projectiles.length;i++){
+          const o=i*4,p=projectiles[i];
+          combatKernel.add(clashBounds[o],clashBounds[o+1],clashBounds[o+2],
+            clashBounds[o+3],p.teamSide,frozen.has(p),p.removing);
+        }
+        wasmPairs=combatKernel.collect(this.orderedPhases);
+        if(!Number.isInteger(wasmPairs)||wasmPairs<0)throw Error('Invalid projectile pair count');
+        this.projectileClashStats.pairsVisited=combatKernel.examinedPairs();
+      }catch(error){
+        // Native fallback is essential: a missing/invalid Wasm module must
+        // never prevent a match from progressing.
+        this.kotlinCombatKernel=null;
+        this.player.diagnostic('kotlin-wasm-fallback',String(error?.message||error));
+        wasmPairs=-1;
+        this.projectileClashStats.pairsVisited=0;
+      }
+    }
     for(let i=0;i<projectiles.length;i++){
-      const a=projectiles[i];if(a.removing||!clashBoxes[i].length)continue;
+      const a=projectiles[i];
+      if(a.removing||!clashBoxes[i].length){
+        if(wasmPairs>=0)while(wasmCursor<wasmPairs&&combatKernel.left(wasmCursor)===i)wasmCursor++;
+        continue;
+      }
       const candidates=[];
-      for(let j=i+1;j<projectiles.length;j++){
+      if(wasmPairs>=0){
+        // Kotlin emits pairs in the same (i,j) creation order as the original
+        // nested loops. Recheck mutable removal, because prior clashes can
+        // retire shots after the primitive candidate list was built.
+        while(wasmCursor<wasmPairs&&combatKernel.left(wasmCursor)===i){
+          const j=combatKernel.right(wasmCursor++),b=projectiles[j];
+          if(!b||b.removing||a.teamSide===b.teamSide||frozen.has(a)&&frozen.has(b))continue;
+          this.projectileClashStats.narrowphaseCalls++;
+          if(contactArea(clashBoxes[i],clashBoxes[j],this.orderedPhases))candidates.push(b);
+        }
+      }else for(let j=i+1;j<projectiles.length;j++){
         const b=projectiles[j];
         if(a.teamSide===b.teamSide||b.removing||frozen.has(a)&&frozen.has(b))continue;
         this.projectileClashStats.pairsVisited++;
