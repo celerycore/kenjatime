@@ -244,7 +244,10 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
               states.set(key,{id,source:value.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),value]});
             else states.set(key,value);
             const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle','ownpal']);
-            for(const entry of value.entries)if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
+            for(const entry of value.entries){
+              if(entry.key==='ownpal')program.diagnostics.push({source,line:entry.line,type:'nonportable-state-parameter',message:'StateDef ownpal is a Kenjatime helper compatibility extension; native behavior unverified.'});
+              else if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
+            }
           }
         }
         program.functions=functions;program.states=states;for(const expression of parsed.expressions)program.zssExpressions.add(expression);
@@ -268,7 +271,10 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
           program.states.set(key,{id:current.id,source:current.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),current]});
         else program.states.set(key,current);
         const properties = new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle','ownpal']);
-        for (const entry of section.entries) if (!properties.has(entry.key)) program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
+        for(const entry of section.entries) {
+          if(entry.key==='ownpal')program.diagnostics.push({source,line:entry.line,type:'nonportable-state-parameter',message:'StateDef ownpal is a Kenjatime helper compatibility extension; native behavior unverified.'});
+          else if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
+        }
       } else if (/^state(?:\s|$)/.test(section.name)) {
         if (!current) {
           program.diagnostics.push({ source, line: section.line, type: 'parse', message: 'State controller has no preceding Statedef.' });
