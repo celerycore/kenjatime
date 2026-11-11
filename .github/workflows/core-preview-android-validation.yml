@@ -78,3 +78,4 @@ jobs:
           retention-days: 7
 
 # Re-run for November 11 character compatibility and native/Android validation gates.
+# Rebuild after final native-compatibility parser corrections (2026-11-11).
