@@ -21,7 +21,7 @@
     "src/core/frame-scheduler.js": "24a14a7712c0fe817fcfbc64c652701f826479db2befbccd6affe52601f45d5d",
     "src/core/gpu-sprite-budget.js": "183324358b584c82bea944db5889d8039406e6a51ac1f1e9b2c10f917a79300b",
     "src/core/hud-skin.js": "85f67aac7121311e61a9d459463a1f9a0b30c798b8c76c66f8cad2b6272c9f98",
-    "src/core/hud.css": "1a7e4acf82f18b84866036fa7b66b55ee925358ac66bae08056bf84384ba4816",
+    "src/core/hud.css": "099e381428829cb0e575433c3cd30e328d8a8ed3bf15cefaa438ff81efa38017",
     "src/core/kenja-arcade.css": "4b3d1ea8adcf6a2eed7073f7e7e2ac98f47ecbd755576e09dbdbba5c9f0ae238",
     "src/core/kenja-arcade.js": "17eb64a10194fdf40d102466e7f78fbbb68e98508332efc072f142d3aa8b9299",
     "src/core/large-sff-preview.js": "a522ce4d527656f4519fc3f32362beb6f25f766dbe2bd387442724b57f7107eb",
