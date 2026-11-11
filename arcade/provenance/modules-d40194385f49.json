@@ -20,7 +20,7 @@
     "src/core/common-effects.js": "f8b70cdc0d7bc3a8fdfe8250770a34b21546989f1aca6750c3b996b1b4048f75",
     "src/core/frame-scheduler.js": "24a14a7712c0fe817fcfbc64c652701f826479db2befbccd6affe52601f45d5d",
     "src/core/gpu-sprite-budget.js": "183324358b584c82bea944db5889d8039406e6a51ac1f1e9b2c10f917a79300b",
-    "src/core/hud-skin.js": "37f412d38b81bc0184f4782b459caa9dc2b44cda9b7b8b14e0f13dcfc47ca9c6",
+    "src/core/hud-skin.js": "85f67aac7121311e61a9d459463a1f9a0b30c798b8c76c66f8cad2b6272c9f98",
     "src/core/hud.css": "1a7e4acf82f18b84866036fa7b66b55ee925358ac66bae08056bf84384ba4816",
     "src/core/kenja-arcade.css": "4b3d1ea8adcf6a2eed7073f7e7e2ac98f47ecbd755576e09dbdbba5c9f0ae238",
     "src/core/kenja-arcade.js": "17eb64a10194fdf40d102466e7f78fbbb68e98508332efc072f142d3aa8b9299",
