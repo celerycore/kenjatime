@@ -28,7 +28,16 @@ private object Fights {
     val right = FightingCharacter(b, 2, MugenCommandParser.parseFile(cmd2))
     left.facingRight = true
     right.facingRight = false
-    Fights.active[id] = DeterministicFight(left, right)
+    val fight = DeterministicFight(left, right)
+    for ((side, scripts) in listOf(
+        name1 to (cns1 + "\n" + cmd1), name2 to (cns2 + "\n" + cmd2)
+    )) {
+        for ((number, count) in MugenCnsParser.duplicateStateDefs(scripts)) {
+            fight.issues.add("Duplicate StateDef " + number + " (" + count +
+                " definitions) in " + side + ": verify authored load-order and override semantics")
+        }
+    }
+    Fights.active[id] = fight
     return id
 }
 @JsExport fun ktCoreSetup(handle: Int, p1x256: Int, p1y256: Int, p2x256: Int, p2y256: Int) {
