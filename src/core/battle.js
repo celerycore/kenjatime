@@ -6,6 +6,7 @@ import "./battle.css";
 import "./hud.css";
 import { mountKenjatimeReferenceHud } from "./hud-skin.js";
 import { decodeSelectPortraits } from "./select-portrait.js";
+import { mountEndlessBenchmark } from "./endless-benchmark.js";
 let active;
 const p1 = {
   ArrowUp: "U",
@@ -113,6 +114,8 @@ export async function openCoreBattle({
   // The SFF buffers are transferable to a worker, so extract only the tiny
   // select portraits before transferring them. Do not send URLs each frame.
   hudSkin.setPortraits(decodeSelectPortraits(files, selection.hudPortraits));
+  const benchmark = selection.endlessRounds === true && selection.mode !== 'training'
+    ? mountEndlessBenchmark(host) : null;
   function update(data) {
     if (closed) return;
     if (data.type === "video-init") {
@@ -167,6 +170,7 @@ export async function openCoreBattle({
       state = data.state;
       hudSkin.update(state);
       gpu = data.gpu;
+      benchmark?.update(state, gpu);
       window.__kenjatimeCoreState = state;
       for (const [side, actor] of state.players.entries()) {
         const row = host.querySelector(`[data-player="${side}"]`);
@@ -286,6 +290,7 @@ export async function openCoreBattle({
     videos.close();
     audio.close();
     touch.dispose();
+    benchmark?.dispose();
     cancelAnimationFrame(raf);
     window.removeEventListener("keydown", keys);
     window.removeEventListener("keyup", keys);
@@ -337,6 +342,7 @@ export async function openCoreBattle({
     pause,
     input,
     snapshot: () => state,
+    benchmark: () => benchmark?.snapshot() || [],
     gpu: () => gpu,
     backend: () => backend,
     audioStatus: () => audio.status(),

@@ -109,25 +109,20 @@ export function mountKenjatimeReferenceHud(hud) {
     row.append(rounds);
     return {row, frame, rounds, name: null, wins: 0};
   });
-  const seenRounds = new Set();
   function update(state) {
     if (!state) return;
     const left = Number(state.roundTimeLeft);
     const value = state.roundTimeLeft == null || left < 0 || !Number.isFinite(left) ? '∞' : String(Math.max(0, Math.ceil(left / 60)));
     if (clockValue.textContent !== value) clockValue.textContent = value;
     clockValue.classList.toggle('kt-time-long', value.length > 2);
-    if ((state.roundState === 3 || state.roundState === 4) && state.roundWinner) {
-      const side = state.roundWinner === 'player' ? 0 : state.roundWinner === 'opponent' ? 1 : -1;
-      const key = String(state.roundNo || 1) + '-' + side;
-      if (side >= 0 && !seenRounds.has(key)) {
-        seenRounds.add(key);
-        const slot = sides[side];
-        if (slot) {
-          slot.wins++;
-          slot.rounds.querySelectorAll('i').forEach((dot,i) => dot.classList.toggle('kt-round-won', i < slot.wins));
-        }
-      }
-    }
+    // Fixed-size HUD markers: never retain per-round keys in endless matches.
+    if (state.roundWins) sides.forEach((slot, side) => {
+      if (!slot) return;
+      const wins = Number(side ? state.roundWins.opponent : state.roundWins.player);
+      const filled = Number.isFinite(wins) ? Math.min(3, Math.max(0, Math.floor(wins))) : 0;
+      slot.rounds.querySelectorAll('i').forEach((dot, i) =>
+        dot.classList.toggle('kt-round-won', i < filled));
+    });
   }
   function setPortraits(portraits = []) {
     sides.forEach((slot, side) => {

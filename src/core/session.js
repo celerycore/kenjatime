@@ -119,7 +119,7 @@ export class CoreSession {
       rules:
         selection.mode === "training"
           ? null
-          : { roundsToWin: 2, preIntro: 0, introHold: 60, overTime: 60,
+          : { roundsToWin: 2, endlessRounds: selection.endlessRounds === true, preIntro: 0, introHold: 60, overTime: 60,
               resultTime: 120, maxIntroTime: 900, maxOutroTime: 300 },
     });
     this.commands = [
@@ -821,6 +821,8 @@ export class CoreSession {
       ticks: this.match.ticks,
       roundState: this.match.roundFlow?.roundState ?? 2,
       roundNo: this.match.roundFlow?.roundNo ?? 1,
+      roundWins: { ...(this.match.roundFlow?.wins || { player: 0, opponent: 0 }) },
+      endlessRounds: this.match.roundFlow?.rules.endlessRounds === true,
       roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
       roundTimeLeft: this.match.roundFlow?.timeLeft ?? -1,
       roundWinner: this.match.roundFlow?.roundWinner ?? null,

@@ -121,3 +121,35 @@
     display: none;
   }
 }
+
+/* Constant-space endurance diagnostics; only updated on infrequent state reports. */
+.kenjatime-endless-benchmark {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: #0b1b16;
+  color: #d3fb8d;
+  border-top: 1px solid #3c6344;
+  font: 600 12px/1.5 "Rajdhani",system-ui,sans-serif;
+}
+.kenjatime-endless-benchmark .endless-benchmark-readout {
+  min-width: 0; display: flex; flex-wrap: wrap;
+  gap: 6px 12px; align-items: center;
+}
+.kenjatime-endless-benchmark strong {
+  color: #f8fff4; font-size: 13px; letter-spacing: .025em;
+}
+.kenjatime-endless-benchmark output { overflow-wrap:anywhere; }
+.kenjatime-endless-benchmark small {
+  grid-column: 1 / -1; color:#a3bdb0; font-size: 10px;
+}
+.kenjatime-endless-benchmark button {
+  background:#173c2b; color:#e3ffc7; border:1px solid #8bb66b;
+  border-radius:4px; min-height:36px; padding:6px 12px; font-weight:700;
+}
+@media(max-width:600px){
+  .kenjatime-endless-benchmark{grid-template-columns:1fr}
+  .kenjatime-endless-benchmark button{justify-self:start}
+}

@@ -30,3 +30,18 @@ label.primary{display:inline-flex;align-items:center;cursor:pointer}
 @media(max-width:800px){.coordinates{max-width:calc(100% - 40px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stage-badge{display:none}}
 
 .archive-options{font-size:11px;color:#a6b2bb;flex-basis:100%;margin-top:10px}.archive-options input{background:#191e24;border:1px solid #323943;border-radius:4px;padding:9px;color:#e8eae7;max-width:100%}.drop{flex-wrap:wrap}
+
+/* Match setup stress-test switch. */
+.arena-launch .endless-rounds-option {
+  display:inline-flex; align-items:center; gap:7px;
+  color:#dbffb5; font-weight:800; cursor:pointer; min-height:42px;
+}
+.arena-launch .endless-rounds-option input {
+  width:19px; height:19px; accent-color:#bdff25; cursor:pointer;
+}
+.arena-launch .endless-rounds-option:has(input:disabled) {
+  opacity:.5; cursor:not-allowed;
+}
+.arena-launch .endless-rounds-note {
+  flex-basis:100%; color:#aecba6; font-size:11px; line-height:1.4;
+}

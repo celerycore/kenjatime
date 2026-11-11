@@ -16,7 +16,7 @@ const winner=(players)=>{
  */
 export class RoundFlow{
   constructor({roundsToWin=2,roundTime=99,preIntro=30,introHold=30,overTime=60,resultTime=90,
-    maxIntroTime=900,maxOutroTime=300,autoAdvance=true}={}){
+    maxIntroTime=900,maxOutroTime=300,autoAdvance=true,endlessRounds=false}={}){
     for(const [key,value] of Object.entries({roundsToWin,roundTime,preIntro,introHold,overTime,resultTime,maxIntroTime,maxOutroTime}))
       if(!Number.isFinite(value)||value<0)throw Error(`Invalid match rule ${key}.`);
     if(roundsToWin<1||roundsToWin>99||roundTime>3600||maxIntroTime>36000||maxOutroTime>36000)
@@ -24,7 +24,7 @@ export class RoundFlow{
     this.rules={roundsToWin:Math.trunc(roundsToWin),roundTime,
       preIntro:Math.trunc(preIntro),introHold:Math.trunc(introHold),
       overTime:Math.trunc(overTime),resultTime:Math.trunc(resultTime),
-      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),autoAdvance};
+      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),autoAdvance,endlessRounds:endlessRounds===true};
     this.roundNo=1;this.roundsExisted=0;this.wins={player:0,opponent:0};
     this.matchOver=false;this.roundWinner=null;this.reason=null;this.startRound();
   }
@@ -76,7 +76,7 @@ export class RoundFlow{
       if(roundNotOver&&this.phaseTime<this.rules.maxOutroTime)return events;
       if(this.phaseTime>=this.rules.overTime){
         if(!this._awarded&&this.roundWinner!=='draw'){this.wins[this.roundWinner]++;this._awarded=true;}
-        this.matchOver=Object.values(this.wins).some(w=>w>=this.rules.roundsToWin);
+        this.matchOver=!this.rules.endlessRounds&&Object.values(this.wins).some(w=>w>=this.rules.roundsToWin);
         this.roundState=4;this.phaseTime=0;
         events.push({type:'result',winner:this.roundWinner,reason:this.reason,matchOver:this.matchOver});
       }
