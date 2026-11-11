@@ -538,7 +538,7 @@ export class CoreSession {
   frame() {
     const m = this.match,
       v = m.view,
-      scale = Math.min(960 / 320, 540 / (v.displayHeight || 240)),
+      scale = Math.min(960 / (v.displayWidth || 320), 540 / (v.displayHeight || 240)),
       camera = m.cameraRuntime.camera,
       ground =
         (540 - (v.displayHeight || 240) * scale) / 2 +
