@@ -243,11 +243,8 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
             if((key===-4||key==='global+1')&&existing)
               states.set(key,{id,source:value.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),value]});
             else states.set(key,value);
-            const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle','ownpal']);
-            for(const entry of value.entries){
-              if(entry.key==='ownpal')program.diagnostics.push({source,line:entry.line,type:'nonportable-state-parameter',message:'StateDef ownpal is a Kenjatime helper compatibility extension; native behavior unverified.'});
-              else if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
-            }
+            const properties=new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
+            for(const entry of value.entries)if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
           }
         }
         program.functions=functions;program.states=states;for(const expression of parsed.expressions)program.zssExpressions.add(expression);
@@ -270,11 +267,8 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
         if((key===-4||key==='global+1')&&existing)
           program.states.set(key,{id:current.id,source:current.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),current]});
         else program.states.set(key,current);
-        const properties = new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle','ownpal']);
-        for(const entry of section.entries) {
-          if(entry.key==='ownpal')program.diagnostics.push({source,line:entry.line,type:'nonportable-state-parameter',message:'StateDef ownpal is a Kenjatime helper compatibility extension; native behavior unverified.'});
-          else if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
-        }
+        const properties = new Set(['type','movetype','physics','anim','velset','ctrl','poweradd','facep2','hitdefpersist','movehitpersist','hitcountpersist','sprpriority','juggle']);
+        for(const entry of section.entries)if(!properties.has(entry.key))program.diagnostics.push({source,line:entry.line,type:'unsupported-state-parameter',message:`Statedef parameter ${entry.key} is not implemented.`});
       } else if (/^state(?:\s|$)/.test(section.name)) {
         if (!current) {
           program.diagnostics.push({ source, line: section.line, type: 'parse', message: 'State controller has no preceding Statedef.' });
@@ -713,17 +707,6 @@ export class FighterRuntime {
         const [x = 0, y = 0] = this.vector(state, 'velset'); this.vel = { x: x * this.coordinateScale, y: y * this.coordinateScale };
       }
       if (state.values.sprpriority !== undefined) this.sprPriority = integer(this.value(state, 'sprpriority', 0));
-      if(state.values.ownpal!==undefined&&this.parent){
-        // Compatibility extension used in Dark Donald's authored Statedefs.
-        // Root fighters already own a palette. Helper opt-in gets a snapshot;
-        // helper opt-out resumes sharing the parent palette remap table.
-        const own=truth(this.value(state,'ownpal',0));
-        if(own&&!this.ownPal){
-          this._paletteRemaps=copyPaletteRemaps(this.parent.paletteRemaps);
-          this.events.push({type:'palettesnapshot',target:this});
-        }
-        this.ownPal=own;
-      }
       if (state.values.juggle !== undefined) {this.juggleCost=Math.max(0,integer(this.value(state,'juggle',0)));this._juggleSerial++;}
       if (state.values.poweradd !== undefined) this.power = clamp(this.power + this.value(state, 'poweradd', 0), 0, this.maxPower);
       if (truth(this.value(state, 'facep2', 0)) && this.opponent) this.facing = this.opponent.pos.x >= this.pos.x ? 1 : -1;
