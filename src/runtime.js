@@ -1065,9 +1065,23 @@ export class FighterRuntime {
       return;
     }
     if (type === 'lifeadd' || type === 'lifeset') {
+      const before=this.life;
       let value = int('value');
       if (type === 'lifeadd') {value=-scaledDamage(-value,null,this,{absolute:!!num('absolute')});value+=this.life;}
-      this.life = clamp(value, this.immortal||!num('kill', 1) ? 1 : 0, this.maxLife); return;
+      this.life = clamp(value, this.immortal||!num('kill', 1) ? 1 : 0, this.maxLife);
+      if(before>0&&this.life===0&&this.world?.roundFlow?.roundState===2){
+        // Report an authored script-driven KO. Do not rewrite the move:
+        // source characters can deliberately force foreign fatal states.
+        const owner=this.stateOwner;
+        this.world.scriptedKoCount=(this.world.scriptedKoCount||0)+1;
+        this.world.lastScriptedKO={
+          tick:this.world.ticks, victim:this.name, priorLife:before,
+          actor:owner?.name||owner?.character?.def?.info?.name||this.name,
+          controller:type,state:this.stateNo,source:controller.source||null,
+          line:controller.line||null,foreignState:owner!==this,
+        };
+      }
+      return;
     }
     if (type === 'poweradd' || type === 'powerset') { this.power = clamp(int('value') + (type === 'poweradd' ? this.power : 0), 0, this.maxPower); return; }
     if (type === 'attackmulset') { this.attackMultiplier = num('value', 1); return; }
