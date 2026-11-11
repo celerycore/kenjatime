@@ -126,6 +126,7 @@ async function runOne(asset,character,index,useBackend){
     if(includeStates){
       // Forced entry is a crash/finite smoke probe, NOT natural state
       // reachability or authoritative native IKEMEN/MUGEN parity.
+      const probeHash=createHash('sha256');
       const ids=[...session.match.player.program.states.keys()].filter(Number.isInteger).filter(id=>id>=0).sort((a,b)=>a-b);
       for(const id of ids){
         probe.attempted++;
@@ -134,9 +135,11 @@ async function runOne(asset,character,index,useBackend){
           const actor=session.match.player;
           if(!actor.changeState(id,0,actor))throw Error('State entry rejected');
           session.tick();checkFinite(session.match);
+          probeHash.update(JSON.stringify(stateRecord(session.match))+'\n');
           probe.accepted++;
         }catch(e){if(probe.failures.length<30)probe.failures.push({state:id,error:String(e?.message||e)});}
       }
+      probe.sha256=probeHash.digest('hex');
     }
     return {pass:true,backend:useBackend?'kotlin-wasm':'javascript',
       activeKotlinKernel:!!session.match.kotlinCombatKernel,
@@ -169,7 +172,7 @@ for(const [i,path] of paths.entries()){
   }
   const js=entry.runs.filter(r=>r.backend==='javascript'),wasm=entry.runs.filter(r=>r.backend==='kotlin-wasm');
   entry.deterministic=js.every(r=>r.pass)&&new Set(js.map(r=>r.sha256)).size===1;
-  entry.wasmParity=backend?wasm.every(r=>r.pass)&&wasm.every((r,j)=>r.sha256===js[j]?.sha256):null;
+  entry.wasmParity=backend?wasm.every(r=>r.pass)&&wasm.every((r,j)=>r.sha256===js[j]?.sha256&&(!includeStates||r.probe.sha256===js[j]?.probe.sha256)):null;
   report.results.push(entry);
   console.log(label,JSON.stringify({deterministic:entry.deterministic,
     wasmParity:entry.wasmParity,runs:entry.runs.map(r=>({
