@@ -403,6 +403,7 @@ export class CoreSession {
           height: 1,
           pixels,
           indexed: false,
+          role: "palette",
         });
         // A missing authored palette can use this per-palette 1 KiB fallback
         // when GPU eviction later requires it again.
@@ -440,7 +441,7 @@ export class CoreSession {
           if (pair.length !== 2 || pair.some(n => !Number.isSafeInteger(n))) continue;
           const pixels = this.paletteFallbacks.get(id) || bank.paletteColors(...pair);
           if (!pixels || pixels.length < 1024) continue;
-          assets.push({id,width:256,height:1,indexed:false,pixels:new Uint8Array(pixels.slice(0,1024))});
+          assets.push({id,width:256,height:1,indexed:false,role:"palette",pixels:new Uint8Array(pixels.slice(0,1024))});
         } else {
           const index = Number(id.slice(split+1)), meta = this.spriteMetadata.get(id);
           if (!Number.isSafeInteger(index) || index < 0 || !meta) continue;
