@@ -57,9 +57,13 @@ test('native 4:3 and 16:9 both preserve original stage height, BG scale, ground 
     assert.equal(s.match.view.displayHeight,240);
     assert.equal(s.match.view.displayWidth,320);
     assert.equal(s.match.view.groundY,220);
+    assert.equal(s.snapshot().presentation,PRESENTATION_NATIVE);
+    assert.equal(s.snapshot().viewport.displayWidth,320);
+    assert.equal(s.snapshot().viewport.backgroundScale,.5);
     assert.deepEqual(d.starts.map(p=>p.x),[-80,80]);
     assert.equal(s.setPresentation(PRESENTATION_WIDE),PRESENTATION_WIDE);
     assert.equal(s.match.view.displayWidth,426.66666666666663);
+    assert.equal(s.snapshot().viewport.displayWidth,426.66666666666663);
     assert.equal(s.match.view.displayHeight,240);
     assert.equal(s.match.view.groundY,220);
     assert.equal(s.match.stage.camera.zoom,1);
