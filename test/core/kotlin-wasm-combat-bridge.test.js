@@ -87,7 +87,7 @@ for(const [name,positions] of [
   });
 }
 test('broken Wasm ABI is rejected before integration',()=>{
-  assert.throws(()=>adaptKotlinWasmCombatModule({}),/export/);
+  assert.throws(()=>adaptKotlinWasmCombatModule({}),/combat function ABI/);
   assert.throws(()=>new TrainingMatch(character,{kotlinCombatBackend:adaptKotlinWasmCombatModule({
     KenjatimeCombatKernel:class {clear(){}}
   })}),/Missing Kotlin/);
