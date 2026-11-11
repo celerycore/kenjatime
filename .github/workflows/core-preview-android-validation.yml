@@ -69,6 +69,7 @@ jobs:
             android/app/build/outputs/androidTest-results/**
             work/core/android-evidence.json
             work/core/android-emulator-kfm.png
+            work/core/android-emulator-kfm-live.png
             work/core/android-emulator-release.txt
             work/core/android-emulator-model.txt
             work/core/android-emulator-logcat.txt
