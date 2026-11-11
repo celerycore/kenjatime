@@ -4,6 +4,7 @@ import { CoreAudio } from "./audio.js";
 import { CoreVideos } from "./video-source.js";
 import "./battle.css";
 import "./hud.css";
+import { mountKenjatimeReferenceHud } from "./hud-skin.js";
 let active;
 const p1 = {
   ArrowUp: "U",
@@ -107,6 +108,7 @@ export async function openCoreBattle({
     (keys) => input(0, keys, "touch"),
   );
   touch.panel.hidden = false;
+  const hudSkin = mountKenjatimeReferenceHud(host.querySelector(".core-hud"));
   function update(data) {
     if (closed) return;
     if (data.type === "video-init") {
@@ -159,6 +161,7 @@ export async function openCoreBattle({
     }
     if (data.type === "state") {
       state = data.state;
+      hudSkin.update(state);
       gpu = data.gpu;
       window.__kenjatimeCoreState = state;
       for (const [side, actor] of state.players.entries()) {
