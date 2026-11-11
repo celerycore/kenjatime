@@ -1,5 +1,6 @@
 .core-hud {
   position: absolute;
+  z-index: 2;
   inset: 12px 12px auto;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
