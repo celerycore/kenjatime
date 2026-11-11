@@ -34,6 +34,8 @@ jobs:
         run: node --test test/core/extended-global-scheduler.test.js
       - name: Experimental Kotlin/Wasm host adapter parity
         run: node --test test/core/kotlin-wasm-combat-bridge.test.js
+      - name: Real-package marathon CLI smoke test (synthetic KFM fixtures)
+        run: node --test test/core/character-trio-cli.test.js
       - name: Existing ZSS compatibility fixtures
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite
