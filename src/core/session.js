@@ -366,7 +366,9 @@ export class CoreSession {
           pixels: new Uint8Array(indexed ? decoded.indices : decoded.rgba),
         });
         this.sent.add(id);
-        bank.clearDecodedCache();
+        // The SFF decoder already has a strict 16 MiB MemoryLRU. Retain
+        // recently decoded frames across repeated animation loops instead
+        // of throwing away useful CPU work on every GPU upload.
       }
       const indexed = sprite.indexed,
         meta = bank.sprites[index],
