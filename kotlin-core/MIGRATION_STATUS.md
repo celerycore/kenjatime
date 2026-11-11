@@ -108,3 +108,53 @@ These source-only checks are **not** full character execution parity. Do not
 merge to production or enable a default Kotlin battle until the strict gates
 are actually passed. Every unsupported controller and resource gap must
 remain visible.
+
+
+## 2026-11-11 — User-supplied original character archives received
+
+The user supplied THREE separate packages for testing in ChatGPT:
+`Rare Akuma.zip` (legacy 2007 CNS/ST), `Dark Donald.rar` (legacy
+2011 CNS/AI), and `RareAkuma.zip` (modern 2026 ZSS). The original
+packages and their proprietary assets are **not committed to GitHub**.
+
+A local archive audit inspected their real source files, DEF references,
+AIR data, SFF-v1 sprite metadata and (for the ZIPs) SND-v1 metadata:
+
+| Original | Authored states | CMD inputs | AIR actions | SFF sprite entries | Notable burden |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Rare Akuma 2007 | 137 CNS/ST | 150 | 309 | 872 | 45 helpers, 3 projectiles; 33 controller types outside Kotlin's current 31-type vocabulary |
+| Dark Donald 2011 | 277 unique CNS states | 120 | 282 | 1,121 | 103 helper and 405 projectile controllers; 41 unsupported controller types; StateDefs `-3` and `3503` declared twice |
+| Rare Akuma 2026 | 222 ZSS | 165 in `Command.cns` | 327 | 956 | six ZSS state files: **Kotlin interpreter not implemented** |
+
+**Please do not interpret these figures as Kotlin passing the characters.**
+Original-file validation in this turn was static/source-level. The
+Kotlin/JVM optional tests for originals can run with real archives but
+GitHub CI does not receive uploaded conversation files automatically.
+
+Work added on this branch:
+- `src/core/kotlin-character-source.js`: accept the existing secure
+  ZIP/RAR loader output, preserve DEF load order and `OPTION.txt`,
+  deduplicate Donald.cns repeated references, report absent common1.cns,
+  duplicate StateDefs and unsupported controller names.
+- `kotlin-core/.../OriginalCharacterArchiveRegressionTest.kt`: optional
+  genuine-archive parsing, sprite and sound index tests, structural
+  deterministic-replay smoke and explicit ZSS incompatibility tests.
+  By default these report **NOT TESTED** when original files are absent;
+  `KENJATIME_REQUIRE_ORIGINALS=1` forces a failure instead.
+- Kotlin CNS/ABI reports duplicate StateDefs and can evaluate a narrow
+  set of Dark Donald `EnemyNear,Name/StateType/MoveType/StateNo/Life/Ctrl`
+  conditions and `PrevStateNo`. Other redirections, especially
+  author-name matching, still fail closed with diagnostics.
+
+For exact original-package checks (on a runner where the files exist),
+set the three environment variables used by
+`OriginalCharacterArchiveRegressionTest.kt`. The Dark Donald variable
+must refer to the extracted directory containing `D-Donald.def`.
+The 2026 ZSS test **expects explicit incompatibility**, not fake success.
+
+Source-derived audit:
+`test/fixtures/core/original-character-archive-audit.json`.
+The three character packages remain external; do not enable Kotlin as
+the live backend until complete original-match native capture and Android
+performance gates pass.
+
