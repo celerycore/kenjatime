@@ -5,6 +5,7 @@ import {INDEXED_FRAGMENT,INDEXED_VERTEX,PredictionSmoother,createBlueprintWebGL2
   from "../../src/core/blueprint-presentation.js";
 import {PhaseTelemetry} from "../../src/core/blueprint-telemetry.js";
 import {readArchiveBlob} from "../../src/core/blueprint-archive-stream.js";
+import {unpackArchive} from "../../src/uploads.js";
 
 test("R8 sprite shader keeps indexed sampling, pixel centers, and transparency",()=>{
   assert.match(INDEXED_FRAGMENT,/floor\(texture\(u_index, v_uv\)\.r \* 255\.0 \+ 0\.5\)/);
@@ -39,4 +40,24 @@ test("archive Blob stream remains inside size budget",async()=>{
   assert.equal(progress.at(-1).bytes,5);
   await assert.rejects(readArchiveBlob(blob,{maxBytes:4}),/limit/);
   await assert.rejects(readArchiveBlob(blob,{signal:{aborted:true}}),/aborted/);
+});
+
+test("archive upload uses worker Blob streaming without main thread buffer copy", async()=>{
+  const previousWorker=globalThis.Worker;
+  let sent;
+  globalThis.Worker=class {
+    constructor(){this.terminated=false;}
+    postMessage(message,transfer){
+      sent={message,transfer};
+      queueMicrotask(()=>this.onmessage({data:{result:{ok:true}}}));
+    }
+    terminate(){this.terminated=true;}
+  };
+  try{
+    const blob=new Blob([Uint8Array.from([1,2,3,4])]);
+    assert.deepEqual(await unpackArchive(blob),{ok:true});
+    assert.strictEqual(sent.message.blob,blob);
+    assert.deepEqual(sent.transfer,[]);
+    await assert.rejects(unpackArchive(new Blob([new Uint8Array(129*1024*1024)])),/limit/);
+  }finally{globalThis.Worker=previousWorker;}
 });

@@ -13,7 +13,7 @@ are met. A feature being implemented is **not** proof of MUGEN compatibility.
 | --- | --- | --- |
 | 1 Benchmarking | Existing KFM Kotlin/Wasm smoke and Rare Akuma inventory; new primitives tests | Actual original Rare Akuma / Hazama / Slayer / Donald archives, complete replay traces, mobile entity stress |
 | 2 R8 rendering | Existing Three.js R8 palette shader; new independent low-level WebGL2 palette renderer and indexed shader, bounded GPU textures | Pixel-for-pixel KFM/Dark Donald/Rare Akuma images and mobile GPU profiling |
-| 3 Asset ingestion | Worker-side Blob streaming with strict 256MiB bound; Kotlin immutable definition/command refcounts, release on fight close | True incremental decompression, physical memory budgets, all archive types and security fuzzing |
+| 3 Asset ingestion | Connected browser File/Blob stream import through archive Worker with existing 128MiB UI cap and 256MiB worker safety cap; Kotlin immutable definition/command refcounts, release on fight close | True incremental decompression, physical memory budgets, all archive types and security fuzzing |
 | 4 Collision | Flat five-int boxes connected to root fighter contact phase and helper/projectile phase; reusable scratch; stable 1D broadphase primitive | Full multi-entity scheduler/broadphase wiring and native MUGEN collision semantics |
 | 5 Fixed point | `Fixed16` 16.16 operations, saturation, conversion from legacy 1/256 coordinates | Full simulation switch, compiled CNS expression parity and fixed16 overflow audit |
 | 6 Rollback | Preallocated integer state ring, separately tracked presentation smoothing | Complete snapshot of every mutable actor/AI/helper/projectile/round state, authoritative replay + network transport |

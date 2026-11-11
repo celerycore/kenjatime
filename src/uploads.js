@@ -35,7 +35,19 @@ export function unpackArchive(bytes,{onProgress=()=>{},password='',prepareStageD
     worker.onmessage=({data})=>{if(data.progress){onProgress(data.progress);return;}finish(data.error?Error(data.error):null,data.result);};
     worker.onerror=()=>finish(Error('The archive reader stopped. Close other browser tabs and try again, or import a smaller character package.'));
     worker.onmessageerror=()=>finish(Error('The browser could not receive the character package. Try again with fewer files.'));
-    try{const parts=Array.isArray(bytes)?bytes:null;worker.postMessage({...(parts?{parts}:{bytes}),password,prepareStageData},parts?[...new Set(parts.map(p=>p.bytes.buffer))]:[bytes.buffer]);}catch(error){finish(error);}
+    try{
+      const parts=Array.isArray(bytes)?bytes:null;
+      // Modern File/Blob imports stream inside the archive worker instead of
+      // creating a second full archive copy on the browser UI thread.
+      const blob=!parts && bytes && typeof bytes.stream==='function' &&
+        Number.isSafeInteger(bytes.size) ? bytes : null;
+      if(blob && blob.size>MAX_ARCHIVE_BYTES)
+        throw Error(`Archive exceeds the ${ARCHIVE_LIMIT_MB} MB limit.`);
+      const payload=parts?{parts}:blob?{blob}:{bytes};
+      const transfer=parts?[...new Set(parts.map(p=>p.bytes.buffer))]:
+        blob?[]:[bytes.buffer];
+      worker.postMessage({...payload,password,prepareStageData},transfer);
+    }catch(error){finish(error);}
   });
 }
 
