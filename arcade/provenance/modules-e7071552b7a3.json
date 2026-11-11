@@ -1,8 +1,8 @@
 {
   "sources": {
     "src/archive-export-worker.js": "aac951042a3806b0a6394f65b6d39354d563096d7228456b9a481abacef9b502",
-    "src/archive-limits.js": "f3890d703c9aa16ce6ba5f96f4700fecf69b0461cc289a4c3e92dae56269d70e",
-    "src/archive-volumes.js": "5c4f6c1274aaa0add7c442f1dbed4082fe29dee3c759ff9f169530f4ba40c5ff"
+    "src/archive-limits.js": "f3ca6173686e559ada484b9feaff064fa160826e3bd8e421fb7d11ab4377f701",
+    "src/archive-volumes.js": "3f8c5d4fdfe47ff481ea3827a0b3edbe83462e893e2cecc7545e80b997e0bdb1"
   },
   "thirdPartyPackages": [
     "fflate"
