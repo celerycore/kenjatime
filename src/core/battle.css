@@ -19,6 +19,28 @@
 }
 .kenjatime-battle-screen {
   position: relative;
+  isolation: isolate;
+}
+.kenjatime-fight-frame { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
+/* Preserve full-height 4:3 native-style world framing without stretching
+   sprites. The 16:9 canvas is cropped by two 12.5%-wide black pillars.
+   Pillars are scoped to the video frame, never to mobile touch controls. */
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::before,
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12.5%;
+  z-index: 1;
+  background: #000;
+  pointer-events: none;
+}
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::before { left: 0; }
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::after { right: 0; }
+.kenjatime-battle-screen[data-presentation="native-4-3"] .core-hud {
+  left: calc(12.5% + 10px);
+  right: calc(12.5% + 10px);
 }
 .kenjatime-battle iframe {
   width: 100%;
@@ -29,7 +51,7 @@
 }
 .kenjatime-battle-bar {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   padding: 8px 12px;
   border-top: 1px solid #2a2f34;
