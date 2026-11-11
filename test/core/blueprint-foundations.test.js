@@ -58,6 +58,6 @@ test("archive upload uses worker Blob streaming without main thread buffer copy"
     assert.deepEqual(await unpackArchive(blob),{ok:true});
     assert.strictEqual(sent.message.blob,blob);
     assert.deepEqual(sent.transfer,[]);
-    await assert.rejects(unpackArchive(new Blob([new Uint8Array(129*1024*1024)])),/limit/);
+    await assert.rejects(unpackArchive({size:129*1024*1024,stream(){}}),/limit/);
   }finally{globalThis.Worker=previousWorker;}
 });
