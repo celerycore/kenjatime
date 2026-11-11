@@ -30,6 +30,12 @@ jobs:
         run: gradle wasmJsNodeTest --stacktrace
       - name: Compile Kotlin/Wasm host executable
         run: gradle wasmJsNodeDevelopmentRun --stacktrace
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install host adapter dependencies
+        working-directory: .
+        run: npm ci
       - name: Probe real Kotlin/Wasm JavaScript exports
         working-directory: .
         run: node scripts/core/verify-kotlin-wasm-native.mjs kotlin-engine/build
