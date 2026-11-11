@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {planTextureEvictions} from '../../src/core/texture-residency.js';
 import {CoreSession} from '../../src/core/session.js';
+import {CoreThreeRenderer} from '../../src/core/three-renderer.js';
 
 function entries(spec){
  const result=new Map();
@@ -34,4 +35,34 @@ test('CoreSession reconstructs an already-sent indexed fighter sprite from its S
  const source=new Uint8Array([137,80,78,71]);
  assert.ok(typeof CoreSession.prototype.restoreAssets==='function');
  assert.equal(planTextureEvictions(new Map(),0,0,64, new Set()).length,0);
+});
+
+test('real Three DataTexture uploads recycle inactive stage/effect frames within the GPU cap',()=>{
+ const graphics=Object.create(CoreThreeRenderer.prototype);
+ graphics.renderer={capabilities:{maxTextureSize:4096}};
+ graphics.limit=128*1024;graphics.textureBytes=0;graphics.textures=new Map();
+ graphics.evictedTextures=0;graphics.deferredTextures=0;
+ const asset=id=>({id,width:256,height:256,indexed:true,pixels:new Uint8Array(256*256)});
+ const current=new Set(['frame-1']);
+ assert.equal(graphics.upload(asset('frame-1'),current),true);
+ assert.equal(graphics.upload(asset('frame-2'),current),true);
+ assert.equal(graphics.upload(asset('frame-3'),current),true);
+ assert.ok(graphics.evictedTextures>0);
+ assert.ok(!graphics.textures.has('frame-2'));
+ assert.ok(graphics.textureBytes<=graphics.limit);
+ assert.equal(graphics.upload(asset('frame-2'),new Set(['frame-2'])),true);
+ assert.ok(graphics.textures.has('frame-2'));
+ assert.ok(graphics.textureBytes<=graphics.limit);
+ for(const t of graphics.textures.values())t.dispose();
+});
+test('an impossible single-frame GPU workload defers draw without throwing or closing match',()=>{
+ const graphics=Object.create(CoreThreeRenderer.prototype);
+ graphics.renderer={capabilities:{maxTextureSize:4096}};
+ graphics.limit=1024;graphics.textureBytes=0;graphics.textures=new Map();
+ graphics.evictedTextures=0;graphics.deferredTextures=0;
+ assert.equal(graphics.upload({
+   id:'forest-huge',width:64,height:64,indexed:true,pixels:new Uint8Array(4096)
+ },new Set(['forest-huge'])),false);
+ assert.equal(graphics.deferredTextures,1);
+ assert.equal(graphics.textures.size,0);
 });
