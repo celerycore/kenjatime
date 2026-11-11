@@ -875,6 +875,8 @@ export class CoreSession {
       roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
       roundTimeLeft: this.match.roundFlow?.timeLeft ?? -1,
       roundWinner: this.match.roundFlow?.roundWinner ?? null,
+      scriptedKoCount: this.match.scriptedKoCount ?? 0,
+      lastScriptedKO: this.match.lastScriptedKO ?? null,
       roundReason: this.match.roundFlow?.reason ?? null,
       matchOver: this.match.roundFlow?.matchOver ?? false,
       expressions: this.expressions.stats,
