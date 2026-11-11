@@ -795,11 +795,13 @@ export class FighterRuntime {
           throw Error('Invalid Kotlin global scheduling mask');
       }catch(error){
         this.world.kotlinCombatKernel=null;
+        try{kernel.dispose?.();}catch{/* Continue in JS */}
         this.diagnostic('kotlin-wasm-fallback',String(error?.message||error));
         return expected;
       }
       if(Boolean(mask&bit)!==expected){
         this.world.kotlinCombatKernel=null;
+        try{kernel.dispose?.();}catch{/* Continue in JS */}
         this.diagnostic('kotlin-wasm-fallback','Global phase mismatch at bit '+bit);
         return expected;
       }
