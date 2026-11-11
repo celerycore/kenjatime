@@ -1,6 +1,7 @@
 /** Original Kenjatime sprite renderer. Uses Three's public scene API directly;
  * indexed pixels and palettes are separate textures, never per-frame RGBA copies.
  */
+import {planTextureEvictions} from "./texture-residency.js";
 import {
   WebGLRenderer,
   Scene,
@@ -72,6 +73,8 @@ export class CoreThreeRenderer {
     this.limit = maxTextureBytes;
     this.textureBytes = 0;
     this.textures = new Map();
+    this.evictedTextures = 0;
+    this.deferredTextures = 0;
     this.slots = [];
     this.frames = 0;
     this.scene = new Scene();
@@ -120,8 +123,8 @@ export class CoreThreeRenderer {
         }
     this.upload({ id: "@spark", width: 8, height: 8, pixels });
   }
-  upload(asset) {
-    if (this.textures.has(asset.id)) return;
+  upload(asset, activeIds = new Set()) {
+    if (this.textures.has(asset.id)) return true;
     const pixels = asset.pixels,
       expected = asset.width * asset.height * (asset.indexed ? 1 : 4);
     if (
@@ -138,10 +141,25 @@ export class CoreThreeRenderer {
       throw Error("Sprite exceeds this graphics device’s texture limit.");
     if (!(pixels instanceof Uint8Array) || pixels.length !== expected)
       throw Error("Invalid GPU asset dimensions.");
-    if (this.textureBytes + pixels.length > this.limit)
-      throw Error(
-        "GPU texture budget exceeded. Close this match or use a smaller stage.",
+    if (this.textureBytes + pixels.length > this.limit) {
+      const evictions = planTextureEvictions(
+        this.textures, this.textureBytes, pixels.length, this.limit, activeIds,
       );
+      if (!evictions) {
+        // If a pathological frame genuinely exceeds GPU capacity, keep the
+        // simulation alive and omit only that image; never kill the match.
+        this.deferredTextures++;
+        return false;
+      }
+      for (const id of evictions) {
+        const old = this.textures.get(id);
+        if (!old) continue;
+        old.dispose();
+        this.textureBytes -= old.userData.residentBytes || old.userData.videoBytes || 0;
+        this.textures.delete(id);
+        this.evictedTextures++;
+      }
+    }
     const texture = new DataTexture(
       pixels,
       asset.width,
@@ -155,8 +173,10 @@ export class CoreThreeRenderer {
     texture.flipY = false;
     texture.unpackAlignment = 1;
     texture.needsUpdate = true;
+    texture.userData.residentBytes = pixels.length;
     this.textures.set(asset.id, texture);
     this.textureBytes += pixels.length;
+    return true;
   }
   slot(index) {
     if (this.slots[index]) return this.slots[index];
@@ -267,7 +287,7 @@ export class CoreThreeRenderer {
     this.textureBytes += model?.textureBytes || 0;
     return !!model;
   }
-  render(frame, { width = 960, height = 540 } = {}) {
+  render(frame, { width = 960, height = 540, restoreAssets = null } = {}) {
     if (this.closed) return;
     if (this.lost)
       throw Error(
@@ -275,7 +295,31 @@ export class CoreThreeRenderer {
       );
     if (this.canvas.width !== width || this.canvas.height !== height)
       this.renderer.setSize(width, height, false);
-    for (const asset of frame.assets || []) this.upload(asset);
+    // Frame residency is determined by actual draws, not by every animation
+    // ever visited during this match. Imported character SFFs can contain
+    // hundreds of MiB of sprites even when only a handful are visible.
+    const activeTextures = new Set(['@white', '@spark']);
+    for (const draw of frame.draws || []) {
+      if (draw.texture) activeTextures.add(draw.texture);
+      if (draw.indexed && draw.palette) activeTextures.add(draw.palette);
+    }
+    for (const asset of frame.assets || [])
+      if (activeTextures.has(asset.id)) this.upload(asset, activeTextures);
+    let missing = [...activeTextures].filter(id => !this.textures.has(id));
+    if (missing.length && restoreAssets) {
+      // CoreSession retains compressed banks and can reconstruct evicted image
+      // data without keeping a second large RGBA cache in JavaScript memory.
+      for (const asset of restoreAssets(missing) || [])
+        if (activeTextures.has(asset.id)) this.upload(asset, activeTextures);
+      missing = missing.filter(id => !this.textures.has(id));
+    }
+    // Refresh LRU by visible-use order after upload. An active texture is
+    // pinned for the whole render; a previous frame's art may be evicted.
+    for (const id of activeTextures) {
+      const tex = this.textures.get(id);
+      if (tex) { this.textures.delete(id); this.textures.set(id, tex); }
+    }
+    this.missingFrameTextures = missing.length;
     this.grid.visible = !!frame.grid;
     this.grid.material.uniforms.ground.value = frame.ground || 450;
     const draws = frame.draws.concat(
@@ -303,7 +347,12 @@ export class CoreThreeRenderer {
       mesh.visible = true;
       mesh.layers.set((q.pass ?? 1) + 1);
       const image = this.textures.get(q.texture);
-      if (!image) throw Error("GPU texture was not delivered: " + q.texture);
+      if (!image) {
+        // A stage with more simultaneously visible pixels than the device
+        // budget should degrade its art, not terminate a live fight.
+        mesh.visible = false;
+        continue;
+      }
       u.image.value = image;
       u.palette.value =
         this.textures.get(q.palette) || this.textures.get("@white");
@@ -369,6 +418,9 @@ export class CoreThreeRenderer {
       draws: draws.length,
       textureBytes: this.textureBytes,
       textures: this.textures.size,
+      textureEvictions: this.evictedTextures,
+      deferredTextures: this.deferredTextures,
+      missingFrameTextures: this.missingFrameTextures || 0,
       width,
       height,
       videoUploads: this.videoUploads || 0,
