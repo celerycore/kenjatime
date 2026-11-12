@@ -16,15 +16,15 @@ const winner=(players)=>{
  */
 export class RoundFlow{
   constructor({roundsToWin=2,roundTime=99,preIntro=30,introHold=30,overTime=60,resultTime=90,
-    maxIntroTime=900,maxOutroTime=300,autoAdvance=true,endless=false,maxNoKOTime=180}={}){
-    for(const [key,value] of Object.entries({roundsToWin,roundTime,preIntro,introHold,overTime,resultTime,maxIntroTime,maxOutroTime,maxNoKOTime}))
+    maxIntroTime=900,maxOutroTime=300,autoAdvance=true,endless=false,maxNoKOTime=180,fightStartLockTicks=0}={}){
+    for(const [key,value] of Object.entries({roundsToWin,roundTime,preIntro,introHold,overTime,resultTime,maxIntroTime,maxOutroTime,maxNoKOTime,fightStartLockTicks}))
       if(!Number.isFinite(value)||value<0)throw Error(`Invalid match rule ${key}.`);
-    if(roundsToWin<1||roundsToWin>99||roundTime>3600||maxIntroTime>36000||maxOutroTime>36000||maxNoKOTime<1||maxNoKOTime>36000)
+    if(roundsToWin<1||roundsToWin>99||roundTime>3600||maxIntroTime>36000||maxOutroTime>36000||maxNoKOTime<1||maxNoKOTime>36000||fightStartLockTicks>36000)
       throw Error('Match rule exceeds supported bounds.');
     this.rules={roundsToWin:Math.trunc(roundsToWin),roundTime,
       preIntro:Math.trunc(preIntro),introHold:Math.trunc(introHold),
       overTime:Math.trunc(overTime),resultTime:Math.trunc(resultTime),
-      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),maxNoKOTime:Math.trunc(maxNoKOTime),autoAdvance,
+      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),maxNoKOTime:Math.trunc(maxNoKOTime),fightStartLockTicks:Math.trunc(fightStartLockTicks),autoAdvance,
       endless:endless===true};
     this.roundNo=1;this.roundsExisted=0;this.wins={player:0,opponent:0};
     this.matchOver=false;this.roundWinner=null;this.reason=null;this.startRound();
@@ -56,6 +56,9 @@ export class RoundFlow{
     }
     if(this.roundState===2){
       this.phaseTime++;
+      // The timer and KO logic begin when the fighters leave the benchmark's
+      // round-start idle hold, not while "FIGHT!" is still on screen.
+      if(this.phaseTime<=this.rules.fightStartLockTicks)return events;
       // NoKO can temporarily protect a cinematic defeat, but an endlessly
       // asserted NoKO must not trap a fighter at zero life forever.
       const knockout=players.some((p,i)=>{
