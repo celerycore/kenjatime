@@ -875,6 +875,8 @@ export class CoreSession {
         name: a.name,
         x: a.pos.x,
         y: a.pos.y,
+        facing: a.facing,
+        liveTargets: a.targets.filter(t=>!t.destroyed).length,
         life: a.life,
         maxLife: a.maxLife,
         power: a.power,
@@ -897,6 +899,7 @@ export class CoreSession {
         boundTargetId:a.bound?.target?.id ?? null,
         bindTime:a.bound?.time ?? null,
         frame:a.frameIndex,x:a.pos.x,y:a.pos.y,
+        facing:a.facing,liveTargets:a.targets.filter(t=>!t.destroyed).length,
         invisible:a.asserted.has("invisible")
       })),
       roundState: this.match.roundFlow?.roundState ?? 2,
