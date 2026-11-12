@@ -29,6 +29,8 @@
     "android:core:copy": "npm run build:core && node scripts/core/copy-android.mjs",
     "android:core:debug": "npm run android:core:copy && cd android && ./gradlew -PkenjatimeCorePreview=true assembleDebug",
     "compatibility:legacy": "node scripts/compatibility-audit.mjs",
+    "verify:core:mugen11-target": "node --test test/core/mugen11-compatibility-target.test.js",
+    "compare:core:mugen11": "node scripts/core/compare-mugen11-traces.mjs",
     "build:reference": "vite build",
     "dev:reference": "vite --host 0.0.0.0",
     "verify:core:movesets": "python scripts/core/compare-native.py --group kfm-classic --require-verified",
