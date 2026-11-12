@@ -184,7 +184,7 @@ test("ordered 60 Hz contact defers StateDef entry while maintaining temporary hi
 
 test("optional 1.1 trace separates pending throw entry from observable hitshake and HitID",()=>{
   const m=fixture(true),p1=m.player,p2=m.opponent;
-  const h=hit(p1,"p1stateno=811\\np2stateno=821\\nid=73");
+  const h=hit(p1,"p1stateno=811\np2stateno=821\nid=73");
   h.pauseTime=[0,2];
   const outcome=p2.receiveHit(h,p1);
   assert.notEqual(outcome.rejected,true);
@@ -209,7 +209,7 @@ test("optional 1.1 trace separates pending throw entry from observable hitshake 
 test("optional trace distinguishes helper-owned pending custom state from root ID",()=>{
   const m=fixture(true),root=m.player,victim=m.opponent;
   const helper=m.spawnHelper(root,{stateno:810,id:72});
-  const h=hit(helper,"p2stateno=820\\nid=74");
+  const h=hit(helper,"p2stateno=820\nid=74");
   const outcome=victim.receiveHit(h,helper);
   assert.notEqual(outcome.rejected,true);
   const trace=captureLegacyTraceTick(m).actors.find(a=>a.id===victim.id);
