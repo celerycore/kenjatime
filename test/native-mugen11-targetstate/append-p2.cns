@@ -1,0 +1,41 @@
+; Original native P2 probe. APPEND to the second, separate KFM copy.
+; Ensure StateDef 901/910 are unoccupied before adding.
+; In the native console, run: changestate 2 901
+; Then advance two ticks to spawn a P2-owned normal helper.
+;
+[Statedef 901]
+type = S
+movetype = I
+physics = N
+anim = 0
+ctrl = 0
+
+[State 901, Spawn distant P2 helper]
+type = Helper
+trigger1 = Time = 0
+id = 72
+name = "P2 native oracle helper"
+stateno = 0
+postype = p1
+pos = -160,0
+keyctrl = 0
+
+[State 901, Return to P2 stand]
+type = ChangeState
+trigger1 = Time = 1
+value = 0
+ctrl = 1
+
+; Deliberate conflict with P1's borrowed StateDef 910.
+; If TargetState is correct, P2 never executes this StateDef 910.
+[Statedef 910]
+type = S
+movetype = I
+physics = N
+anim = 0
+
+[State 910, Wrong-owner trap]
+type = VarSet
+trigger1 = 1
+v = 42
+value = 999
