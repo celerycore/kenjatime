@@ -79,6 +79,14 @@ test("KFM helper spawns, survives into the draw list, and appears in legacy trac
     const frame=session.frame();
     assert.ok(frame.draws.length>baseline.draws.length,
       "the visible helper must contribute a sprite draw");
+    const snapshot=session.snapshot();
+    assert.equal(snapshot.helperStats.attempted,1);
+    assert.equal(snapshot.helperStats.created,1);
+    assert.equal(snapshot.helperFrameStats.submitted,1);
+    assert.equal(snapshot.helperFrameStats.missingAnimation,0);
+    assert.equal(snapshot.helperFrameStats.missingSprite,0);
+    assert.equal(snapshot.helpers[0].helperId,1801);
+    assert.equal(snapshot.helpers[0].state,0);
     const trace=captureLegacyTraceTick(session.match);
     assert.equal(trace.tick,session.match.ticks);
     const captured=trace.actors.find(a=>a.id===helper.id);
