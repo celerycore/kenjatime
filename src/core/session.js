@@ -889,6 +889,10 @@ export class CoreSession {
       helpers:this.match.entities.filter(a=>a.parent).map(a=>({
         id:a.id,helperId:a.helperId,parentId:a.parent?.id,
         rootId:a.root?.id,state:a.stateNo,anim:a.anim,
+        stateOwnerId:a.stateOwner?.id ?? a.id,
+        animationOwnerId:a.animationOwner?.id ?? a.id,
+        boundTargetId:a.bound?.target?.id ?? null,
+        bindTime:a.bound?.time ?? null,
         frame:a.frameIndex,x:a.pos.x,y:a.pos.y,
         invisible:a.asserted.has("invisible")
       })),
