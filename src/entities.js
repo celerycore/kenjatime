@@ -9,7 +9,10 @@ export function spawnPosition(owner, spec = {}, projectile = false) {
     ? offset : offset === undefined ? [0, 0] : [offset, 0];
   const type = String(spec.postype || 'p1').toLowerCase();
   const left = owner.world?.view.left ?? owner.world?.leftBound??-160, right = owner.world?.view.right ?? owner.world?.rightBound??160;
-  const opponent = owner.opponent || owner;
+  // MUGEN 1.1 falls back to the spawner's axis if P2 does not exist.
+  // A destroyed opponent is no longer a valid P2 spawn anchor.
+  const opponent = owner.opponent && !owner.opponent.destroyed
+    ? owner.opponent : owner;
   let origin = owner.pos.x, ground = owner.pos.y, direction = owner.facing, facing = owner.facing;
   if (type === 'p2') {
     origin = opponent.pos.x;
