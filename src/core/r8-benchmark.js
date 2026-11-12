@@ -10,6 +10,7 @@ const fields = [
   "render_fps", "frame_cpu_submit_ms", "simulation_hz", "simulation_ticks", "simulation_backlog_ticks", "simulation_debt",
   "p1_life", "p2_life", "p1_state_no", "p2_state_no", "p1_state_owner_id", "p2_state_owner_id",
   "p1_anim", "p2_anim", "p1_animation_owner_id", "p2_animation_owner_id", "p1_anim_elem", "p2_anim_elem",
+  "p1_facing", "p2_facing", "p1_live_targets", "p2_live_targets",
   "round_phase", "ko_hold_p1_ticks", "ko_hold_p2_ticks", "resolution_scale",
   "gpu_resident_mib", "r8_index_mib", "palette_rgba_mib", "rgba_mib",
   "raw_rgba_bytes_saved_mib", "gpu_textures", "gpu_evictions",
@@ -44,6 +45,8 @@ panel.innerHTML = `
         <div><small>Helper failures</small><strong data-r8="helperfails">—</strong></div>
         <div><small>Duplicate -1/-2/-3 StateDefs P1 / P2</small><strong data-r8="globaldupes">—</strong></div>
         <div><small>Borrowed state owners P1 / P2</small><strong data-r8="borrowed">—</strong></div>
+        <div><small>Live targets P1 / P2</small><strong data-r8="targets">—</strong></div>
+        <div><small>Facing P1 / P2</small><strong data-r8="facing">—</strong></div>
       </div>
       <div class="r8-bench-actions">
         <button type="button" data-r8-start>Start recording</button>
@@ -51,7 +54,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner and AIR-owner columns help identify TargetState, ChangeAnim2 and SelfState transitions; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -124,6 +127,8 @@ function sample() {
   element("helperfails").textContent = (state.helperStats?.rejected ?? "—") + " rejected · " + (state.helperFrameStats?.missingAnimation ?? 0) + " no AIR · " + (state.helperFrameStats?.missingSprite ?? 0) + " no SFF";
   element("globaldupes").textContent = (state.compatibility?.characters?.[0]?.duplicateGlobalStates ?? "—") + " / " + (state.compatibility?.characters?.[1]?.duplicateGlobalStates ?? "—");
   element("borrowed").textContent = (state.players?.[0]?.state ?? "—") + " @" + (state.players?.[0]?.stateOwnerId ?? "—") + " / " + (state.players?.[1]?.state ?? "—") + " @" + (state.players?.[1]?.stateOwnerId ?? "—");
+  element("targets").textContent = (state.players?.[0]?.liveTargets ?? "—") + " / " + (state.players?.[1]?.liveTargets ?? "—");
+  element("facing").textContent = (state.players?.[0]?.facing ?? "—") + " / " + (state.players?.[1]?.facing ?? "—");
   if (!recording) return;
   const seconds = (now - startedAt) / 1000;
   highest = Math.max(highest, gpu.textureBytes || 0);
@@ -143,6 +148,8 @@ function sample() {
     state.players?.[0]?.anim ?? "",state.players?.[1]?.anim ?? "",
     state.players?.[0]?.animationOwnerId ?? "",state.players?.[1]?.animationOwnerId ?? "",
     state.players?.[0]?.animElem ?? "",state.players?.[1]?.animElem ?? "",
+    state.players?.[0]?.facing ?? "",state.players?.[1]?.facing ?? "",
+    state.players?.[0]?.liveTargets ?? "",state.players?.[1]?.liveTargets ?? "",
     state.roundState ?? "", state.roundKoHoldTicks?.[0] ?? "",
     state.roundKoHoldTicks?.[1] ?? "",
     Number.isFinite(state.resolutionScale) ? number(state.resolutionScale, 2) : "",
@@ -163,7 +170,8 @@ function sample() {
     state.helperFrameStats?.missingSprite ?? "",
     (state.helpers || []).slice(0,56).map(h=>
       [h.id,h.helperId,h.parentId,h.state,h.anim,h.invisible?1:0,
-       h.stateOwnerId??"",h.animationOwnerId??"",h.boundTargetId??"",h.bindTime??""].join(":")).join("|"),
+       h.stateOwnerId??"",h.animationOwnerId??"",h.boundTargetId??"",h.bindTime??"",
+       h.facing??"",h.liveTargets??""].join(":")).join("|"),
     state.compatibility?.characters?.[0]?.duplicateGlobalStates ?? "",
     state.compatibility?.characters?.[1]?.duplicateGlobalStates ?? "",
   ];
