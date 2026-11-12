@@ -16,15 +16,15 @@ const winner=(players)=>{
  */
 export class RoundFlow{
   constructor({roundsToWin=2,roundTime=99,preIntro=30,introHold=30,overTime=60,resultTime=90,
-    maxIntroTime=900,maxOutroTime=300,autoAdvance=true,endless=false}={}){
-    for(const [key,value] of Object.entries({roundsToWin,roundTime,preIntro,introHold,overTime,resultTime,maxIntroTime,maxOutroTime}))
+    maxIntroTime=900,maxOutroTime=300,autoAdvance=true,endless=false,maxNoKOTime=180}={}){
+    for(const [key,value] of Object.entries({roundsToWin,roundTime,preIntro,introHold,overTime,resultTime,maxIntroTime,maxOutroTime,maxNoKOTime}))
       if(!Number.isFinite(value)||value<0)throw Error(`Invalid match rule ${key}.`);
-    if(roundsToWin<1||roundsToWin>99||roundTime>3600||maxIntroTime>36000||maxOutroTime>36000)
+    if(roundsToWin<1||roundsToWin>99||roundTime>3600||maxIntroTime>36000||maxOutroTime>36000||maxNoKOTime<1||maxNoKOTime>36000)
       throw Error('Match rule exceeds supported bounds.');
     this.rules={roundsToWin:Math.trunc(roundsToWin),roundTime,
       preIntro:Math.trunc(preIntro),introHold:Math.trunc(introHold),
       overTime:Math.trunc(overTime),resultTime:Math.trunc(resultTime),
-      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),autoAdvance,
+      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),maxNoKOTime:Math.trunc(maxNoKOTime),autoAdvance,
       endless:endless===true};
     this.roundNo=1;this.roundsExisted=0;this.wins={player:0,opponent:0};
     this.matchOver=false;this.roundWinner=null;this.reason=null;this.startRound();
@@ -34,6 +34,7 @@ export class RoundFlow{
     // Endless keeps real KO/outro/round resets, but has no round time limit.
     this.timeLeft=this.rules.endless?-1:this.rules.roundTime?Math.round(this.rules.roundTime*60):-1;
     this.roundWinner=null;this.reason=null;this._awarded=false;
+    this.zeroLifeNoKOTicks=[0,0];
   }
   step({players,paused=false,intro=false,introPending=false,victoryPending=false,
     roundNotOver=false,timerFreeze=false,noKO=[false,false]}={}){
@@ -55,7 +56,14 @@ export class RoundFlow{
     }
     if(this.roundState===2){
       this.phaseTime++;
-      const knockout=players.some((p,i)=>p.life<=0&&!noKO[i]);
+      // NoKO can temporarily protect a cinematic defeat, but an endlessly
+      // asserted NoKO must not trap a fighter at zero life forever.
+      const knockout=players.some((p,i)=>{
+        if(p.life>0){this.zeroLifeNoKOTicks[i]=0;return false;}
+        if(!noKO[i]){this.zeroLifeNoKOTicks[i]=0;return true;}
+        this.zeroLifeNoKOTicks[i]++;
+        return this.zeroLifeNoKOTicks[i]>=this.rules.maxNoKOTime;
+      });
       if(!timerFreeze&&this.timeLeft>0)this.timeLeft--;
       if(knockout||this.timeLeft===0){
         this.roundWinner=winner(players);
