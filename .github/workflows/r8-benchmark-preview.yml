@@ -9,6 +9,7 @@ on:
       - 'test/core/**'
       - 'scripts/core/**'
       - 'package.json'
+      - 'releases/**'
       - 'package-lock.json'
       - 'vite.core.config.js'
       - '.github/workflows/r8-benchmark-preview.yml'
@@ -79,6 +80,8 @@ jobs:
         run: node --test test/core/mugen11-hitdef-p2-customstate.test.js
       - name: Verify MUGEN 1.1 P1 throw StateDef, HitOverride armor and ordered timing
         run: node --test test/core/mugen11-hitdef-p1stateno-movetype.test.js
+      - name: Verify consolidated MUGEN 1.1 Mega Update and R8 preservation gates
+        run: node --test test/core/mugen11-mega-integration.test.js
       - name: Generate labeled candidate (never a native reference trace)
         run: |
           node scripts/core/mugen11-targetstate-oracle.mjs --candidate /tmp/kenjatime-mugen11-customstate.json
@@ -100,14 +103,21 @@ jobs:
       - name: Embed source identity and reject private character files
         run: |
           node --input-type=module -e '
-            import {writeFileSync} from "node:fs";
+            import {readFileSync,writeFileSync} from "node:fs";
+            const bundle=JSON.parse(readFileSync("releases/kenjatime-mega-2026-11-13.json","utf8"));
+            if(bundle.nativeMugen11Certified!==false||bundle.productionArcadeUpdated!==false||!bundle.features.includes("r8-mega-release-gate"))throw Error("Invalid Mega release safety manifest");
             writeFileSync("dist-core/build-info.json",JSON.stringify({
               repository:"celerycore/kenjatime",
               branch:process.env.R8_SOURCE_BRANCH,
               sourceCommit:process.env.R8_SOURCE_SHA,
               channel:"r8-benchmark-pr17",
               basedOnPR:17,
-              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv","mugen11-persistent-n","mugen11-negative-state-audit","mugen11-bindtime-zero","mugen11-parentvar-restrictions","mugen11-helper-state-owners","mugen11-targetstate-id","mugen11-changeanim2-selfstate","mugen11-native-oracle-candidate","mugen11-player-owner-csv","mugen11-facep2-live-anchors","mugen11-target-lifecycle","mugen11-live-target-csv","mugen11-targetdrop-random-keepone","mugen11-hitdef-p2-owner","mugen11-hittoverride-orphan-flag","mugen11-hitdef-authored-movetype","mugen11-throw-hitpause-csv"],
+              benchmarkFeatures:bundle.features,
+              releaseId:bundle.id,
+              releaseDate:bundle.date,
+              releaseSections:Object.keys(bundle.sections),
+              nativeMugen11Certified:bundle.nativeMugen11Certified,
+              productionArcadeUpdated:bundle.productionArcadeUpdated,
               privateCharactersIncluded:false,
               kotlinWasmDefault:false
             },null,2)+"\n");
