@@ -101,3 +101,51 @@ audit rather than claiming success. Kotlin/Wasm remains experimental
 until its behavior matches the proven JavaScript baseline.
 
 The shipping arcade remains a separate release until these tests pass.
+
+
+## 6. State and helper parity milestone (November 12, 2026)
+
+- **Corrected:** MUGEN 1.1 Helper `postype=p2` now spawns from P2 X/facing
+  but retains the spawning player's Y origin; single-component offsets no
+  longer fail during vector unpacking. Projectile semantics are unchanged.
+- **Compatibility extension:** When a nonstandard `bindtime` is used with
+  `postype=p2`, the helper retains its original Y on the first bound tick,
+  then follows the target's later Y motion without teleportation.
+- **Verified by tests:** Normal helpers do not run root `-3` or `-2`;
+  only helpers with `keyctrl=1` inherit root `-1`. A ChangeState
+  controller skips remaining old-state controllers; the new state executes
+  within the same logic tick. `persistent=0` only fires once per state
+  entry. Root-owned and nested helper IDs/counts remain distinct.
+- **Runtime diagnostics:** `CoreSession.snapshot()` exposes
+  `helperStats` (attempted, created, rejected, missingState, destroyed,
+  peak), `helperFrameStats` (alive, hidden, submitted, missingAnimation,
+  missingSprite), and `helpers` (ID, helper ID, parent, root, active
+  StateDef/animation/frame and world coordinates). These are intended to
+  distinguish failed spawn/state execution from actual drawing faults.
+  Last-frame sprite submission **does not** prove WebGL actually displayed
+  an indexed texture; also check the renderer's missing-texture/palette
+  counters.
+- **Owner-supplied Tomoka assets:** Static review of two locally provided
+  archive variants confirms helper-rich scripts and authored assist states.
+  TornilloOxidado's variant uses standard controller types in the scanned
+  scripts. Infantry00's variant includes three `Zoom` controller usages
+  that are not implemented by the current Core. These are documented
+  gaps; neither archive has been verified against a native MUGEN 1.1
+  frame-by-frame runtime oracle. Keep the original archives unmodified and
+  outside GitHub.
+
+### Interpreting helper counters
+
+1. `attempted=0`: State controller conditions or move selection never
+   requested a helper. Check the authored negative states, trigger results,
+   game mode and AI commands.
+2. `attempted>created`: Creation failed. Check `rejected`,
+   `missingState` and emitted controller diagnostics.
+3. `created>0` with active helpers but `submitted=0`: Inspect explicit
+   `AssertSpecial invisible`, missing AIR frames and missing SFF sprites.
+4. `submitted>0` but no visible assist: Inspect palette bindings, GPU
+   residency, current animation transparency, world coordinates and stage
+   foreground layering.
+
+**Release status:** State/helper synthetic regressions pass; exact MUGEN 1.1
+native parity and original Tomoka assist playback remain unverified.
