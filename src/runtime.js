@@ -724,8 +724,9 @@ export class FighterRuntime {
       if (state.values.sprpriority !== undefined) this.sprPriority = integer(this.value(state, 'sprpriority', 0));
       if (state.values.juggle !== undefined) {this.juggleCost=Math.max(0,integer(this.value(state,'juggle',0)));this._juggleSerial++;}
       if (state.values.poweradd !== undefined) this.power = clamp(this.power + this.value(state, 'poweradd', 0), 0, this.maxPower);
-      // MUGEN 1.1 facep2 is applied at StateDef entry. Destroyed P2 or
-      // equal X axes must not produce a spurious facing change.
+      // StateDef facep2 is an entry-time operation (including borrowed CNS
+      // states). Do not turn when P2 has been destroyed or is coincident
+      // with this actor; no direction can be established from equal axes.
       if(truth(this.value(state,'facep2',0))){
         const p2=this.opponent;
         if(p2&&!p2.destroyed&&p2!==this&&p2.pos.x!==this.pos.x)
@@ -1239,10 +1240,11 @@ export class FighterRuntime {
         !target.destroyed && (wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted));
       if (type === 'targetdrop') {
         const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>!t.destroyed&&(this.targetHitIds.get(t.id)??t.hitId)===exclude);
-        // MUGEN 1.1 selects one random live equal-ID target rather than
-        // always choosing the oldest helper; use the actor's seeded RNG
-        // for reproducible R8 benchmark replays. Native RNG parity remains
-        // unverified without an independent oracle trace.
+        // Elecbyte MUGEN 1.1 TargetDrop keepone=1 chooses ONE at random
+        // among equal-ID targets. Choosing the first makes helper-heavy throws
+        // systematically select the oldest victim. Use our seeded per-actor
+        // RNG so identical replays pick the same target; native RNG parity
+        // still requires an independent MUGEN reference capture.
         const keepOne=!!num('keepone',1);
         const selected=keepOne&&kept.length>1
           ? [kept[Math.min(kept.length-1,Math.floor(this.resolveTrigger('random')/1000*kept.length))]]
@@ -1605,12 +1607,15 @@ export class FighterRuntime {
     if (this.world?.isSuperUnhittable(this)) return false;
     for(const filter of this.hitFilters)if(filter?.time&&!filterAllows(filter,hit.attr))return false;
     const typeNone=String(hit[this.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()==='none';
-    // MUGEN 1.1: orphan p2getp1state is ignored without p2stateno.
-    // A real p2stateno implies borrowed P1 state unless explicitly zero.
-    // HitOverride still protects against true foreign-state attacks.
-    const hasP2State=Number.isFinite(Number(hit.p2stateno))&&Number(hit.p2stateno)>=0;
-    const borrowsP1State=hasP2State&&hit.p2getp1state!==0;
-    if(!typeNone&&this.matchingHitOverride(hit)&&(hit.p1stateno>=0||borrowsP1State))return false;
+    // Elecbyte 1.1 ignores p2getp1state entirely unless p2stateno is
+    // actually specified. An authored p2getp1state=1 by itself must not
+    // turn an otherwise ordinary HitDef into a custom-state throw or
+    // incorrectly bypass HitOverride. With p2stateno, the omitted flag
+    // defaults to 1 (borrow attacker's CNS) and HitOverride's documented
+    // protection still applies to that foreign-state hit.
+    const hasP2State=Number.isFinite(Number(hit.p2stateno)) && Number(hit.p2stateno)>=0;
+    const borrowsP1State=hasP2State && hit.p2getp1state!==0;
+    if(!typeNone&&this.matchingHitOverride(hit) && (hit.p1stateno>=0||borrowsP1State))return false;
     return !this.asserted.has('unhittable');
   }
 

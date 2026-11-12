@@ -262,6 +262,7 @@ Tomoka, Rare Akuma, and other helper-heavy native traces are still required.
   native screenshot/trace is bundled. Full MUGEN 1.1 parity remains
   **UNVERIFIED**.
 
+
 ## 11. TargetDrop random retention for multi-victim helpers (November 12, 2026)
 
 Elecbyte's MUGEN 1.1 `TargetDrop` documentation specifies
@@ -287,6 +288,7 @@ behavior toward the oldest target.
 
 **Reference:** Elecbyte 2013 MUGEN 1.1 State Controller Reference,
 `TargetDrop` section.
+
 
 ## 12. HitDef p2stateno / p2getp1state ownership and HitOverride (November 12, 2026)
 
@@ -346,6 +348,7 @@ the authored StateDef has already executed.
 Native Elecbyte 1.1 tick-for-tick `p1stateno` / `p2stateno`
 animation and hitpause timing remains **UNVERIFIED** until original
 reference traces are captured independently.
+
 
 ## 14. HitDef P1/P2 throw oracle trace fields (November 13, 2026)
 

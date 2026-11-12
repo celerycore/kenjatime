@@ -181,6 +181,7 @@ test("ordered 60 Hz contact defers StateDef entry while maintaining temporary hi
   assert.equal(p2.stateOwner,p1);
   assert.equal(p1.moveType,"A");
 });
+
 test("optional 1.1 trace separates pending throw entry from observable hitshake and HitID",()=>{
   const m=fixture(true),p1=m.player,p2=m.opponent;
   const h=hit(p1,"p1stateno=811\np2stateno=821\nid=73");
