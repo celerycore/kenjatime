@@ -1,6 +1,8 @@
-name: Kenjatime R8 Verified Publish Entrypoint
+name: Kenjatime R8 Mega Update Verified Publish
 
 # This intentionally resides on the repository's default branch, gh-pages.
+# Mega release: kenjatime-mega-2026-11-13. R8 build-info.json is authoritative
+# for the actual published source SHA; only this workflow file changes here.
 # Publishing code and browser tests live only in the isolated R8 source
 # workflow; this file does NOT copy or overwrite any production web pages.
 on:
@@ -12,6 +14,12 @@ on:
     types: [closed]
     branches: [feature/r8-benchmark-preview-20261112]
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'R8 preview release to verify (latest is kenjatime-mega-2026-11-13)'
+        type: string
+        required: false
+        default: kenjatime-mega-2026-11-13
 
 permissions:
   contents: write
@@ -21,6 +29,7 @@ permissions:
 # /r8-benchmark/ on gh-pages. Never publish an unmerged PR.
 jobs:
   verified-r8-publish:
+    name: Verify and publish R8 Mega Update (preview only)
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     uses: celerycore/kenjatime/.github/workflows/r8-benchmark-preview.yml@feature/r8-benchmark-preview-20261112
     permissions:
