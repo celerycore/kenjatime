@@ -1598,7 +1598,15 @@ export class FighterRuntime {
     if (this.world?.isSuperUnhittable(this)) return false;
     for(const filter of this.hitFilters)if(filter?.time&&!filterAllows(filter,hit.attr))return false;
     const typeNone=String(hit[this.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()==='none';
-    if(!typeNone&&this.matchingHitOverride(hit)&&(hit.p1stateno>=0||hit.p2getp1state===1||hit.p2stateno>=0&&hit.p2getp1state!==0))return false;
+    // Elecbyte 1.1 ignores p2getp1state entirely unless p2stateno is
+    // actually specified. An authored p2getp1state=1 by itself must not
+    // turn an otherwise ordinary HitDef into a custom-state throw or
+    // incorrectly bypass HitOverride. With p2stateno, the omitted flag
+    // defaults to 1 (borrow attacker's CNS) and HitOverride's documented
+    // protection still applies to that foreign-state hit.
+    const hasP2State=Number.isFinite(Number(hit.p2stateno)) && Number(hit.p2stateno)>=0;
+    const borrowsP1State=hasP2State && hit.p2getp1state!==0;
+    if(!typeNone&&this.matchingHitOverride(hit) && (hit.p1stateno>=0||borrowsP1State))return false;
     return !this.asserted.has('unhittable');
   }
 
