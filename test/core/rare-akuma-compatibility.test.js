@@ -29,13 +29,14 @@ test('legacy HitDef sprpriority applies on hit and explicit p1sprpriority wins',
   const received=b.receiveHit({...a.hitDef,damage:[0,0],pauseTime:[0,0]},a);
   assert.ok(received);assert.equal(a.sprPriority,3);
 });
-test('Helper bindtime tracks p2 for its lifetime then releases, with opponent Y origin',()=>{
+test('Helper bindtime tracks p2 without teleporting from MUGEN 1.1 P1 Y spawn origin',()=>{
   const w=world(),a=w.player,b=w.opponent;b.pos.y=20;b.facing=-1;
   control(a,'Helper','stateno=300\nid=7181\npostype=p2\npos=10,-4\nfacing=-1\nbindtime=2');
   const helper=w.entities.find(v=>v.parent);
-  assert.ok(helper);assert.deepEqual(helper.pos,{x:b.pos.x-10,y:16});
+  assert.ok(helper);assert.deepEqual(helper.pos,{x:b.pos.x-10,y:-4});
   assert.equal(helper.facing,1);assert.equal(helper.bound.target,b);
   b.vel.x=2;w.tick();assert.equal(helper.bound.time,1);assert.equal(helper.pos.x,b.pos.x-10);
+  assert.equal(helper.pos.y,-4,'bound helper should not teleport to opponent Y');
   w.tick();assert.equal(helper.bound,null);const after=helper.pos.x;
   w.tick();assert.equal(helper.pos.x,after);
   assert.ok(!helper.diagnostics.some(d=>d.type==='unsupported-helper'&&/bindtime/.test(d.message)));
