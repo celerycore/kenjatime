@@ -30,6 +30,8 @@
     "android:core:debug": "npm run android:core:copy && cd android && ./gradlew -PkenjatimeCorePreview=true assembleDebug",
     "compatibility:legacy": "node scripts/compatibility-audit.mjs",
     "verify:core:mugen11-target": "node --test test/core/mugen11-compatibility-target.test.js",
+    "verify:core:mugen11-customstate": "node --test test/core/mugen11-targetstate-changeanim2.test.js test/core/mugen11-native-evidence.test.js test/core/mugen11-native-probe-sources.test.js",
+    "capture:core:mugen11-customstate": "node scripts/core/mugen11-targetstate-oracle.mjs",
     "compare:core:mugen11": "node scripts/core/compare-mugen11-traces.mjs",
     "build:reference": "vite build",
     "dev:reference": "vite --host 0.0.0.0",
