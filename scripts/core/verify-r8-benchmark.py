@@ -78,6 +78,9 @@ try:
         assert state['simulationBacklogTicks'] >= 0, state
         assert state['compatibility']['id'] == 'mugen-1.1', state
         assert state['compatibility']['certified'] is False
+        assert all(isinstance(p['stateOwnerId'], int) and isinstance(p['animationOwnerId'],int)
+                   and p['animElem'] >= 1 for p in state['players'])
+        assert page.locator('[data-r8="borrowed"]').count() == 1
         assert all('duplicateGlobalStates' in c for c in state['compatibility']['characters'])
         assert page.locator('[data-r8="globaldupes"]').count() == 1
         assert state['helperStats']['attempted'] >= state['helperStats']['created']
@@ -106,7 +109,7 @@ try:
         page.locator('[data-r8-stop]').click()
         assert page.locator('[data-r8-export]').is_enabled()
         csv = page.evaluate('window.__kenjatimeR8Benchmark.csv()')
-        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and 'simulation_hz' in csv and 'simulation_ticks' in csv and 'simulation_backlog_ticks' in csv and 'helpers_alive' in csv and 'helpers_missing_state' in csv and 'helper_state_map' in csv and 'mugen11_p1_duplicate_globals' in csv and 'mugen11_p2_duplicate_globals' in csv and len(csv.splitlines()) >= 4
+        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and 'simulation_hz' in csv and 'simulation_ticks' in csv and 'simulation_backlog_ticks' in csv and 'helpers_alive' in csv and 'helpers_missing_state' in csv and 'helper_state_map' in csv and 'mugen11_p1_duplicate_globals' in csv and 'mugen11_p2_duplicate_globals' in csv and 'p1_state_owner_id' in csv and 'p2_state_owner_id' in csv and 'p1_animation_owner_id' in csv and 'p2_animation_owner_id' in csv and len(csv.splitlines()) >= 4
         with page.expect_download() as downloaded:
             page.locator('[data-r8-export]').click()
         item = downloaded.value
