@@ -1,7 +1,7 @@
 import { CoreSession } from "./session.js";
 import {normalizePresentation} from "./presentation.js";
 import { CoreThreeRenderer } from "./three-renderer.js";
-import { FrameClock } from "../frame-clock.js";
+import { FrameClock, SIMULATION_HZ } from "../frame-clock.js";
 import { TickInputBuffer } from "../input-buffer.js";
 import { soundArchive } from "../formats.js";
 import { FrameScheduler } from "./frame-scheduler.js";
@@ -141,9 +141,14 @@ export function createCoreRuntime(emit) {
   function frame(time) {
     if (closed) return;
     try {
-      const absolute = performance.timeOrigin + time;
-      clock.advance(absolute, { running: !paused }, (sample) => {
-        session.tick(inputs[0].sample(sample), inputs[1].sample(sample));
+      // Keep simulation in a monotonic relative timebase; convert only the
+      // exact tick input boundary to UI-compatible absolute epoch time.
+      clock.advance(time, { running: !paused }, (sample) => {
+        const inputDeadline = performance.timeOrigin + sample;
+        session.tick(
+          inputs[0].sample(inputDeadline),
+          inputs[1].sample(inputDeadline),
+        );
         syncMusicSuppression();
         soundEvents();
       });
@@ -184,6 +189,9 @@ export function createCoreRuntime(emit) {
             background: hidden,
             focused,
             simulationDebt: clock.debt,
+            simulationHz: SIMULATION_HZ,
+            simulationTicks: clock.tickCount,
+            simulationBacklogTicks: Math.floor(clock.debt),
           },
           gpu: renderer.stats,
         });
