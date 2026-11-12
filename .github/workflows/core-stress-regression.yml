@@ -38,6 +38,8 @@ jobs:
         run: node --test test/core/kotlin-wasm-combat-bridge.test.js
       - name: Real-package marathon CLI smoke test (synthetic KFM fixtures)
         run: node --test test/core/character-trio-cli.test.js
+      - name: MUGEN 1.1 legacy compatibility target and helper visibility
+        run: npm run verify:core:mugen11-target
       - name: Existing ZSS compatibility fixtures
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite
