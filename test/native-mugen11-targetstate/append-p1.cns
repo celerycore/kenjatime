@@ -1,0 +1,77 @@
+; MUGEN 1.1 Beta 1 P1 original Kenjatime native parity probe.
+; APPEND to a lawfully owned copy of KFM's CNS. Do NOT replace constants.
+; Copy KFM twice to separate P1 and P2 folders before modifying.
+; Verify state numbers 900, 910, 911 are not already occupied.
+;
+; Before running: append append-p1.air to P1's kfm.air.
+; In native match: M.U.G.E.N console (Ctrl+~): changestate 1 900
+;
+[Statedef 900]
+type = S
+movetype = A
+physics = N
+anim = 900
+ctrl = 0
+
+[State 900, Capture P2]
+type = HitDef
+trigger1 = Time = 0
+attr = S, NA
+hitflag = MAF
+guardflag = 
+damage = 0,0
+pausetime = 0,0
+ground.type = High
+ground.velocity = 0,0
+air.velocity = 0,0
+id = 71
+sparkno = -1
+guardsparkno = -1
+hitsound = -1,0
+guardsound = -1,0
+
+[State 900, TargetState P2 by hit ID]
+type = TargetState
+trigger1 = NumTarget(71) > 0
+trigger1 = Time >= 1
+persistent = 0
+id = 71
+value = 910
+
+[State 900, Exit]
+type = ChangeState
+trigger1 = Time >= 12
+value = 0
+ctrl = 1
+
+[Statedef 910]
+type = S
+movetype = H
+physics = N
+
+[State 910, Use P1 AIR action on captured P2]
+type = ChangeAnim2
+trigger1 = Time = 0
+value = 9100
+elem = 2
+
+[State 910, Prove P1 owns the borrowed controller]
+type = VarSet
+trigger1 = Time = 0
+v = 42
+value = 73
+
+[State 910, Owner-controlled next state]
+type = ChangeState
+trigger1 = Time = 1
+value = 911
+
+[Statedef 911]
+type = S
+movetype = H
+physics = N
+
+[State 911, Restore victim's own StateDef]
+type = SelfState
+trigger1 = Time = 1
+value = 0
