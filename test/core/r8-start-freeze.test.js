@@ -58,7 +58,8 @@ test("42-tick banner plus 60-tick delay release exactly 102 ticks after FIGHT be
  match.tick();
  assert.equal(match.player.ctrl,1);
  assert.notEqual(match.player.pos.x,startX,"fighter movement begins after hold");
- assert.equal(match.roundFlow.timeLeft,roundTimer-1);
+ // Endless mode has no round timer and should never fabricate one.
+ assert.equal(match.roundFlow.timeLeft,roundTimer);
 });
 
 test("round-start idle lock is re-armed on every Endless Round reset",()=>{
