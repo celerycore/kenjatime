@@ -1,0 +1,27 @@
+name: Kenjatime R8 Verified Publish Entrypoint
+
+# This intentionally resides on the repository's default branch, gh-pages.
+# Publishing code and browser tests live only in the isolated R8 source
+# workflow; this file does NOT copy or overwrite any production web pages.
+on:
+  push:
+    branches: [gh-pages]
+    paths:
+      - '.github/workflows/kenjatime-r8-publish.yml'
+  pull_request:
+    types: [closed]
+    branches: [feature/r8-benchmark-preview-20261112]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Same-repository reusable job: it checks out the R8 branch explicitly,
+# runs complete Core, browser and R8 stress checks, then stages only
+# /r8-benchmark/ on gh-pages. Never publish an unmerged PR.
+jobs:
+  verified-r8-publish:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    uses: celerycore/kenjatime/.github/workflows/r8-benchmark-preview.yml@feature/r8-benchmark-preview-20261112
+    permissions:
+      contents: write
