@@ -6,7 +6,7 @@ const number = (value, digits = 1) => Number.isFinite(value) ? value.toFixed(dig
 const mib = bytes => number((bytes || 0) / MB, 2) + " MiB";
 const maxSamples = 36000; // 5 hours at 2Hz, bounded recorder memory.
 const fields = [
-  "utc", "elapsed_s", "active", "paused", "background", "ticks",
+  "utc", "elapsed_s", "active", "paused", "background", "ticks", "endless_mode", "round_number", "rounds_completed", "p1_wins", "p2_wins",
   "render_fps", "frame_cpu_submit_ms", "simulation_debt",
   "gpu_resident_mib", "r8_index_mib", "palette_rgba_mib", "rgba_mib",
   "raw_rgba_bytes_saved_mib", "gpu_textures", "gpu_evictions",
@@ -110,6 +110,8 @@ function sample() {
   const row = [
     new Date().toISOString(), number(seconds, 3), active ? 1 : 0,
     state.paused ? 1 : 0, state.background ? 1 : 0, state.ticks ?? "",
+    state.endlessMode ? 1 : 0, state.roundNo ?? "", Math.max(0, (state.roundNo ?? 1) - 1),
+    state.roundWins?.player ?? "", state.roundWins?.opponent ?? "",
     Number.isFinite(fps) ? number(fps, 2) : "",
     Number.isFinite(gpu.frameCpuSubmitMs) ? number(gpu.frameCpuSubmitMs, 3) : "",
     Number.isFinite(state.simulationDebt) ? number(state.simulationDebt, 3) : "",
@@ -129,7 +131,7 @@ function sample() {
   if (Number.isFinite(fps)) { fpsSum += fps; fpsCount++; }
   const average = fpsCount ? fpsSum / fpsCount : NaN;
   status.textContent = "Recording " + number(seconds, 0) + " s · " + rows.length +
-    " samples · avg " + number(average) + " FPS · peak raw GPU " + mib(highest);
+    " samples · round " + (state.roundNo || 1) + " · avg " + number(average) + " FPS · peak raw GPU " + mib(highest);
 }
 function csv() {
   const lines = [fields.join(","), ...rows.map(row => row.map(value =>
