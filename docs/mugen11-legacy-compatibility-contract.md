@@ -346,3 +346,26 @@ the authored StateDef has already executed.
 Native Elecbyte 1.1 tick-for-tick `p1stateno` / `p2stateno`
 animation and hitpause timing remains **UNVERIFIED** until original
 reference traces are captured independently.
+
+## 14. HitDef P1/P2 throw oracle trace fields (November 13, 2026)
+
+`captureLegacyTraceTick(match)` remains an **opt-in diagnostic API**,
+never invoked as a permanent production per-frame sampler. It now includes
+the following per-actor fields beyond state and animation ownership:
+
+- `hitShakeTime`, `hitTime`, and `hitId` describe the received hit
+  and allow comparing observable MUGEN `GetHitVar` / hitpause values.
+- `pendingStateNo` and `pendingStateOwnerId` identify deferred
+  custom hit-state entry in Kenjatime's 60 Hz ordered phase scheduler.
+  **These are internal diagnostic fields, NOT values directly observable
+  in native MUGEN**. They must be excluded from any native-reference
+  comparison unless separately instrumented and verified.
+- Distinct helper and root owner IDs expose when the hit-defining
+  assist, rather than its root, owns P2's borrowed state and AIR.
+- Synthetic tests check immediate hitshake/HitID accounting, queued
+  P2 state/owner, deferred-entry completion and helper-owned throws.
+
+This improves the evidence capture toolkit but **does not** provide
+a reference trace from the real Elecbyte 1.1 Beta 1 P1 runtime.
+Actual native contact timing, hitpause and custom AIR frame matching
+remain **UNVERIFIED**.

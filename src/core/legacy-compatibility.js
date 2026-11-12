@@ -68,6 +68,11 @@ export function captureLegacyTraceTick(match) {
       stateNo: a.stateNo,
       stateTime: a.time,
       prevStateNo: a.prevStateNo,
+      // Pending foreign-state entry is an internal scheduling diagnostic,
+      // not an observable MUGEN native field. Never treat its presence
+      // as an independently verified native reference.
+      pendingStateNo: a._pendingStateEntry?.number ?? null,
+      pendingStateOwnerId: a._pendingStateEntry?.owner?.id ?? null,
       // State ownership diverges when TargetState or a custom hit places
       // P2 in an attacker's CNS; SelfState must restore P2's own owner.
       stateOwnerId: a.stateOwner?.id ?? a.id,
@@ -85,6 +90,9 @@ export function captureLegacyTraceTick(match) {
       moveType: a.moveType,
       stateType: a.stateType,
       hitPauseTime: a.hitPauseTime,
+      hitShakeTime: a.getHitVars?.hitshaketime ?? 0,
+      hitTime: a.getHitVars?.hittime ?? 0,
+      hitId: a.hitId ?? 0,
       ctrl: a.ctrl,
       keyCtrl: !!a.keyCtrl,
       boundTargetId: a.bound?.target?.id ?? null,
