@@ -78,6 +78,30 @@ trigger1 = 1
 persistent = 0
 v = 33
 value = 1
+
+[Statedef 1805]
+type = S
+physics = N
+anim = 0
+ctrl = 0
+[State 1805, EveryTwoTrue]
+type = VarAdd
+trigger1 = Var(40) = 1
+persistent = 2
+v = 35
+value = 1
+[State 1805, EveryThreeTrue]
+type = VarAdd
+trigger1 = Var(40) = 1
+persistent = 3
+v = 36
+value = 1
+[State 1805, EveryOneTrue]
+type = VarAdd
+trigger1 = Var(40) = 1
+persistent = 1
+v = 37
+value = 1
 `;
 function fixture(){
   const character={
@@ -169,4 +193,47 @@ test("MUGEN 1.1 Helper postype=p2 uses enemy X/facing but spawner Y",()=>{
   assert.deepEqual(single,{pos:{x:25,y:-60},facing:1});
   const projectile=spawnPosition(parent,{postype:"p2",offset:[20,25]},true);
   assert.equal(projectile.pos.y,-155,"projectile legacy placement is unaffected by helper correction");
+});
+
+test("MUGEN 1.1 persistent=N counts only true evaluations: every 2nd/3rd trigger, not first",()=>{
+  const m=fixture();
+  const h=m.spawnHelper(m.player,{id:1805,stateno:1805,keyctrl:0});
+  assert.ok(h&&!h.destroyed);
+  // A false trigger evaluation must never advance any persistence counter.
+  m.tick();m.tick();m.tick();
+  assert.deepEqual([h.vars[35],h.vars[36],h.vars[37]],[0,0,0]);
+  h.vars[40]=1;
+  m.tick();
+  assert.deepEqual([h.vars[35],h.vars[36],h.vars[37]],[0,0,1],"first true evaluation");
+  h.vars[40]=0;m.tick();m.tick();
+  h.vars[40]=1;
+  m.tick();
+  assert.deepEqual([h.vars[35],h.vars[36],h.vars[37]],[1,0,2],"second true evaluation");
+  m.tick();
+  assert.deepEqual([h.vars[35],h.vars[36],h.vars[37]],[1,1,3],"third true evaluation");
+  for(let n=0;n<3;n++)m.tick();
+  assert.deepEqual([h.vars[35],h.vars[36],h.vars[37]],[3,2,6],"six true evaluations");
+  h.changeState(0);h.changeState(1805);
+  m.tick();
+  assert.deepEqual([h.vars[35],h.vars[36],h.vars[37]],[3,2,7],"state re-entry resets only persistence counters");
+  m.tick();
+  assert.deepEqual([h.vars[35],h.vars[36],h.vars[37]],[4,2,8]);
+});
+
+test("MUGEN 1.1 missing or destroyed P2 falls back to the spawning player's axis",()=>{
+  const owner={pos:{x:12,y:-20},facing:-1,
+    opponent:{pos:{x:200,y:-80},facing:1,destroyed:true},
+    coordinateScale:1,world:{view:{left:-160,right:160}}};
+  const pose=spawnPosition(owner,{postype:"p2",pos:[15,5],facing:1});
+  assert.deepEqual(pose,{pos:{x:-3,y:-15},facing:-1});
+  owner.opponent=null;
+  assert.deepEqual(spawnPosition(owner,{postype:"p2",pos:[15,5],facing:1}),pose);
+
+  const match=fixture();
+  match.player.opponent=null;
+  const helper=match.spawnHelper(match.player,{id:802,stateno:1801,postype:"p2",pos:[10,2]});
+  assert.ok(helper&&!helper.destroyed);
+  assert.equal(helper.pos.x,match.player.pos.x+10*match.player.facing);
+  assert.equal(helper.pos.y,match.player.pos.y+2);
+  assert.ok(match.player.diagnostics.some(d=>d.type==="missing-player"&&d.message.includes("postype=p2")));
 });
