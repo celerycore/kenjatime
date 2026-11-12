@@ -165,6 +165,17 @@ const simpleTriggerFields=new Map(Object.entries({
 export function parseProgram(character, { commonText = '',constantDefaults={},constantsFromCnsOnly=false } = {}) {
   const program = { states: new Map(), constants: new Map(Object.entries({...DEFAULT_CONSTANTS,...constantDefaults})), quotes:new Map(), functions:new Map(), initialMaps:new Map(), zssExpressions:new Set(), diagnostics: [], sources: [], controllerTypes: new Set() };
   const sourceTexts = [];
+  // Elecbyte MUGEN 1.1 supports one definition of each ordinary global
+  // StateDef -3/-2/-1. IKEMEN can append globals, but that is not native
+  // behavior. Keep current parser precedence until native trace verification
+  // and surface every duplicate rather than silently certify parity.
+  const warnDuplicateGlobal = (key, existing, source, line) => {
+    if ([-3,-2,-1].includes(key) && existing && existing.source !== '<common states>')
+      program.diagnostics.push({
+        source, line, type:'mugen11-duplicate-global',state:key,
+        message:`Multiple StateDef ${key} declarations: earlier at ${existing.source || 'unknown source'}. MUGEN 1.1 allows one; current precedence requires native verification.`
+      });
+  };
   if (commonText) sourceTexts.push(['<common states>', commonText]);
   const files = character.files || {};
   const base = character.path?.slice(0, character.path.lastIndexOf('/') + 1) || '';
@@ -240,6 +251,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
             // StateDef 1. Global -4/+1 declarations append across CNS/ZSS files.
             const key=value.idExpression.replace(/\s/g,'')==='+1'?'global+1':id;
             const existing=states.get(key);
+            warnDuplicateGlobal(key,existing,source,value.line);
             if((key===-4||key==='global+1')&&existing)
               states.set(key,{id,source:value.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),value]});
             else states.set(key,value);
@@ -264,6 +276,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
         const key=statedef[1]==='+1'?'global+1':+statedef[1];
         current = { id: +statedef[1], ...section, controllers: [] };
         const existing=program.states.get(key);
+        warnDuplicateGlobal(key,existing,source,section.line);
         if((key===-4||key==='global+1')&&existing)
           program.states.set(key,{id:current.id,source:current.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),current]});
         else program.states.set(key,current);
@@ -736,9 +749,16 @@ export class FighterRuntime {
     }
     if (!enabled) return false;
     const persistent = rules.persistent;
-    const count = this._controllerCounts.get(controller) || 0;
-    this._controllerCounts.set(controller, count + 1);
-    return persistent === 0 ? count === 0 : count % persistent === 0;
+    const successes = (this._controllerCounts.get(controller) || 0) + 1;
+    this._controllerCounts.set(controller, successes);
+    // Elecbyte MUGEN 1.1: persistent=0 runs once per state entry,
+    // persistent=N>1 runs on the Nth, 2Nth, 3Nth successful evaluation.
+    // A false trigger does not advance the persistence counter.
+    // Out-of-range legacy "cheapie" values are explicitly nonportable:
+    // preserve the preexisting first-hit fallback, not a false native claim.
+    if (persistent > 2147483647) return (successes - 1) % persistent === 0;
+    return persistent === 0 ? successes === 1
+      : persistent === 1 || successes % persistent === 0;
   }
 
   runState(number, paused, owner = this.stateOwner) {
@@ -1296,6 +1316,11 @@ export class FighterRuntime {
 
   createHelper(spec, {id} = {}) {
     if (spec.helpertype && spec.helpertype !== 'normal') this.diagnostic('unsupported-helper', 'Player-type helpers are deprecated by MUGEN 1.1; using a normal helper.');
+    if (String(spec.postype || 'p1').toLowerCase() === 'p2' &&
+        (!this.opponent || this.opponent.destroyed))
+      this.diagnostic('missing-player', 'Helper postype=p2: P2 is absent; using the spawning player axis.', {
+        source:spec.source,line:spec.line,type:'helper',state:this.stateNo
+      });
     const {pos,facing} = spawnPosition(this,spec);
     const program = {...this.program,constants:new Map(this.program.constants)};
     for (const [key,value] of Object.entries(spec)) if (key.startsWith('size.')) {
