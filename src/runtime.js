@@ -1565,11 +1565,20 @@ export class FighterRuntime {
     if(ordered&&Object.keys(hitTransform).length)this._pendingHitTransform=hitTransform;
     const state = override ? override.stateNo : !guarded && hit.p2stateno >= 0 ? hit.p2stateno : guarded&&!knockout ? (airborne ? 154 : this.stateType === 'C' ? 152 : 150) : downed?5080:!airborne&&this.getHitVars.groundtype===3?5070:airborne ? 5020 : this.stateType === 'C' ? 5010 : 5000;
     if (override?.forceAir) this.stateType = 'A';
-    if (!this.changeState(state,undefined,!guarded && !override && hit.p2stateno >= 0 ? foreignOwner : this)) {
+    const enteredHitState=this.changeState(state,undefined,
+      !guarded && !override && hit.p2stateno >= 0 ? foreignOwner : this);
+    if (!enteredHitState) {
       this.moveType = 'H'; this.vel = { x: xvel * this.coordinateScale, y: yvel * this.coordinateScale };
       this.diagnostic('missing-hit-state', `Hit state ${state} is missing; full hit reaction cannot execute.`);
+    } else if (ordered && this._pendingStateEntry) {
+      // Ordered 60 Hz simulation defers a victim's actual StateDef entry
+      // until their next actor phase. Remain in hit status until then;
+      // the destination StateDef's own movetype is applied on entry.
+      this.moveType = 'H';
     }
-    this.moveType = 'H';
+    // When the StateDef has actually been entered, its authored movetype
+    // wins. Forcing H here broke HitOverride armor and nonstandard custom
+    // throws that deliberately enter movetype=I or movetype=A states.
     if (attacker) {
       recordHitContact(attacker,hit,guarded);
       attacker.hitPauseTime = Math.max(attacker.hitPauseTime, pause?.[0] || 0);
