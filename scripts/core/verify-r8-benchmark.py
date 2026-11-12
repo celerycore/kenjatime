@@ -30,6 +30,11 @@ try:
         assert page.locator('#browse').count() == 1
         assert page.locator('#browse-split').count() == 1
         assert page.locator('#browse-all').count() == 1
+        assert page.locator('#direct-archive-file').count() == 1
+        assert page.locator('#direct-archive-file').is_visible()
+        assert page.locator('#direct-archive-file').get_attribute('accept') is None
+        assert page.locator('#archive-url').count() == 1
+        assert page.locator('#import-archive-url').count() == 1
         # The primary archive chooser must no longer request unrestricted
         # multi-selection, which can open Android's photo/gallery providers.
         for button, multi, generic in [
