@@ -141,9 +141,15 @@ export function createCoreRuntime(emit) {
   function frame(time) {
     if (closed) return;
     try {
-      const absolute = performance.timeOrigin + time;
-      clock.advance(absolute, { running: !paused }, (sample) => {
-        session.tick(inputs[0].sample(sample), inputs[1].sample(sample));
+      // Keep the clock in its monotonic relative microsecond timebase.
+      // The physical input queue uses epoch timestamps from the UI;
+      // convert only the exact rational tick sample boundary.
+      clock.advance(time, { running: !paused }, (sample) => {
+        const inputDeadline = performance.timeOrigin + sample;
+        session.tick(
+          inputs[0].sample(inputDeadline),
+          inputs[1].sample(inputDeadline),
+        );
         syncMusicSuppression();
         soundEvents();
       });
