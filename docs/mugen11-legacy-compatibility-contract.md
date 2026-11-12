@@ -238,3 +238,26 @@ Tomoka, Rare Akuma, and other helper-heavy native traces are still required.
   Tomoka assist playback parity and complete MUGEN 1.1 conformance
   remain **UNVERIFIED**. Mock provenance tests never count as proof,
   and a single matching reference never certifies the whole engine.
+
+## 10. StateDef facing and same-tick target lifecycle (November 12, 2026)
+
+- **Refinement, not a new feature:** Core already executed the MUGEN 1.1
+  `StateDef facep2` entry operation. It now avoids using a destroyed
+  opponent and leaves facing unchanged if P1/P2 X axes are identical
+  (the direction is undefined at equal X). This also applies to
+  attacker-owned borrowed states and helpers spawned into such states.
+- **Live target counts:** `NumTarget` with no ID now excludes targets
+  destroyed earlier in the same tick, matching the existing filtered
+  `NumTarget(ID)` behavior. The target ID redirection, `BindToTarget`,
+  and `TargetDrop` also skip dead targets immediately, so a destroyed
+  first target does not hide a surviving helper with the same target ID.
+- **Regression:** `node --test
+  test/core/mugen11-facep2-target-lifecycle.test.js` tests state entry
+  facing on either side, omitted/zero `facep2`, overlapping actors,
+  missing/dead P2, borrowed victim state ownership, helper entry,
+  pre-cleanup target counts and target selection.
+- Official Elecbyte docs: CNS 1.1 `facep2` (state entry) and Trigger
+  Reference 1.1 `NumTarget` (current living targets). Tests validate
+  these edge cases in Kenjatime synthetic fixtures; no independent
+  native screenshot/trace is bundled. Full MUGEN 1.1 parity remains
+  **UNVERIFIED**.

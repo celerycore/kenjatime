@@ -480,7 +480,8 @@ export class FighterRuntime {
       else if (type === 'parent') target = this.parent;
       else if(type==='partner')target=(this.world?.entities||[]).filter(actor=>!actor.parent&&actor!==this.root&&actor.teamSide===this.teamSide)[Math.trunc(redirect.args[0]||0)];
       else if (type === 'helper') target = this.ownedHelpers().find(helper => !redirect.args.length || helper.helperId === +redirect.args[0]);
-      else if (type === 'target') target = this.targets.find(t => !redirect.args.length || (this.targetHitIds.get(t.id)??t.hitId) === +redirect.args[0]);
+      else if (type === 'target') target = this.targets.find(t =>
+        !t.destroyed && (!redirect.args.length || (this.targetHitIds.get(t.id)??t.hitId) === +redirect.args[0]));
       else if (type === 'playerid') target = this.world?.findPlayer(+redirect.args[0]) || [this, this.opponent, ...this.helpers].find(t => t?.id === +redirect.args[0]);
       else throw new Error(`Unsupported redirection: ${type}`);
       if (!target || target.destroyed) { const error = new Error(`Redirection ${type} has no matching player`); error.bottom = true; throw error; }
@@ -544,7 +545,8 @@ export class FighterRuntime {
       alive: +this.alive, gametime: this.world?.ticks??this.gameTime,
       hitshakeover: +((this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime)===0), hitover: +(this.hitTime < 0),
       movereversed: this.moveReversed || 0,
-      numhelper: this.ownedHelpers().length, numexplod: this.explods.length, numtarget: this.targets.length,
+      numhelper: this.ownedHelpers().length, numexplod: this.explods.length,
+      numtarget: this.targets.filter(t=>!t.destroyed).length,
       numenemy: other ? 1 : 0, numpartner: 0, ishelper: +!!this.parent,
       roundstate: this.roundState ?? 2, roundsexisted: this.roundsExisted ?? 0, roundno: this.roundNo ?? 1, matchno: this.matchNo ?? 1, matchover:+!!this.world?.matchOver,
       teamside: this.teamSide ?? this.id, teampower: this.power, tickspersecond: 60,
@@ -722,7 +724,14 @@ export class FighterRuntime {
       if (state.values.sprpriority !== undefined) this.sprPriority = integer(this.value(state, 'sprpriority', 0));
       if (state.values.juggle !== undefined) {this.juggleCost=Math.max(0,integer(this.value(state,'juggle',0)));this._juggleSerial++;}
       if (state.values.poweradd !== undefined) this.power = clamp(this.power + this.value(state, 'poweradd', 0), 0, this.maxPower);
-      if (truth(this.value(state, 'facep2', 0)) && this.opponent) this.facing = this.opponent.pos.x >= this.pos.x ? 1 : -1;
+      // StateDef facep2 is an entry-time operation (including borrowed CNS
+      // states). Do not turn when P2 has been destroyed or is coincident
+      // with this actor; no direction can be established from equal axes.
+      if(truth(this.value(state,'facep2',0))){
+        const p2=this.opponent;
+        if(p2&&!p2.destroyed&&p2!==this&&p2.pos.x!==this.pos.x)
+          this.facing=p2.pos.x>this.pos.x?1:-1;
+      }
     } catch { /* The diagnostic includes the exact definition and expression. */ }
     this._executing = null;
     this.events.push({ type: 'state', state: number, previous: old?.id });
@@ -1230,7 +1239,7 @@ export class FighterRuntime {
       const wanted = int('id', -1), targets = this.targets.filter(target =>
         !target.destroyed && (wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted));
       if (type === 'targetdrop') {
-        const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>(this.targetHitIds.get(t.id)??t.hitId)===exclude);
+        const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>!t.destroyed&&(this.targetHitIds.get(t.id)??t.hitId)===exclude);
         this.targets=num('keepone',1)?kept.slice(0,1):kept;
         const live=new Set(this.targets.map(t=>t.id));for(const id of this.targetHitIds.keys())if(!live.has(id))this.targetHitIds.delete(id);return;
       }
@@ -1261,7 +1270,7 @@ export class FighterRuntime {
     }
     if (['bindtoroot', 'bindtoparent', 'bindtotarget'].includes(type)) {
       if(type!=='bindtotarget'&&!this.parent)return;
-      const id=int('id',-1),target = type === 'bindtoroot' ? this.root : type === 'bindtoparent' ? this.parent : this.targets.find(target=>id<0||(this.targetHitIds.get(target.id)??target.hitId)===id);
+      const id=int('id',-1),target = type === 'bindtoroot' ? this.root : type === 'bindtoparent' ? this.parent : this.targets.find(target=>!target.destroyed&&(id<0||(this.targetHitIds.get(target.id)??target.hitId)===id));
       if (!target||target.destroyed){if(type==='bindtoparent'&&this.parent){this.bound=null;return;}throw new Error(`${type} has no matching player`);}
       let point=[0,0],x,y;
       if(type==='bindtotarget'){
