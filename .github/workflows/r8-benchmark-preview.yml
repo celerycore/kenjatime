@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Verify R8 formats, palette bindings, residency, Android archive chooser
-        run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js test/core/archive-file-picker.test.js
+        run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js test/core/archive-file-picker.test.js test/core/remote-archive.test.js
       - name: Verify deterministic 60 Hz input replay and KFM combat hashes
         run: node --test test/core/deterministic-60hz.test.js test/core/frame-scheduler.test.js
       - name: Run complete Core unit regression suite
