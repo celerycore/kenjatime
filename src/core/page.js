@@ -50,4 +50,4 @@ document.querySelector(".heading")?.insertAdjacentElement("afterend", guide);
 connectCorePlatform(host.diagnostics);
 document.title = "Kenjatime Core · PR #17 R8 Benchmark";
 document.querySelector(".notice").textContent =
-  "Isolated Indexed R8 Benchmark · PR #17. Not the production engine.";
+  "Isolated R8 Benchmark + MUGEN 1.1 Helper Diagnostics · Not production.";
