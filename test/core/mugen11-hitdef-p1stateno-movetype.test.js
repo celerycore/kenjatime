@@ -181,3 +181,41 @@ test("ordered 60 Hz contact defers StateDef entry while maintaining temporary hi
   assert.equal(p2.stateOwner,p1);
   assert.equal(p1.moveType,"A");
 });
+
+test("optional 1.1 trace separates pending throw entry from observable hitshake and HitID",()=>{
+  const m=fixture(true),p1=m.player,p2=m.opponent;
+  const h=hit(p1,"p1stateno=811\\np2stateno=821\\nid=73");
+  h.pauseTime=[0,2];
+  const outcome=p2.receiveHit(h,p1);
+  assert.notEqual(outcome.rejected,true);
+  const first=captureLegacyTraceTick(m).actors.find(a=>a.id===p2.id);
+  assert.equal(first.stateNo,821);
+  assert.equal(first.stateOwnerId,p1.id);
+  assert.equal(first.pendingStateNo,821);
+  assert.equal(first.pendingStateOwnerId,p1.id);
+  assert.equal(first.hitId,73);
+  assert.equal(first.hitShakeTime,2);
+  assert.ok(first.hitTime>=0);
+  assert.equal(first.moveType,"H");
+  m.tick();
+  const after=captureLegacyTraceTick(m).actors.find(a=>a.id===p2.id);
+  assert.equal(after.pendingStateNo,null);
+  assert.equal(after.pendingStateOwnerId,null);
+  assert.equal(after.stateOwnerId,p1.id);
+  assert.equal(after.moveType,"I");
+  assert.ok(after.hitShakeTime<=2);
+});
+
+test("optional trace distinguishes helper-owned pending custom state from root ID",()=>{
+  const m=fixture(true),root=m.player,victim=m.opponent;
+  const helper=m.spawnHelper(root,{stateno:810,id:72});
+  const h=hit(helper,"p2stateno=820\\nid=74");
+  const outcome=victim.receiveHit(h,helper);
+  assert.notEqual(outcome.rejected,true);
+  const trace=captureLegacyTraceTick(m).actors.find(a=>a.id===victim.id);
+  assert.equal(trace.pendingStateNo,820);
+  assert.equal(trace.pendingStateOwnerId,helper.id);
+  assert.equal(trace.stateOwnerId,helper.id);
+  assert.notEqual(trace.stateOwnerId,root.id);
+  assert.equal(trace.hitId,74);
+});
