@@ -1,7 +1,7 @@
 {
   "repository": "celerycore/kenjatime",
   "branch": "feature/r8-benchmark-preview-20261112",
-  "sourceCommit": "f36614a95a858e14f9ae73684957f3b544571339",
+  "sourceCommit": "954a3f20a5d9f81b1eae2af3beb5d7f83f1a463a",
   "channel": "r8-benchmark-pr17",
   "basedOnPR": 17,
   "benchmarkFeatures": [
