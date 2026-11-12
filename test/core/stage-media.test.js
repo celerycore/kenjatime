@@ -110,7 +110,9 @@ test("advanced camera controls delay zoom, damp motion, honor disabled movers an
   stage.updateCamera(players);
   assert.equal(stage.camera.zoom, 0.75);
   assert.equal(stage.camera.x, 87.5);
-  assert.equal(stage.view().bottom - stage.camera.y, 12);
+  // Full-height legacy 4:3 coordinates preserve 40 units to the camera's
+  // bottom anchor; the old 320x180 crop incorrectly expected 12.
+  assert.equal(stage.view().bottom - stage.camera.y, 40);
   const before = { ...stage.camera };
   stage.updateCamera(players, { advance: false });
   assert.deepEqual(stage.camera, before);

@@ -129,6 +129,7 @@ export class CpuController{
     // A separate, deterministic cadence permits ordinary jumps between
     // attacks without replacing character-authored CPU or movement scripts.
     this.jumpWait=this.authoredAI?18+(this.seed%31):170+(this.seed%115);
+    this.jumpIntent=null;
   }
   random(){let value=this.seed;value^=value<<13;value^=value>>>17;value^=value<<5;this.seed=value>>>0;return this.seed/4294967296;}
   physical(relative,facing){return new Set([...relative].map(key=>key==='F'?(facing<0?'L':'R'):key==='B'?(facing<0?'R':'L'):this.inverse.get(key)||key));}
@@ -168,9 +169,29 @@ export class CpuController{
       opponent.constant('size.ground.front')*(opponent.coordinateScale||1)+20*scale;
     const advance=distance>range||this.random()<.65;
     const retreat=!advance&&this.random()<.25;
-    this.queue(advance?['U','F']:retreat?['U','B']:['U'],3+Math.floor(this.random()*3));
+    const keys=advance?['U','F']:retreat?['U','B']:['U'];
+    this.queue(keys,3+Math.floor(this.random()*3));
+    // Authored -3 attack controllers may consume brief physical Up input
+    // before the common jump transition. Retain at most two safe retries
+    // while the CPU regains neutral control. Never force StateDef 40.
+    this.jumpIntent={keys,retries:2,ttl:120};
     this.lastCommand=advance?'jump-forward':retreat?'jump-back':'jump-neutral';
     this.jumpWait=this.authoredAI?Math.max(40,115-this.level*10)+Math.floor(this.random()*35):Math.max(260,500-this.level*20)+Math.floor(this.random()*85);
+    return true;
+  }
+  ageJumpIntent(fighter) {
+    if(!this.jumpIntent)return;
+    if(fighter.stateNo===40 || fighter.stateType==='A'&&fighter.pos.y<-.5){
+      this.jumpIntent=null;return;
+    }
+    if(--this.jumpIntent.ttl<=0)this.jumpIntent=null;
+  }
+  retryJump(fighter) {
+    const intent=this.jumpIntent;
+    if(!intent||intent.retries<=0||this.index<this.plan.length||!this.canJump(fighter))return false;
+    intent.retries--;
+    this.queue(intent.keys,4);
+    this.lastCommand='jump-retry';
     return true;
   }
   choose(fighter,opponent) {
@@ -192,12 +213,15 @@ export class CpuController{
     // cadence, to restore jump frequency without forcing a character state.
     if(this.nativeAI){
       if(!this.level||!enabled||!fighter.alive||!opponent?.alive){
-        this.plan=[];this.index=0;this.remaining=0;this.raw=new Set();
+        this.plan=[];this.index=0;this.remaining=0;this.raw=new Set();this.jumpIntent=null;
       }else if(!paused){
+        this.ageJumpIntent(fighter);
         if(this.jumpWait>0)this.jumpWait--;
-        if(this.index>=this.plan.length && this.jumpWait<=0 &&
-            fighter.moveType==='I' && [0,20,100].includes(fighter.stateNo) &&
-            this.canJump(fighter))this.chooseJump(fighter,opponent);
+        if(this.index>=this.plan.length){
+          if(!this.retryJump(fighter) && !this.jumpIntent && this.jumpWait<=0 &&
+              fighter.moveType==='I' && [0,20,100].includes(fighter.stateNo) &&
+              this.canJump(fighter))this.chooseJump(fighter,opponent);
+        }
         const segment=this.plan[this.index];
         if(segment){
           if(this.remaining<=0)this.remaining=segment.duration;
@@ -207,14 +231,15 @@ export class CpuController{
       }
       return this.buffer.update(this.raw,fighter.facing);
     }
-    if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;}
+    if(!this.level||!enabled||!fighter.alive||!opponent?.alive){this.plan=[];this.index=0;this.remaining=0;this.cooldown=0;this.raw=new Set();this.recovering=false;this.jumpIntent=null;}
     else if(!paused){
+      this.ageJumpIntent(fighter);
       if(this.jumpWait>0)this.jumpWait--;
       const recovering=fighter.moveType==='H'&&!!fighter.getHitVars?.fall;
       if(recovering!==this.recovering){this.plan=[];this.index=0;this.remaining=0;this.cooldown=recovering?10-this.level:0;this.raw=new Set();this.recovering=recovering;}
       const eligible=recovering&&['A','L'].includes(fighter.stateType)&&!!fighter.resolveTrigger?.('canrecover');
       if(recovering&&!eligible){this.plan=[];this.index=0;this.remaining=0;this.cooldown=10-this.level;this.raw=new Set();}
-      if(this.authoredAI && !recovering && this.jumpWait<=0 && this.canJump(fighter) &&
+      if(this.authoredAI && !recovering && !this.jumpIntent && this.jumpWait<=0 && this.canJump(fighter) &&
           this.index>=this.plan.length) {
         // Native-style Up input is eligible as soon as a completed command
         // releases control, rather than waiting on its generic cooldown.
@@ -222,7 +247,8 @@ export class CpuController{
         this.cooldown=0;
       }
       if(this.index>=this.plan.length){
-        if(this.cooldown>0)this.cooldown--;
+        if(!recovering && this.retryJump(fighter))this.cooldown=0;
+        else if(this.cooldown>0)this.cooldown--;
         else if(recovering){if(eligible)this.chooseRecovery(fighter);this.cooldown=14-this.level;}
         else{this.choose(fighter,opponent);this.cooldown=Math.max(1,15-this.level*1.5);}
       }

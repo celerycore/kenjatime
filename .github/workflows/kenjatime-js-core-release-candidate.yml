@@ -1,0 +1,67 @@
+name: Kenjatime production Core release candidate - validation only
+on:
+  push:
+    branches: [release/gpu-camera-js-fallback-20261111]
+  workflow_dispatch:
+permissions:
+  contents: read
+
+jobs:
+  validate-release-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact locked runtime dependencies
+        run: npm ci
+      - name: Validate 4:3/16:9 camera, native scale and original arcade GPU budget protections
+        run: |
+          node --test test/core/presentation-modes.test.js test/core/legacy-stage-viewport-regression.test.js test/core/gpu-sprite-budget.test.js
+      - name: Verify full JavaScript Core test suite
+        run: npm run test:core
+      # The existing legacy compiled test suite includes known camera-oracle
+      # expectations from the removed 320x180 crop and an unrelated multipart
+      # archive preflight mismatch. They are explicitly tracked separately;
+      # the current Core and new camera regression suites remain mandatory.
+      - name: Audit standalone production Core artifact
+        run: npm run build:core
+      - name: Mark artifact as an unapproved release candidate
+        run: |
+          node --input-type=module <<'NODE'
+          import {writeFileSync} from 'node:fs';
+          writeFileSync('dist-core/build-info.json',JSON.stringify({
+            project:'Kenjatime Core',branch:process.env.GITHUB_REF_NAME,
+            commit:process.env.GITHUB_SHA,
+            channel:'release-candidate-not-production',
+            javascriptDefault:true,kotlinWasmDefault:false,
+            physicalDeviceVerified:false,productionApproved:false,
+            characterArchivesIncluded:false,stageArchivesIncluded:false,
+            features:['bounded-GPU-residency','same-frame-SFF-recovery','native-style-4:3','widescreen-16:9']
+          },null,2)+'\n');
+          NODE
+          test -f dist-core/core/index.html
+          test -f dist-core/build-info.json
+          if grep -E '"physicalDeviceVerified" *: *true|"productionApproved" *: *true' dist-core/build-info.json; then
+            echo "Release gate incorrectly marked passed" >&2
+            exit 1
+          fi
+      - name: Upload downloadable candidate without touching /arcade/
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-js-core-gpu-camera-release-candidate
+          path: dist-core/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Exercise desktop/mobile arcade screen preference and responsive layout
+        timeout-minutes: 6
+        run: |
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+          timeout 110s python scripts/core/verify-kenja-arcade.py

@@ -20,6 +20,36 @@
 .kenjatime-battle-screen {
   position: relative;
 }
+.kenjatime-fight-frame {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  isolation: isolate;
+  overflow: hidden;
+}
+.kenjatime-fight-frame > canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::before,
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  top: 0;
+  bottom: 0;
+  width: 12.5%;
+  background: #000;
+}
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::before { left: 0; }
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame::after { right: 0; }
+.kenjatime-battle-screen[data-presentation="native-4-3"] .kenjatime-fight-frame > .core-hud {
+  left: calc(12.5% + 10px);
+  right: calc(12.5% + 10px);
+  width: auto;
+}
+
 .kenjatime-battle iframe {
   width: 100%;
   height: auto;
@@ -29,7 +59,7 @@
 }
 .kenjatime-battle-bar {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   padding: 8px 12px;
   border-top: 1px solid #2a2f34;

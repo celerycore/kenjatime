@@ -46,6 +46,8 @@ def main():
                 assert page.locator("#opponent-select option").count() >= 2
                 assert page.locator("#effects-select").count() == 1
                 assert page.locator("#fight-now").count() == 1
+                assert page.locator("#presentation-select").count() == 1
+                assert page.locator("#presentation-select option").count() == 2
                 assert page.locator(".kenja-showcase img").evaluate_all(
                     "(images) => images.every(img => img.complete && img.naturalWidth > 0)"
                 ), "Arcade portrait artwork failed to load"
@@ -84,6 +86,19 @@ def main():
                 page.locator('[data-kenja-action="stage"]').click()
                 assert page.evaluate("window.__fighterClick") == 1
                 assert page.evaluate("window.__stageClick") == 1
+                if width == 1280:
+                    # This test intentionally does not launch a GPU match:
+                    # headless SwiftShader may hang on some GitHub runners.
+                    # The live toggle is verified separately by the Core
+                    # session regression, while physical hardware remains
+                    # the production release gate.
+                    page.locator("#presentation-select").select_option("native-4-3")
+                    assert page.locator("#presentation-select").input_value() == "native-4-3"
+                    page.reload(wait_until="domcontentloaded")
+                    page.locator("#presentation-select").wait_for(timeout=15000)
+                    assert page.locator("#presentation-select").input_value() == "native-4-3"
+                    page.locator("#presentation-select").select_option("widescreen-16-9")
+                    assert page.locator("#presentation-select").input_value() == "widescreen-16-9"
                 assert not errors, "Browser errors: " + " | ".join(errors)
                 assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 6"), (
                     "Arcade UI overflows at %s pixels" % width

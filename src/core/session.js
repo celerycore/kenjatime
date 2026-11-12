@@ -2,6 +2,7 @@
  * Rendering, archive codecs and platform input are separate adapters.
  */
 import { charactersFromFiles, decodeText, sff } from "../formats.js";
+import {normalizePresentation,presentationAspect} from "./presentation.js";
 import {loadCommonEffects} from "./common-effects.js";
 import { parseProgram } from "../runtime.js";
 import { TrainingMatch } from "../combat.js";
@@ -64,6 +65,7 @@ export class CoreSession {
   constructor(files, selection = {}) {
     this.files = files;
     this.selection = selection;
+    this.presentation = normalizePresentation(selection.presentation);
     this.characters = charactersFromFiles(files);
     this.commonEffects = loadCommonEffects(files, {fightDef:selection.fightDef, effectsPackage:selection.effectsPackage, character:selection.character, stage:selection.stage});
     const p1 =
@@ -131,6 +133,7 @@ export class CoreSession {
     this.indices = new Map();
     this.bankIds = new Map();
     this.spriteMetadata = new Map();
+    this.paletteFallbacks = new Map();
     this.sent = new Set();
     this.assets = [];
     this.events = [];
@@ -140,7 +143,7 @@ export class CoreSession {
     this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
     this.videoSprites = new Map();
-    if (this.match.stage) this.match.stage.viewportAspect = 16 / 9;
+    if (this.match.stage) this.match.stage.viewportAspect = presentationAspect(this.presentation);
     this.modelReady = false;
     this.lua = null;
     this.luaModules = luaModules(files, selection);
@@ -163,6 +166,12 @@ export class CoreSession {
         "Unverified character families and extended controller combinations",
       ],
     };
+  }
+  /** Change only presentation/camera width. Never modify authored fighter motion. */
+  setPresentation(value) {
+    this.presentation = normalizePresentation(value);
+    if(this.match.stage) this.match.stage.viewportAspect = presentationAspect(this.presentation);
+    return this.presentation;
   }
   issue(type, message) {
     const key = type + ":" + message;
@@ -399,6 +408,7 @@ export class CoreSession {
           pixels,
           indexed: false,
         });
+        this.paletteFallbacks.set(paletteId, pixels.slice());
         this.sent.add(paletteId);
       }
       return {
@@ -415,6 +425,37 @@ export class CoreSession {
       return null;
     }
   }
+  /** Recover evicted GPU sprite art directly from local archive SFF banks. */
+  restoreAssets(ids) {
+    const restored=[];
+    if(this.closed) return restored;
+    const resources=new Map([...this.bankIds].map(([resource,id])=>[String(id),resource]));
+    for(const id of new Set(ids||[])){
+      if(typeof id!=='string'||id.startsWith('@')) continue;
+      const sep=id.indexOf(':'),resource=resources.get(id.slice(0,sep));
+      if(sep<1||!resource) continue;
+      const bank=this.banks.get(resource);
+      if(!bank) continue;
+      try{
+        if(id.includes(':pal:')){
+          const parts=id.slice(id.indexOf(':pal:')+5).split(',').map(Number);
+          if(parts.length!==2||parts.some(n=>!Number.isSafeInteger(n))) continue;
+          const pixels=this.paletteFallbacks.get(id)||bank.paletteColors(...parts);
+          if(!pixels||pixels.length<1024)continue;
+          restored.push({id,width:256,height:1,indexed:false,pixels:new Uint8Array(pixels.slice(0,1024))});
+        }else{
+          const index=Number(id.slice(sep+1)),meta=this.spriteMetadata.get(id);
+          if(!Number.isSafeInteger(index)||index<0||!meta)continue;
+          const image=bank.decodeForDisplay?.(index)||bank.decodeIndexed?.(index)||bank.decode(index);
+          const pixels=meta.indexed?image.indices:image.rgba;
+          if(!pixels||pixels.length!==meta.w*meta.h*(meta.indexed?1:4))continue;
+          restored.push({id,width:meta.w,height:meta.h,indexed:meta.indexed,pixels:new Uint8Array(pixels)});
+        }
+      }catch(error){this.issue('texture-restore','Failed to recover sprite '+id+': '+error.message)}
+    }
+    return restored;
+  }
+
   quad(
     draws,
     resource,
@@ -514,7 +555,7 @@ export class CoreSession {
   frame() {
     const m = this.match,
       v = m.view,
-      scale = Math.min(960 / 320, 540 / (v.displayHeight || 240)),
+      scale = Math.min(960 / (v.displayWidth || 320), 540 / (v.displayHeight || 240)),
       camera = m.cameraRuntime.camera,
       ground =
         (540 - (v.displayHeight || 240) * scale) / 2 +
@@ -803,8 +844,16 @@ export class CoreSession {
     };
   }
   snapshot() {
+    const stage=this.match.stage, view=this.match.view;
     return {
       engine: "Kenjatime Core",
+      presentation: this.presentation,
+      viewport: stage ? {
+        displayWidth:view.displayWidth, displayHeight:view.displayHeight,
+        left:view.left,right:view.right,top:view.top,bottom:view.bottom,
+        cameraX:stage.camera.x,cameraY:stage.camera.y,zoom:stage.camera.zoom,
+        backgroundScale:stage.definition.backgroundScale
+      } : null,
       players: [this.match.player, this.match.opponent].map((a) => ({
         id: a.id,
         name: a.name,
@@ -826,6 +875,8 @@ export class CoreSession {
       roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
       roundTimeLeft: this.match.roundFlow?.timeLeft ?? -1,
       roundWinner: this.match.roundFlow?.roundWinner ?? null,
+      scriptedKoCount: this.match.scriptedKoCount ?? 0,
+      lastScriptedKO: this.match.lastScriptedKO ?? null,
       roundReason: this.match.roundFlow?.reason ?? null,
       matchOver: this.match.roundFlow?.matchOver ?? false,
       expressions: this.expressions.stats,
@@ -844,6 +895,7 @@ export class CoreSession {
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
     this.sent.clear();
+    this.paletteFallbacks.clear();
     this.gameEffects=[];
     this.events = [];
   }

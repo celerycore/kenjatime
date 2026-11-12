@@ -1,4 +1,5 @@
 import { mountTouchControls } from "../touch-controls.js";
+import {PRESENTATION_NATIVE,PRESENTATION_WIDE,normalizePresentation} from "./presentation.js";
 import { gamepadKeys } from "../input-buffer.js";
 import { CoreAudio } from "./audio.js";
 import { CoreVideos } from "./video-source.js";
@@ -46,7 +47,14 @@ export async function openCoreBattle({
   host.className = "kenjatime-battle";
   host.setAttribute("aria-label", "Kenjatime arena");
   host.innerHTML =
-    '<div class="kenjatime-battle-screen"><canvas width="960" height="540" aria-label="Fighting arena"></canvas><strong class="core-announcement" aria-live="off" hidden></strong><div class="core-hud"><div data-player="0"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div><span class="core-round">ROUND 1</span><div data-player="1"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div></div><p class="kenjatime-battle-status" role="status">Preparing your match…</p></div><div class="kenjatime-battle-bar"><button class="secondary" data-menu>Menu</button><button class="secondary" data-pause>Pause</button><button class="secondary" data-sound>Sound on</button><button class="secondary" data-quality>Visuals: Auto</button></div>';
+    '<div class="kenjatime-battle-screen"><div class="kenjatime-fight-frame"><canvas width="960" height="540" aria-label="Fighting arena"></canvas><strong class="core-announcement" aria-live="off" hidden></strong><div class="core-hud"><div data-player="0"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div><span class="core-round">ROUND 1</span><div data-player="1"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div></div><p class="kenjatime-battle-status" role="status">Preparing your match…</p></div></div><div class="kenjatime-battle-bar"><button class="secondary" data-menu>Menu</button><button class="secondary" data-pause>Pause</button><button class="secondary" data-sound>Sound on</button><button class="secondary" data-quality>Visuals: Auto</button><button class="secondary" data-presentation aria-label="Toggle match screen aspect between four by three and sixteen by nine">Screen: 16:9</button></div>';
+  let presentation=normalizePresentation(selection.presentation);
+  selection.presentation=presentation;
+  const screen=host.querySelector('.kenjatime-battle-screen');
+  const framingButton=host.querySelector('button[data-presentation]');
+  screen.dataset.presentation=presentation;
+  framingButton.textContent=presentation===PRESENTATION_NATIVE?'Screen: 4:3':'Screen: 16:9';
+  framingButton.setAttribute('aria-pressed',String(presentation===PRESENTATION_NATIVE));
   stage.append(host);
   viewer.classList.add("kenjatime-viewer-playing");
   viewer.closest(".workspace")?.classList.add("kenjatime-workspace-playing");
@@ -71,6 +79,19 @@ export async function openCoreBattle({
     if (worker) worker.postMessage(message, transfer);
     else runtime?.control(message);
   };
+  function applyPresentation(value,notify=true){
+    presentation=normalizePresentation(value);
+    selection.presentation=presentation;
+    screen.dataset.presentation=presentation;
+    framingButton.textContent=presentation===PRESENTATION_NATIVE?'Screen: 4:3':'Screen: 16:9';
+    framingButton.setAttribute('aria-pressed',String(presentation===PRESENTATION_NATIVE));
+    if(notify)send({type:'presentation',value:presentation});
+    const picker=document.querySelector('#presentation-select');
+    if(picker&&picker.value!==presentation){
+      picker.value=presentation;
+      picker.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  }
   const input = (side, keys, source = "keyboard") =>
     send({
       type: "input",
@@ -324,6 +345,9 @@ export async function openCoreBattle({
     enabled = audio.output.status().running ? false : true;
     audio.mute(enabled);
   };
+  framingButton.onclick=()=>{
+    applyPresentation(presentation===PRESENTATION_NATIVE?PRESENTATION_WIDE:PRESENTATION_NATIVE);
+  };
   host.querySelector("[data-quality]").onclick = () => {
     quality = quality === "auto" ? "sharp" : "auto";
     send({ type: "quality", value: quality });
@@ -345,6 +369,7 @@ export async function openCoreBattle({
     benchmark: () => benchmark?.snapshot() || [],
     gpu: () => gpu,
     backend: () => backend,
+    presentation: () => presentation,
     audioStatus: () => audio.status(),
     videoStatus: () => videos.status(),
   };

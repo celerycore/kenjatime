@@ -50,6 +50,11 @@ export function mountEndlessBenchmark(host) {
         gpu_textures: Number.isFinite(gpu?.textures) ? gpu.textures : null,
         gpu_evictions: Number.isFinite(gpu?.spriteEvictions) ? gpu.spriteEvictions : null,
         deferred_sprite_uploads: Number.isFinite(gpu?.deferredSpriteUploads) ? gpu.deferredSpriteUploads : null,
+        scripted_ko_total: state.scriptedKoCount ?? 0,
+        last_scripted_ko: state.lastScriptedKO
+          ? [state.lastScriptedKO.actor,state.lastScriptedKO.victim,
+             state.lastScriptedKO.controller,'state '+state.lastScriptedKO.state].join(' -> ')
+          : '',
       };
       if (!first) first = sample;
       appendBenchmarkSample(samples, sample);
