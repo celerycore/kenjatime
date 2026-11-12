@@ -42,6 +42,8 @@ jobs:
         run: npm run verify:core:mugen11-target
       - name: MUGEN 1.1 helper spawning and StateDef controller ordering parity
         run: node --test test/core/mugen11-state-helper-parity.test.js
+      - name: MUGEN 1.1 BindToParent, ParentVar and DestroySelf compatibility
+        run: node --test test/core/mugen11-binding-parentvar-parity.test.js
       - name: Existing ZSS compatibility fixtures
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite

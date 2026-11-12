@@ -1130,6 +1130,13 @@ export class FighterRuntime {
         const indexKey = kind === 'sysfvar' ? 'sysfv' : kind === 'sysvar' ? 'sysv' : kind === 'fvar' ? 'fv' : 'v';
         assignments = [{ key: `${kind}(${int(indexKey)})`, value: controller.values.value ?? '0' }];
       }
+      // ParentVarSet / ParentVarAdd are MUGEN 1.1 working-variable
+      // controllers. Elecbyte explicitly disallows parent system vars;
+      // rejecting the entire controller also avoids partial writes.
+      if(type.startsWith('parent')&&assignments.some(entry=>/^(?:sysvar|sysfvar)\s*\(/i.test(entry.key))){
+        this.diagnostic('mugen11-parentvar-system','ParentVarSet/ParentVarAdd cannot write parent sysvar/sysfvar.',controller);
+        return;
+      }
       for (const assignment of assignments) {
         const match = assignment.key.match(/^(var|fvar|sysvar|sysfvar)\s*\((.*)\)$/);
         if (!match) throw new Error(`Malformed variable target: ${assignment.key}`);
@@ -1231,7 +1238,11 @@ export class FighterRuntime {
         else if (type === 'targetlifeadd') {const amount=-scaledDamage(-value,this,target,{absolute:!!absolute});target.life=clamp(target.life+amount,kill?0:1,target.maxLife);}
         else if (type === 'targetpoweradd') target.power = clamp(target.power + value, 0, target.maxPower);
         else if (type === 'targetstate') { target.changeState(value,ctrl,this._scriptOwner||this.stateOwner); }
-        else if (bind) { const [x=0,y=0]=bind.pos;target.bound={target:this,x:x*this.coordinateScale,y:y*this.coordinateScale,time:bind.time}; }
+        else if (bind) {
+          if(bind.time===0){target.bound=null;continue;}
+          const [x=0,y=0]=bind.pos;
+          target.bound={target:this,x:x*this.coordinateScale,y:y*this.coordinateScale,time:bind.time};
+        }
         else for (const [axis,value]of Object.entries(velocity||{}))target.vel[axis]=value+(type==='targetveladd'?target.vel[axis]:0);
       }
       return;
@@ -1247,7 +1258,12 @@ export class FighterRuntime {
         [x,y]=parts.slice(0,2).map(part=>numeric(this.evaluate(part,controller)));x??=0;y??=0;
         if(anchor!=='foot')point=['x','y'].map(axis=>target.constant(`size.${anchor}.pos.${axis}`)*target.coordinateScale);
       }else [x=0,y=0]=vec('pos');
-      this.bound = { target, x: x * this.coordinateScale+point[0], y: y * this.coordinateScale+point[1], time: int('time', 1), facing: num('facing') }; return;
+      const time=int('time',1);
+      // A binding with zero remaining ticks must not become permanent:
+      // updateBinding decrements only strictly positive durations, with
+      // -1 reserved for an explicitly indefinite attachment.
+      if(time===0){this.bound=null;return;}
+      this.bound = { target, x: x * this.coordinateScale+point[0], y: y * this.coordinateScale+point[1], time, facing: num('facing') }; return;
     }
     if (type === 'hitadd') {const amount=int('value');this.hitCount=Math.max(0,this.hitCount+amount);this.uniqHitCount=Math.max(0,this.uniqHitCount+amount);const target=this.targets.at(-1)||(this.opponent?.moveType==='H'?this.opponent:null);if(target)target.comboHits=Math.max(0,(target.comboHits||0)+amount);return;}
     if (type === 'hitcount') { this.hitCount = int('value'); return; }
