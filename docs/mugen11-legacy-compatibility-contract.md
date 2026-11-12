@@ -149,3 +149,33 @@ The shipping arcade remains a separate release until these tests pass.
 
 **Release status:** State/helper synthetic regressions pass; exact MUGEN 1.1
 native parity and original Tomoka assist playback remain unverified.
+
+
+## 7. State-controller persistence and global-state audit (November 12, 2026)
+
+**Confirmed from Elecbyte's 2013 MUGEN 1.1 CNS documentation:**
+
+- `persistent=0` triggers only on the first successful evaluation during each
+  state entry. `persistent=1` triggers on every successful evaluation.
+- `persistent=N` for N greater than 1 triggers on every Nth successful
+  evaluation (**N, 2N, 3N**, not 1, N+1, 2N+1). False trigger evaluations
+  must not advance the counter; re-entering a StateDef restarts its counters.
+- Duplicate ordinary global StateDefs `-1`, `-2`, `-3` are potentially
+  nonportable under MUGEN 1.1. The parser now reports
+  `mugen11-duplicate-global`, and the compatibility report publishes
+  `duplicateGlobalStates`. The Core's current duplicate-state precedence
+  has deliberately not been changed without matched native evidence.
+  IKEMEN GO extensions `-4` and `+1` remain distinct and are not
+  conflated with MUGEN 1.1 legacy global states.
+- `Helper postype=p2`: if P2 is missing or destroyed, spawn relative
+  to the caller instead, and report `missing-player`. Normal P2 X/facing
+  and P1 Y semantics remain unchanged. No proprietary MUGEN binary is
+  bundled or run.
+
+Regression fixture:
+`node --test test/core/mugen11-state-helper-parity.test.js`
+
+**Scope limitation:** These tests verify the documented per-controller
+behavior in Kenjatime's synthetic matches. A verified MUGEN 1.1 reference
+runtime trace for Tomoka, Rare Akuma and KFM is still needed before any
+native-behavior conformance certification.
