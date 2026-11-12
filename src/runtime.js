@@ -1596,7 +1596,12 @@ export class FighterRuntime {
     if (this.world?.isSuperUnhittable(this)) return false;
     for(const filter of this.hitFilters)if(filter?.time&&!filterAllows(filter,hit.attr))return false;
     const typeNone=String(hit[this.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()==='none';
-    if(!typeNone&&this.matchingHitOverride(hit)&&(hit.p1stateno>=0||hit.p2getp1state===1||hit.p2stateno>=0&&hit.p2getp1state!==0))return false;
+    // MUGEN 1.1: orphan p2getp1state is ignored without p2stateno.
+    // A real p2stateno implies borrowed P1 state unless explicitly zero.
+    // HitOverride still protects against true foreign-state attacks.
+    const hasP2State=Number.isFinite(Number(hit.p2stateno))&&Number(hit.p2stateno)>=0;
+    const borrowsP1State=hasP2State&&hit.p2getp1state!==0;
+    if(!typeNone&&this.matchingHitOverride(hit)&&(hit.p1stateno>=0||borrowsP1State))return false;
     return !this.asserted.has('unhittable');
   }
 
