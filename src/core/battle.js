@@ -198,7 +198,7 @@ export async function openCoreBattle({
       const label = isTraining ? "TRAINING"
         : phase === 0 ? "INTRO"
         : phase === 1 ? `ROUND ${round}`
-        : phase === 2 ? timer < 0 ? "∞" : String(Math.ceil(timer / 60))
+        : phase === 2 ? state.endlessMode ? `∞ · ROUND ${round}` : timer < 0 ? "∞" : String(Math.ceil(timer / 60))
         : phase === 3 ? state.roundReason === "time" ? "TIME" : "K.O."
         : state.matchOver ? "MATCH OVER" : "ROUND OVER";
       const roundTag = host.querySelector(".core-round");
