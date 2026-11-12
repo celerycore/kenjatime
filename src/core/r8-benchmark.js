@@ -7,7 +7,7 @@ const mib = bytes => number((bytes || 0) / MB, 2) + " MiB";
 const maxSamples = 36000; // 5 hours at 2Hz, bounded recorder memory.
 const fields = [
   "utc", "elapsed_s", "active", "paused", "background", "ticks", "endless_mode", "round_number", "rounds_completed", "p1_wins", "p2_wins",
-  "render_fps", "frame_cpu_submit_ms", "simulation_debt",
+  "render_fps", "frame_cpu_submit_ms", "simulation_hz", "simulation_ticks", "simulation_backlog_ticks", "simulation_debt",
   "gpu_resident_mib", "r8_index_mib", "palette_rgba_mib", "rgba_mib",
   "raw_rgba_bytes_saved_mib", "gpu_textures", "gpu_evictions",
   "deferred_textures", "missing_frame_textures", "missing_palette_draws",
@@ -23,6 +23,8 @@ panel.innerHTML = `
       <p>Live GPU residency estimates for the actual match. Works with bundled Kung Fu Man or your own locally imported fighters and stages.</p>
       <div class="r8-bench-readings" aria-live="off">
         <div><small>Rendered FPS</small><strong data-r8="fps">—</strong></div>
+        <div><small>Simulation clock</small><strong data-r8="simulation">—</strong></div>
+        <div><small>Tick backlog</small><strong data-r8="backlog">—</strong></div>
         <div><small>Render CPU submit</small><strong data-r8="cpu">—</strong></div>
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
@@ -37,7 +39,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">FPS is rendered frames per wall second. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -96,6 +98,8 @@ function sample() {
   previous = {time: now, frames: gpu.frames, active};
   lastDisplayedFrames = gpu.frames;
   element("fps").textContent = Number.isFinite(fps) ? number(fps) : "—";
+  element("simulation").textContent = state.simulationHz ? state.simulationHz + " Hz" : "—";
+  element("backlog").textContent = state.simulationBacklogTicks ?? "—";
   element("cpu").textContent = number(gpu.frameCpuSubmitMs) + " ms";
   element("resident").textContent = mib(gpu.textureBytes);
   element("indexed").textContent = mib(gpu.indexedTextureBytes);
@@ -114,6 +118,7 @@ function sample() {
     state.roundWins?.player ?? "", state.roundWins?.opponent ?? "",
     Number.isFinite(fps) ? number(fps, 2) : "",
     Number.isFinite(gpu.frameCpuSubmitMs) ? number(gpu.frameCpuSubmitMs, 3) : "",
+    state.simulationHz ?? "", state.simulationTicks ?? "", state.simulationBacklogTicks ?? "",
     Number.isFinite(state.simulationDebt) ? number(state.simulationDebt, 3) : "",
     number((gpu.textureBytes || 0) / MB, 3),
     number((gpu.indexedTextureBytes || 0) / MB, 3),

@@ -68,6 +68,14 @@ try:
         assert gpu['textureEvictions'] >= 0
         state = page.evaluate('window.__kenjatimeCoreBattle.snapshot()')
         assert state['endlessMode'] is True and state['roundTimeLeft'] == -1, state
+        assert state['simulationHz'] == 60, state
+        assert state['simulationTicks'] >= 10, state
+        assert state['simulationBacklogTicks'] >= 0, state
+        summary['checks']['deterministicClock'] = {
+            'simulationHz': state['simulationHz'],
+            'simulationTicks': state['simulationTicks'],
+            'simulationBacklogTicks': state['simulationBacklogTicks'],
+        }
         summary['checks']['endlessRules'] = {'enabled':state['endlessMode'], 'round':state['roundNo'], 'timeLeft':state['roundTimeLeft']}
         summary['checks']['r8Telemetry'] = {
             'samples': snapshot['samples'],
@@ -78,7 +86,7 @@ try:
         page.locator('[data-r8-stop]').click()
         assert page.locator('[data-r8-export]').is_enabled()
         csv = page.evaluate('window.__kenjatimeR8Benchmark.csv()')
-        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and len(csv.splitlines()) >= 4
+        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and 'simulation_hz' in csv and 'simulation_ticks' in csv and 'simulation_backlog_ticks' in csv and len(csv.splitlines()) >= 4
         with page.expect_download() as downloaded:
             page.locator('[data-r8-export]').click()
         item = downloaded.value
