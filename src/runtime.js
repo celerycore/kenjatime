@@ -754,6 +754,9 @@ export class FighterRuntime {
     // Elecbyte MUGEN 1.1: persistent=0 runs once per state entry,
     // persistent=N>1 runs on the Nth, 2Nth, 3Nth successful evaluation.
     // A false trigger does not advance the persistence counter.
+    // Out-of-range legacy "cheapie" values are explicitly nonportable:
+    // preserve the preexisting first-hit fallback, not a false native claim.
+    if (persistent > 2147483647) return (successes - 1) % persistent === 0;
     return persistent === 0 ? successes === 1
       : persistent === 1 || successes % persistent === 0;
   }
