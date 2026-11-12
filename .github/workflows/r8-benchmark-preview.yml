@@ -49,6 +49,8 @@ jobs:
         run: node --test test/core/mugen11-facep2-target-lifecycle.test.js
       - name: Verify MUGEN 1.1 TargetDrop random keepone and reproducible helper selection
         run: node --test test/core/mugen11-targetdrop-selection.test.js
+      - name: Verify MUGEN 1.1 HitDef P2 custom state and HitOverride ownership
+        run: node --test test/core/mugen11-hitdef-p2-customstate.test.js
       - name: Generate labeled candidate (never a native reference trace)
         run: |
           node scripts/core/mugen11-targetstate-oracle.mjs --candidate /tmp/kenjatime-mugen11-customstate.json
@@ -77,7 +79,7 @@ jobs:
               sourceCommit:process.env.GITHUB_SHA,
               channel:"r8-benchmark-pr17",
               basedOnPR:17,
-              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv","mugen11-persistent-n","mugen11-negative-state-audit","mugen11-bindtime-zero","mugen11-parentvar-restrictions","mugen11-helper-state-owners","mugen11-targetstate-id","mugen11-changeanim2-selfstate","mugen11-native-oracle-candidate","mugen11-player-owner-csv","mugen11-facep2-live-anchors","mugen11-target-lifecycle","mugen11-live-target-csv","mugen11-targetdrop-random-keepone"],
+              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv","mugen11-persistent-n","mugen11-negative-state-audit","mugen11-bindtime-zero","mugen11-parentvar-restrictions","mugen11-helper-state-owners","mugen11-targetstate-id","mugen11-changeanim2-selfstate","mugen11-native-oracle-candidate","mugen11-player-owner-csv","mugen11-facep2-live-anchors","mugen11-target-lifecycle","mugen11-live-target-csv","mugen11-targetdrop-random-keepone","mugen11-hitdef-p2-owner","mugen11-hittoverride-orphan-flag"],
               privateCharactersIncluded:false,
               kotlinWasmDefault:false
             },null,2)+"\n");

@@ -287,3 +287,32 @@ behavior toward the oldest target.
 
 **Reference:** Elecbyte 2013 MUGEN 1.1 State Controller Reference,
 `TargetDrop` section.
+
+## 12. HitDef p2stateno / p2getp1state ownership and HitOverride (November 12, 2026)
+
+**Documentation-backed:** Elecbyte's 2013 1.1 HitDef rules define `p2stateno`
+as a custom hit-state entry point. By default P2 reads P1's CNS and
+animation resources. Explicit `p2getp1state=0` instead selects P2's
+own state bank. **Without a valid `p2stateno`, `p2getp1state` must be
+ignored**. The previous Kenjatime `HitOverride` eligibility check could
+reject an ordinary hit because an orphan `p2getp1state=1` was authored.
+
+- Corrected the pre-hit override eligibility condition: borrowed P1
+  state protection now applies only when `p2stateno >= 0` and the
+  corresponding `p2getp1state` is not zero. A bare `p2getp1state=1`
+  does not turn an ordinary HitDef into a custom state.
+- Existing foreign hit-state execution retains the HitDef's **actual
+  executing state owner**, which may be a nested helper rather than the
+  root fighter; `p2getp1state=0` continues to pick P2's own CNS.
+- New synthetic fixtures check default foreign state ownership,
+  local-victim override, helper attacker ownership, the orphan-flag case,
+  live HitOverride precedence, and safe missing-state rejection.
+- Elecbyte's 1.1 HitOverride documentation separately describes
+  protection against attack HitDefs with `p1stateno` or an active
+  foreign-state takeover. That protection remains in place.
+- **Native parity remains unverified:** tests exercise a synthetic
+  Kenjatime match and no native M.U.G.E.N 1.1 executable is run or
+  included. P1/P2 custom state timing, native hitpause, and
+  hit/collision-specific trace matching remain separate work.
+
+**Test:** `node --test test/core/mugen11-hitdef-p2-customstate.test.js`.
