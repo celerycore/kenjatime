@@ -316,3 +316,33 @@ reject an ordinary hit because an orphan `p2getp1state=1` was authored.
   hit/collision-specific trace matching remain separate work.
 
 **Test:** `node --test test/core/mugen11-hitdef-p2-customstate.test.js`.
+
+## 13. Successful HitDef P1 transitions and authored destination movetype (November 13, 2026)
+
+The MUGEN 1.1 HitDef reference specifies that `p1stateno` changes the
+successful attacker's state to an attack state (`movetype=A`) and
+`p2stateno` enters P2 into a custom get-hit state (`movetype=H`)
+using P1 state data by default. Those are **authoring requirements**,
+not a license for the engine to force the destination to `H` after
+the authored StateDef has already executed.
+
+- Previously `receiveHit()` called `changeState()`, then unconditionally
+  reset the victim's `moveType` to `H` even if the new StateDef
+  explicitly specified `movetype=I` or `A`. This corrupted
+  intentionally nonstandard `HitOverride`/armor states.
+- After a successful immediate state entry, the destination
+  `StateDef movetype` now remains authoritative. If the state is missing,
+  retain a conservative `H` fallback and a diagnostic.
+- Ordered 60 Hz simulation may defer actual state entry until the next
+  actor phase. Until that occurs, the victim remains temporarily
+  `movetype=H`, then adopts the requested StateDef's own movetype.
+- Regression coverage validates successful `p1stateno`, no attacker
+  transition on guard, normal hit-state `H`, explicit custom state
+  `I/A`, `HitOverride` armor `I`, a helper-owned HitDef whose
+  animation is selected through `ChangeAnim2`, and ordered-phase entry.
+
+**Test:** `node --test test/core/mugen11-hitdef-p1stateno-movetype.test.js`.
+
+Native Elecbyte 1.1 tick-for-tick `p1stateno` / `p2stateno`
+animation and hitpause timing remains **UNVERIFIED** until original
+reference traces are captured independently.
