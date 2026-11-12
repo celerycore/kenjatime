@@ -162,6 +162,8 @@ export function createCoreRuntime(emit) {
           restoreAssets: ids => session.restoreAssets(ids),
         });
         const elapsed = performance.now() - start;
+        // CPU-side packet build + GL submission time; NOT a GPU completion timer.
+        if (renderer.stats) renderer.stats.frameCpuSubmitMs = elapsed;
         dirty = false;
         if (quality === "auto" && !packet.assets.length && !paused) {
           renderTimes.push(elapsed);
