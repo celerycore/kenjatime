@@ -52,6 +52,8 @@ jobs:
         run: node --test test/core/mugen11-targetdrop-selection.test.js
       - name: MUGEN 1.1 HitDef P2 state ownership and HitOverride precedence
         run: node --test test/core/mugen11-hitdef-p2-customstate.test.js
+      - name: MUGEN 1.1 HitDef P1 attack StateDef, armor movetype and helper throw timing
+        run: node --test test/core/mugen11-hitdef-p1stateno-movetype.test.js
       - name: Export synthetic native-oracle candidate (never native certification)
         run: |
           node scripts/core/mugen11-targetstate-oracle.mjs --candidate /tmp/kenjatime-targetstate-candidate.json --ticks 5
