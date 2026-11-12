@@ -1,0 +1,131 @@
+name: Kenjatime PR17 R8 Benchmark Preview
+
+on:
+  push:
+    branches: [feature/r8-benchmark-preview-20261112]
+    paths:
+      - 'src/**'
+      - 'core/**'
+      - 'test/core/**'
+      - 'scripts/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.core.config.js'
+      - '.github/workflows/r8-benchmark-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kenjatime-pr17-r8-benchmark-pages
+  cancel-in-progress: false
+
+jobs:
+  verify-and-publish-r8-benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout PR17-derived benchmark source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify R8 formats, palette bindings and LRU residency
+        run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js
+      - name: Run complete Core unit regression suite
+        run: npm run test:core
+      - name: Build isolated Core benchmark assets
+        run: npm run build:core
+      - name: Verify browser startup and real fight
+        run: |
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+          npm run verify:core:browser
+      - name: Verify live R8 benchmark and exported CSV
+        run: python scripts/core/verify-r8-benchmark.py
+      - name: Embed source identity and reject private character files
+        run: |
+          node --input-type=module -e '
+            import {writeFileSync} from "node:fs";
+            writeFileSync("dist-core/build-info.json",JSON.stringify({
+              repository:"celerycore/kenjatime",
+              branch:process.env.GITHUB_REF_NAME,
+              sourceCommit:process.env.GITHUB_SHA,
+              channel:"r8-benchmark-pr17",
+              basedOnPR:17,
+              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv"],
+              privateCharactersIncluded:false,
+              kotlinWasmDefault:false
+            },null,2)+"\n");
+          '
+          test -f dist-core/index.html
+          test -f dist-core/core/index.html
+          test -f dist-core/build-info.json
+          ! find dist-core -type f | grep -Ei '/(Ako|Asuna|Dark.Donald|Rare.Akuma|Nu.?13|Forest.of.King.Cruel)\.(zip|rar|7z)$'
+      - name: Save independently verified browser build
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-pr17-r8-benchmark-site
+          path: dist-core/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Checkout production Pages separately
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: existing-pages
+          persist-credentials: true
+      - name: Publish only /r8-benchmark/; preserve live and other preview pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f existing-pages/index.html
+          test -f existing-pages/.nojekyll
+          test -f existing-pages/arcade/core/index.html
+          test -f existing-pages/core-test/core/index.html
+          sha256sum existing-pages/index.html existing-pages/.nojekyll existing-pages/arcade/core/index.html existing-pages/core-test/core/index.html > /tmp/kenjatime-live-before
+          mkdir -p existing-pages/r8-benchmark
+          rsync -a --delete dist-core/ existing-pages/r8-benchmark/
+          test -f existing-pages/r8-benchmark/core/index.html
+          test -f existing-pages/r8-benchmark/build-info.json
+          sha256sum -c /tmp/kenjatime-live-before
+          cd existing-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- r8-benchmark
+          if git diff --cached --quiet; then
+            echo "No benchmark site changes needed."
+          else
+            if git diff --cached --name-only | grep -v '^r8-benchmark/'; then
+              echo "Refusing to change files outside r8-benchmark" >&2
+              exit 1
+            fi
+            git commit -m "Publish isolated PR17 R8 benchmark from ${GITHUB_SHA}"
+            git pull --rebase origin gh-pages
+            git push origin HEAD:gh-pages
+          fi
+      - name: Verify public benchmark belongs to this source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://celerycore.github.io/kenjatime/r8-benchmark"
+          for attempt in $(seq 1 36); do
+            metadata="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "${base}/build-info.json?rev=${GITHUB_SHA}" || true)"
+            if [[ "$metadata" == *"$GITHUB_SHA"* ]] && [[ "$metadata" == *'"basedOnPR": 17'* ]]; then
+              curl -fsSL --max-time 20 "${base}/core/index.html" | grep -q 'Kenjatime Core'
+              echo "VERIFIED: ${base}/core/index.html"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Public R8 benchmark source verification timed out" >&2
+          exit 1
