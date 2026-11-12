@@ -1239,7 +1239,15 @@ export class FighterRuntime {
         !target.destroyed && (wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted));
       if (type === 'targetdrop') {
         const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>!t.destroyed&&(this.targetHitIds.get(t.id)??t.hitId)===exclude);
-        this.targets=num('keepone',1)?kept.slice(0,1):kept;
+        // MUGEN 1.1 selects one random live equal-ID target rather than
+        // always choosing the oldest helper; use the actor's seeded RNG
+        // for reproducible R8 benchmark replays. Native RNG parity remains
+        // unverified without an independent oracle trace.
+        const keepOne=!!num('keepone',1);
+        const selected=keepOne&&kept.length>1
+          ? [kept[Math.min(kept.length-1,Math.floor(this.resolveTrigger('random')/1000*kept.length))]]
+          : keepOne?kept.slice(0,1):kept;
+        this.targets=selected;
         const live=new Set(this.targets.map(t=>t.id));for(const id of this.targetHitIds.keys())if(!live.has(id))this.targetHitIds.delete(id);return;
       }
       // Elecbyte MUGEN 1.1 TargetState accepts only value and optional ID:
