@@ -25,9 +25,13 @@ try:
         assert page.title() == 'Kenjatime Core · PR #17 R8 Benchmark'
         assert page.locator('#kenjatime-r8-benchmark').count() == 1
         assert page.locator('#core-qa-guide').count() == 1
+        assert page.locator('#endless-mode').count() == 1
+        assert not page.locator('#endless-mode').is_checked()
         summary['checks']['isolatedLabel'] = True
 
         page.locator('#arena-mode').select_option('cpu')
+        page.locator('#endless-mode').check()
+        assert page.locator('#endless-mode').is_checked()
         page.locator('#fight-now').click()
         page.wait_for_function('window.__kenjatimeCoreBattle?.gpu()?.frames > 10', timeout=40000)
         page.locator('[data-r8-start]').click()
@@ -38,6 +42,9 @@ try:
         assert 'indexedTextureBytes' in gpu and 'paletteTextureBytes' in gpu
         assert gpu['textureBytes'] >= gpu['indexedTextureBytes'] + gpu['paletteTextureBytes']
         assert gpu['textureEvictions'] >= 0
+        state = page.evaluate('window.__kenjatimeCoreBattle.snapshot()')
+        assert state['endlessMode'] is True and state['roundTimeLeft'] == -1, state
+        summary['checks']['endlessRules'] = {'enabled':state['endlessMode'], 'round':state['roundNo'], 'timeLeft':state['roundTimeLeft']}
         summary['checks']['r8Telemetry'] = {
             'samples': snapshot['samples'],
             'gpuRawResidentBytes': gpu['textureBytes'],
@@ -47,7 +54,7 @@ try:
         page.locator('[data-r8-stop]').click()
         assert page.locator('[data-r8-export]').is_enabled()
         csv = page.evaluate('window.__kenjatimeR8Benchmark.csv()')
-        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and len(csv.splitlines()) >= 4
+        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and len(csv.splitlines()) >= 4
         with page.expect_download() as downloaded:
             page.locator('[data-r8-export]').click()
         item = downloaded.value
