@@ -16,7 +16,7 @@ const winner=(players)=>{
  */
 export class RoundFlow{
   constructor({roundsToWin=2,roundTime=99,preIntro=30,introHold=30,overTime=60,resultTime=90,
-    maxIntroTime=900,maxOutroTime=300,autoAdvance=true}={}){
+    maxIntroTime=900,maxOutroTime=300,autoAdvance=true,endless=false}={}){
     for(const [key,value] of Object.entries({roundsToWin,roundTime,preIntro,introHold,overTime,resultTime,maxIntroTime,maxOutroTime}))
       if(!Number.isFinite(value)||value<0)throw Error(`Invalid match rule ${key}.`);
     if(roundsToWin<1||roundsToWin>99||roundTime>3600||maxIntroTime>36000||maxOutroTime>36000)
@@ -24,13 +24,15 @@ export class RoundFlow{
     this.rules={roundsToWin:Math.trunc(roundsToWin),roundTime,
       preIntro:Math.trunc(preIntro),introHold:Math.trunc(introHold),
       overTime:Math.trunc(overTime),resultTime:Math.trunc(resultTime),
-      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),autoAdvance};
+      maxIntroTime:Math.trunc(maxIntroTime),maxOutroTime:Math.trunc(maxOutroTime),autoAdvance,
+      endless:endless===true};
     this.roundNo=1;this.roundsExisted=0;this.wins={player:0,opponent:0};
     this.matchOver=false;this.roundWinner=null;this.reason=null;this.startRound();
   }
   startRound(){
     this.roundState=0;this.phaseTime=0;
-    this.timeLeft=this.rules.roundTime?Math.round(this.rules.roundTime*60):-1;
+    // Endless keeps real KO/outro/round resets, but has no round time limit.
+    this.timeLeft=this.rules.endless?-1:this.rules.roundTime?Math.round(this.rules.roundTime*60):-1;
     this.roundWinner=null;this.reason=null;this._awarded=false;
   }
   step({players,paused=false,intro=false,introPending=false,victoryPending=false,
@@ -68,7 +70,8 @@ export class RoundFlow{
       if(roundNotOver&&this.phaseTime<this.rules.maxOutroTime)return events;
       if(this.phaseTime>=this.rules.overTime){
         if(!this._awarded&&this.roundWinner!=='draw'){this.wins[this.roundWinner]++;this._awarded=true;}
-        this.matchOver=Object.values(this.wins).some(w=>w>=this.rules.roundsToWin);
+        // In benchmark endless mode the round results are kept, but no win count can terminate the match.
+        this.matchOver=!this.rules.endless&&Object.values(this.wins).some(w=>w>=this.rules.roundsToWin);
         this.roundState=4;this.phaseTime=0;
         events.push({type:'result',winner:this.roundWinner,reason:this.reason,matchOver:this.matchOver});
       }
