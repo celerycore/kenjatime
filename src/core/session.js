@@ -865,6 +865,7 @@ export class CoreSession {
       roundNo: this.match.roundFlow?.roundNo ?? 1,
       roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
       roundTimeLeft: this.match.roundFlow?.timeLeft ?? -1,
+      roundKoHoldTicks: [...(this.match.roundFlow?.zeroLifeNoKOTicks || [0, 0])],
       endlessMode: this.match.roundFlow?.rules.endless === true,
       roundWins: {...(this.match.roundFlow?.wins || {player:0,opponent:0})},
       roundWinner: this.match.roundFlow?.roundWinner ?? null,
