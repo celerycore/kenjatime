@@ -1321,8 +1321,15 @@ export class FighterRuntime {
         const target = postype === 'p2' ? this.opponent : postype === 'p1' ? this : null;
         if (target && !target.destroyed) {
           const [x=0, y=0] = Array.isArray(spec.pos) ? spec.pos : [spec.pos ?? 0,0];
+          // A helper's p2 X/facing are relative to P2, but its initial
+          // Y is relative to P1 in MUGEN 1.1. The legacy bindtime extension
+          // must preserve that spawn point instead of teleporting to P2 Y
+          // on its first bound tick; it then follows subsequent P2 motion.
+          const boundY = postype === 'p2'
+            ? pos.y - target.pos.y
+            : numeric(y) * this.coordinateScale;
           helper.bound = { target, x: numeric(x) * this.coordinateScale,
-            y: numeric(y) * this.coordinateScale, time, facing: numeric(spec.facing ?? 1) };
+            y: boundY, time, facing: numeric(spec.facing ?? 1) };
         } else if (postype === 'p1' || postype === 'p2') {
           helper.diagnostic('missing-player', 'Helper bindtime target is unavailable.');
         }
