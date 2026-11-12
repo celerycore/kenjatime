@@ -715,6 +715,15 @@ export class FighterRuntime {
       if (physics !== 'U') this.physics = physics;
       if (state.values.movetype) { const value = this.text(state, 'movetype').toUpperCase(); this.moveType = value === 'U' ? previousMoveType : value; }
       if (state.values.ctrl !== undefined) this.ctrl = +truth(this.value(state, 'ctrl', this.ctrl));
+      // MUGEN 1.1 CNS StateDef facep2=1 is an entry-time facing action.
+      // It is evaluated against the ACTOR'S opponent, including when P2
+      // executes an attacker-owned borrowed StateDef or a helper enters it.
+      // Do not flip without a live opponent, or when both axes coincide.
+      if (state.values.facep2 !== undefined && truth(this.value(state,'facep2',0))) {
+        const p2=this.opponent;
+        if(p2&&!p2.destroyed&&p2!==this&&p2.pos.x!==this.pos.x)
+          this.facing=p2.pos.x>this.pos.x?1:-1;
+      }
       if (state.values.anim !== undefined) {const anim=integer(this.value(state,'anim',-1));if(anim!==-1)this.changeAnimation(anim);}
       if (state.values.velset !== undefined) {
         const [x = 0, y = 0] = this.vector(state, 'velset'); this.vel = { x: x * this.coordinateScale, y: y * this.coordinateScale };
