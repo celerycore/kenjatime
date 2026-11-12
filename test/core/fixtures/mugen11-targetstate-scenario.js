@@ -114,10 +114,10 @@ const role=(actor,match)=>{
   if(actor.parent)return (actor.root===match.player?"p1-helper-":"p2-helper-")+actor.helperId;
   return "other";
 };
-export function captureMugen11TargetStateProjection(match){
+export function captureMugen11TargetStateProjection(match,phase="after_tick"){
   const trace=captureLegacyTraceTick(match);
   return {
-    tick:trace.tick,
+    tick:trace.tick,phase,
     actors:match.entities.slice().sort((a,b)=>a.id-b.id).map(a=>({
       role:role(a,match),
       stateNo:a.stateNo,stateTime:a.time,
@@ -132,9 +132,9 @@ export function captureMugen11TargetStateProjection(match){
 export function runMugen11TargetStateScenario({ticks=5,ctrl=0}={}){
   if(!Number.isInteger(ticks)||ticks<1||ticks>120)throw Error("Tick count must be 1..120");
   const {match,attacker}=makeMugen11CustomStateScenario();
-  const observations=[captureMugen11TargetStateProjection(match)];
+  const observations=[captureMugen11TargetStateProjection(match,"before_controller")];
   executeMugen11TargetState(attacker,{ctrl});
-  observations.push(captureMugen11TargetStateProjection(match));
+  observations.push(captureMugen11TargetStateProjection(match,"after_controller"));
   for(let i=0;i<ticks;i++){
     match.tick();
     observations.push(captureMugen11TargetStateProjection(match));
