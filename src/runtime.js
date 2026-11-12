@@ -1300,6 +1300,11 @@ export class FighterRuntime {
 
   createHelper(spec, {id} = {}) {
     if (spec.helpertype && spec.helpertype !== 'normal') this.diagnostic('unsupported-helper', 'Player-type helpers are deprecated by MUGEN 1.1; using a normal helper.');
+    if (String(spec.postype || 'p1').toLowerCase() === 'p2' &&
+        (!this.opponent || this.opponent.destroyed))
+      this.diagnostic('missing-player', 'Helper postype=p2: P2 is absent; using the spawning player axis.', {
+        source:spec.source,line:spec.line,type:'helper',state:this.stateNo
+      });
     const {pos,facing} = spawnPosition(this,spec);
     const program = {...this.program,constants:new Map(this.program.constants)};
     for (const [key,value] of Object.entries(spec)) if (key.startsWith('size.')) {
