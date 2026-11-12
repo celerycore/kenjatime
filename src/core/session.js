@@ -125,7 +125,8 @@ export class CoreSession {
         selection.mode === "training"
           ? null
           : { roundsToWin: 2, preIntro: 0, introHold: 60, overTime: 60,
-              resultTime: 120, maxIntroTime: 900, maxOutroTime: 300 },
+              resultTime: 120, maxIntroTime: 900, maxOutroTime: 300,
+              endless: selection.endless === true },
     });
     this.commands = [
       this.match.inputBuffers.get(this.match.player),
@@ -864,6 +865,8 @@ export class CoreSession {
       roundNo: this.match.roundFlow?.roundNo ?? 1,
       roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
       roundTimeLeft: this.match.roundFlow?.timeLeft ?? -1,
+      endlessMode: this.match.roundFlow?.rules.endless === true,
+      roundWins: {...(this.match.roundFlow?.wins || {player:0,opponent:0})},
       roundWinner: this.match.roundFlow?.roundWinner ?? null,
       roundReason: this.match.roundFlow?.reason ?? null,
       matchOver: this.match.roundFlow?.matchOver ?? false,
