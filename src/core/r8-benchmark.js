@@ -16,6 +16,7 @@ const fields = [
   "helpers_alive", "helpers_created", "helpers_rejected", "helpers_missing_state",
   "helpers_destroyed", "helpers_hidden", "helpers_submitted",
   "helpers_missing_animation", "helpers_missing_sprite", "helper_state_map",
+  "mugen11_p1_duplicate_globals", "mugen11_p2_duplicate_globals",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -39,6 +40,7 @@ panel.innerHTML = `
         <div><small>Helper states / spawned</small><strong data-r8="helpers">—</strong></div>
         <div><small>Helper sprite submissions</small><strong data-r8="helperdraws">—</strong></div>
         <div><small>Helper failures</small><strong data-r8="helperfails">—</strong></div>
+        <div><small>Duplicate -1/-2/-3 StateDefs P1 / P2</small><strong data-r8="globaldupes">—</strong></div>
       </div>
       <div class="r8-bench-actions">
         <button type="button" data-r8-start>Start recording</button>
@@ -46,7 +48,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers and missing state/animation counts help diagnose Tomoka assists. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -117,6 +119,7 @@ function sample() {
   element("helpers").textContent = (state.helperFrameStats?.alive ?? "—") + " active / " + (state.helperStats?.created ?? "—") + " spawned";
   element("helperdraws").textContent = (state.helperFrameStats?.submitted ?? "—") + " submitted · " + (state.helperFrameStats?.hidden ?? 0) + " hidden";
   element("helperfails").textContent = (state.helperStats?.rejected ?? "—") + " rejected · " + (state.helperFrameStats?.missingAnimation ?? 0) + " no AIR · " + (state.helperFrameStats?.missingSprite ?? 0) + " no SFF";
+  element("globaldupes").textContent = (state.compatibility?.characters?.[0]?.duplicateGlobalStates ?? "—") + " / " + (state.compatibility?.characters?.[1]?.duplicateGlobalStates ?? "—");
   if (!recording) return;
   const seconds = (now - startedAt) / 1000;
   highest = Math.max(highest, gpu.textureBytes || 0);
@@ -151,6 +154,8 @@ function sample() {
     state.helperFrameStats?.missingSprite ?? "",
     (state.helpers || []).slice(0,56).map(h=>
       [h.id,h.helperId,h.parentId,h.state,h.anim,h.invisible?1:0].join(":")).join("|"),
+    state.compatibility?.characters?.[0]?.duplicateGlobalStates ?? "",
+    state.compatibility?.characters?.[1]?.duplicateGlobalStates ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
