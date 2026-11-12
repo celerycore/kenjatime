@@ -46,7 +46,9 @@ function character(name,extra=""){
 }
 const match=()=>new TrainingMatch(character("one"),{
   opponentCharacter:character("two"),initialize:false,
-  orderedPhases:true,pushboxes:false,
+  // Direct state-entry tests run without the scheduled-phase deferral.
+  // Ordered-phase pending transitions have separate regression coverage.
+  orderedPhases:false,pushboxes:false,
 });
 function execute(actor,type,params){
   const section=parseSections(`[State 0, MUGEN1.1 probe]
