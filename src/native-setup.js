@@ -4,6 +4,7 @@ import {appShell} from './app-shell.js';
 import {sff,animations} from './formats.js';
 import {libraryResetURL} from './library-recovery.js';
 import {exportFile} from './export-file.js';
+import {downloadArchiveFromUrl} from './remote-archive.js';
 
 export function mountSetup(engineHost){
 document.querySelector('#app').innerHTML=appShell;document.title='Kenjatime';
@@ -45,6 +46,7 @@ if(startup){
  panel.querySelector('#export-startup').onclick=async event=>{const button=event.currentTarget;button.disabled=true;try{await exportFile(new Blob([JSON.stringify(startup.snapshot(),null,2)],{type:'application/json'}),'kenjatime-startup-report.json');}catch(error){panel.querySelector('#startup-progress').textContent=error.message;}finally{button.disabled=false;}};
 }
 $('#drop').innerHTML='<div class="upload-icon">↥</div><div><b>Bring a new challenger.</b><p>Import ZIP / RAR / 7z / TAR from your device.</p><div class="archive-picker-actions"><button type="button" id="browse">Choose archive</button><button type="button" id="browse-split">Select split archive parts</button><button type="button" id="browse-all">Browse all files</button></div><small>Android: select Files / Internal storage / Downloads, not Photos. Use Browse all files if your archive is hidden. Split archives need every part selected together.</small><details class="archive-options"><summary>Archive password (optional)</summary><input id="archive-password" type="password" autocomplete="off" aria-label="Archive password"></details></div>';
+$('#drop').insertAdjacentHTML('beforeend', "<section class=\"archive-alternate-import\" aria-label=\"Alternative ways to import an archive\">\n  <label for=\"direct-archive-file\">Direct device file selector</label>\n  <input id=\"direct-archive-file\" type=\"file\" aria-label=\"Choose a local archive directly\" />\n  <small>Uses a visible browser file control. It may work differently from the automatic Android picker, but Android still determines which storage apps appear.</small>\n  <label for=\"archive-url\">Or import from a direct HTTPS archive download</label>\n  <div class=\"archive-link-fields\">\n    <input id=\"archive-url\" type=\"url\" inputmode=\"url\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"https://example.com/fighter.zip\" aria-label=\"Direct HTTPS archive link\">\n    <button type=\"button\" id=\"import-archive-url\">Import link</button>\n  </div>\n  <small>The remote server must allow browser downloads (CORS). Google Drive preview/share-page links aren't direct downloads. Archives remain on this device after import.</small>\n</section>");
 $('.notice').textContent='Character scripts and matches run in the game engine. Package checks describe installed resources.';
 $('#hint').textContent='Select your fighter, opponent and stage, then start a match.';$('.coordinates').innerHTML='X <span id="pos">0</span> &nbsp; Y <span>0</span>';
 $('#play').hidden=$('#step').hidden=$('#actions').hidden=$('#speed').hidden=true;$('.frame').textContent='P1 / P2 PREVIEW';
@@ -139,6 +141,29 @@ for(const [id,kind,options]of [
  element.onclick=event=>{event.preventDefault();void pick(kind,options);};
  element.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();void pick(kind,options);}};
 }
+const directArchiveInput=$('#direct-archive-file');
+directArchiveInput.addEventListener('change',()=>{
+ const files=Array.from(directArchiveInput.files||[]);
+ if(!files.length)return;
+ void run('Reading the selected device archive…',async()=>{
+  if(!engineHost.importFile)throw Error('Local archive import is unavailable.');
+  try{
+   applyInstalled(await engineHost.importFile(files,{password:$('#archive-password').value}));
+   $('#archive-password').value='';
+   status('Archive imported from this device. Choose your fighter or stage.');
+  }finally{directArchiveInput.value='';}
+ });
+});
+$('#import-archive-url').onclick=()=>void run('Downloading linked archive…',async()=>{
+ if(!engineHost.importFile)throw Error('Archive importing is unavailable.');
+ const file=await downloadArchiveFromUrl($('#archive-url').value,{onProgress:message=>status(message)});
+ applyInstalled(await engineHost.importFile([file],{password:$('#archive-password').value}));
+ $('#archive-password').value='';
+ status('Archive downloaded and imported. Choose your fighter or stage.');
+});
+$('#archive-url').onkeydown=event=>{
+ if(event.key==='Enter'){event.preventDefault();$('#import-archive-url').click();}
+};
 if(engineHost.importFile){
  $('#drop').addEventListener('dragover',event=>event.preventDefault());
  $('#drop').addEventListener('drop',event=>{event.preventDefault();const files=Array.from(event.dataTransfer.files);if(files.length)void run('Reading archive…',async()=>{applyInstalled(await engineHost.importFile(files,{password:$('#archive-password').value}));$('#archive-password').value='';status('Archive installed. Your fighters and stages are ready to select.');});});
