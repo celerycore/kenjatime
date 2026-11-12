@@ -51,3 +51,28 @@ Do not copy built R8 assets over production as a workaround.
 
 **Native MUGEN 1.1 parity remains unverified**: successful R8 source and
 browser deployment are separate from an independent native comparison.
+
+
+## Default-branch entrypoint (required for reliable delivery)
+
+Repository metadata confirms **`gh-pages` is the GitHub default branch**.
+A separate default-branch-only Actions entrypoint can call the verified
+R8 workflow through `workflow_call`. This is more reliable than a
+manual `workflow_dispatch` declared only on the non-default R8 branch.
+
+In reusable mode the GitHub event may belong to `gh-pages`, so
+`GITHUB_REF` and `GITHUB_SHA` are **not the R8 source identity**.
+The called workflow explicitly checks out
+`feature/r8-benchmark-preview-20261112`, derives
+`R8_SOURCE_SHA=git rev-parse HEAD`, and writes that exact SHA and the
+R8 branch name into `build-info.json`. It uses the recorded R8 source
+SHA for the publish commit message and public cache-busting/check.
+The site-only production checksum guards remain unchanged.
+
+The entrypoint on `gh-pages` should be scoped to manual dispatch or
+merged PR closures targeting R8 and optionally its own initial addition.
+It must not alter `/arcade/` or publish any unmerged feature head.
+
+The default-branch wrapper and R8 reusable workflow are distinct:
+**a merged Core PR or a successful unit-test run does not establish
+that the Pages deployment actually occurred.** Confirm live metadata.

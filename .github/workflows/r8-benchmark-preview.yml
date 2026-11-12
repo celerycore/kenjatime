@@ -19,6 +19,10 @@ on:
     types: [closed]
     branches: [feature/r8-benchmark-preview-20261112]
   workflow_dispatch:
+  # The repository default branch is gh-pages. A thin default-branch
+  # entrypoint calls this verified R8-only job; workflow_dispatch on a
+  # non-default branch is not a reliable manual deployment mechanism.
+  workflow_call:
 
 permissions:
   contents: write
@@ -34,16 +38,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout PR17-derived benchmark source
+      - name: Checkout PR17-derived benchmark source (never production gh-pages)
         uses: actions/checkout@v4
         with:
+          ref: feature/r8-benchmark-preview-20261112
           persist-credentials: false
-      - name: Require exact R8 source branch and checkout commit before any publication
+      - name: Record actual checked-out R8 source commit (not caller event SHA)
         shell: bash
         run: |
           set -euo pipefail
-          test "${GITHUB_REF}" = "refs/heads/feature/r8-benchmark-preview-20261112"
-          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test -f src/core/r8-benchmark.js
+          test -f scripts/core/verify-r8-benchmark.py
+          r8_sha="$(git rev-parse HEAD)"
+          test -n "${r8_sha}"
+          echo "R8_SOURCE_SHA=${r8_sha}" >> "$GITHUB_ENV"
+          echo "R8_SOURCE_BRANCH=feature/r8-benchmark-preview-20261112" >> "$GITHUB_ENV"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" && "${GITHUB_REF}" == "refs/heads/feature/r8-benchmark-preview-20261112" ]]; then
+            test "${r8_sha}" = "${GITHUB_SHA}"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -89,8 +101,8 @@ jobs:
             import {writeFileSync} from "node:fs";
             writeFileSync("dist-core/build-info.json",JSON.stringify({
               repository:"celerycore/kenjatime",
-              branch:process.env.GITHUB_REF_NAME,
-              sourceCommit:process.env.GITHUB_SHA,
+              branch:process.env.R8_SOURCE_BRANCH,
+              sourceCommit:process.env.R8_SOURCE_SHA,
               channel:"r8-benchmark-pr17",
               basedOnPR:17,
               benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv","mugen11-persistent-n","mugen11-negative-state-audit","mugen11-bindtime-zero","mugen11-parentvar-restrictions","mugen11-helper-state-owners","mugen11-targetstate-id","mugen11-changeanim2-selfstate","mugen11-native-oracle-candidate","mugen11-player-owner-csv","mugen11-facep2-live-anchors","mugen11-target-lifecycle","mugen11-live-target-csv","mugen11-targetdrop-random-keepone","mugen11-hitdef-p2-owner","mugen11-hittoverride-orphan-flag"],
@@ -140,7 +152,7 @@ jobs:
               echo "Refusing to change files outside r8-benchmark" >&2
               exit 1
             fi
-            git commit -m "Publish isolated PR17 R8 benchmark from ${GITHUB_SHA}"
+            git commit -m "Publish isolated PR17 R8 benchmark from ${R8_SOURCE_SHA}"
             git pull --rebase origin gh-pages
             git push origin HEAD:gh-pages
           fi
@@ -150,8 +162,8 @@ jobs:
           set -euo pipefail
           base="https://celerycore.github.io/kenjatime/r8-benchmark"
           for attempt in $(seq 1 36); do
-            metadata="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "${base}/build-info.json?rev=${GITHUB_SHA}" || true)"
-            if [[ "$metadata" == *"$GITHUB_SHA"* ]] && [[ "$metadata" == *'"basedOnPR": 17'* ]]; then
+            metadata="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "${base}/build-info.json?rev=${R8_SOURCE_SHA}" || true)"
+            if [[ "$metadata" == *"$R8_SOURCE_SHA"* ]] && [[ "$metadata" == *'"basedOnPR": 17'* ]]; then
               curl -fsSL --max-time 20 "${base}/core/index.html" | grep -q 'Kenjatime Core'
               echo "VERIFIED: ${base}/core/index.html"
               exit 0
