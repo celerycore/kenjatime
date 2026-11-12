@@ -5,6 +5,7 @@ import { charactersFromFiles, decodeText, sff } from "../formats.js";
 import {normalizePresentation,presentationAspect} from "./presentation.js";
 import {loadCommonEffects} from "./common-effects.js";
 import { parseProgram } from "../runtime.js";
+import { legacyCompatibilityReport } from "./legacy-compatibility.js";
 import { TrainingMatch } from "../combat.js";
 import { commonStates } from "../common.js";
 const CORE_COMMON_STATES = commonStates({ orderedPhases: true });
@@ -89,6 +90,9 @@ export class CoreSession {
       const error = program.diagnostics.find((d) => d.fatal);
       if (error) throw Error(`${error.source}:${error.line}: ${error.message}`);
     }
+    // Behavioral compatibility goal, not a certificate. Compiled once:
+    // the hot-path combat loop remains unchanged.
+    this.legacyCompatibility = legacyCompatibilityReport([p1,p2], programs);
     this.expressions = new WasmExpressions(
       programExpressions(programs.values()),
     );
@@ -155,6 +159,11 @@ export class CoreSession {
       engine: "Kenjatime Core",
       independentRuntime: true,
       universalCompatibility: false,
+      legacyCompatibilityTarget: this.legacyCompatibility.id,
+      legacyCompatibilityReference: this.legacyCompatibility.reference,
+      legacyCompatibilityStatus: this.legacyCompatibility.status,
+      nativeMugen11Certified: false,
+      ikemenExtensions: "additional-not-baseline",
       compiledNumericExpressions: true,
       scriptInterpreter: true,
       luaMatchHooks: true,
@@ -837,6 +846,7 @@ export class CoreSession {
     const stage = this.match.stage, view = this.match.view;
     return {
       engine: "Kenjatime Core",
+      compatibility: this.legacyCompatibility,
       presentation: this.presentation,
       viewport: stage ? {
         displayWidth: view.displayWidth, displayHeight: view.displayHeight,
