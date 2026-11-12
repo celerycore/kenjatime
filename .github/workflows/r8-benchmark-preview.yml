@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: kenjatime-pr17-r8-benchmark-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   verify-and-publish-r8-benchmark:
@@ -62,7 +62,7 @@ jobs:
               sourceCommit:process.env.GITHUB_SHA,
               channel:"r8-benchmark-pr17",
               basedOnPR:17,
-              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv"],
+              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle"],
               privateCharactersIncluded:false,
               kotlinWasmDefault:false
             },null,2)+"\n");
