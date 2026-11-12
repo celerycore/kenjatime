@@ -8,6 +8,7 @@ const maxSamples = 36000; // 5 hours at 2Hz, bounded recorder memory.
 const fields = [
   "utc", "elapsed_s", "active", "paused", "background", "ticks", "endless_mode", "round_number", "rounds_completed", "p1_wins", "p2_wins",
   "render_fps", "frame_cpu_submit_ms", "simulation_hz", "simulation_ticks", "simulation_backlog_ticks", "simulation_debt",
+  "p1_life", "p2_life", "round_phase", "ko_hold_p1_ticks", "ko_hold_p2_ticks", "resolution_scale",
   "gpu_resident_mib", "r8_index_mib", "palette_rgba_mib", "rgba_mib",
   "raw_rgba_bytes_saved_mib", "gpu_textures", "gpu_evictions",
   "deferred_textures", "missing_frame_textures", "missing_palette_draws",
@@ -120,6 +121,10 @@ function sample() {
     Number.isFinite(gpu.frameCpuSubmitMs) ? number(gpu.frameCpuSubmitMs, 3) : "",
     state.simulationHz ?? "", state.simulationTicks ?? "", state.simulationBacklogTicks ?? "",
     Number.isFinite(state.simulationDebt) ? number(state.simulationDebt, 3) : "",
+    state.players?.[0]?.life ?? "", state.players?.[1]?.life ?? "",
+    state.roundState ?? "", state.roundKoHoldTicks?.[0] ?? "",
+    state.roundKoHoldTicks?.[1] ?? "",
+    Number.isFinite(state.resolutionScale) ? number(state.resolutionScale, 2) : "",
     number((gpu.textureBytes || 0) / MB, 3),
     number((gpu.indexedTextureBytes || 0) / MB, 3),
     number((gpu.paletteTextureBytes || 0) / MB, 3),
