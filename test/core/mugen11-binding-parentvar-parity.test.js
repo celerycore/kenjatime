@@ -40,7 +40,7 @@ test('MUGEN 1.1 BindToParent time=0 releases an existing helper binding',()=>{
   const m=fixture(),parent=m.spawnHelper(m.player,{id:100,stateno:1800});
   const child=m.spawnHelper(parent,{id:101,stateno:1800});
   assert.ok(parent&&!parent.destroyed&&child&&!child.destroyed);
-  execute(child,'BindToParent','time=-1\nface=1\npos=12,-8');
+  execute(child,'BindToParent','time=-1\nfacing=1\npos=12,-8');
   assert.equal(child.bound?.target,parent);
   parent.pos.x=45;parent.pos.y=-25;child.updateBinding();
   assert.equal(child.pos.x,45+12*parent.facing);
