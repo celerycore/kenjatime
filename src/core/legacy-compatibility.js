@@ -41,6 +41,7 @@ export function legacyCompatibilityReport(characters, programs = new Map()) {
         cnsStateFiles: sourcePaths.filter(path => /\.(?:cns|cmd)$/i.test(path)).length,
         ikemenZssFiles: sourcePaths.filter(path => /\.zss$/i.test(path)).length,
         fatalDiagnostics: diagnostics.filter(d => d.fatal === true).length,
+        duplicateGlobalStates: diagnostics.filter(d => d.type === "mugen11-duplicate-global").length,
         unsupportedDiagnostics: diagnostics.filter(d =>
           /^unsupported/.test(d.type || "") || d.type === "missing-file"
         ).length,
