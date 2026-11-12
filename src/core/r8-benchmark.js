@@ -48,7 +48,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The helper_state_map now includes state/animation owner IDs and active bind target/time after the visibility flag. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -153,7 +153,8 @@ function sample() {
     state.helperFrameStats?.submitted ?? "",state.helperFrameStats?.missingAnimation ?? "",
     state.helperFrameStats?.missingSprite ?? "",
     (state.helpers || []).slice(0,56).map(h=>
-      [h.id,h.helperId,h.parentId,h.state,h.anim,h.invisible?1:0].join(":")).join("|"),
+      [h.id,h.helperId,h.parentId,h.state,h.anim,h.invisible?1:0,
+       h.stateOwnerId??"",h.animationOwnerId??"",h.boundTargetId??"",h.bindTime??""].join(":")).join("|"),
     state.compatibility?.characters?.[0]?.duplicateGlobalStates ?? "",
     state.compatibility?.characters?.[1]?.duplicateGlobalStates ?? "",
   ];
