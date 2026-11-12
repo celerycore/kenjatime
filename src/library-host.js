@@ -481,6 +481,8 @@ export function createLibraryHost(options) {
             opponent: p2.id,
             stage: stage.id,
             mode: data.mode,
+            // Benchmark-only opt-in; standard match behavior stays unchanged.
+            endless: data.endless === true && data.mode !== "training",
             level: data.level || 4,
             palette: data.palette || 1,
             opponentPalette: data.opponentPalette || 1,
