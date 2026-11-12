@@ -49,6 +49,7 @@ const stopButton = panel.querySelector("[data-r8-stop]");
 const exportButton = panel.querySelector("[data-r8-export]");
 const status = panel.querySelector("[data-r8-status]");
 let recording = false, rows = [], startedAt = 0, previous = null, highest = 0, lastDisplayedFrames = 0;
+let fpsSum = 0, fpsCount = 0;
 
 function current() {
   const battle = window.__kenjatimeCoreBattle;
@@ -71,6 +72,7 @@ function start() {
   rows = [];
   previous = null;
   highest = 0;
+  fpsSum = 0; fpsCount = 0;
   startedAt = performance.now();
   recording = true;
   startButton.disabled = true;
@@ -124,8 +126,8 @@ function sample() {
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
-  const validFps = rows.filter(row => row[2] === 1 && row[6] !== "").map(row => +row[6]);
-  const average = validFps.length ? validFps.reduce((a, b) => a + b, 0) / validFps.length : NaN;
+  if (Number.isFinite(fps)) { fpsSum += fps; fpsCount++; }
+  const average = fpsCount ? fpsSum / fpsCount : NaN;
   status.textContent = "Recording " + number(seconds, 0) + " s · " + rows.length +
     " samples · avg " + number(average) + " FPS · peak raw GPU " + mib(highest);
 }
