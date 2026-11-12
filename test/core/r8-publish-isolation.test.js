@@ -14,11 +14,11 @@ test("R8 deployment is triggered on merged PR closure, not on open PR updates",(
 });
 
 test("R8 publishing requires exact source branch and unchanged production Pages",()=>{
-  assert.match(workflow,/workflow_call:/);
-  assert.match(workflow,/ref: feature\\/r8-benchmark-preview-20261112/);
-  assert.match(workflow,/R8_SOURCE_SHA=\\$\\{r8_sha\\}/);
-  assert.match(workflow,/sourceCommit:process\\.env\\.R8_SOURCE_SHA/);
-  assert.match(workflow,/test "\\$\\{r8_sha\\}" = "\\$\\{GITHUB_SHA\\}"/);
+  assert.ok(workflow.includes("workflow_call:"));
+  assert.ok(workflow.includes("ref: feature/r8-benchmark-preview-20261112"));
+  assert.ok(workflow.includes('R8_SOURCE_SHA=${r8_sha}'));
+  assert.ok(workflow.includes("sourceCommit:process.env.R8_SOURCE_SHA"));
+  assert.ok(workflow.includes('test "${r8_sha}" = "${GITHUB_SHA}"'));
   assert.match(workflow,/ref: gh-pages/);
   assert.match(workflow,/rsync -a --delete dist-core\/ existing-pages\/r8-benchmark\//);
   assert.match(workflow,/sha256sum -c \/tmp\/kenjatime-live-before/);
