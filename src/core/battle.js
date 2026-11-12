@@ -3,6 +3,7 @@ import {PRESENTATION_WIDE,PRESENTATION_NATIVE,normalizePresentation} from "./pre
 import { gamepadKeys } from "../input-buffer.js";
 import { CoreAudio } from "./audio.js";
 import { CoreVideos } from "./video-source.js";
+import { FIGHT_BANNER_TICKS } from "./fight-start.js";
 import "./battle.css";
 import "./hud.css";
 let active;
@@ -205,7 +206,7 @@ export async function openCoreBattle({
       if (roundTag.textContent !== label) roundTag.textContent = label;
       const announcement = isTraining || phase === 0 ? ""
         : phase === 1 ? `ROUND ${round}`
-        : phase === 2 && elapsed < 42 ? "FIGHT!"
+        : phase === 2 && elapsed < FIGHT_BANNER_TICKS ? "FIGHT!"
         : phase === 3 ? state.roundReason === "time" ? "TIME OVER" : "K.O."
         : phase === 4 ? winner ? `${winner} WINS` : "DRAW GAME" : "";
       const banner = host.querySelector(".core-announcement");
