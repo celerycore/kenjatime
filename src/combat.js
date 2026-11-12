@@ -135,6 +135,9 @@ export class TrainingMatch {
     this._projectileClashBounds ||= new Float64Array(this.maxProjectiles * 4);
     this.projectileClashStats = {pairsVisited:0, narrowphaseCalls:0};
     this.orphanEffectOwners=[];this.renderEntities=[...this._entities];this.drawProjectiles=[];this.helperCommands=new Map();
+    // Round-scoped helper lifecycle counters for MUGEN parity diagnostics.
+    // Constant-time on helper creation/destruction; never enumerate assets.
+    this.helperStats={attempted:0,created:0,rejected:0,missingState:0,destroyed:0,peak:0};
     this.usedHits = new Map();this.juggles=new Map();this.cornerPushActors=new Set(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
     this.commandBuffers = new Map(); this.presentationEvents = [];this.eventEntities=[];
     this.pendingCombatEffects=[];this.activeActor=null;this.contactPhase=false;
@@ -187,10 +190,25 @@ export class TrainingMatch {
   }}
   findPlayer(id) { return this.entities.find(p=>p.id === id); }
   spawnHelper(owner,spec) {
-    if (this.entities.filter(p=>p.parent).length >= this.maxHelpers) { owner.diagnostic('resource-limit',`Helper limit (${this.maxHelpers}) reached.`); return null; }
+    this.helperStats.attempted++;
+    const active=this.entities.filter(p=>p.parent).length;
+    if (active >= this.maxHelpers) {
+      this.helperStats.rejected++;
+      owner.diagnostic('resource-limit',`Helper limit (${this.maxHelpers}) reached.`);
+      return null;
+    }
     const helper = owner.createHelper(spec,{id:this.nextEntityId++});
-    if (!helper.destroyed) {this._entities.push(helper);if(helper.keyCtrl)this.helperCommands.set(helper,new CommandBuffer(characterCommands(helper.root.character)));this.syncEnvironment();}
-    else this.archiveDiagnostics(helper.diagnostics);
+    if (!helper.destroyed) {
+      this._entities.push(helper);
+      this.helperStats.created++;
+      this.helperStats.peak=Math.max(this.helperStats.peak,active+1);
+      if(helper.keyCtrl)this.helperCommands.set(helper,new CommandBuffer(characterCommands(helper.root.character)));
+      this.syncEnvironment();
+    }else{
+      this.helperStats.rejected++;
+      if(helper.diagnostics.some(d=>d.type==='missing-state'))this.helperStats.missingState++;
+      this.archiveDiagnostics(helper.diagnostics);
+    }
     return helper;
   }
   spawnProjectile(owner,spec) {
@@ -543,6 +561,7 @@ export class TrainingMatch {
 
   cleanupEntities() {
     const dead = this._entities.filter(p=>p.destroyed);
+    this.helperStats.destroyed+=dead.filter(p=>p.parent).length;
     for(const actor of dead)if(!actor._effectsDetached)this.retireEffects(actor);
     for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor);this.cornerPushActors.delete(actor); this.commandBuffers.delete(actor);this.inputBuffers.delete(actor);this.helperCommands.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
     this._entities = this._entities.filter(p=>!p.destroyed);
