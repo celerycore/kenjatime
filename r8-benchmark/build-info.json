@@ -1,7 +1,7 @@
 {
   "repository": "celerycore/kenjatime",
   "branch": "feature/r8-benchmark-preview-20261112",
-  "sourceCommit": "3d15bc7b9c58aeb182affef25a93873f3ffb8cb3",
+  "sourceCommit": "f36614a95a858e14f9ae73684957f3b544571339",
   "channel": "r8-benchmark-pr17",
   "basedOnPR": 17,
   "benchmarkFeatures": [
@@ -9,7 +9,9 @@
     "strict-palette-binding",
     "gpu-texture-residency",
     "cpu-submit-frame-time",
-    "download-csv"
+    "download-csv",
+    "endless-round-mode",
+    "ko-reset-cycle"
   ],
   "privateCharactersIncluded": false,
   "kotlinWasmDefault": false

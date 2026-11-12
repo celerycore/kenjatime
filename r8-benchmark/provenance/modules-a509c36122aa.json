@@ -50,7 +50,7 @@
     "src/hit-rules.js": "2bd833cb7ab026362831d3c0c1ac60f888ebde1eafbec5387cb835619d5e38a8",
     "src/hit-state.js": "a35f52ae114045a5bb6fb858b710db585a14ef441164636a07ec691388e1915c",
     "src/input-buffer.js": "947c4571edd46adfef272f9bd83bd72a9bf752ee06a720395aaa87431843247a",
-    "src/library-host.js": "2460b9c7856965966d65e22f89cf07fd016a21c6c9d78db57978b25adb200e45",
+    "src/library-host.js": "dd432382b4b015a61491c6b654c20f742fe1df10dfab7a11b5186f9b291530d7",
     "src/library-recovery.js": "f59383af1cac68fb0bf659117e8d304e7d6e23cac854540a7c81d1f3e4cc395f",
     "src/memory-cache.js": "de77963f9cf3d3ec83ab66560dd19f63160e52d3959f561f05b7efde604eb280",
     "src/mobile.css": "993e00ae216a2fccdcb35aead1ecc20bca73fa837ead44c21f21f65e8f4e7bf6",
