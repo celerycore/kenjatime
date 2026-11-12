@@ -35,9 +35,47 @@ export function validateMugen11NativeOracleEvidence(reference,candidate) {
     throw Error("Reference requires nonempty independently captured tick observations.");
   if(!Array.isArray(candidate.ticks)||candidate.ticks.length===0)
     throw Error("Kenjatime candidate requires nonempty tick observations.");
-  const compared=compareLegacyTraces({ticks:reference.ticks},{ticks:candidate.ticks});
+  // Native debug captures commonly contain only selected post-controller
+  // frames and observable fields. Compare exactly those supplied fields,
+  // aligned by tick, phase and actor role. Do NOT silently fill missing
+  // native observations with Kenjatime data.
+  const permittedFields=new Set([
+    "role","stateNo","stateTime","anim","animElem","ctrl",
+    "stateOwner","animationOwner","var42",
+  ]);
+  const candidateByFrame=new Map(candidate.ticks.map(row=>
+    [row.tick+":"+row.phase,row]));
+  let comparedActors=0,comparedFields=0;
+  const projected=reference.ticks.map((nativeRow,index)=>{
+    const key=nativeRow.tick+":"+nativeRow.phase;
+    const candidateRow=candidateByFrame.get(key);
+    if(!candidateRow)throw Error("Native observation "+index+" has no candidate tick/phase "+key);
+    if(!Array.isArray(nativeRow.actors)||!nativeRow.actors.length)
+      throw Error("Native observation "+index+" has no observed actors.");
+    const roles=new Set();
+    const actors=nativeRow.actors.map(nativeActor=>{
+      const name=requireNonempty(nativeActor?.role,"Observed native actor role");
+      if(roles.has(name))throw Error("Duplicate observed actor role "+name+" in "+key);
+      roles.add(name);
+      const candidateActor=candidateRow.actors.find(actor=>actor.role===name);
+      if(!candidateActor)throw Error("No matching Kenjatime candidate actor for "+name+" in "+key);
+      const keys=Object.keys(nativeActor);
+      if(keys.some(field=>!permittedFields.has(field)))
+        throw Error("Unknown native observation field for "+name+" in "+key);
+      if(!keys.some(field=>field!=="role"))
+        throw Error("An actor observation must include at least one measurable field.");
+      comparedActors++;
+      comparedFields+=keys.length-1;
+      return Object.fromEntries(keys.map(field=>[field,candidateActor[field]]));
+    });
+    return {tick:candidateRow.tick,phase:candidateRow.phase,actors};
+  });
+  if(!reference.ticks.some(row=>row.actors.some(actor=>actor.role==="p2")))
+    throw Error("A P2 observation is required for a native custom-state comparison.");
+  const compared=compareLegacyTraces({ticks:reference.ticks},{ticks:projected});
   return {
     ...compared,scenario:candidate.scenario,
+    coverage:{observations:reference.ticks.length,actors:comparedActors,fields:comparedFields},
     nativeReferenceClaimed:true,
     nativeReferenceAuthenticated:false, // Metadata alone cannot prove authenticity.
     fullMugen11Certified:false,          // One trace is not full engine parity.
