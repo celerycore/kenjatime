@@ -43,6 +43,13 @@ jobs:
         run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js test/core/archive-file-picker.test.js test/core/remote-archive.test.js test/core/nu13-upload-size.test.js test/core/r8-ko-adaptive.test.js test/core/r8-start-freeze.test.js
       - name: Verify MUGEN 1.1 helper state/negative-state/input parity
         run: node --test test/core/mugen11-compatibility-target.test.js test/core/mugen11-state-helper-parity.test.js test/core/mugen11-binding-parentvar-parity.test.js test/core/rare-akuma-compatibility.test.js
+      - name: Verify native-documented TargetState, ChangeAnim2 and SelfState synthetic behavior
+        run: npm run verify:core:mugen11-customstate
+      - name: Generate labeled candidate (never a native reference trace)
+        run: |
+          node scripts/core/mugen11-targetstate-oracle.mjs --candidate /tmp/kenjatime-mugen11-customstate.json
+          test -s /tmp/kenjatime-mugen11-customstate.json
+          node --input-type=module -e 'import fs from "node:fs"; const j=JSON.parse(fs.readFileSync("/tmp/kenjatime-mugen11-customstate.json","utf8")); if(j.source!=="kenjatime-synthetic"||j.nativeMugen11Verified!==false)process.exit(1)'
       - name: Verify deterministic 60 Hz input replay and KFM combat hashes
         run: node --test test/core/deterministic-60hz.test.js test/core/frame-scheduler.test.js
       - name: Run complete Core unit regression suite
@@ -66,7 +73,7 @@ jobs:
               sourceCommit:process.env.GITHUB_SHA,
               channel:"r8-benchmark-pr17",
               basedOnPR:17,
-              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv","mugen11-persistent-n","mugen11-negative-state-audit","mugen11-bindtime-zero","mugen11-parentvar-restrictions","mugen11-helper-state-owners"],
+              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv","mugen11-persistent-n","mugen11-negative-state-audit","mugen11-bindtime-zero","mugen11-parentvar-restrictions","mugen11-helper-state-owners","mugen11-targetstate-id","mugen11-changeanim2-selfstate","mugen11-native-oracle-candidate","mugen11-player-owner-csv"],
               privateCharactersIncluded:false,
               kotlinWasmDefault:false
             },null,2)+"\n");
