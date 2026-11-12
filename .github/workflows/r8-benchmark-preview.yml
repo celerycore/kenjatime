@@ -66,7 +66,7 @@ jobs:
               sourceCommit:process.env.GITHUB_SHA,
               channel:"r8-benchmark-pr17",
               basedOnPR:17,
-              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv"],
+              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv","mugen11-persistent-n","mugen11-negative-state-audit"],
               privateCharactersIncluded:false,
               kotlinWasmDefault:false
             },null,2)+"\n");
