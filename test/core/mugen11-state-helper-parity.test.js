@@ -237,3 +237,39 @@ test("MUGEN 1.1 missing or destroyed P2 falls back to the spawning player's axis
   assert.equal(helper.pos.y,match.player.pos.y+2);
   assert.ok(match.player.diagnostics.some(d=>d.type==="missing-player"&&d.message.includes("postype=p2")));
 });
+
+test("duplicate MUGEN 1.1 global states are reported, never silently considered native parity",()=>{
+  const first=`[Statedef -3]
+[State -3, First]
+type=Null
+trigger1=1
+[Statedef -2]
+[State -2, First]
+type=Null
+trigger1=1
+`;
+  const second=`[Statedef -2]
+[State -2, Second]
+type=Null
+trigger1=1
+[Statedef -1]
+[State -1, New]
+type=Null
+trigger1=1
+`;
+  const character={
+    path:"global-duplicates.def",
+    def:{info:{mugenversion:"1.1"},files:{st:"first.cns",st1:"second.cns"}},
+    files:{"first.cns":encode(first),"second.cns":encode(second)},
+  };
+  const program=parseProgram(character);
+  const warnings=program.diagnostics.filter(d=>d.type==="mugen11-duplicate-global");
+  assert.equal(warnings.length,1);
+  assert.equal(warnings[0].state,-2);
+  assert.equal(warnings[0].source,"second.cns");
+  assert.match(warnings[0].message,/native verification/);
+  assert.ok(!warnings.some(w=>w.state===-1 || w.state===-3));
+  assert.equal(program.diagnostics.some(d=>d.fatal),false);
+  assert.equal(program.states.get(-2).source,"second.cns",
+    "diagnostic-only change does not silently alter existing state precedence");
+});
