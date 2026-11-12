@@ -210,3 +210,31 @@ native-behavior conformance certification.
 These tests verify documented behavior in synthetic Core fixtures, not
 complete matching to a native MUGEN 1.1 executable. Verified original
 Tomoka, Rare Akuma, and other helper-heavy native traces are still required.
+
+
+## 9. Native TargetState / SelfState / ChangeAnim2 comparison gate (November 12, 2026)
+
+- A **documented mismatch was corrected**: `TargetState` accepts
+  `value` and optional hit `ID` in Elecbyte 1.1, **not** `ctrl`. The
+  Core ignores authored `ctrl=` with a compatibility diagnostic rather
+  than changing captured P2 control. Destroyed targets cannot be
+  transitioned before end-of-frame cleanup.
+- Original synthetic attacker/victim and P2-owned helper fixtures now
+  test ID filtering, borrowed state ownership, `ChangeAnim2` selecting
+  P1 AIR action 9100 element 2, borrowed `ChangeState` continuity and
+  `SelfState` returning P2 to its own StateDef 0 and AIR.
+- `npm run verify:core:mugen11-customstate` tests these rules and
+  native **evidence validator logic**. A separate CLI exports a
+  deterministic, clearly labeled **Kenjatime synthetic candidate**
+  timeline; it cannot generate native MUGEN observations.
+- A lawful native 1.1 probe is documented in
+  `docs/mugen11-targetstate-native-oracle.md`. Its original CNS/AIR
+  appendices are in `test/native-mugen11-targetstate/`. Compare only
+  observations genuinely collected from native MUGEN 1.1 Beta 1 P1;
+  the optional oracle gate requires executable/asset SHA-256 provenance
+  and does exact observed-field comparisons by actor role/tick/phase.
+- **No native executable or native trace is available in the supplied
+  resources.** Therefore the actual native comparison, original
+  Tomoka assist playback parity and complete MUGEN 1.1 conformance
+  remain **UNVERIFIED**. Mock provenance tests never count as proof,
+  and a single matching reference never certifies the whole engine.
