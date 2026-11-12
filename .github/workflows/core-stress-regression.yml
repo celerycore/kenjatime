@@ -44,6 +44,14 @@ jobs:
         run: node --test test/core/mugen11-state-helper-parity.test.js
       - name: MUGEN 1.1 BindToParent, ParentVar and DestroySelf compatibility
         run: node --test test/core/mugen11-binding-parentvar-parity.test.js
+      - name: MUGEN 1.1 TargetState, SelfState, ChangeAnim2 and native-oracle evidence gates
+        run: npm run verify:core:mugen11-customstate
+      - name: Export synthetic native-oracle candidate (never native certification)
+        run: |
+          node scripts/core/mugen11-targetstate-oracle.mjs --candidate /tmp/kenjatime-targetstate-candidate.json --ticks 5
+          test -s /tmp/kenjatime-targetstate-candidate.json
+          node --input-type=module -e 'import fs from "node:fs"; const j=JSON.parse(fs.readFileSync("/tmp/kenjatime-targetstate-candidate.json","utf8")); if(j.nativeMugen11Verified!==false || j.source!=="kenjatime-synthetic")process.exit(1)'
+
       - name: Existing ZSS compatibility fixtures
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite
