@@ -39,8 +39,8 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: npm ci
-      - name: Verify R8 formats, palette bindings and LRU residency
-        run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js
+      - name: Verify R8 formats, palette bindings, residency, Android archive chooser
+        run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js test/core/archive-file-picker.test.js
       - name: Run complete Core unit regression suite
         run: npm run test:core
       - name: Build isolated Core benchmark assets

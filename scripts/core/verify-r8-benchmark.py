@@ -27,6 +27,30 @@ try:
         assert page.locator('#core-qa-guide').count() == 1
         assert page.locator('#endless-mode').count() == 1
         assert not page.locator('#endless-mode').is_checked()
+        assert page.locator('#browse').count() == 1
+        assert page.locator('#browse-split').count() == 1
+        assert page.locator('#browse-all').count() == 1
+        # The primary archive chooser must no longer request unrestricted
+        # multi-selection, which can open Android's photo/gallery providers.
+        for button, multi, generic in [
+            ('#browse', False, False),
+            ('#browse-split', True, False),
+            ('#browse-all', False, True),
+        ]:
+            with page.expect_file_chooser() as chooser_event:
+                page.locator(button).click()
+            chooser = chooser_event.value
+            assert chooser.is_multiple() is multi, button
+            accept = page.locator('#engine-archive-file').get_attribute('accept')
+            assert (accept == '*/*') is generic, (button, accept)
+            if not generic:
+                assert all(ext in accept for ext in ['.zip', '.rar', '.7z'])
+            # Simulate user cancellation without importing an actual archive.
+            page.locator('#engine-archive-file').evaluate(
+                '(el) => el.dispatchEvent(new Event("cancel"))')
+            page.wait_for_function("!document.querySelector('#engine-archive-file')")
+            page.wait_for_function("!document.querySelector('#browse').disabled")
+        summary['checks']['androidDocumentPicker'] = True
         summary['checks']['isolatedLabel'] = True
 
         page.locator('#arena-mode').select_option('cpu')

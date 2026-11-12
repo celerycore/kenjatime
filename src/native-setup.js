@@ -44,7 +44,7 @@ if(startup){
  startup.subscribe(render);render();panel.addEventListener('toggle',()=>{clearInterval(refresh);if(panel.open){render();if(startup.snapshot().sessions[0].status==='loading')refresh=setInterval(render,1000);}});
  panel.querySelector('#export-startup').onclick=async event=>{const button=event.currentTarget;button.disabled=true;try{await exportFile(new Blob([JSON.stringify(startup.snapshot(),null,2)],{type:'application/json'}),'kenjatime-startup-report.json');}catch(error){panel.querySelector('#startup-progress').textContent=error.message;}finally{button.disabled=false;}};
 }
-$('#drop').innerHTML='<div class="upload-icon">↥</div><div><b>Bring a new challenger.</b><p>Import a character or stage archive, or <button type="button" id="browse">browse files</button></p><small>ZIP / RAR / 7z / TAR · for split archives, select every part together</small><details class="archive-options"><summary>Archive password (optional)</summary><input id="archive-password" type="password" autocomplete="off" aria-label="Archive password"></details></div>';
+$('#drop').innerHTML='<div class="upload-icon">↥</div><div><b>Bring a new challenger.</b><p>Import ZIP / RAR / 7z / TAR from your device.</p><div class="archive-picker-actions"><button type="button" id="browse">Choose archive</button><button type="button" id="browse-split">Select split archive parts</button><button type="button" id="browse-all">Browse all files</button></div><small>Android: select Files / Internal storage / Downloads, not Photos. Use Browse all files if your archive is hidden. Split archives need every part selected together.</small><details class="archive-options"><summary>Archive password (optional)</summary><input id="archive-password" type="password" autocomplete="off" aria-label="Archive password"></details></div>';
 $('.notice').textContent='Character scripts and matches run in the game engine. Package checks describe installed resources.';
 $('#hint').textContent='Select your fighter, opponent and stage, then start a match.';$('.coordinates').innerHTML='X <span id="pos">0</span> &nbsp; Y <span>0</span>';
 $('#play').hidden=$('#step').hidden=$('#actions').hidden=$('#speed').hidden=true;$('.frame').textContent='P1 / P2 PREVIEW';
@@ -124,10 +124,20 @@ function applyInstalled(result){
  const previous=new Set(catalog.packages.map(p=>p.id));drawCatalog(result);const added=catalog.packages.find(p=>!previous.has(p.id));if(!added)return;
  const fighter=catalog.characters.find(c=>c.packageId===added.id),stage=catalog.stages.find(s=>s.packageId===added.id);if(fighter)choose(fighter.id);if(stage){$('#stage-select').value=stage.id;$('.stage-label').textContent=stage.name;remember();}
 }
-async function pick(kind){await run('Choose a character or stage archive…',async()=>{const result=await native('pickArchive',{kind,password:$('#archive-password').value});$('#archive-password').value='';if(result.cancelled){status('Import cancelled.');return;}applyInstalled(result);status('Archive installed. Your fighters and stages are ready to select.');});}
+async function pick(kind,{multiple=false,allFiles=false}={}){await run('Choose a character or stage archive…',async()=>{
+ const result=await native('pickArchive',{kind,multiple,allFiles,password:$('#archive-password').value});
+ $('#archive-password').value='';
+ if(result.cancelled){status('Import cancelled. If Android only shows Photos, use the Files app or the Browse all files option.');return;}
+ applyInstalled(result);status('Archive installed. Your fighters and stages are ready to select.');
+});}
 
-for(const [id,kind]of [['upload','any'],['add-stage','stage'],['browse','any']]){
- const element=$('#'+id);element.onclick=event=>{event.preventDefault();void pick(kind);};element.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();void pick(kind);}};
+for(const [id,kind,options]of [
+ ['upload','any',{}],['add-stage','stage',{}],['browse','any',{}],
+ ['browse-split','any',{multiple:true}],['browse-all','any',{allFiles:true}]
+]){
+ const element=$('#'+id);
+ element.onclick=event=>{event.preventDefault();void pick(kind,options);};
+ element.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();void pick(kind,options);}};
 }
 if(engineHost.importFile){
  $('#drop').addEventListener('dragover',event=>event.preventDefault());

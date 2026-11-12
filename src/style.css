@@ -30,3 +30,33 @@ label.primary{display:inline-flex;align-items:center;cursor:pointer}
 @media(max-width:800px){.coordinates{max-width:calc(100% - 40px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stage-badge{display:none}}
 
 .archive-options{font-size:11px;color:#a6b2bb;flex-basis:100%;margin-top:10px}.archive-options input{background:#191e24;border:1px solid #323943;border-radius:4px;padding:9px;color:#e8eae7;max-width:100%}.drop{flex-wrap:wrap}
+
+/* Android archive document chooser: separate local, multipart, and fallback. */
+.drop .archive-picker-actions {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:8px 0;
+}
+.drop .archive-picker-actions button {
+  min-height:36px;
+  padding:8px 10px;
+  border:1px solid #486454;
+  border-radius:5px;
+  background:#1c2d23;
+  color:#d3fb8d;
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+  touch-action:manipulation;
+}
+.drop .archive-picker-actions #browse {
+  background:#c8f69d;
+  border-color:#c8f69d;
+  color:#12221a;
+}
+.drop .archive-picker-actions button:focus-visible {
+  outline:2px solid #c8f69d;
+  outline-offset:2px;
+}
