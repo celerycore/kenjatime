@@ -76,6 +76,19 @@ try:
         assert state['simulationHz'] == 60, state
         assert state['simulationTicks'] >= 10, state
         assert state['simulationBacklogTicks'] >= 0, state
+        assert state['compatibility']['id'] == 'mugen-1.1', state
+        assert state['compatibility']['certified'] is False
+        assert state['helperStats']['attempted'] >= state['helperStats']['created']
+        assert state['helperStats']['rejected'] >= 0
+        assert state['helperFrameStats']['alive'] >= state['helperFrameStats']['submitted']
+        assert isinstance(state['helpers'], list)
+        assert page.locator('[data-r8="helpers"]').count() == 1
+        assert page.locator('[data-r8="helperdraws"]').count() == 1
+        summary['checks']['mugen11Helpers'] = {
+            'target': state['compatibility']['id'],
+            'spawnAttempts': state['helperStats']['attempted'],
+            'active': state['helperFrameStats']['alive'],
+        }
         summary['checks']['deterministicClock'] = {
             'simulationHz': state['simulationHz'],
             'simulationTicks': state['simulationTicks'],
@@ -91,7 +104,7 @@ try:
         page.locator('[data-r8-stop]').click()
         assert page.locator('[data-r8-export]').is_enabled()
         csv = page.evaluate('window.__kenjatimeR8Benchmark.csv()')
-        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and 'simulation_hz' in csv and 'simulation_ticks' in csv and 'simulation_backlog_ticks' in csv and len(csv.splitlines()) >= 4
+        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and 'simulation_hz' in csv and 'simulation_ticks' in csv and 'simulation_backlog_ticks' in csv and 'helpers_alive' in csv and 'helpers_missing_state' in csv and 'helper_state_map' in csv and len(csv.splitlines()) >= 4
         with page.expect_download() as downloaded:
             page.locator('[data-r8-export]').click()
         item = downloaded.value
