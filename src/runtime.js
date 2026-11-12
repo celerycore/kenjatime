@@ -736,9 +736,13 @@ export class FighterRuntime {
     }
     if (!enabled) return false;
     const persistent = rules.persistent;
-    const count = this._controllerCounts.get(controller) || 0;
-    this._controllerCounts.set(controller, count + 1);
-    return persistent === 0 ? count === 0 : count % persistent === 0;
+    const successes = (this._controllerCounts.get(controller) || 0) + 1;
+    this._controllerCounts.set(controller, successes);
+    // Elecbyte MUGEN 1.1: persistent=0 runs once per state entry,
+    // persistent=N>1 runs on the Nth, 2Nth, 3Nth successful evaluation.
+    // A false trigger does not advance the persistence counter.
+    return persistent === 0 ? successes === 1
+      : persistent === 1 || successes % persistent === 0;
   }
 
   runState(number, paused, owner = this.stateOwner) {
