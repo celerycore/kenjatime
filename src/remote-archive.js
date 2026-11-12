@@ -1,4 +1,4 @@
-import { MAX_ARCHIVE_BYTES } from "./archive-limits.js";
+import { MAX_ARCHIVE_BYTES, ARCHIVE_LIMIT_MB } from "./archive-limits.js";
 import { archiveKind } from "./archive-kind.js";
 
 /** Browser-only download fallback; requires direct HTTPS URL and server CORS. */
@@ -41,7 +41,7 @@ export async function downloadArchiveFromUrl(value, {
   }
   if (!response?.ok) throw Error("Archive download failed (HTTP "+(response?.status||"unknown")+").");
   const length=Number(response.headers?.get?.("content-length")||0);
-  if (length>maxBytes) throw Error("Archive exceeds the 128 MB size limit.");
+  if (length>maxBytes) throw Error(`Archive exceeds the ${ARCHIVE_LIMIT_MB} MiB size limit.`);
   let size=0, parts=[];
   if (response.body?.getReader) {
     const reader=response.body.getReader();
@@ -52,7 +52,7 @@ export async function downloadArchiveFromUrl(value, {
         const bytes=packet.value;
         if(!bytes?.byteLength)continue;
         size+=bytes.byteLength;
-        if(size>maxBytes){await reader.cancel().catch(()=>{});throw Error("Archive exceeds the 128 MB size limit.");}
+        if(size>maxBytes){await reader.cancel().catch(()=>{});throw Error(`Archive exceeds the ${ARCHIVE_LIMIT_MB} MiB size limit.`);}
         parts.push(bytes);
         onProgress("Downloading archive: "+(size/1048576).toFixed(1)+" MiB");
       }
@@ -60,7 +60,7 @@ export async function downloadArchiveFromUrl(value, {
   } else {
     const bytes=new Uint8Array(await response.arrayBuffer());
     size=bytes.byteLength;
-    if(size>maxBytes)throw Error("Archive exceeds the 128 MB size limit.");
+    if(size>maxBytes)throw Error(`Archive exceeds the ${ARCHIVE_LIMIT_MB} MiB size limit.`);
     parts=[bytes];
   }
   if(!size)throw Error("The archive download is empty.");

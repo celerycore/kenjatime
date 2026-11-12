@@ -1,5 +1,5 @@
 import {zipSync,strToU8} from 'fflate';
-import {MAX_ARCHIVE_BYTES} from './archive-limits.js';
+import {MAX_ARCHIVE_BYTES,ARCHIVE_LIMIT_MB} from './archive-limits.js';
 
 export const VOLUME_MANIFEST='kenjatime-volumes.json';
 export function archiveVolumePlan(parts){
@@ -9,7 +9,7 @@ export function archiveVolumePlan(parts){
   const name=part.name?.normalize('NFC');
   if(!name||name.length>255||/[\\/\x00-\x1f\x7f]/.test(name)||name==='.'||name==='..')throw Error('Invalid archive part name.');
   if(names.has(name.toLowerCase()))throw Error('Duplicate archive part name.');names.add(name.toLowerCase());
-  const size=part.size??part.bytes?.length;if(!Number.isSafeInteger(size)||size<0||(total+=size)>MAX_ARCHIVE_BYTES)throw Error('Archive parts together exceed the 128 MB limit.');
+  const size=part.size??part.bytes?.length;if(!Number.isSafeInteger(size)||size<0||(total+=size)>MAX_ARCHIVE_BYTES)throw Error(`Archive parts together exceed the ${ARCHIVE_LIMIT_MB} MiB limit.`);
  }
  const sorted=[...parts].sort((a,b)=>a.name.localeCompare(b.name,'en',{numeric:true}));
  const lower=sorted.map(p=>p.name.normalize('NFC').toLowerCase());let first;

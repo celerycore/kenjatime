@@ -1,7 +1,7 @@
 import {ZipReader,Uint8ArrayReader,configure} from '@zip.js/zip.js/lib/zip-core-custom.js';
 import {Inflate} from 'fflate';
 import {normalizedPackageFiles,packageEntryPath} from './formats.js';
-import {MAX_ARCHIVE_BYTES,MAX_EXPANDED_BYTES,MAX_ARCHIVE_FILES} from './archive-limits.js';
+import {MAX_ARCHIVE_BYTES,MAX_EXPANDED_BYTES,MAX_ARCHIVE_FILES,ARCHIVE_LIMIT_MB} from './archive-limits.js';
 
 // Reuse the already bundled raw-deflate decoder. No nested workers, codec
 // downloads or browser-specific DecompressionStream support are required.
@@ -14,7 +14,7 @@ class RawInflateStream extends TransformStream{
 configure({useWebWorkers:false,useCompressionStream:false,DecompressionStreamFallback:RawInflateStream,chunkSize:8192});
 
 export async function unpackEncryptedZip(bytes,{password='',onProgress=()=>{}}={}){
- if(bytes.length>MAX_ARCHIVE_BYTES)throw Error('Archive exceeds the 128 MB limit.');
+ if(bytes.length>MAX_ARCHIVE_BYTES)throw Error(`Archive exceeds the ${ARCHIVE_LIMIT_MB} MiB limit.`);
  const reader=new ZipReader(new Uint8ArrayReader(bytes),{password,useWebWorkers:false,useCompressionStream:false,checkSignature:true});
  let count=0,declared=0,total=0,activeEncrypted=false;const files=[];
  try{
