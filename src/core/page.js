@@ -24,6 +24,7 @@ const host = createLibraryHost({
     },
   ],
 });
+document.body.dataset.r8Benchmark = 'true';
 mountSetup(host);
 const guide = document.createElement("section");
 guide.id = "core-qa-guide";
