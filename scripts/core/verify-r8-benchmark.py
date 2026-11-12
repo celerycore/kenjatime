@@ -83,6 +83,11 @@ try:
         assert page.locator('[data-r8="borrowed"]').count() == 1
         assert page.locator('[data-r8="targets"]').count() == 1
         assert page.locator('[data-r8="facing"]').count() == 1
+        assert page.locator('[data-r8="movetype"]').count() == 1
+        assert page.locator('[data-r8="pendinghits"]').count() == 1
+        assert all(p['moveType'] in ('I','H','A') and p['hitPauseTime'] >= 0
+                   and (p['pendingStateNo'] is None or isinstance(p['pendingStateNo'],int))
+                   for p in state['players'])
         assert all(p['facing'] in (-1, 1) and p['liveTargets'] >= 0 for p in state['players'])
         assert all('duplicateGlobalStates' in c for c in state['compatibility']['characters'])
         assert page.locator('[data-r8="globaldupes"]').count() == 1
@@ -119,7 +124,10 @@ try:
             'CSV header and sample column counts differ', len(parsed_csv[0]), len(parsed_csv[1]), len(parsed_csv[-1]))
         assert 'p2_state_owner_id' in parsed_csv[0] and 'p2_animation_owner_id' in parsed_csv[0]
         assert all(key in parsed_csv[0] for key in
-                   ['p1_facing','p2_facing','p1_live_targets','p2_live_targets'])
+                   ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
+                    'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',
+                    'p1_pending_state_no','p2_pending_state_no',
+                    'p1_pending_state_owner_id','p2_pending_state_owner_id'])
         with page.expect_download() as downloaded:
             page.locator('[data-r8-export]').click()
         item = downloaded.value
