@@ -5,6 +5,7 @@ import { FrameClock, SIMULATION_HZ } from "../frame-clock.js";
 import { TickInputBuffer } from "../input-buffer.js";
 import { soundArchive } from "../formats.js";
 import { FrameScheduler } from "./frame-scheduler.js";
+import { AdaptiveResolution } from "./adaptive-resolution.js";
 /** Worker-owned simulation/renderer. The UI owns only input, audio sinks and HUD. */
 export function createCoreRuntime(emit) {
   let session,
@@ -29,7 +30,7 @@ export function createCoreRuntime(emit) {
     sounds = new Map(),
     sentSounds = new Set(),
     soundKeys = new Map(),
-    renderTimes = [];
+    adaptiveResolution = new AdaptiveResolution();
   const videoStates = new Map(),
     failedVideos = new Set();
   function syncVideos() {
@@ -171,15 +172,10 @@ export function createCoreRuntime(emit) {
         // CPU-side packet build + GL submission time; NOT a GPU completion timer.
         if (renderer.stats) renderer.stats.frameCpuSubmitMs = elapsed;
         dirty = false;
-        if (quality === "auto" && !packet.assets.length && !paused) {
-          renderTimes.push(elapsed);
-          if (renderTimes.length >= 30) {
-            const average =
-              renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length;
-            if (average > 20) scale = Math.max(0.5, scale - 0.05);
-            else if (average < 9) scale = Math.min(1, scale + 0.05);
-            renderTimes.length = 0;
-          }
+        if (quality === "auto") {
+          scale = adaptiveResolution.observe(time, elapsed, {
+            eligible: !packet.assets.length && !paused && !hidden && focused,
+          });
         }
       }
       if (time - lastState >= 100) {
@@ -195,6 +191,7 @@ export function createCoreRuntime(emit) {
             simulationHz: SIMULATION_HZ,
             simulationTicks: clock.tickCount,
             simulationBacklogTicks: Math.floor(clock.debt),
+            resolutionScale: scale,
           },
           gpu: renderer.stats,
         });
@@ -314,6 +311,7 @@ export function createCoreRuntime(emit) {
       hidden = !!data.hidden;
       focused = data.focused !== false;
       if (!hidden) dirty = true;
+      adaptiveResolution.suspend();
       if (started) syncVideos();
       if (started) schedule();
       return;
@@ -345,6 +343,7 @@ export function createCoreRuntime(emit) {
       paused = !!data.value;
       inputs.forEach((i) => i.reset());
       clock.suspend();
+      adaptiveResolution.suspend();
       dirty = true;
       if (started) schedule();
     }
@@ -357,7 +356,7 @@ export function createCoreRuntime(emit) {
     if (data.type === "quality") {
       quality = data.value;
       scale = 1;
-      renderTimes.length = 0;
+      adaptiveResolution.reset();
       dirty = true;
     }
     if (data.type === "audio-port") {
