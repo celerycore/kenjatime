@@ -12,7 +12,7 @@ IKEMEN GO parity or cross-device floating-point reproducibility.
 - The simulation advances at **60 logical ticks per second**, independent of
   rendering. 30, 60 and 120 FPS presentations must give the same tick sequence.
 - `FrameClock` quantizes each absolute monotonic callback timestamp to a
-  **single integer microsecond**. A cumulative virtual microsecond counter
+  **single integer microsecond** from the monotonic relative clock. Input deadlines are converted to UI-compatible epoch timestamps only at sampling. A cumulative virtual microsecond counter
   determines tick numbers using `floor(total_us * 60 / 1_000_000)`.
 - Every input tick is sampled at a stable rational deadline:
   `ceil(n * 1_000_000 / (60 * speed))` microseconds from its clock segment.
