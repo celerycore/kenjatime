@@ -1,7 +1,7 @@
 {
   "sources": {
     "src/animation-clock.js": "f52b950774cce62243be29671f09599d8607eb451d04934ff3001265d2f0d665",
-    "src/archive-limits.js": "f3890d703c9aa16ce6ba5f96f4700fecf69b0461cc289a4c3e92dae56269d70e",
+    "src/archive-limits.js": "e186ccb28385474dc0a775bb8603143ae8235e9f1b907317593fb6aec29d6102",
     "src/combat-rules.js": "4e2533353a120d1d0099a581f3a2f9cf1ad0259ba178537b22ecf56513e30472",
     "src/combat.js": "4cb3d0a13cae9211ac0e70ea109c5291d643984667fb228729e54cca74c83902",
     "src/commands.js": "8e7b8f519f1e4161786781575f05809b8432008e0f2ba75ce6481779e2020e50",
