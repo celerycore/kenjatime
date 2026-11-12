@@ -28,9 +28,9 @@ panel.id = "kenjatime-r8-benchmark";
 panel.setAttribute("aria-label", "Indexed R8 GPU benchmark");
 panel.innerHTML = `
   <details>
-    <summary>R8 GPU BENCHMARK <span>PR #17</span></summary>
+    <summary>R8 GPU BENCHMARK <span>MUGEN 1.1 · MEGA</span></summary>
     <div class="r8-bench-content">
-      <p>Live GPU residency estimates for the actual match. Works with bundled Kung Fu Man or your own locally imported fighters and stages.</p>
+      <p>Live GPU residency estimates for the actual match. Mega Update: combined MUGEN 1.1 state/helper/HitDef diagnostics, indexed R8 GPU rendering, large-character import and 60 Hz stress testing. Works with bundled Kung Fu Man or your own locally imported fighters and stages. Native MUGEN 1.1 parity is not certified.</p>
       <div class="r8-bench-readings" aria-live="off">
         <div><small>Rendered FPS</small><strong data-r8="fps">—</strong></div>
         <div><small>Simulation clock</small><strong data-r8="simulation">—</strong></div>
