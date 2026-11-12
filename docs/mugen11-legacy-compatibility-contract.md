@@ -261,3 +261,30 @@ Tomoka, Rare Akuma, and other helper-heavy native traces are still required.
   these edge cases in Kenjatime synthetic fixtures; no independent
   native screenshot/trace is bundled. Full MUGEN 1.1 parity remains
   **UNVERIFIED**.
+
+
+## 11. TargetDrop random retention for multi-victim helpers (November 12, 2026)
+
+Elecbyte's MUGEN 1.1 `TargetDrop` documentation specifies
+`keepone = 1` retains **one randomly chosen target** when multiple
+captured opponents share the requested `excludeID`. Kenjatime previously
+retained the first target every time, which biased multi-hit grab/assist
+behavior toward the oldest target.
+
+- `TargetDrop` now chooses a member of the matching live-target set
+  using the actor's seeded deterministic random trigger.
+- With `keepone=0`, all matching live targets are retained; with
+  `keepone=1` and zero or one candidate, no RNG draw is consumed.
+- The controller still drops target-ID mappings for all unselected targets.
+- Synthetic regression scenarios verify random selection across multiple
+  seeds, deterministic replay for identical seeds, single-target and
+  no-target behavior, `keepone=0`, and proper helper target-ID cleanup.
+- The choice is **randomized according to the documented behavior** but
+  the generator's bit-exact native MUGEN 1.1 RNG stream and consumption
+  schedule have **not** been independently validated. A native oracle
+  capture is still required before claiming RNG parity.
+
+**Test:** `node --test test/core/mugen11-targetdrop-selection.test.js`
+
+**Reference:** Elecbyte 2013 MUGEN 1.1 State Controller Reference,
+`TargetDrop` section.
