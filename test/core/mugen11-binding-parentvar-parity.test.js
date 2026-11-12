@@ -139,3 +139,64 @@ test('DestroySelf recursive=0 preserves nested helper but unbinds it; recursive=
   assert.ok(trace.actors.some(x=>x.id===b.id&&x.parentId===a.id),
     'surviving nested helper retains identity of removed parent');
 });
+
+test('custom-state ChangeState keeps attacker CNS ownership until victim SelfState restores its own',()=>{
+  const borrowed=`[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+ctrl=0
+[State 700, BorrowedWrite]
+type=VarSet
+trigger1=Time=0
+v=12
+value=45
+[State 700, BorrowedTransition]
+type=ChangeState
+trigger1=Time=0
+value=701
+[Statedef 701]
+type=S
+movetype=H
+physics=N
+anim=0
+ctrl=0
+[State 701, ReturnToSelf]
+type=SelfState
+trigger1=Time=1
+value=0
+`;
+  const owned=`[Statedef 701]
+type=S
+movetype=I
+physics=N
+anim=0
+ctrl=0
+[State 701, MustNotRun]
+type=VarSet
+trigger1=1
+v=12
+value=999
+`;
+  const attacker=character('custom-attacker',borrowed);
+  const victim=character('custom-victim',owned);
+  const m=new TrainingMatch(attacker,{
+    opponentCharacter:victim,initialize:false,orderedPhases:true,pushboxes:false
+  });
+  const a=m.player,b=m.opponent;
+  assert.equal(b.changeState(700,0,a),true);
+  m.tick();
+  assert.equal(b.stateNo,701);
+  assert.equal(b.stateOwner,a,'ChangeState in borrowed state uses attacker CNS');
+  assert.equal(b.vars[12],45,'borrowed controller runs on victim data');
+  const borrowedTrace=captureLegacyTraceTick(m).actors.find(x=>x.id===b.id);
+  assert.equal(borrowedTrace.stateOwnerId,a.id);
+  assert.equal(borrowedTrace.animationOwnerId,b.id);
+  m.tick();
+  assert.equal(b.stateNo,0);
+  assert.equal(b.stateOwner,b,'SelfState returns to victim original state data');
+  assert.equal(b.vars[12],45,'victim native 701 state never runs');
+  const restoredTrace=captureLegacyTraceTick(m).actors.find(x=>x.id===b.id);
+  assert.equal(restoredTrace.stateOwnerId,b.id);
+});
