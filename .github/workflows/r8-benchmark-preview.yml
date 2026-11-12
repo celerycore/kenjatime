@@ -41,6 +41,8 @@ jobs:
         run: npm ci
       - name: Verify R8 formats, palette bindings, residency, Android archive chooser
         run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js test/core/archive-file-picker.test.js test/core/remote-archive.test.js test/core/nu13-upload-size.test.js test/core/r8-ko-adaptive.test.js test/core/r8-start-freeze.test.js
+      - name: Verify MUGEN 1.1 helper state/negative-state/input parity
+        run: node --test test/core/mugen11-compatibility-target.test.js test/core/mugen11-state-helper-parity.test.js test/core/rare-akuma-compatibility.test.js
       - name: Verify deterministic 60 Hz input replay and KFM combat hashes
         run: node --test test/core/deterministic-60hz.test.js test/core/frame-scheduler.test.js
       - name: Run complete Core unit regression suite
@@ -64,7 +66,7 @@ jobs:
               sourceCommit:process.env.GITHUB_SHA,
               channel:"r8-benchmark-pr17",
               basedOnPR:17,
-              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling"],
+              benchmarkFeatures:["r8-gl-internal-format","strict-palette-binding","gpu-texture-residency","cpu-submit-frame-time","download-csv","endless-round-mode","ko-reset-cycle","deterministic-60hz-clock","rational-input-sampling","mugen11-helper-states","helper-lifecycle-csv"],
               privateCharactersIncluded:false,
               kotlinWasmDefault:false
             },null,2)+"\n");

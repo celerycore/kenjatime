@@ -13,6 +13,9 @@ const fields = [
   "raw_rgba_bytes_saved_mib", "gpu_textures", "gpu_evictions",
   "deferred_textures", "missing_frame_textures", "missing_palette_draws",
   "draws", "render_width", "render_height", "js_heap_used_mib",
+  "helpers_alive", "helpers_created", "helpers_rejected", "helpers_missing_state",
+  "helpers_destroyed", "helpers_hidden", "helpers_submitted",
+  "helpers_missing_animation", "helpers_missing_sprite", "helper_state_map",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -33,6 +36,9 @@ panel.innerHTML = `
         <div><small>Truecolor RGBA8</small><strong data-r8="rgba">—</strong></div>
         <div><small>Texture evictions</small><strong data-r8="evictions">—</strong></div>
         <div><small>Missing art / palette draws</small><strong data-r8="missing">—</strong></div>
+        <div><small>Helper states / spawned</small><strong data-r8="helpers">—</strong></div>
+        <div><small>Helper sprite submissions</small><strong data-r8="helperdraws">—</strong></div>
+        <div><small>Helper failures</small><strong data-r8="helperfails">—</strong></div>
       </div>
       <div class="r8-bench-actions">
         <button type="button" data-r8-start>Start recording</button>
@@ -40,7 +46,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers and missing state/animation counts help diagnose Tomoka assists. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -108,6 +114,9 @@ function sample() {
   element("rgba").textContent = mib(gpu.truecolorTextureBytes);
   element("evictions").textContent = String(gpu.textureEvictions || 0);
   element("missing").textContent = (gpu.missingFrameTextures || 0) + " / " + (gpu.missingPaletteDraws || 0);
+  element("helpers").textContent = (state.helperFrameStats?.alive ?? "—") + " active / " + (state.helperStats?.created ?? "—") + " spawned";
+  element("helperdraws").textContent = (state.helperFrameStats?.submitted ?? "—") + " submitted · " + (state.helperFrameStats?.hidden ?? 0) + " hidden";
+  element("helperfails").textContent = (state.helperStats?.rejected ?? "—") + " rejected · " + (state.helperFrameStats?.missingAnimation ?? 0) + " no AIR · " + (state.helperFrameStats?.missingSprite ?? 0) + " no SFF";
   if (!recording) return;
   const seconds = (now - startedAt) / 1000;
   highest = Math.max(highest, gpu.textureBytes || 0);
@@ -135,6 +144,13 @@ function sample() {
     gpu.missingPaletteDraws ?? "", gpu.draws ?? "",
     gpu.width ?? "", gpu.height ?? "",
     heap ? number(heap / MB, 3) : "",
+    state.helperFrameStats?.alive ?? "",state.helperStats?.created ?? "",
+    state.helperStats?.rejected ?? "",state.helperStats?.missingState ?? "",
+    state.helperStats?.destroyed ?? "",state.helperFrameStats?.hidden ?? "",
+    state.helperFrameStats?.submitted ?? "",state.helperFrameStats?.missingAnimation ?? "",
+    state.helperFrameStats?.missingSprite ?? "",
+    (state.helpers || []).slice(0,56).map(h=>
+      [h.id,h.helperId,h.parentId,h.state,h.anim,h.invisible?1:0].join(":")).join("|"),
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
