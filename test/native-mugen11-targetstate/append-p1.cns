@@ -18,7 +18,6 @@ type = HitDef
 trigger1 = Time = 0
 attr = S, NA
 hitflag = MAF
-guardflag = 
 damage = 0,0
 pausetime = 0,0
 ground.type = High
@@ -61,6 +60,12 @@ trigger1 = Time = 0
 v = 42
 value = 73
 
+[State 910, Native debug clipboard]
+type = DisplayToClipboard
+trigger1 = 1
+text = "P2 borrowed 910: State %d Time %d Anim %d Elem %d Marker %d"
+params = StateNo, Time, Anim, AnimElemNo(0), Var(42)
+
 [State 910, Owner-controlled next state]
 type = ChangeState
 trigger1 = Time = 1
@@ -70,6 +75,12 @@ value = 911
 type = S
 movetype = H
 physics = N
+
+[State 911, Native debug clipboard]
+type = DisplayToClipboard
+trigger1 = 1
+text = "P2 borrowed 911: State %d Time %d Anim %d Elem %d Marker %d"
+params = StateNo, Time, Anim, AnimElemNo(0), Var(42)
 
 [State 911, Restore victim's own StateDef]
 type = SelfState
