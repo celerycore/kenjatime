@@ -13,7 +13,7 @@
     "src/core/model-stage.js": "fbfb345225ab2da7315a2a5f19d26311cf2ca86bbdac6e9881597debb1632b19",
     "src/core/presentation.js": "7050a636bd40e566cdf5b096e9cd87c2054d1cca444598a0495666d2cf329a8b",
     "src/core/runtime.js": "d57ce89b8aab6f54548c93625a764f112785af96cb49c937d890e3a98b35a0cd",
-    "src/core/session.js": "20b1e7f149e3c3acfa5c862830f0671f06fa2ef87f02569ec4179447a7b0e0a3",
+    "src/core/session.js": "f65798cbc88980436eca83dc64b4d2ee10941a944cf1c8769a46dda493eb27b9",
     "src/core/stage-draw.js": "40a62ec009502edc2c56301df3cb0e911b5ae975cbd1df204a594c5019a961fa",
     "src/core/texture-residency.js": "1299a3ba5aa1d5defe03dc825446e160259d60afee473e43258351ad2f22ddfd",
     "src/core/three-renderer.js": "c5e38f4f07ae7b02325326c57cb3c5d8dcd47bccf1a13e3f3342d5ebd2e5b39a",
