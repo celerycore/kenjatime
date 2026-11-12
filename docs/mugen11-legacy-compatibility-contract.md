@@ -179,3 +179,34 @@ Regression fixture:
 behavior in Kenjatime's synthetic matches. A verified MUGEN 1.1 reference
 runtime trace for Tomoka, Rare Akuma and KFM is still needed before any
 native-behavior conformance certification.
+
+
+## 8. Helper bindings and parent-variable parity (November 12, 2026)
+
+- `BindToParent`, `BindToRoot`, `BindToTarget` and `TargetBind`
+  now treat `time=0` as zero remaining binding ticks. An existing
+  attachment is released instead of becoming permanent. `time=-1`
+  remains indefinitely bound and positive times remain finite.
+- `ParentVarSet` and `ParentVarAdd` may write the immediate parent's
+  ordinary integer/float work variables, but MUGEN 1.1 explicitly
+  prohibits `sysvar`/`sysfvar` assignment in these controllers.
+  The Core now rejects forbidden mixed controllers atomically with a
+  `mugen11-parentvar-system` diagnostic, without partially modifying
+  parent variables.
+- Synthetic nested helper tests cover recursive and non-recursive
+  `DestroySelf`, immediate detachment of bound children, preservation
+  of surviving helper identity and `NumHelper` behavior.
+- Custom-state regression confirms that a borrowed `ChangeState`
+  stays in the attacker-supplied CNS, while `SelfState` returns the
+  victim to its own state data.
+- Optional native-oracle tick traces now record `stateOwnerId`,
+  `animationOwnerId`, `ctrl`, `keyCtrl`, `boundTargetId`, and
+  `bindTime` per actor. These are specifically for comparison of
+  invisible assists and borrowed states. Existing reference JSON files
+  need equivalent native fields to compare exactly.
+
+**Tests:** `node --test test/core/mugen11-binding-parentvar-parity.test.js`.
+
+These tests verify documented behavior in synthetic Core fixtures, not
+complete matching to a native MUGEN 1.1 executable. Verified original
+Tomoka, Rare Akuma, and other helper-heavy native traces are still required.
