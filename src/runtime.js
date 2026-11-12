@@ -1224,20 +1224,32 @@ export class FighterRuntime {
     }
     if (['explod', 'modifyexplod', 'removeexplod', 'explodbindtime'].includes(type)) { this.explodController(controller); return; }
     if (type.startsWith('target')) {
-      const wanted = int('id', -1), targets = this.targets.filter(target => wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted);
+      // Only live captured targets may receive TargetState/TargetBind/etc.
+      // A target destroyed earlier in this tick can remain in the authored
+      // target list until world cleanup, but must not be state-mutated.
+      const wanted = int('id', -1), targets = this.targets.filter(target =>
+        !target.destroyed && (wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted));
       if (type === 'targetdrop') {
         const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>(this.targetHitIds.get(t.id)??t.hitId)===exclude);
         this.targets=num('keepone',1)?kept.slice(0,1):kept;
         const live=new Set(this.targets.map(t=>t.id));for(const id of this.targetHitIds.keys())if(!live.has(id))this.targetHitIds.delete(id);return;
       }
-      const value=['targetfacing','targetlifeadd','targetpoweradd','targetstate'].includes(type)?int('value'):undefined,kill=type==='targetlifeadd'?num('kill',1):1,absolute=type==='targetlifeadd'?num('absolute'):0,ctrl=type==='targetstate'&&controller.values.ctrl!==undefined?num('ctrl'):undefined;
+      // Elecbyte MUGEN 1.1 TargetState accepts only value and optional ID:
+      // unlike SelfState/ChangeState it does NOT have a ctrl parameter.
+      // An authored ctrl= must not silently alter victim control.
+      if(type==='targetstate' && controller.values.ctrl!==undefined)
+        this.diagnostic('mugen11-targetstate-parameter',
+          'TargetState ctrl is not a MUGEN 1.1 parameter; ignoring it.',controller);
+      const value=['targetfacing','targetlifeadd','targetpoweradd','targetstate'].includes(type)?int('value'):undefined,kill=type==='targetlifeadd'?num('kill',1):1,absolute=type==='targetlifeadd'?num('absolute'):0;
       const bind=type==='targetbind'?{pos:vec('pos'),time:int('time',1)}:null;
       const velocity=type==='targetvelset'||type==='targetveladd'?Object.fromEntries(['x','y'].filter(axis=>controller.values[axis]!==undefined).map(axis=>[axis,num(axis)*this.coordinateScale])):null;
       for (const target of targets) {
         if (type === 'targetfacing') {if(value)target.facing=this.facing*(value<0?-1:1);}
         else if (type === 'targetlifeadd') {const amount=-scaledDamage(-value,this,target,{absolute:!!absolute});target.life=clamp(target.life+amount,kill?0:1,target.maxLife);}
         else if (type === 'targetpoweradd') target.power = clamp(target.power + value, 0, target.maxPower);
-        else if (type === 'targetstate') { target.changeState(value,ctrl,this._scriptOwner||this.stateOwner); }
+        else if (type === 'targetstate') {
+          target.changeState(value,undefined,this._scriptOwner||this.stateOwner);
+        }
         else if (bind) {
           if(bind.time===0){target.bound=null;continue;}
           const [x=0,y=0]=bind.pos;
