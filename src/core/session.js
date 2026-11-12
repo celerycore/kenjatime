@@ -5,6 +5,7 @@ import { charactersFromFiles, decodeText, sff } from "../formats.js";
 import {normalizePresentation,presentationAspect} from "./presentation.js";
 import {loadCommonEffects} from "./common-effects.js";
 import { parseProgram } from "../runtime.js";
+import { legacyCompatibilityReport } from "./legacy-compatibility.js";
 import { TrainingMatch } from "../combat.js";
 import { commonStates } from "../common.js";
 const CORE_COMMON_STATES = commonStates({ orderedPhases: true });
@@ -90,6 +91,7 @@ export class CoreSession {
       const error = program.diagnostics.find((d) => d.fatal);
       if (error) throw Error(`${error.source}:${error.line}: ${error.message}`);
     }
+    this.legacyCompatibility = legacyCompatibilityReport([p1,p2],programs);
     this.expressions = new WasmExpressions(
       programExpressions(programs.values()),
     );
@@ -145,6 +147,7 @@ export class CoreSession {
     this.events = [];
     this.sparks = [];
     this.gameEffects = [];
+    this.helperFrameStats={alive:0,hidden:0,submitted:0,missingAnimation:0,missingSprite:0};
     this.roundGeneration = this.match.roundGeneration;
     this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
@@ -158,6 +161,11 @@ export class CoreSession {
       engine: "Kenjatime Core",
       independentRuntime: true,
       universalCompatibility: false,
+      legacyCompatibilityTarget:this.legacyCompatibility.id,
+      legacyCompatibilityReference:this.legacyCompatibility.reference,
+      legacyCompatibilityStatus:this.legacyCompatibility.status,
+      nativeMugen11Certified:false,
+      ikemenExtensions:"additional-not-baseline",
       compiledNumericExpressions: true,
       scriptInterpreter: true,
       luaMatchHooks: true,
@@ -686,7 +694,12 @@ export class CoreSession {
     stageLayer(-1);
     stageLayer(0);
     const layers = [];
+    const helperFrameStats={alive:0,hidden:0,submitted:0,missingAnimation:0,missingSprite:0};
     for (const actor of [...m.renderEntities, ...m.drawProjectiles]) {
+      if(actor.parent&&!actor.destroyed){
+        helperFrameStats.alive++;
+        if(actor.asserted.has("invisible"))helperFrameStats.hidden++;
+      }
       if (!actor.destroyed && !actor.asserted.has("invisible"))
         layers.push({ priority: actor.sprPriority || 0, actor });
       for (const effect of actor.drawExplods || [])
@@ -771,7 +784,8 @@ export class CoreSession {
           (actor.drawOffset?.y || 0) +
           constant(actor, "size.draw.offset.y") * baseScale(actor),
       });
-      this.quad(draws, actor.character, sampleFighterAnimation(actor), {
+      const visibleFrame=sampleFighterAnimation(actor);
+      const drawn=this.quad(draws, actor.character, visibleFrame, {
         ...pos,
         sx:
           zoom *
@@ -789,7 +803,13 @@ export class CoreSession {
         palette: this.effects.paletteFor(actor),
         trans: actor.trans,
       });
+      if(actor.parent&&!actor.destroyed){
+        if(!visibleFrame)helperFrameStats.missingAnimation++;
+        else if(!drawn)helperFrameStats.missingSprite++;
+        else helperFrameStats.submitted++;
+      }
     }
+    this.helperFrameStats=helperFrameStats;
     stageLayer(1);
     const sparks = this.sparks.map((s) => ({
       ...world(s),
@@ -841,6 +861,7 @@ export class CoreSession {
     const stage = this.match.stage, view = this.match.view;
     return {
       engine: "Kenjatime Core",
+      compatibility: this.legacyCompatibility,
       presentation: this.presentation,
       viewport: stage ? {
         displayWidth: view.displayWidth, displayHeight: view.displayHeight,
@@ -863,6 +884,14 @@ export class CoreSession {
         anim: a.anim,
       })),
       ticks: this.match.ticks,
+      helperStats: {...this.match.helperStats},
+      helperFrameStats: {...this.helperFrameStats},
+      helpers:this.match.entities.filter(a=>a.parent).map(a=>({
+        id:a.id,helperId:a.helperId,parentId:a.parent?.id,
+        rootId:a.root?.id,state:a.stateNo,anim:a.anim,
+        frame:a.frameIndex,x:a.pos.x,y:a.pos.y,
+        invisible:a.asserted.has("invisible")
+      })),
       roundState: this.match.roundFlow?.roundState ?? 2,
       roundNo: this.match.roundFlow?.roundNo ?? 1,
       roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
