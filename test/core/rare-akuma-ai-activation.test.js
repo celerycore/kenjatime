@@ -53,8 +53,9 @@ test('Native-style CPU flag survives intro, physical keypresses and round reset 
   // wall-clock count while authored intro poses are still running.
   for(let i=0;i<360&&session.match.roundFlow.roundState!==2;i++)session.tick();
   assert.equal(session.match.roundFlow.roundState,2,'reset intro did not reach FIGHT');
-  session.tick();
-  assert.equal(session.match.opponent.vars[59],1,'round reset restored CPU-owned AI on FIGHT');
+  const held=session.match.roundFlow.rules.fightStartLockTicks;
+  for(let i=0;i<=held;i++)session.tick();
+  assert.equal(session.match.opponent.vars[59],1,'round reset restored CPU-owned AI once controls unlock');
  }finally{session.close();}
 });
 test('Normal CPU decisions request repeated real jumps and retain authored attacks',()=>{
