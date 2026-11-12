@@ -1240,7 +1240,16 @@ export class FighterRuntime {
         !target.destroyed && (wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted));
       if (type === 'targetdrop') {
         const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>!t.destroyed&&(this.targetHitIds.get(t.id)??t.hitId)===exclude);
-        this.targets=num('keepone',1)?kept.slice(0,1):kept;
+        // Elecbyte MUGEN 1.1 TargetDrop keepone=1 chooses ONE at random
+        // among equal-ID targets. Choosing the first makes helper-heavy throws
+        // systematically select the oldest victim. Use our seeded per-actor
+        // RNG so identical replays pick the same target; native RNG parity
+        // still requires an independent MUGEN reference capture.
+        const keepOne=!!num('keepone',1);
+        const selected=keepOne&&kept.length>1
+          ? [kept[Math.min(kept.length-1,Math.floor(this.resolveTrigger('random')/1000*kept.length))]]
+          : keepOne?kept.slice(0,1):kept;
+        this.targets=selected;
         const live=new Set(this.targets.map(t=>t.id));for(const id of this.targetHitIds.keys())if(!live.has(id))this.targetHitIds.delete(id);return;
       }
       // Elecbyte MUGEN 1.1 TargetState accepts only value and optional ID:
