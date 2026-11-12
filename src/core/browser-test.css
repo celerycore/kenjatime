@@ -38,3 +38,16 @@
   #core-qa-guide { margin: 12px 0; padding: 14px; }
   #core-qa-guide h2 { font-size: 16px; }
 }
+
+/* This option is created exclusively by the PR17 R8 benchmark page. */
+.arena-launch .r8-endless-toggle{
+  display:flex;align-items:center;gap:10px;cursor:pointer;min-width:190px;
+  border:1px solid rgba(106,202,152,.5);border-radius:10px;
+  padding:8px 10px;background:rgba(44,125,100,.13);color:#e3f9ed;
+}
+.arena-launch .r8-endless-toggle input{
+  appearance:auto;width:18px;height:18px;accent-color:#76d0a0;flex:none;
+}
+.arena-launch .r8-endless-toggle span{display:flex;flex-direction:column;gap:1px;}
+.arena-launch .r8-endless-toggle strong{font-size:12px;line-height:1.3;}
+.arena-launch .r8-endless-toggle small{font-size:10px;line-height:1.4;color:#afcdbd;}
