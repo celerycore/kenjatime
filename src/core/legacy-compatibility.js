@@ -68,7 +68,11 @@ export function captureLegacyTraceTick(match) {
       stateNo: a.stateNo,
       stateTime: a.time,
       prevStateNo: a.prevStateNo,
+      // State ownership diverges when TargetState or a custom hit places
+      // P2 in an attacker's CNS; SelfState must restore P2's own owner.
+      stateOwnerId: a.stateOwner?.id ?? a.id,
       anim: a.anim,
+      animationOwnerId: a.animationOwner?.id ?? a.id,
       frameIndex: a.frameIndex,
       frameTime: a.frameTime,
       facing: a.facing,
@@ -81,6 +85,10 @@ export function captureLegacyTraceTick(match) {
       moveType: a.moveType,
       stateType: a.stateType,
       hitPauseTime: a.hitPauseTime,
+      ctrl: a.ctrl,
+      keyCtrl: !!a.keyCtrl,
+      boundTargetId: a.bound?.target?.id ?? null,
+      bindTime: a.bound?.time ?? null,
       invisible: !!a.asserted?.has("invisible"),
     }));
   const projectiles = (match.projectiles || []).filter(p => !p.removed)
