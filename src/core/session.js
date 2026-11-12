@@ -27,6 +27,7 @@ import { stageClip, stageDrawPlans } from "./stage-draw.js";
 import { explodDrawPriority } from "../explods.js";
 import { luaModules, LuaMatch } from "./lua-match.js";
 import { videoScale } from "./video-source.js";
+import { BENCHMARK_START_LOCK_TICKS } from "./fight-start.js";
 
 export function programExpressions(programs) {
   const sources = new Set();
@@ -126,7 +127,8 @@ export class CoreSession {
           ? null
           : { roundsToWin: 2, preIntro: 0, introHold: 60, overTime: 60,
               resultTime: 120, maxIntroTime: 900, maxOutroTime: 300,
-              endless: selection.endless === true },
+              endless: selection.endless === true,
+              fightStartLockTicks: BENCHMARK_START_LOCK_TICKS },
     });
     this.commands = [
       this.match.inputBuffers.get(this.match.player),
