@@ -41,6 +41,7 @@ const fields = [
   "render_with_backlog_count", "render_target_fps",
   "expression_wasm_calls", "expression_interpreted_calls",
   "expression_deoptimized_calls", "expression_compiled_functions",
+  "gpu_texture_budget_mib", "gpu_texture_budget_upgrades",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -58,6 +59,7 @@ panel.innerHTML = `
         <div><small>Rendered with backlog</small><strong data-r8="backlogdraw">—</strong></div>
         <div><small>Render CPU submit</small><strong data-r8="cpu">—</strong></div>
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
+        <div><small>GPU residency budget</small><strong data-r8="cachelimit">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
         <div><small>Palettes RGBA8</small><strong data-r8="palettes">—</strong></div>
         <div><small>Truecolor RGBA8</small><strong data-r8="rgba">—</strong></div>
@@ -83,7 +85,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV additionally reports script-worker simulation CPU milliseconds per tick and batch, the tick-batch cap, total frames deliberately shown despite simulation backlog, and the presentation target FPS. Tick debt is never dropped just to make the FPS counter look better. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input, controller diagnostics, and R8 recovery counts. A recovery is an explicit R8 compatibility fallback for stranded idle CPU control; it is not native MUGEN 1.1 behavior certification. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV additionally reports script-worker simulation CPU milliseconds per tick and batch, the tick-batch cap, total frames deliberately shown despite simulation backlog, and the presentation target FPS. Tick debt is never dropped just to make the FPS counter look better. Under sustained texture eviction pressure R8 may grow its indexed sprite residency budget from 64 up to 96 MiB; growth is measured and exposed in the CSV, but this raw allocation estimate is not total device VRAM. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input, controller diagnostics, and R8 recovery counts. A recovery is an explicit R8 compatibility fallback for stranded idle CPU control; it is not native MUGEN 1.1 behavior certification. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -150,6 +152,8 @@ function sample() {
   element("backlogdraw").textContent = (state.renderWithBacklogCount ?? 0) + " frames · target " + (state.renderTargetFps ?? "—") + " FPS";
   element("cpu").textContent = number(gpu.frameCpuSubmitMs) + " ms";
   element("resident").textContent = mib(gpu.textureBytes);
+  element("cachelimit").textContent = mib(gpu.textureBudgetBytes||64*MB) +
+    " · " + (gpu.textureBudgetUpgrades??0) + " expansions";
   element("indexed").textContent = mib(gpu.indexedTextureBytes);
   element("palettes").textContent = mib(gpu.paletteTextureBytes);
   element("rgba").textContent = mib(gpu.truecolorTextureBytes);
@@ -241,6 +245,8 @@ function sample() {
     state.renderWithBacklogCount ?? "", state.renderTargetFps ?? "",
     state.expressions?.wasm ?? "", state.expressions?.interpreted ?? "",
     state.expressions?.deoptimized ?? "", state.expressions?.compiled ?? "",
+    Number.isFinite(gpu.textureBudgetBytes) ? number(gpu.textureBudgetBytes/MB,3) : "",
+    gpu.textureBudgetUpgrades ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
