@@ -10,10 +10,16 @@
  * across imports. Textures use immutable byte arrays; draws never mutate them.
  */
 export class SpriteRestoreCache {
-  constructor({maxBytes=16*1024*1024}={}){
+  constructor({maxBytes=16*1024*1024,requireRepeat=false,probationLimit=4096}={}){
     if(!Number.isSafeInteger(maxBytes)||maxBytes<0)
       throw new RangeError('Invalid sprite restore cache budget.');
+    if(!Number.isSafeInteger(probationLimit)||probationLimit<1)
+      throw new RangeError('Invalid sprite cache probation capacity.');
     this.limit=maxBytes;
+    this.requireRepeat=!!requireRepeat;
+    this.probationLimit=probationLimit;
+    this.probation=new Set();
+    this.deferredAdmissions=0;this.promotions=0;
     this.entries=new Map();
     this.bytes=0;this.hits=0;this.misses=0;this.evictions=0;this.stores=0;
   }
@@ -30,6 +36,21 @@ export class SpriteRestoreCache {
     if(typeof id!=='string'||!(pixels instanceof Uint8Array)||!pixels.length||
        pixels.byteLength>this.limit||!this.limit)
       return false;
+    // Streaming animations and large stages request thousands of different
+    // evicted sprites only once. Previously every miss was copied into the
+    // 16 MiB cache, evicting everything and yielding zero cache hits.
+    // Admit a pixel allocation only after this id has been restored twice.
+    if(this.requireRepeat && !this.entries.has(id)){
+      if(!this.probation.has(id)){
+        this.probation.add(id);
+        if(this.probation.size>this.probationLimit)
+          this.probation.delete(this.probation.values().next().value);
+        this.deferredAdmissions++;
+        return false;
+      }
+      this.probation.delete(id);
+      this.promotions++;
+    }
     const old=this.entries.get(id);
     if(old){
       this.entries.delete(id);this.bytes-=old.byteLength;
@@ -49,9 +70,10 @@ export class SpriteRestoreCache {
   get stats(){
     return {hits:this.hits,misses:this.misses,stores:this.stores,
       evictions:this.evictions,bytes:this.bytes,entries:this.entries.size,
-      budgetBytes:this.limit};
+      budgetBytes:this.limit,deferredAdmissions:this.deferredAdmissions,
+      promotions:this.promotions,probationEntries:this.probation.size};
   }
   clear(){
-    this.entries.clear();this.bytes=0;
+    this.entries.clear();this.probation.clear();this.bytes=0;
   }
 }
