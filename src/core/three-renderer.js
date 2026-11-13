@@ -24,6 +24,7 @@ import {
   AddEquation,
   ReverseSubtractEquation,
   LinearSRGBColorSpace,
+  NoColorSpace,
   GLSL3,
   DoubleSide,
 } from "three";
@@ -33,7 +34,7 @@ void main(){texUV=uv;localPoint=position.xy*size;if(warped)localPoint.x=mix(warp
 const fragment = `precision highp float;
 uniform sampler2D image,palette;uniform bool indexed,maskZero;uniform vec2 coefficients;uniform float opacity;
 uniform bool warped;uniform vec4 warpEdges;uniform vec2 size;uniform int fxCount;uniform vec3 fxAdd[8],fxMul[8],fxPost[8];uniform vec2 fxColorInvert[8];in vec2 texUV,localPoint;out vec4 result;
-void main(){vec2 sampleUV=texUV;if(warped){vec2 edges=mix(warpEdges.xy,warpEdges.zw,clamp(localPoint.y/size.y,0.,1.));float span=edges.y-edges.x;if(abs(span)<.00001)discard;float u=(localPoint.x-edges.x)/span;if(u<0.||u>=1.)discard;sampleUV=vec2(u,localPoint.y/size.y);}vec4 color=texture(image,sampleUV);if(indexed){float i=floor(color.r*255.+.5);color=texture(palette,vec2((i+.5)/256.,.5));if(i<.5){if(maskZero)discard;color.a=1.;}}if(color.a<=0.)discard;
+void main(){vec2 sampleUV=texUV;if(warped){vec2 edges=mix(warpEdges.xy,warpEdges.zw,clamp(localPoint.y/size.y,0.,1.));float span=edges.y-edges.x;if(abs(span)<.00001)discard;float u=(localPoint.x-edges.x)/span;if(u<0.||u>=1.)discard;sampleUV=vec2(u,localPoint.y/size.y);}vec4 color;if(indexed){int i=int(floor(texture(image,sampleUV).r*255.+.5));if(i==0&&maskZero)discard;color=texelFetch(palette,ivec2(i,0),0);if(i==0)color.a=1.;}else{color=texture(image,sampleUV);}if(color.a<=0.)discard;
 vec3 rgb=color.rgb*255.;for(int i=0;i<8;i++){if(i>=fxCount)break;float grey=dot(rgb,vec3(.299,.587,.114));rgb=mix(vec3(grey),rgb,fxColorInvert[i].x);if(fxColorInvert[i].y>.5)rgb=255.-rgb;rgb=clamp((rgb+fxAdd[i])*fxMul[i]+fxPost[i],0.,255.);}
 rgb=floor(rgb+.00001)/255.;float coverage=color.a*opacity;result=vec4(rgb*coefficients.x*coverage,coverage*(1.-coefficients.y));}`;
 const gridFragment = `precision highp float;uniform float ground;in vec2 texUV;out vec4 result;
@@ -72,6 +73,8 @@ export class CoreThreeRenderer {
     canvas.addEventListener("webglcontextlost", this.contextLost);
     this.limit = maxTextureBytes;
     this.textureBytes = 0;
+    // Raw resident pixel bytes by format; video/model allocations are tracked separately.
+    this.textureBreakdown = { indexed: 0, palette: 0, rgba: 0 };
     this.textures = new Map();
     this.evictedTextures = 0;
     this.deferredTextures = 0;
@@ -125,8 +128,11 @@ export class CoreThreeRenderer {
   }
   upload(asset, activeIds = new Set()) {
     if (this.textures.has(asset.id)) return true;
-    const pixels = asset.pixels,
-      expected = asset.width * asset.height * (asset.indexed ? 1 : 4);
+    const isPalette = asset.role === "palette" ||
+      (!asset.indexed && typeof asset.id === "string" && asset.id.includes(":pal:"));
+    const kind = isPalette ? "palette" : asset.indexed ? "indexed8" : "rgba8";
+    const pixels = asset.pixels;
+    const expected = asset.width * asset.height * (kind === "indexed8" ? 1 : 4);
     if (
       !Number.isSafeInteger(asset.width) ||
       !Number.isSafeInteger(asset.height) ||
@@ -139,8 +145,11 @@ export class CoreThreeRenderer {
       asset.height > this.renderer.capabilities.maxTextureSize
     )
       throw Error("Sprite exceeds this graphics device’s texture limit.");
-    if (!(pixels instanceof Uint8Array) || pixels.length !== expected)
+    if (!Number.isSafeInteger(expected) ||
+        !(pixels instanceof Uint8Array) || pixels.length !== expected)
       throw Error("Invalid GPU asset dimensions.");
+    if (isPalette && (asset.indexed || asset.width !== 256 || asset.height !== 1))
+      throw Error("A GPU palette must be a 256x1 RGBA8 texture.");
     if (this.textureBytes + pixels.length > this.limit) {
       const evictions = planTextureEvictions(
         this.textures, this.textureBytes, pixels.length, this.limit, activeIds,
@@ -156,6 +165,11 @@ export class CoreThreeRenderer {
         if (!old) continue;
         old.dispose();
         this.textureBytes -= old.userData.residentBytes || old.userData.videoBytes || 0;
+        const oldKind = old.userData.kind;
+        this.textureBreakdown ||= { indexed: 0, palette: 0, rgba: 0 };
+        if (oldKind === "indexed8") this.textureBreakdown.indexed -= old.userData.residentBytes;
+        else if (oldKind === "palette") this.textureBreakdown.palette -= old.userData.residentBytes;
+        else if (oldKind === "rgba8") this.textureBreakdown.rgba -= old.userData.residentBytes;
         this.textures.delete(id);
         this.evictedTextures++;
       }
@@ -164,9 +178,13 @@ export class CoreThreeRenderer {
       pixels,
       asset.width,
       asset.height,
-      asset.indexed ? RedFormat : RGBAFormat,
+      kind === "indexed8" ? RedFormat : RGBAFormat,
       UnsignedByteType,
     );
+    // Explicit WebGL2 formats: indices are GL_R8, palette/truecolor are GL_RGBA8.
+    // Do not color-convert index or palette bytes; the shader applies PalFX later.
+    texture.internalFormat = kind === "indexed8" ? "R8" : "RGBA8";
+    texture.colorSpace = NoColorSpace;
     texture.minFilter = texture.magFilter = NearestFilter;
     texture.wrapS = texture.wrapT = ClampToEdgeWrapping;
     texture.generateMipmaps = false;
@@ -174,9 +192,25 @@ export class CoreThreeRenderer {
     texture.unpackAlignment = 1;
     texture.needsUpdate = true;
     texture.userData.residentBytes = pixels.length;
+    texture.userData.kind = kind;
     this.textures.set(asset.id, texture);
     this.textureBytes += pixels.length;
+    this.textureBreakdown ||= { indexed: 0, palette: 0, rgba: 0 };
+    this.textureBreakdown[kind === "indexed8" ? "indexed" : kind === "palette" ? "palette" : "rgba"] += pixels.length;
     return true;
+  }
+  /** Reject missing or mismatched palettes instead of sampling white/undefined texels. */
+  resolveDrawTextures(draw) {
+    const image = this.textures.get(draw.texture);
+    if (!image) return null;
+    const kind = image.userData.kind;
+    if (draw.indexed) {
+      if (kind !== "indexed8") return null;
+      const palette = this.textures.get(draw.palette);
+      return palette?.userData.kind === "palette" ? { image, palette } : null;
+    }
+    if (kind === "indexed8" || kind === "palette") return null;
+    return { image, palette: this.textures.get("@white") };
   }
   slot(index) {
     if (this.slots[index]) return this.slots[index];
@@ -320,6 +354,7 @@ export class CoreThreeRenderer {
       if (tex) { this.textures.delete(id); this.textures.set(id, tex); }
     }
     this.missingFrameTextures = missing.length;
+    this.missingPaletteDraws = 0;
     this.grid.visible = !!frame.grid;
     this.grid.material.uniforms.ground.value = frame.ground || 450;
     const draws = frame.draws.concat(
@@ -346,16 +381,16 @@ export class CoreThreeRenderer {
         u = mesh.material.uniforms;
       mesh.visible = true;
       mesh.layers.set((q.pass ?? 1) + 1);
-      const image = this.textures.get(q.texture);
-      if (!image) {
-        // A stage with more simultaneously visible pixels than the device
-        // budget should degrade its art, not terminate a live fight.
+      const bindings = this.resolveDrawTextures(q);
+      if (!bindings) {
+        // Never sample an indexed sprite through a missing or unrelated
+        // palette. Preserve the match and restore the asset on a future frame.
+        if (q.indexed && this.textures.has(q.texture)) this.missingPaletteDraws++;
         mesh.visible = false;
         continue;
       }
-      u.image.value = image;
-      u.palette.value =
-        this.textures.get(q.palette) || this.textures.get("@white");
+      u.image.value = bindings.image;
+      u.palette.value = bindings.palette;
       u.indexed.value = !!q.indexed;
       u.maskZero.value = q.mask !== false;
       u.size.value[0] = q.width;
@@ -421,6 +456,12 @@ export class CoreThreeRenderer {
       textureEvictions: this.evictedTextures,
       deferredTextures: this.deferredTextures,
       missingFrameTextures: this.missingFrameTextures || 0,
+      missingPaletteDraws: this.missingPaletteDraws || 0,
+      indexedTextureBytes: this.textureBreakdown?.indexed || 0,
+      paletteTextureBytes: this.textureBreakdown?.palette || 0,
+      truecolorTextureBytes: this.textureBreakdown?.rgba || 0,
+      // Raw index bytes saved versus expanding the same images to RGBA8.
+      indexedRawBytesSaved: (this.textureBreakdown?.indexed || 0) * 3,
       width,
       height,
       videoUploads: this.videoUploads || 0,
