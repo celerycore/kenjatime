@@ -322,7 +322,7 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
   if(length){
    const embedded=length>=897&&bytes[sp.offset+length-769]===12;
    if((!sp.shared||previous<0)&&embedded)sp.palette=addPalette(bytes.subarray(sp.offset+length-768,sp.offset+length));
-   if(sp.palette<0&&externalPalettes.has(1)){colors.push(externalPalettes.get(1));sp.palette=colors.length-1;}
+   if(sp.palette<0&&externalPalettes.has(1)){const source=externalPalettes.get(1);colors.push(source.length===1024?source:decodeAct(source));sp.palette=colors.length-1;}
    if(sp.palette>=0&&base<0)base=sp.palette;
    if(sp.group===0&&sp.number===0&&sp.palette>=0)base=sp.palette;
    previous=sp.palette;
@@ -333,7 +333,8 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  // Independent PCX entries with the character's base colors also participate in palette selection.
  const originalBase=colors[base];if(originalBase)for(const sp of sprites)if(sp.palette>=0&&colors[sp.palette]?.every((c,i)=>c===originalBase[i]))sp.palette=base;
  for(let i=0;i<colors.length;i++)palettes.push({index:i,group:i===base?1:0,number:i===base?1:i+1,colors:256});
- for(const [number,rgba]of externalPalettes){
+ for(const [number,source]of externalPalettes){
+  const rgba=source instanceof Uint8Array&&(source.length===768||source.length===772)?decodeAct(source,originalBase):source;
   if(!(rgba instanceof Uint8Array)||rgba.length!==1024||!Number.isInteger(number)||number<1||number>256)throw Error('Invalid external SFF palette');
   if(number===1&&base>=0)colors[base]=rgba;
   else{const index=colors.length;colors.push(rgba);palettes.push({index,group:1,number,colors:256});}
@@ -387,7 +388,36 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  return{sprites,palettes,decode,decodeIndexed,decodeForDisplay,decodeWithPalette,paletteColors,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
-export function decodeAct(bytes){
+/**
+ * Standard MUGEN ACT files store indices 255..0. Some tools export ACT files
+ * in forward 0..255 order (including MaidForBlood v0.2). Only detect that
+ * nonstandard order when an SFF v1 embedded PCX palette provides evidence.
+ * Without a reference always retain the MUGEN-standard reversed ACT order.
+ */
+export function decodeAct(bytes,referencePalette=null){
  if(!(bytes instanceof Uint8Array)||![768,772].includes(bytes.length))throw Error('ACT palette must contain 768 RGB bytes, with an optional 4-byte footer.');
- const rgba=new Uint8Array(1024);for(let i=0;i<256;i++){const source=(255-i)*3;rgba.set([bytes[source],bytes[source+1],bytes[source+2],i?255:0],i*4);}return rgba;
+ let forward=false;
+ if(referencePalette instanceof Uint8Array&&referencePalette.length===1024){
+  const matches=(offset)=>bytes[offset]===referencePalette[0]&&bytes[offset+1]===referencePalette[1]&&bytes[offset+2]===referencePalette[2];
+  const first=matches(0),last=matches(765);
+  if(first!==last)forward=first;
+  else{
+   // Allow near-identical exports; do not guess from a wholly recolored ACT.
+   let directScore=0,reverseScore=0;
+   for(let i=0;i<256;i++){
+    const dst=i*4,src=i*3,rev=(255-i)*3;
+    for(let channel=0;channel<3;channel++){
+     directScore+=Math.abs(bytes[src+channel]-referencePalette[dst+channel]);
+     reverseScore+=Math.abs(bytes[rev+channel]-referencePalette[dst+channel]);
+    }
+   }
+   forward=directScore<=8192&&directScore*4+1024<reverseScore;
+  }
+ }
+ const rgba=new Uint8Array(1024);
+ for(let i=0;i<256;i++){
+  const src=(forward?i:255-i)*3;
+  rgba.set([bytes[src],bytes[src+1],bytes[src+2],i?255:0],i*4);
+ }
+ return rgba;
 }
