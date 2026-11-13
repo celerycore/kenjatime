@@ -23,8 +23,8 @@ test('R8 Performance reduces framebuffer pixels without changing game input/timi
   assert.equal(Math.round(540*qualityStartingScale('performance')),378);
   for(const preset of ['auto','sharp','performance']){
     const clock=new FrameClock();let ticks=0;
-    for(let t=0;t<=1000;t+=1000/60)
-      clock.advance(t,{},()=>ticks++);
+    for(let n=0;n<=60;n++)
+      clock.advance(n*1000/60,{},()=>ticks++);
     assert.equal(ticks,60,`${preset} must retain 60 deterministic ticks`);
   }
 });
