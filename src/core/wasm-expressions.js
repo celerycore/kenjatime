@@ -501,7 +501,11 @@ export class WasmExpressions {
           ast.args?.length===1 && ast.args[0].kind==='number' &&
           !ast.args[0].float && Number.isSafeInteger(ast.args[0].value)
           ? {name:ast.name,args:[ast.args[0].value]} : null;
-        pending.push({ source, type: node.type, direct: variable });
+        const scalar = ast.kind==='name' &&
+          ast.name!=='pi' && ast.name!=='e'
+          ? {name:ast.name,args:[]} : null;
+        pending.push({ source, type: node.type,
+          direct: variable||scalar });
         functions.push({ ...node, locals: builder.locals });
       } catch (error) {
         if (
@@ -585,11 +589,11 @@ export class WasmExpressions {
     try {
       let value;
       if(entry.direct && typeof context.resolve==='function'){
-        // Typed MUGEN var/fvar/sysvar/sysfvar reads are overwhelmingly
-        // frequent in helpers/AI. Their numeric result already has exactly
-        // the declared integer/f32 type, so a Wasm trampoline plus imported
-        // JavaScript callback is unnecessary. Any unusual result delegates
-        // to the unchanged Wasm/deoptimization path.
+        // Typed MUGEN single-value reads, including static var/fvar and
+        // numeric scalar triggers, are overwhelmingly frequent in helpers/AI.
+        // Their numeric result already has the declared integer/f32 type;
+        // avoid Wasm trampoline+host import overhead. Unusual results
+        // delegate to the unchanged Wasm/deoptimization path.
         const raw=context.resolve(entry.direct.name,entry.direct.args,null);
         if(typeof raw==='number' && Number.isFinite(raw) &&
           (entry.type===F || Number.isInteger(raw))){
