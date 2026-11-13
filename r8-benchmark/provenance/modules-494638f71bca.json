@@ -12,7 +12,7 @@
     "src/debug.js": "d7672ba33eb7f63de2c4bd4a02a808673cedc28d91ef77bf6be5f7c3d62db41d",
     "src/entities.js": "bec6945d8edcb48d4a7faa001c1d547e1af77cd0e4c34afb66ef5965df294120",
     "src/explods.js": "bef7326d1b542db5631b8224394db84829b4f602cc7da0dc210b09b11b6c2105",
-    "src/expressions.js": "3be8d571ae06d3251f6f22c2f6f2ae089476a8a69c59ce69de316e1dcd54c920",
+    "src/expressions.js": "a9cb35ee64f33d2f649db3f12e7b59935aa2d8823fb540a3e10d13356a3fb747",
     "src/formats.js": "302834e9ac167210dd22243cfc6abe6d033d90acbdfd6f1595c271ee23495e1a",
     "src/guard-distance.js": "a88ae4ff88bbec246bf1c81188c07a1e3d2f4c9a26dd774c4ed19928df912fb7",
     "src/haptics.js": "7b257f8b8bd7381cb7013a583e5e75dfefea20721538457a4ebcdf34c6f5cad9",
