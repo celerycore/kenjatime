@@ -1,7 +1,7 @@
 {
   "repository": "celerycore/kenjatime",
   "branch": "feature/r8-benchmark-preview-20261112",
-  "sourceCommit": "82478a57384af17d2feb569c76da228c9bf8b595",
+  "sourceCommit": "16833107a80a72169eaad679cb152d339780ea15",
   "channel": "r8-benchmark-pr17",
   "basedOnPR": 17,
   "benchmarkFeatures": [
@@ -13,8 +13,38 @@
     "endless-round-mode",
     "ko-reset-cycle",
     "deterministic-60hz-clock",
-    "rational-input-sampling"
+    "rational-input-sampling",
+    "mugen11-helper-states",
+    "helper-lifecycle-csv",
+    "mugen11-persistent-n",
+    "mugen11-negative-state-audit",
+    "mugen11-bindtime-zero",
+    "mugen11-parentvar-restrictions",
+    "mugen11-helper-state-owners",
+    "mugen11-targetstate-id",
+    "mugen11-changeanim2-selfstate",
+    "mugen11-native-oracle-candidate",
+    "mugen11-player-owner-csv",
+    "mugen11-facep2-live-anchors",
+    "mugen11-target-lifecycle",
+    "mugen11-live-target-csv",
+    "mugen11-targetdrop-random-keepone",
+    "mugen11-hitdef-p2-owner",
+    "mugen11-hittoverride-orphan-flag",
+    "mugen11-hitdef-authored-movetype",
+    "mugen11-throw-hitpause-csv",
+    "mugen11-mega-parity-bundle",
+    "r8-mega-release-gate"
   ],
+  "releaseId": "kenjatime-mega-2026-11-13",
+  "releaseDate": "2026-11-13",
+  "releaseSections": [
+    "stateMachine",
+    "helpers",
+    "browser"
+  ],
+  "nativeMugen11Certified": false,
+  "productionArcadeUpdated": false,
   "privateCharactersIncluded": false,
   "kotlinWasmDefault": false
 }
