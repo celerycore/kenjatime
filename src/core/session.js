@@ -888,6 +888,7 @@ export class CoreSession {
         // changes to character control or authored MUGEN behavior.
         aiLevel: a.aiLevel,
         ctrl: a.ctrl,
+        r8IdleControlRecoveries: a.r8IdleControlRecoveries || 0,
         stateTime: a.time,
         velX: a.vel.x,
         velY: a.vel.y,
