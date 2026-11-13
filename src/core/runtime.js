@@ -6,6 +6,7 @@ import { TickInputBuffer } from "../input-buffer.js";
 import { soundArchive } from "../formats.js";
 import { FrameScheduler } from "./frame-scheduler.js";
 import { AdaptiveResolution } from "./adaptive-resolution.js";
+import {normalizeQuality,qualityStartingScale} from "./render-quality.js";
 import { framePacing, nextTickEstimate, presentationDue } from "./frame-pacing.js";
 /** Worker-owned simulation/renderer. The UI owns only input, audio sinks and HUD. */
 export function createCoreRuntime(emit) {
@@ -243,7 +244,8 @@ export function createCoreRuntime(emit) {
     sampleRate = 48000,
     quality: value = "auto",
   }) {
-    quality = value;
+    quality=normalizeQuality(value);
+    scale=qualityStartingScale(quality);
     if (!renderer) prepare(canvas);
     session = new CoreSession(files, selection);
     await session.initializeScripts();
@@ -388,10 +390,10 @@ export function createCoreRuntime(emit) {
       return;
     }
     if (data.type === "quality") {
-      quality = data.value;
-      scale = 1;
+      quality=normalizeQuality(data.value);
+      scale=qualityStartingScale(quality);
       adaptiveResolution.reset();
-      dirty = true;
+      dirty=true;
     }
     if (data.type === "audio-port") {
       audioPort = data.port;

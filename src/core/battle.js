@@ -4,6 +4,7 @@ import { gamepadKeys } from "../input-buffer.js";
 import { CoreAudio } from "./audio.js";
 import { CoreVideos } from "./video-source.js";
 import { FIGHT_BANNER_TICKS } from "./fight-start.js";
+import {nextQuality,qualityLabel} from "./render-quality.js";
 import "./battle.css";
 import "./hud.css";
 let active;
@@ -333,10 +334,12 @@ export async function openCoreBattle({
     applyPresentation(presentation === PRESENTATION_NATIVE ? PRESENTATION_WIDE : PRESENTATION_NATIVE);
   };
   host.querySelector("[data-quality]").onclick = () => {
-    quality = quality === "auto" ? "sharp" : "auto";
-    send({ type: "quality", value: quality });
-    host.querySelector("[data-quality]").textContent =
-      "Visuals: " + (quality === "auto" ? "Auto" : "Sharp");
+    // R8 mobile: Performance is a genuine low-resolution GPU preset.
+    // It changes only WebGL presentation, never authored animation or AI.
+    quality=nextQuality(quality);
+    send({type:"quality",value:quality});
+    host.querySelector("[data-quality]").textContent=
+      "Visuals: "+qualityLabel(quality);
   };
   window.addEventListener("keydown", keys);
   window.addEventListener("keyup", keys);
