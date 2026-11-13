@@ -150,6 +150,16 @@ function controllerRules(controller){
   if(!rules.groups.has(1))rules.errors.push({line:controller.line,message:'A state controller requires at least one trigger1.'});
   let next=1;while(rules.groups.has(next))next++;
   for(const [n,entries]of rules.groups)if(n>=next){rules.groups.delete(n);rules.warnings.push({line:entries[0].line,message:`trigger${n} is ignored because trigger${next} is missing.`});}
+  // Legacy MUGEN controllers, including helper-heavy character AI, may
+  // evaluate thousands of trigger groups each simulation tick. The original
+  // shouldRun() filtered triggerall, sorted groups, and spread controller
+  // metadata on *every evaluation*. Prepare immutable expression contexts
+  // once for the authored static CNS program instead. Entry references keep
+  // evaluation source text and diagnostics at the original script line.
+  const prepared=entry=>({entry,context:{...controller,line:entry.line}});
+  rules.triggerAll=controller.entries.filter(entry=>entry.key==='triggerall').map(prepared);
+  rules.sortedGroups=[...rules.groups].sort(([a],[b])=>a-b)
+    .map(([,entries])=>entries.map(prepared));
   controllerMetadata.set(controller,rules);return rules;
 }
 
@@ -165,6 +175,17 @@ const simpleTriggerFields=new Map(Object.entries({
 export function parseProgram(character, { commonText = '',constantDefaults={},constantsFromCnsOnly=false } = {}) {
   const program = { states: new Map(), constants: new Map(Object.entries({...DEFAULT_CONSTANTS,...constantDefaults})), quotes:new Map(), functions:new Map(), initialMaps:new Map(), zssExpressions:new Set(), diagnostics: [], sources: [], controllerTypes: new Set() };
   const sourceTexts = [];
+  // Elecbyte MUGEN 1.1 supports one definition of each ordinary global
+  // StateDef -3/-2/-1. IKEMEN can append globals, but that is not native
+  // behavior. Keep current parser precedence until native trace verification
+  // and surface every duplicate rather than silently certify parity.
+  const warnDuplicateGlobal = (key, existing, source, line) => {
+    if ([-3,-2,-1].includes(key) && existing && existing.source !== '<common states>')
+      program.diagnostics.push({
+        source, line, type:'mugen11-duplicate-global',state:key,
+        message:`Multiple StateDef ${key} declarations: earlier at ${existing.source || 'unknown source'}. MUGEN 1.1 allows one; current precedence requires native verification.`
+      });
+  };
   if (commonText) sourceTexts.push(['<common states>', commonText]);
   const files = character.files || {};
   const base = character.path?.slice(0, character.path.lastIndexOf('/') + 1) || '';
@@ -240,6 +261,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
             // StateDef 1. Global -4/+1 declarations append across CNS/ZSS files.
             const key=value.idExpression.replace(/\s/g,'')==='+1'?'global+1':id;
             const existing=states.get(key);
+            warnDuplicateGlobal(key,existing,source,value.line);
             if((key===-4||key==='global+1')&&existing)
               states.set(key,{id,source:value.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),value]});
             else states.set(key,value);
@@ -264,6 +286,7 @@ export function parseProgram(character, { commonText = '',constantDefaults={},co
         const key=statedef[1]==='+1'?'global+1':+statedef[1];
         current = { id: +statedef[1], ...section, controllers: [] };
         const existing=program.states.get(key);
+        warnDuplicateGlobal(key,existing,source,section.line);
         if((key===-4||key==='global+1')&&existing)
           program.states.set(key,{id:current.id,source:current.source,entries:[],controllers:[],globalParts:[...(existing.globalParts||[existing]),current]});
         else program.states.set(key,current);
@@ -334,6 +357,33 @@ export class FighterRuntime {
     this.helperId = options.helperId ?? 0; this.keyCtrl = options.keyCtrl ?? !this.parent;
     this.ownPal = options.ownPal ?? false; this.teamSide = options.teamSide ?? this.root.options?.teamSide ?? 1;
     this.commonAnimations = options.commonAnimations || new Map();
+    // Reuse the same expression host callbacks on every evaluation. Complex
+    // MUGEN/IKEMEN characters can evaluate millions of CNS conditions per
+    // match, and allocating three closures and a context object for each
+    // expression created enormous Android GC pressure.
+    this._evaluationSource = null;
+    this._evaluationController = null;
+    this._expressionResolve = (name, args = [], redirect = null) => {
+      if(name==='zsslocal'){
+        const value=this._zssContext?.locals.get(String(args[0]));
+        if(!value)throw new UnsupportedExpressionError(`ZSS local ${args[0]} is unavailable.`);
+        if(value.bottom)throw value.error;
+        return value;
+      }
+      return this.resolveTrigger(name,args,redirect);
+    };
+    this._expressionAssign = (name,args,value) => this.assignVariable(name,args,value);
+    this._expressionWarning = error => {
+      if(!error.bottom)this.diagnostic('expression-warning',
+        `${this._evaluationSource}: ${error.message}`,this._evaluationController);
+    };
+    const shared={
+      resolve:this._expressionResolve,
+      assign:this._expressionAssign,
+      onWarning:this._expressionWarning,
+    };
+    this._expressionContext={...shared,typedResult:false};
+    this._typedExpressionContext={...shared,typedResult:true};
     this.reset();
   }
 
@@ -411,33 +461,49 @@ export class FighterRuntime {
   get alive() { return this.life > 0; }
   get paletteRemaps(){return this.parent&&!this.ownPal?this.parent.paletteRemaps:this._paletteRemaps;}
   ownedHelpers() { return this.world ? this.world.entities.filter(p=>p.parent && !p.destroyed && (this===this.root?p.root===this:p.parent===this)) : this.helpers.filter(p=>!p.destroyed); }
+  // No temporary helper arrays for high-frequency NumHelper() AI triggers.
+  // Preserve the exact root-versus-parent ownership and live-state checks.
+  countOwnedHelpers(wanted=null){
+    const members=this.world?.entities||this.helpers;
+    let count=0;
+    for(const p of members){
+      if(!p.parent && this.world || p.destroyed)continue;
+      if(this.world && !(this===this.root?p.root===this:p.parent===this))
+        continue;
+      if(wanted!==null && wanted>0 && p.helperId!==wanted)continue;
+      count++;
+    }
+    return count;
+  }
   get power() { return this.parent ? this.root.power : this._power; }
   set power(value) { if(this.parent)this.root.power=value;else this._power=value; }
 
   evaluate(source, controller = this._executing, typed=false) {
+    // Scoped metadata preserves nested expression/redirect diagnostics while
+    // shared immutable resolver contexts avoid allocation in the hot path.
+    const prevSource=this._evaluationSource,prevController=this._evaluationController;
+    this._evaluationSource=source;this._evaluationController=controller;
     try {
-      return (this.options.expressionEvaluator|| (typed?evaluateTypedExpression:evaluateExpression))(source, {
-        resolve: (name, args = [], redirect = null) => {
-          if(name==='zsslocal'){
-            const value=this._zssContext?.locals.get(String(args[0]));if(!value)throw new UnsupportedExpressionError(`ZSS local ${args[0]} is unavailable.`);
-            if(value.bottom)throw value.error;return value;
-          }
-          return this.resolveTrigger(name, args, redirect);
-        },
-        assign: (name, args, value) => this.assignVariable(name, args, value),
-        onWarning: error => { if (!error.bottom) this.diagnostic('expression-warning', `${source}: ${error.message}`, controller); },
-        typedResult:typed,
-      });
+      return (this.options.expressionEvaluator||
+        (typed?evaluateTypedExpression:evaluateExpression))(
+          source, typed?this._typedExpressionContext:this._expressionContext);
     } catch (error) {
       if (!error.bottom) this.diagnostic('expression', `${source}: ${error.message}`, controller);
       throw error;
+    } finally {
+      this._evaluationSource=prevSource;this._evaluationController=prevController;
     }
   }
 
   variableArray(name) {
-    const arrays = { var: this.vars, fvar: this.fvars, sysvar: this.sysvars, sysfvar: this.sysfvars };
-    if (!arrays[name]) throw new Error(`Unsupported assignable variable: ${name}`);
-    return arrays[name];
+    // No temporary object for every var()/fvar() AI trigger.
+    switch(name){
+      case 'var': return this.vars;
+      case 'fvar': return this.fvars;
+      case 'sysvar': return this.sysvars;
+      case 'sysfvar': return this.sysfvars;
+      default: throw new Error(`Unsupported assignable variable: ${name}`);
+    }
   }
   assignVariable(name, args, value) {
     const array = this.variableArray(name.toLowerCase()), index = integer(args[0]);
@@ -466,8 +532,17 @@ export class FighterRuntime {
       else if (type === 'root') target = this.root || this;
       else if (type === 'parent') target = this.parent;
       else if(type==='partner')target=(this.world?.entities||[]).filter(actor=>!actor.parent&&actor!==this.root&&actor.teamSide===this.teamSide)[Math.trunc(redirect.args[0]||0)];
-      else if (type === 'helper') target = this.ownedHelpers().find(helper => !redirect.args.length || helper.helperId === +redirect.args[0]);
-      else if (type === 'target') target = this.targets.find(t => !redirect.args.length || (this.targetHitIds.get(t.id)??t.hitId) === +redirect.args[0]);
+      else if (type === 'helper') {
+        const requested=redirect.args.length?+redirect.args[0]:null;
+        for(const helper of this.world?.entities||this.helpers){
+          if((this.world&&!helper.parent)||helper.destroyed||
+            (this.world&&!(this===this.root?helper.root===this:helper.parent===this)))
+            continue;
+          if(requested===null||helper.helperId===requested){target=helper;break;}
+        }
+      }
+      else if (type === 'target') target = this.targets.find(t =>
+        !t.destroyed && (!redirect.args.length || (this.targetHitIds.get(t.id)??t.hitId) === +redirect.args[0]));
       else if (type === 'playerid') target = this.world?.findPlayer(+redirect.args[0]) || [this, this.opponent, ...this.helpers].find(t => t?.id === +redirect.args[0]);
       else throw new Error(`Unsupported redirection: ${type}`);
       if (!target || target.destroyed) { const error = new Error(`Redirection ${type} has no matching player`); error.bottom = true; throw error; }
@@ -524,37 +599,105 @@ export class FighterRuntime {
       throw new Error(`Unsupported GetHitVar field: ${key}`);
     }
     if(name==='inguarddist')return +(this.world?this.inGuardDistance||false:inGuardDistance(this,this.opponent?[this.opponent]:[]));
-    const other = this.opponent;
-    const flow=this.world?.roundFlow,side=this.root===this.world?.player?'player':'opponent',won=!!flow?.roundWinner&&flow.roundWinner===side,lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
-    const values = {
-      animelem: this.scriptAnimationClock.frameIndex + 1,
-      alive: +this.alive, gametime: this.world?.ticks??this.gameTime,
-      hitshakeover: +((this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime)===0), hitover: +(this.hitTime < 0),
-      movereversed: this.moveReversed || 0,
-      numhelper: this.ownedHelpers().length, numexplod: this.explods.length, numtarget: this.targets.length,
-      numenemy: other ? 1 : 0, numpartner: 0, ishelper: +!!this.parent,
-      roundstate: this.roundState ?? 2, roundsexisted: this.roundsExisted ?? 0, roundno: this.roundNo ?? 1, matchno: this.matchNo ?? 1, matchover:+!!this.world?.matchOver,
-      teamside: this.teamSide ?? this.id, teampower: this.power, tickspersecond: 60,
-      aiLevel: this.aiLevel || 0, ailevel: this.aiLevel || 0, palno: this.paletteNo || 1,
-      teammode:'single',
-      ishometeam:+(this.teamSide===1),
-      authorname: this.character.def?.info?.author || '',
-      numproj: (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed).length, win:flow?+won:+(this.roundState === 4 && this.alive && other?.life <= 0),
-      lose:flow?+lost:+(this.roundState === 4 && !this.alive), drawgame:flow?+(flow.roundWinner==='draw'):+(this.roundState === 4 && !this.alive && other?.life <= 0),
-      winko:+(won&&flow.reason!=='time'),wintime:+(won&&flow.reason==='time'),winperfect:+(won&&this.life===this.maxLife),loseko:+(lost&&flow.reason!=='time'),losetime:+(lost&&flow.reason==='time'),loseperfect:+(lost&&other?.life===other?.maxLife),
-      camerazoom:this.cameraZoom??1,gamewidth:(this.world?.view.width??320)/scale,gameheight:(this.world?.view.height??240)/scale,
-      screenwidth:320/scale,screenheight:(this.world?.view.displayHeight??240)/scale,
-      leftedge:(this.world?.view.left??-160)/scale,rightedge:(this.world?.view.right??160)/scale,topedge:(this.world?.view.top??-240)/scale,bottomedge:(this.world?.view.bottom??0)/scale,
-      frontedge:(this.facing===1?this.world?.view.right??160:this.world?.view.left??-160)/scale,backedge:(this.facing===1?this.world?.view.left??-160:this.world?.view.right??160)/scale,
-      canrecover: +(!!this.getHitVars.fall&&this.getHitVars['fall.recover']!==0&&(this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4)), hitfall: this.getHitVars.fall || 0,
-      'hitvel x': (this.getHitVars.xvel||0)*this.coordinateScale/scale,'hitvel y':(this.getHitVars.yvel||0)*this.coordinateScale/scale,
-      'pos x': (this.pos.x-(this.cameraPos?.x||0)) / scale, 'pos y': this.pos.y / scale, 'vel x': this.vel.x / scale, 'vel y': this.vel.y / scale,
-      'screenpos x': (this.pos.x-(this.world?.view.left??-160)) / scale, 'screenpos y': (this.pos.y-(this.world?.view.top??-240)) / scale,
-      'camerapos x': (this.cameraPos?.x || 0) / scale, 'camerapos y': (this.cameraPos?.y || 0) / scale,
-    };
+    const other=this.opponent;
+    // Numeric MUGEN triggers are queried thousands of times per simulation
+    // tick by large CNS AIs. The old eager 'values' object ran helper,
+    // projectile and target scans for EVERY trigger (including AILevel and
+    // P2Dist). Resolve only the requested field, without materializing a
+    // multi-field object on the hot path.
+    switch(name){
+      case 'animelem': return this.scriptAnimationClock.frameIndex+1;
+      case 'alive': return +this.alive;
+      case 'gametime': return this.world?.ticks??this.gameTime;
+      case 'hitshakeover': return +((this.world?.orderedPhases?
+        (this.getHitVars.hitshaketime||0):this.hitPauseTime)===0);
+      case 'hitover': return +(this.hitTime<0);
+      case 'movereversed': return this.moveReversed||0;
+      case 'numhelper': if(!args.length)return this.countOwnedHelpers();break;
+      case 'numexplod': if(!args.length)return this.explods.length;break;
+      case 'numtarget': if(!args.length){
+        let n=0;for(const t of this.targets)if(!t.destroyed)n++;return n;
+      }break;
+      case 'numenemy': return other?1:0;
+      case 'numpartner': return 0;
+      case 'ishelper': if(!args.length)return +!!this.parent;break;
+      case 'roundstate': return this.roundState??2;
+      case 'roundsexisted': return this.roundsExisted??0;
+      case 'roundno': return this.roundNo??1;
+      case 'matchno': return this.matchNo??1;
+      case 'matchover': return +!!this.world?.matchOver;
+      case 'teamside': return this.teamSide??this.id;
+      case 'teampower': return this.power;
+      case 'tickspersecond': return 60;
+      case 'ailevel': return this.aiLevel||0;
+      case 'palno': return this.paletteNo||1;
+      case 'teammode': return 'single';
+      case 'ishometeam': return +(this.teamSide===1);
+      case 'authorname': return this.character.def?.info?.author||'';
+      case 'numproj': {
+        let n=0;for(const p of this.world?.projectiles||[])
+          if(p.owner===this&&!p.removing&&!p.removed)n++;
+        return n;
+      }
+      case 'canrecover': return +(!!this.getHitVars.fall&&
+        this.getHitVars['fall.recover']!==0&&
+        (this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4));
+      case 'hitfall': return this.getHitVars.fall||0;
+      case 'hitvel x': return (this.getHitVars.xvel||0)*this.coordinateScale/scale;
+      case 'hitvel y': return (this.getHitVars.yvel||0)*this.coordinateScale/scale;
+      case 'pos x': return (this.pos.x-(this.cameraPos?.x||0))/scale;
+      case 'pos y': return this.pos.y/scale;
+      case 'vel x': return this.vel.x/scale;
+      case 'vel y': return this.vel.y/scale;
+      case 'screenpos x': return (this.pos.x-(this.world?.view.left??-160))/scale;
+      case 'screenpos y': return (this.pos.y-(this.world?.view.top??-240))/scale;
+      case 'camerapos x': return (this.cameraPos?.x||0)/scale;
+      case 'camerapos y': return (this.cameraPos?.y||0)/scale;
+      case 'camerazoom': return this.cameraZoom??1;
+      case 'gamewidth': return (this.world?.view.width??320)/scale;
+      case 'gameheight': return (this.world?.view.height??240)/scale;
+      case 'screenwidth': return 320/scale;
+      case 'screenheight': return (this.world?.view.displayHeight??240)/scale;
+      case 'leftedge': return (this.world?.view.left??-160)/scale;
+      case 'rightedge': return (this.world?.view.right??160)/scale;
+      case 'topedge': return (this.world?.view.top??-240)/scale;
+      case 'bottomedge': return (this.world?.view.bottom??0)/scale;
+      case 'frontedge': return (this.facing===1?
+        this.world?.view.right??160:this.world?.view.left??-160)/scale;
+      case 'backedge': return (this.facing===1?
+        this.world?.view.left??-160:this.world?.view.right??160)/scale;
+      case 'win':
+      case 'lose':
+      case 'drawgame':
+      case 'winko':
+      case 'wintime':
+      case 'winperfect':
+      case 'loseko':
+      case 'losetime':
+      case 'loseperfect':{
+        const flow=this.world?.roundFlow;
+        const side=this.root===this.world?.player?'player':'opponent';
+        const won=!!flow?.roundWinner&&flow.roundWinner===side;
+        const lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
+        if(name==='win')return flow?+won:+(this.roundState===4&&this.alive&&other?.life<=0);
+        if(name==='lose')return flow?+lost:+(this.roundState===4&&!this.alive);
+        if(name==='drawgame')return flow?+(flow.roundWinner==='draw'):+(this.roundState===4&&!this.alive&&other?.life<=0);
+        if(name==='winko')return +(won&&flow.reason!=='time');
+        if(name==='wintime')return +(won&&flow.reason==='time');
+        if(name==='winperfect')return +(won&&this.life===this.maxLife);
+        if(name==='loseko')return +(lost&&flow.reason!=='time');
+        if(name==='losetime')return +(lost&&flow.reason==='time');
+        return +(lost&&other?.life===other?.maxLife);
+      }
+    }
     if(name==='stagevar'){if(!this.world?.stage)throw Error('StageVar requires an imported stage.');return this.world.stage.variable(args[0]);}
     if (name === 'ishelper' && args.length) return +(!!this.parent && this.helperId === +args[0]);
-    if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === Math.max(0,Math.trunc(+args[0]))).length;
+    if (name === 'numprojid') {
+      const requested=Math.max(0,Math.trunc(+args[0]));
+      let n=0;for(const p of this.world?.projectiles||[])
+        if(p.owner===this&&!p.removing&&!p.removed&&p.projId===requested)n++;
+      return n;
+    }
     // Legacy scripts also use parenthesized ProjHit(id), although the
     // official syntax uses a numeric suffix. Preserve the one-tick contact
     // flag using the existing projectile history.
@@ -571,9 +714,16 @@ export class FighterRuntime {
       return record && (!wanted || record.projId === wanted) && (kind === 'contact' ? ['hit','guarded'].includes(record.type) : record.type === kind) ? (this.world?.ticks ?? this.gameTime) - record.tick : -1;
     }
     if (/^(parentdist|rootdist) [xy]$/.test(name)) { const parent = !this.parent?null:name.startsWith('parent') ? this.parent : this.root; if (!parent||parent.destroyed||name.startsWith('parent')&&!parent.alive) { const e = Error('No live parent or root'); e.bottom = true; throw e; } const axis = name.at(-1); return (parent.pos[axis] - this.pos[axis]) * (axis === 'x' ? this.facing : 1) / scale; }
-    if (name === 'numexplod' && args.length) return this.explods.filter(e => e.id === +args[0]).length;
-    if (name === 'numhelper' && args.length) return this.ownedHelpers().filter(h => +args[0] <= 0 || h.helperId === +args[0]).length;
-    if (name === 'numtarget' && args.length) return this.targets.filter(t => !t.destroyed && (+args[0] < 0 || (this.targetHitIds.get(t.id)??t.hitId) === +args[0])).length;
+    if (name === 'numexplod' && args.length){
+      let n=0;for(const e of this.explods)if(e.id===+args[0])n++;return n;
+    }
+    if (name === 'numhelper' && args.length) return this.countOwnedHelpers(+args[0]);
+    if (name === 'numtarget' && args.length){
+      const wanted=+args[0];let n=0;
+      for(const t of this.targets)
+        if(!t.destroyed && (wanted<0||(this.targetHitIds.get(t.id)??t.hitId)===wanted))n++;
+      return n;
+    }
     if (name === 'playeridexist') return +(this.world?.findPlayer(+args[0]) || [this, other, ...this.helpers].find(p => p?.id === +args[0] && !p.destroyed) ? 1 : 0);
     if (['frontedgedist','backedgedist','frontedgebodydist','backedgebodydist'].includes(name)) {
       const front = name.startsWith('front');
@@ -607,7 +757,7 @@ export class FighterRuntime {
       if (!hit || name === 'hitdefattr' && this.moveType !== 'A') return 0;
       return +matchAttribute(args.map(String).join(','),hit);
     }
-    if (Object.hasOwn(values, name)) return values[name];
+
     throw new UnsupportedExpressionError(`Unsupported trigger: ${name}`);
   }
 
@@ -709,7 +859,14 @@ export class FighterRuntime {
       if (state.values.sprpriority !== undefined) this.sprPriority = integer(this.value(state, 'sprpriority', 0));
       if (state.values.juggle !== undefined) {this.juggleCost=Math.max(0,integer(this.value(state,'juggle',0)));this._juggleSerial++;}
       if (state.values.poweradd !== undefined) this.power = clamp(this.power + this.value(state, 'poweradd', 0), 0, this.maxPower);
-      if (truth(this.value(state, 'facep2', 0)) && this.opponent) this.facing = this.opponent.pos.x >= this.pos.x ? 1 : -1;
+      // StateDef facep2 is an entry-time operation (including borrowed CNS
+      // states). Do not turn when P2 has been destroyed or is coincident
+      // with this actor; no direction can be established from equal axes.
+      if(truth(this.value(state,'facep2',0))){
+        const p2=this.opponent;
+        if(p2&&!p2.destroyed&&p2!==this&&p2.pos.x!==this.pos.x)
+          this.facing=p2.pos.x>this.pos.x?1:-1;
+      }
     } catch { /* The diagnostic includes the exact definition and expression. */ }
     this._executing = null;
     this.events.push({ type: 'state', state: number, previous: old?.id });
@@ -719,26 +876,31 @@ export class FighterRuntime {
   shouldRun(controller, paused) {
     const rules=controllerRules(controller);if(rules.errors.length)return false;
     if (paused && !rules.ignorehitpause) return false;
-    const all = controller.entries.filter(entry => entry.key === 'triggerall');
-    for (const trigger of all) {
-      try { if (!truth(this.evaluate(trigger.value, { ...controller, line: trigger.line }))) return false; }
+    for (const trigger of rules.triggerAll) {
+      try { if (!truth(this.evaluate(trigger.entry.value, trigger.context))) return false; }
       catch { return false; }
     }
-    const groups = rules.groups;
     let enabled = false;
-    for (const [, group] of [...groups].sort(([a], [b]) => a - b)) {
+    for (const group of rules.sortedGroups) {
       let matches = true;
       for (const trigger of group) {
-        try { if (!truth(this.evaluate(trigger.value, { ...controller, line: trigger.line }))) { matches = false; break; } }
+        try { if (!truth(this.evaluate(trigger.entry.value, trigger.context))) { matches = false; break; } }
         catch { matches = false; break; }
       }
       if (matches) { enabled = true; break; }
     }
     if (!enabled) return false;
     const persistent = rules.persistent;
-    const count = this._controllerCounts.get(controller) || 0;
-    this._controllerCounts.set(controller, count + 1);
-    return persistent === 0 ? count === 0 : count % persistent === 0;
+    const successes = (this._controllerCounts.get(controller) || 0) + 1;
+    this._controllerCounts.set(controller, successes);
+    // Elecbyte MUGEN 1.1: persistent=0 runs once per state entry,
+    // persistent=N>1 runs on the Nth, 2Nth, 3Nth successful evaluation.
+    // A false trigger does not advance the persistence counter.
+    // Out-of-range legacy "cheapie" values are explicitly nonportable:
+    // preserve the preexisting first-hit fallback, not a false native claim.
+    if (persistent > 2147483647) return (successes - 1) % persistent === 0;
+    return persistent === 0 ? successes === 1
+      : persistent === 1 || successes % persistent === 0;
   }
 
   runState(number, paused, owner = this.stateOwner) {
@@ -1110,6 +1272,13 @@ export class FighterRuntime {
         const indexKey = kind === 'sysfvar' ? 'sysfv' : kind === 'sysvar' ? 'sysv' : kind === 'fvar' ? 'fv' : 'v';
         assignments = [{ key: `${kind}(${int(indexKey)})`, value: controller.values.value ?? '0' }];
       }
+      // ParentVarSet / ParentVarAdd are MUGEN 1.1 working-variable
+      // controllers. Elecbyte explicitly disallows parent system vars;
+      // rejecting the entire controller also avoids partial writes.
+      if(type.startsWith('parent')&&assignments.some(entry=>/^(?:sysvar|sysfvar)\s*\(/i.test(entry.key))){
+        this.diagnostic('mugen11-parentvar-system','ParentVarSet/ParentVarAdd cannot write parent sysvar/sysfvar.',controller);
+        return;
+      }
       for (const assignment of assignments) {
         const match = assignment.key.match(/^(var|fvar|sysvar|sysfvar)\s*\((.*)\)$/);
         if (!match) throw new Error(`Malformed variable target: ${assignment.key}`);
@@ -1197,28 +1366,53 @@ export class FighterRuntime {
     }
     if (['explod', 'modifyexplod', 'removeexplod', 'explodbindtime'].includes(type)) { this.explodController(controller); return; }
     if (type.startsWith('target')) {
-      const wanted = int('id', -1), targets = this.targets.filter(target => wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted);
+      // Only live captured targets may receive TargetState/TargetBind/etc.
+      // A target destroyed earlier in this tick can remain in the authored
+      // target list until world cleanup, but must not be state-mutated.
+      const wanted = int('id', -1), targets = this.targets.filter(target =>
+        !target.destroyed && (wanted === -1 || (this.targetHitIds.get(target.id)??target.hitId) === wanted));
       if (type === 'targetdrop') {
-        const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>(this.targetHitIds.get(t.id)??t.hitId)===exclude);
-        this.targets=num('keepone',1)?kept.slice(0,1):kept;
+        const exclude=int('excludeid',-1),kept=exclude<0?[]:this.targets.filter(t=>!t.destroyed&&(this.targetHitIds.get(t.id)??t.hitId)===exclude);
+        // Elecbyte MUGEN 1.1 TargetDrop keepone=1 chooses ONE at random
+        // among equal-ID targets. Choosing the first makes helper-heavy throws
+        // systematically select the oldest victim. Use our seeded per-actor
+        // RNG so identical replays pick the same target; native RNG parity
+        // still requires an independent MUGEN reference capture.
+        const keepOne=!!num('keepone',1);
+        const selected=keepOne&&kept.length>1
+          ? [kept[Math.min(kept.length-1,Math.floor(this.resolveTrigger('random')/1000*kept.length))]]
+          : keepOne?kept.slice(0,1):kept;
+        this.targets=selected;
         const live=new Set(this.targets.map(t=>t.id));for(const id of this.targetHitIds.keys())if(!live.has(id))this.targetHitIds.delete(id);return;
       }
-      const value=['targetfacing','targetlifeadd','targetpoweradd','targetstate'].includes(type)?int('value'):undefined,kill=type==='targetlifeadd'?num('kill',1):1,absolute=type==='targetlifeadd'?num('absolute'):0,ctrl=type==='targetstate'&&controller.values.ctrl!==undefined?num('ctrl'):undefined;
+      // Elecbyte MUGEN 1.1 TargetState accepts only value and optional ID:
+      // unlike SelfState/ChangeState it does NOT have a ctrl parameter.
+      // An authored ctrl= must not silently alter victim control.
+      if(type==='targetstate' && controller.values.ctrl!==undefined)
+        this.diagnostic('mugen11-targetstate-parameter',
+          'TargetState ctrl is not a MUGEN 1.1 parameter; ignoring it.',controller);
+      const value=['targetfacing','targetlifeadd','targetpoweradd','targetstate'].includes(type)?int('value'):undefined,kill=type==='targetlifeadd'?num('kill',1):1,absolute=type==='targetlifeadd'?num('absolute'):0;
       const bind=type==='targetbind'?{pos:vec('pos'),time:int('time',1)}:null;
       const velocity=type==='targetvelset'||type==='targetveladd'?Object.fromEntries(['x','y'].filter(axis=>controller.values[axis]!==undefined).map(axis=>[axis,num(axis)*this.coordinateScale])):null;
       for (const target of targets) {
         if (type === 'targetfacing') {if(value)target.facing=this.facing*(value<0?-1:1);}
         else if (type === 'targetlifeadd') {const amount=-scaledDamage(-value,this,target,{absolute:!!absolute});target.life=clamp(target.life+amount,kill?0:1,target.maxLife);}
         else if (type === 'targetpoweradd') target.power = clamp(target.power + value, 0, target.maxPower);
-        else if (type === 'targetstate') { target.changeState(value,ctrl,this._scriptOwner||this.stateOwner); }
-        else if (bind) { const [x=0,y=0]=bind.pos;target.bound={target:this,x:x*this.coordinateScale,y:y*this.coordinateScale,time:bind.time}; }
+        else if (type === 'targetstate') {
+          target.changeState(value,undefined,this._scriptOwner||this.stateOwner);
+        }
+        else if (bind) {
+          if(bind.time===0){target.bound=null;continue;}
+          const [x=0,y=0]=bind.pos;
+          target.bound={target:this,x:x*this.coordinateScale,y:y*this.coordinateScale,time:bind.time};
+        }
         else for (const [axis,value]of Object.entries(velocity||{}))target.vel[axis]=value+(type==='targetveladd'?target.vel[axis]:0);
       }
       return;
     }
     if (['bindtoroot', 'bindtoparent', 'bindtotarget'].includes(type)) {
       if(type!=='bindtotarget'&&!this.parent)return;
-      const id=int('id',-1),target = type === 'bindtoroot' ? this.root : type === 'bindtoparent' ? this.parent : this.targets.find(target=>id<0||(this.targetHitIds.get(target.id)??target.hitId)===id);
+      const id=int('id',-1),target = type === 'bindtoroot' ? this.root : type === 'bindtoparent' ? this.parent : this.targets.find(target=>!target.destroyed&&(id<0||(this.targetHitIds.get(target.id)??target.hitId)===id));
       if (!target||target.destroyed){if(type==='bindtoparent'&&this.parent){this.bound=null;return;}throw new Error(`${type} has no matching player`);}
       let point=[0,0],x,y;
       if(type==='bindtotarget'){
@@ -1227,7 +1421,12 @@ export class FighterRuntime {
         [x,y]=parts.slice(0,2).map(part=>numeric(this.evaluate(part,controller)));x??=0;y??=0;
         if(anchor!=='foot')point=['x','y'].map(axis=>target.constant(`size.${anchor}.pos.${axis}`)*target.coordinateScale);
       }else [x=0,y=0]=vec('pos');
-      this.bound = { target, x: x * this.coordinateScale+point[0], y: y * this.coordinateScale+point[1], time: int('time', 1), facing: num('facing') }; return;
+      const time=int('time',1);
+      // A binding with zero remaining ticks must not become permanent:
+      // updateBinding decrements only strictly positive durations, with
+      // -1 reserved for an explicitly indefinite attachment.
+      if(time===0){this.bound=null;return;}
+      this.bound = { target, x: x * this.coordinateScale+point[0], y: y * this.coordinateScale+point[1], time, facing: num('facing') }; return;
     }
     if (type === 'hitadd') {const amount=int('value');this.hitCount=Math.max(0,this.hitCount+amount);this.uniqHitCount=Math.max(0,this.uniqHitCount+amount);const target=this.targets.at(-1)||(this.opponent?.moveType==='H'?this.opponent:null);if(target)target.comboHits=Math.max(0,(target.comboHits||0)+amount);return;}
     if (type === 'hitcount') { this.hitCount = int('value'); return; }
@@ -1296,6 +1495,11 @@ export class FighterRuntime {
 
   createHelper(spec, {id} = {}) {
     if (spec.helpertype && spec.helpertype !== 'normal') this.diagnostic('unsupported-helper', 'Player-type helpers are deprecated by MUGEN 1.1; using a normal helper.');
+    if (String(spec.postype || 'p1').toLowerCase() === 'p2' &&
+        (!this.opponent || this.opponent.destroyed))
+      this.diagnostic('missing-player', 'Helper postype=p2: P2 is absent; using the spawning player axis.', {
+        source:spec.source,line:spec.line,type:'helper',state:this.stateNo
+      });
     const {pos,facing} = spawnPosition(this,spec);
     const program = {...this.program,constants:new Map(this.program.constants)};
     for (const [key,value] of Object.entries(spec)) if (key.startsWith('size.')) {
@@ -1321,8 +1525,15 @@ export class FighterRuntime {
         const target = postype === 'p2' ? this.opponent : postype === 'p1' ? this : null;
         if (target && !target.destroyed) {
           const [x=0, y=0] = Array.isArray(spec.pos) ? spec.pos : [spec.pos ?? 0,0];
+          // A helper's p2 X/facing are relative to P2, but its initial
+          // Y is relative to P1 in MUGEN 1.1. The legacy bindtime extension
+          // must preserve that spawn point instead of teleporting to P2 Y
+          // on its first bound tick; it then follows subsequent P2 motion.
+          const boundY = postype === 'p2'
+            ? pos.y - target.pos.y
+            : numeric(y) * this.coordinateScale;
           helper.bound = { target, x: numeric(x) * this.coordinateScale,
-            y: numeric(y) * this.coordinateScale, time, facing: numeric(spec.facing ?? 1) };
+            y: boundY, time, facing: numeric(spec.facing ?? 1) };
         } else if (postype === 'p1' || postype === 'p2') {
           helper.diagnostic('missing-player', 'Helper bindtime target is unavailable.');
         }
@@ -1487,11 +1698,20 @@ export class FighterRuntime {
     if(ordered&&Object.keys(hitTransform).length)this._pendingHitTransform=hitTransform;
     const state = override ? override.stateNo : !guarded && hit.p2stateno >= 0 ? hit.p2stateno : guarded&&!knockout ? (airborne ? 154 : this.stateType === 'C' ? 152 : 150) : downed?5080:!airborne&&this.getHitVars.groundtype===3?5070:airborne ? 5020 : this.stateType === 'C' ? 5010 : 5000;
     if (override?.forceAir) this.stateType = 'A';
-    if (!this.changeState(state,undefined,!guarded && !override && hit.p2stateno >= 0 ? foreignOwner : this)) {
+    const enteredHitState=this.changeState(state,undefined,
+      !guarded && !override && hit.p2stateno >= 0 ? foreignOwner : this);
+    if (!enteredHitState) {
       this.moveType = 'H'; this.vel = { x: xvel * this.coordinateScale, y: yvel * this.coordinateScale };
       this.diagnostic('missing-hit-state', `Hit state ${state} is missing; full hit reaction cannot execute.`);
+    } else if (ordered && this._pendingStateEntry) {
+      // Ordered 60 Hz simulation defers a victim's actual StateDef entry
+      // until their next actor phase. Remain in hit status until then;
+      // the destination StateDef's own movetype is applied on entry.
+      this.moveType = 'H';
     }
-    this.moveType = 'H';
+    // When the StateDef has actually been entered, its authored movetype
+    // wins. Forcing H here broke HitOverride armor and nonstandard custom
+    // throws that deliberately enter movetype=I or movetype=A states.
     if (attacker) {
       recordHitContact(attacker,hit,guarded);
       attacker.hitPauseTime = Math.max(attacker.hitPauseTime, pause?.[0] || 0);
@@ -1520,7 +1740,15 @@ export class FighterRuntime {
     if (this.world?.isSuperUnhittable(this)) return false;
     for(const filter of this.hitFilters)if(filter?.time&&!filterAllows(filter,hit.attr))return false;
     const typeNone=String(hit[this.stateType==='A'?'air.type':'ground.type']??hit['ground.type']??'high').toLowerCase()==='none';
-    if(!typeNone&&this.matchingHitOverride(hit)&&(hit.p1stateno>=0||hit.p2getp1state===1||hit.p2stateno>=0&&hit.p2getp1state!==0))return false;
+    // Elecbyte 1.1 ignores p2getp1state entirely unless p2stateno is
+    // actually specified. An authored p2getp1state=1 by itself must not
+    // turn an otherwise ordinary HitDef into a custom-state throw or
+    // incorrectly bypass HitOverride. With p2stateno, the omitted flag
+    // defaults to 1 (borrow attacker's CNS) and HitOverride's documented
+    // protection still applies to that foreign-state hit.
+    const hasP2State=Number.isFinite(Number(hit.p2stateno)) && Number(hit.p2stateno)>=0;
+    const borrowsP1State=hasP2State && hit.p2getp1state!==0;
+    if(!typeNone&&this.matchingHitOverride(hit) && (hit.p1stateno>=0||borrowsP1State))return false;
     return !this.asserted.has('unhittable');
   }
 

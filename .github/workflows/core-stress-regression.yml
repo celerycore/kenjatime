@@ -42,6 +42,8 @@ jobs:
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite
         run: npm run test:core
+      - name: Audit independent Core build before merging R8 fixes
+        run: npm run build:core
       - name: Original interaction compatibility comparison (known baseline gap)
         run: npm run verify:core:interactions
         continue-on-error: true

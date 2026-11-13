@@ -1,4 +1,4 @@
-import {sff,decodeAct,packagePath} from './formats.js';
+import {sff,decodeAct,detectActPaletteOrder,embeddedSffV1RgbPalette,packagePath} from './formats.js';
 
 const banks=new WeakMap();
 
@@ -49,8 +49,28 @@ export function validatePaletteRemap(character,source,dest){
 export function characterSpriteBank(character){
  if(banks.has(character))return banks.get(character);
  const diagnostics=[],externalPalettes=new Map(),files=character.files,base=character.path.slice(0,character.path.lastIndexOf('/')+1);
+ const actFiles=new Map();
  for(const [key,value]of Object.entries(character.def.files||{}))if(/^pal\d+$/.test(key)&&value){
-  try{const number=Number(key.slice(3));if(number<1||number>256)throw Error(`Invalid palette number ${number}.`);const check=character.checks?.find(c=>c.key===key);let path;if(check)path=check.ok?check.path:null;else{try{path=packagePath(value,base,true);}catch{path=null;}}if(!path||!files[path])throw Error(`Palette file is missing from the ZIP: ${value}`);externalPalettes.set(number,decodeAct(files[path]));}
+  try{
+   const number=Number(key.slice(3));if(number<1||number>256)throw Error('Invalid palette number '+number+'.');
+   const check=character.checks?.find(c=>c.key===key);let path;
+   if(check)path=check.ok?check.path:null;
+   else{try{path=packagePath(value,base,true);}catch{path=null;}}
+   if(!path||!files[path])throw Error('Palette file is missing from the ZIP: '+value);
+   actFiles.set(number,files[path]);
+  }catch(error){diagnostics.push({type:'palette',source:character.path,line:0,message:error.message});}
+ }
+ // All ACT palettes in a character share their index order. Detect using pal1
+ // when present, so alternate palettes can differ in actual colors.
+ const reference=embeddedSffV1RgbPalette(files[character.sprite.path]);
+ const sample=actFiles.get(1)||actFiles.values().next().value;
+ let order='reversed';
+ if(sample&&reference){
+  try{order=detectActPaletteOrder(sample,reference);}
+  catch(error){diagnostics.push({type:'palette',source:character.path,line:0,message:error.message});}
+ }
+ for(const [number,data]of actFiles){
+  try{externalPalettes.set(number,decodeAct(data,{order}));}
   catch(error){diagnostics.push({type:'palette',source:character.path,line:0,message:error.message});}
  }
  const bank=sff(files[character.sprite.path],{externalPalettes});

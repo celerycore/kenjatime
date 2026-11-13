@@ -5,6 +5,7 @@ import { readArchiveFiles, unpackArchive } from "./uploads.js";
 import { archiveVolumePlan } from "./archive-volumes.js";
 import { exportArchiveVolumes } from "./archive-export.js";
 import { exportFile } from "./export-file.js";
+import { pickArchiveDocuments } from "./archive-file-picker.js";
 import { libraryDeadline } from "./library-recovery.js";
 import {
   createStartupDiagnostics,
@@ -236,27 +237,6 @@ async function catalog() {
       : {}),
   };
 }
-async function pickFile() {
-  return new Promise((resolve) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "*/*";
-    input.multiple = true;
-    input.hidden = true;
-    input.id = "engine-archive-file";
-    input.onchange = () => {
-      const files = Array.from(input.files || []);
-      input.remove();
-      resolve(files.length ? files : null);
-    };
-    input.oncancel = () => {
-      input.remove();
-      resolve(null);
-    };
-    document.body.append(input);
-    input.click();
-  });
-}
 async function resource(path) {
   const builtin = await core();
   if (builtin[path]) return new Blob([builtin[path]]);
@@ -393,7 +373,7 @@ export function createLibraryHost(options) {
         return catalog();
       }
       if (action === "pickArchive") {
-        const file = await pickFile();
+        const file = await pickArchiveDocuments({ multiple: data.multiple === true, allFiles: data.allFiles === true });
         if (!file) return { cancelled: true };
         return install(file, data);
       }
@@ -481,6 +461,8 @@ export function createLibraryHost(options) {
             opponent: p2.id,
             stage: stage.id,
             mode: data.mode,
+            // Benchmark-only opt-in; standard match behavior stays unchanged.
+            endless: data.endless === true && data.mode !== "training",
             level: data.level || 4,
             palette: data.palette || 1,
             opponentPalette: data.opponentPalette || 1,

@@ -30,3 +30,95 @@ label.primary{display:inline-flex;align-items:center;cursor:pointer}
 @media(max-width:800px){.coordinates{max-width:calc(100% - 40px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stage-badge{display:none}}
 
 .archive-options{font-size:11px;color:#a6b2bb;flex-basis:100%;margin-top:10px}.archive-options input{background:#191e24;border:1px solid #323943;border-radius:4px;padding:9px;color:#e8eae7;max-width:100%}.drop{flex-wrap:wrap}
+
+/* Android archive document chooser: separate local, multipart, and fallback. */
+.drop .archive-picker-actions {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin:8px 0;
+}
+.drop .archive-picker-actions button {
+  min-height:36px;
+  padding:8px 10px;
+  border:1px solid #486454;
+  border-radius:5px;
+  background:#1c2d23;
+  color:#d3fb8d;
+  font-size:12px;
+  font-weight:700;
+  text-decoration:none;
+  touch-action:manipulation;
+}
+.drop .archive-picker-actions #browse {
+  background:#c8f69d;
+  border-color:#c8f69d;
+  color:#12221a;
+}
+.drop .archive-picker-actions button:focus-visible {
+  outline:2px solid #c8f69d;
+  outline-offset:2px;
+}
+
+/* Visible native file control + browser-standards archive link fallback. */
+.drop .archive-alternate-import {
+  display:grid;
+  gap:8px;
+  width:100%;
+  margin-top:12px;
+  padding:12px;
+  border:1px solid #3f6852;
+  border-radius:8px;
+  background:#0d1914;
+}
+.drop .archive-alternate-import label {
+  font-size:12px;
+  font-weight:700;
+  color:#d3fb8d;
+}
+.drop .archive-alternate-import input {
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  min-height:42px;
+  padding:8px;
+  color:#eff8e7;
+  background:#15251c;
+  border:1px solid #52775c;
+  border-radius:6px;
+  font-size:14px;
+}
+.drop .archive-alternate-import input[type=file] {
+  display:block;
+  cursor:pointer;
+}
+.drop .archive-alternate-import input::file-selector-button {
+  border:0;
+  border-radius:5px;
+  padding:9px 12px;
+  margin-right:8px;
+  background:#c8f69d;
+  color:#172719;
+  font:700 13px inherit;
+}
+.drop .archive-alternate-import .archive-link-fields {
+  display:flex;flex-wrap:wrap;gap:8px;
+}
+.drop .archive-link-fields input {flex:1 1 220px;}
+.drop .archive-link-fields button {
+  padding:9px 14px;
+  min-height:42px;
+  border-radius:5px;
+  background:#c8f69d;
+  color:#172719;
+  font-size:13px;
+  font-weight:800;
+  text-decoration:none;
+  touch-action:manipulation;
+}
+.drop .archive-alternate-import small {
+  color:#afbfad;
+  font-size:10px;
+  line-height:1.45;
+}

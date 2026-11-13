@@ -38,6 +38,8 @@ test('Native-style CPU flag survives intro, physical keypresses and round reset 
   for(let i=0;i<420;i++){
    session.tick();
    if(session.match.roundFlow?.roundState!==2)continue;
+   // Benchmarks hold idle through FIGHT! (42 ticks) plus 60 more ticks.
+   if(session.match.roundFlow.phaseTime<=session.match.roundFlow.rules.fightStartLockTicks)continue;
    fightTicks++;
    if(fightTicks===1)continue; // The transition edge occurs after fighter tick.
    assert.equal(cpu.vars[59],1,'CPU must retain the author-defined AI path');
@@ -51,8 +53,9 @@ test('Native-style CPU flag survives intro, physical keypresses and round reset 
   // wall-clock count while authored intro poses are still running.
   for(let i=0;i<360&&session.match.roundFlow.roundState!==2;i++)session.tick();
   assert.equal(session.match.roundFlow.roundState,2,'reset intro did not reach FIGHT');
-  session.tick();
-  assert.equal(session.match.opponent.vars[59],1,'round reset restored CPU-owned AI on FIGHT');
+  const held=session.match.roundFlow.rules.fightStartLockTicks;
+  for(let i=0;i<=held;i++)session.tick();
+  assert.equal(session.match.opponent.vars[59],1,'round reset restored CPU-owned AI once controls unlock');
  }finally{session.close();}
 });
 test('Normal CPU decisions request repeated real jumps and retain authored attacks',()=>{

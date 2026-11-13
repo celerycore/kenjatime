@@ -3,6 +3,7 @@ import {FighterRuntime} from './runtime.js';
 import {ProjectileRuntime} from './projectiles.js';
 import {StageRuntime,ArenaCamera} from './stages.js';
 import {RoundFlow} from './rounds.js';
+import {fightStartLocked} from './core/fight-start.js';
 import {CpuController,characterCommands,normalizeAILevel,legacyAIActivationVariable,nativeCnsAIActivationVariable,nativeCnsAIActivationValue,authoredAIProgram} from './cpu.js';
 import {baseScale,bodyWidthWorld,animationSource} from './coordinates.js';
 import {combatRules as readCombatRules} from './combat-rules.js';
@@ -112,7 +113,7 @@ export class TrainingMatch {
 
   reset({preserveMatch=false}={}) {
     const prior=preserveMatch?{players:[this.player,this.opponent],flow:this.roundFlow,ticks:this.ticks,diagnostics:this.diagnostics}:null;
-    this.roundFlow=prior?.flow||(this.rules?new RoundFlow(this.rules):null);this.roundGeneration=(this.roundGeneration||0)+1;
+    this.roundFlow=prior?.flow||(this.rules?new RoundFlow(this.rules):null);this._benchmarkStartHeld=false;this.roundGeneration=(this.roundGeneration||0)+1;
     if(this.stage)this.stage.reset({backgrounds:!preserveMatch||this.stage.definition.resetBG});
     else this.cameraRuntime.reset();
     const starts=this.stage?.definition.starts||[{x:-70,y:0,facing:1},{x:70,y:0,facing:-1}];
@@ -134,6 +135,9 @@ export class TrainingMatch {
     this._projectileClashBounds ||= new Float64Array(this.maxProjectiles * 4);
     this.projectileClashStats = {pairsVisited:0, narrowphaseCalls:0};
     this.orphanEffectOwners=[];this.renderEntities=[...this._entities];this.drawProjectiles=[];this.helperCommands=new Map();
+    // Round-scoped helper lifecycle counters for MUGEN parity diagnostics.
+    // Constant-time on helper creation/destruction; never enumerate assets.
+    this.helperStats={attempted:0,created:0,rejected:0,missingState:0,destroyed:0,peak:0};
     this.usedHits = new Map();this.juggles=new Map();this.cornerPushActors=new Set(); this.archivedDiagnostics = [];this.archivedDiagnosticKeys=new Set(); this.pendingPauses = []; this.pause = null; this.superPause = null;
     this.commandBuffers = new Map(); this.presentationEvents = [];this.eventEntities=[];
     this.pendingCombatEffects=[];this.activeActor=null;this.contactPhase=false;
@@ -186,10 +190,25 @@ export class TrainingMatch {
   }}
   findPlayer(id) { return this.entities.find(p=>p.id === id); }
   spawnHelper(owner,spec) {
-    if (this.entities.filter(p=>p.parent).length >= this.maxHelpers) { owner.diagnostic('resource-limit',`Helper limit (${this.maxHelpers}) reached.`); return null; }
+    this.helperStats.attempted++;
+    const active=this.entities.filter(p=>p.parent).length;
+    if (active >= this.maxHelpers) {
+      this.helperStats.rejected++;
+      owner.diagnostic('resource-limit',`Helper limit (${this.maxHelpers}) reached.`);
+      return null;
+    }
     const helper = owner.createHelper(spec,{id:this.nextEntityId++});
-    if (!helper.destroyed) {this._entities.push(helper);if(helper.keyCtrl)this.helperCommands.set(helper,new CommandBuffer(characterCommands(helper.root.character)));this.syncEnvironment();}
-    else this.archiveDiagnostics(helper.diagnostics);
+    if (!helper.destroyed) {
+      this._entities.push(helper);
+      this.helperStats.created++;
+      this.helperStats.peak=Math.max(this.helperStats.peak,active+1);
+      if(helper.keyCtrl)this.helperCommands.set(helper,new CommandBuffer(characterCommands(helper.root.character)));
+      this.syncEnvironment();
+    }else{
+      this.helperStats.rejected++;
+      if(helper.diagnostics.some(d=>d.type==='missing-state'))this.helperStats.missingState++;
+      this.archiveDiagnostics(helper.diagnostics);
+    }
     return helper;
   }
   spawnProjectile(owner,spec) {
@@ -255,17 +274,67 @@ export class TrainingMatch {
     const globallyPaused=!!(this.superPause?.remaining>0||this.pause?.remaining>0);
     const effectPause=this.pause?.remaining>0?this.pause:null,effectSuperPause=this.superPause?.remaining>0?this.superPause:null;
     this.syncEnvironment();
+    const roundStartHeld=fightStartLocked(this.roundFlow);
+    // Input-gating alone is insufficient: imported CNS and AI controllers
+    // can advance or attack without keys. Keep all fighter states idle here.
+    if(!roundStartHeld&&this._benchmarkStartHeld){
+      this._benchmarkStartHeld=false;
+      for(const root of [this.player,this.opponent])
+        if(root.stateNo===0 && root.program.states.get(0)?.values?.ctrl===undefined)
+          root.ctrl=1;
+      this.commandBuffers.clear();
+    }
+    // R8-only recovery for legacy CPU actors stranded in a neutral idle
+    // state after the benchmark's synthetic round-start lock. Unlike real
+    // authored cutscenes, StateDef 0 normally has no CtrlSet and expects
+    // control to be supplied by the transition into that state.
+    // Do not touch humans, non-idle states, authored explicit control locks,
+    // or matches without this R8 timing rule. Report every recovery because
+    // it is a compatibility fallback, not a MUGEN 1.1 parity claim.
+    if(this.roundFlow?.rules?.fightStartLockTicks > 0 &&
+        this.roundFlow.roundState===2 && !roundStartHeld){
+      for(const root of [this.player,this.opponent]){
+        if(root.aiLevel<=0||root.stateNo!==0||root.ctrl||root.moveType!=='I'||
+            root.stateType!=='S'||root._initializing||root.hitPauseTime>0||
+            root.stateOwner!==root){
+          root._r8IdleControlWait=0;
+          continue;
+        }
+        const idle=root.program.states.get(0);
+        const authoredLock=idle?.values?.ctrl !== undefined ||
+          (idle?.controllers||[]).some(s=>s.type==='ctrlset' &&
+            /^0(?:\.0+)?$/.test(String(s.values?.value||'').trim()));
+        if(authoredLock){
+          root._r8IdleControlWait=0;
+          continue;
+        }
+        root._r8IdleControlWait=(root._r8IdleControlWait||0)+1;
+        if(root._r8IdleControlWait>=30){
+          root._r8IdleControlWait=0;
+          root.ctrl=1;
+          root.r8IdleControlRecoveries=(root.r8IdleControlRecoveries||0)+1;
+          root.diagnostic('r8-control-recovery',
+            'Idle CPU control restored after 30 active frames in StateDef 0; ' +
+            'verify native MUGEN 1.1 behavior before production.');
+        }
+      }
+    }
     // Pre-fight StateDef -2 scripts may reset the AI variable during intros.
     // Reactivate CPU-owned legacy AI for every fighting tick, including the
     // first frame after a round transition and after authored command input.
-    if(!this.roundFlow || this.roundFlow.roundState===2)
+    if(!roundStartHeld&&(!this.roundFlow || this.roundFlow.roundState===2))
       for(const actor of [this.player,this.opponent])
         if(actor.aiLevel>0 && actor.legacyAIFlag!==undefined)
           if(actor.vars[actor.legacyAIFlag]<=0)actor.vars[actor.legacyAIFlag]=actor.legacyAIValue||1;
-    if(this.cpus.has(this.player))commands=this.cpus.get(this.player).tick(this.player,this.opponent,{paused:this.isFrozen(this.player)||this.player.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
-    if(this.cpus.has(this.opponent))opponentCommands=this.cpus.get(this.opponent).tick(this.opponent,this.player,{paused:this.isFrozen(this.opponent)||this.opponent.hitPauseTime>0,enabled:!this.roundFlow||this.roundFlow.roundState===2});
+    if(this.cpus.has(this.player))commands=this.cpus.get(this.player).tick(this.player,this.opponent,{paused:this.isFrozen(this.player)||this.player.hitPauseTime>0,enabled:!roundStartHeld&&(!this.roundFlow||this.roundFlow.roundState===2)});
+    if(this.cpus.has(this.opponent))opponentCommands=this.cpus.get(this.opponent).tick(this.opponent,this.player,{paused:this.isFrozen(this.opponent)||this.opponent.hitPauseTime>0,enabled:!roundStartHeld&&(!this.roundFlow||this.roundFlow.roundState===2)});
     if(this.cpus.has(this.player))playerInput=this.cpus.get(this.player).raw;
     if(this.cpus.has(this.opponent))opponentInput=this.cpus.get(this.opponent).raw;
+    if(roundStartHeld){
+      commands=new Set();opponentCommands=new Set();
+      playerInput=new Set();opponentInput=new Set();
+      this.commandBuffers.clear();
+    }
     const paused = new Set([...this.entities,...this.projectiles].filter(fighter => fighter.hitPauseTime > 0));
     const frozen = new Set();
     // Newly spawned helpers join later in this pass, with a bounded entity count.
@@ -273,6 +342,25 @@ export class TrainingMatch {
     for (let index=0;index<this._entities.length;index++) {
       const fighter = this._entities[index]; if (fighter.destroyed) continue;
       updatedActors.push(fighter);
+      if(roundStartHeld){
+        // Do not run AI/CNS/ZSS/physics or consume queued commands while
+        // waiting for the banner plus the post-banner one-second delay.
+        fighter.events=[];
+        fighter.commands=new Set();
+        fighter.asserted.clear();
+        fighter.pendingAssertedInputs?.clear();
+        fighter.vel.x=0;fighter.vel.y=0;
+        if(!fighter.parent){
+          // R8 already skips AI, CNS, movement and physical inputs during
+          // the hold. Do not mutate Ctrl: older imported common1.cns idle
+          // states have no Ctrl=1 to recover from a synthetic control loss.
+          if(fighter.currentFrame)fighter.advanceAnimation();
+          fighter.collisionFrame=fighter.currentFrame;
+          fighter.collisionAnimationOwner=fighter.animationOwner;
+        }
+        fighter.time++;fighter.gameTime++;
+        continue;
+      }
       let input = fighter.root === this.player ? commands : opponentCommands;
       let physical=fighter.root===this.player?playerInput:opponentInput;
       if(this.manageInputs&&fighter.keyCtrl){
@@ -481,7 +569,21 @@ export class TrainingMatch {
         noKO:players.map(()=>asserted('noko'))});
       this.syncEnvironment();
       for(const event of events){
-        if(event.type==='fight')for(const p of players)if(p.stateNo===0)p.ctrl=1;
+        if(event.type==='round'&&flow.rules.fightStartLockTicks>0){
+          this._benchmarkStartHeld=true;
+          for(const actor of [this.player,this.opponent]){
+            // Standard MUGEN State 0 / AIR action 0 is the fighter's idle pose.
+            if(actor.program.states.has(0))actor.changeState(0,1,actor);
+            if(actor.animations.has(0))actor.changeAnimation(0);
+            // StateDef 0 may explicitly request Ctrl=0; honor that rather
+            // than overriding authored CNS. The lock itself prevents all
+            // execution and movement until the 102-tick hold expires.
+            actor.vel.x=0;actor.vel.y=0;actor.pos.y=0;
+            actor.asserted.clear();
+          }
+          this.commandBuffers.clear();
+        }
+        if(event.type==='fight'&&!flow.rules.fightStartLockTicks)for(const p of players)if(p.stateNo===0)p.ctrl=1;
         if(event.type==='round-over')this.winner=event.winner;
         if(event.type==='result')for(const p of players){
           const won=event.winner===(p===this.player?'player':'opponent');
@@ -499,6 +601,7 @@ export class TrainingMatch {
 
   cleanupEntities() {
     const dead = this._entities.filter(p=>p.destroyed);
+    this.helperStats.destroyed+=dead.filter(p=>p.parent).length;
     for(const actor of dead)if(!actor._effectsDetached)this.retireEffects(actor);
     for (const actor of [...dead,...this.projectiles.filter(p=>p.removed)]) { this.archiveDiagnostics(actor.diagnostics); this.usedHits.delete(actor);this.cornerPushActors.delete(actor); this.commandBuffers.delete(actor);this.inputBuffers.delete(actor);this.helperCommands.delete(actor);this.juggles.delete(actor);for(const records of this.juggles.values())records.delete(actor.id); }
     this._entities = this._entities.filter(p=>!p.destroyed);

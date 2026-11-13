@@ -5,11 +5,14 @@ import { charactersFromFiles, decodeText, sff } from "../formats.js";
 import {normalizePresentation,presentationAspect} from "./presentation.js";
 import {loadCommonEffects} from "./common-effects.js";
 import { parseProgram } from "../runtime.js";
+import { legacyCompatibilityReport } from "./legacy-compatibility.js";
 import { TrainingMatch } from "../combat.js";
 import { commonStates } from "../common.js";
 const CORE_COMMON_STATES = commonStates({ orderedPhases: true });
 import { parseCommands, CommandBuffer } from "../commands.js";
-import { splitArguments } from "../expressions.js";
+import { splitArguments,expressionCacheStats } from "../expressions.js";
+import { SpriteRestoreCache } from "./sprite-restore-cache.js";
+import {firstPaletteByIndex} from "./palette-index.js";
 import { EffectsState } from "../effects.js";
 import { characterSpriteBank } from "../palettes.js";
 import { baseScale } from "../coordinates.js";
@@ -27,6 +30,7 @@ import { stageClip, stageDrawPlans } from "./stage-draw.js";
 import { explodDrawPriority } from "../explods.js";
 import { luaModules, LuaMatch } from "./lua-match.js";
 import { videoScale } from "./video-source.js";
+import { BENCHMARK_START_LOCK_TICKS } from "./fight-start.js";
 
 export function programExpressions(programs) {
   const sources = new Set();
@@ -89,8 +93,14 @@ export class CoreSession {
       const error = program.diagnostics.find((d) => d.fatal);
       if (error) throw Error(`${error.source}:${error.line}: ${error.message}`);
     }
+    this.legacyCompatibility = legacyCompatibilityReport([p1,p2],programs);
+    // The original 4096-function limit was saturated by Nu-13 + Tomoka:
+    // ~2.4 million later expression evaluations fell back to JS parsing.
+    // R8 can spend a little more startup time compiling numeric CNS/ZSS
+    // expressions to reduce CPU costs throughout an endless match.
     this.expressions = new WasmExpressions(
       programExpressions(programs.values()),
+      {maxFunctions:8192,maxBytes:4*1024*1024},
     );
     this.commands = [p1, p2].map((c) => {
       const path = c.checks.find((k) => k.key === "cmd" && k.ok)?.path;
@@ -125,7 +135,9 @@ export class CoreSession {
         selection.mode === "training"
           ? null
           : { roundsToWin: 2, preIntro: 0, introHold: 60, overTime: 60,
-              resultTime: 120, maxIntroTime: 900, maxOutroTime: 300 },
+              resultTime: 120, maxIntroTime: 900, maxOutroTime: 300,
+              endless: selection.endless === true,
+              fightStartLockTicks: BENCHMARK_START_LOCK_TICKS },
     });
     this.commands = [
       this.match.inputBuffers.get(this.match.player),
@@ -134,14 +146,19 @@ export class CoreSession {
     this.effects = new EffectsState();
     this.banks = new Map();
     this.indices = new Map();
+    this.paletteIndices = new Map();
     this.bankIds = new Map();
     this.spriteMetadata = new Map();
+    // Admit sprites only after the GPU has evicted them once. This bounds
+    // repeated R8 SFF decode/restore costs without expanding every archive.
+    this.spriteRestoreCache = new SpriteRestoreCache({requireRepeat:true});
     this.paletteFallbacks = new Map();
     this.sent = new Set();
     this.assets = [];
     this.events = [];
     this.sparks = [];
     this.gameEffects = [];
+    this.helperFrameStats={alive:0,hidden:0,submitted:0,missingAnimation:0,missingSprite:0};
     this.roundGeneration = this.match.roundGeneration;
     this.issues = new Map(this.commonEffects.issues.map(d=>[d.type+":"+d.message,d]));
     this.closed = false;
@@ -155,6 +172,11 @@ export class CoreSession {
       engine: "Kenjatime Core",
       independentRuntime: true,
       universalCompatibility: false,
+      legacyCompatibilityTarget:this.legacyCompatibility.id,
+      legacyCompatibilityReference:this.legacyCompatibility.reference,
+      legacyCompatibilityStatus:this.legacyCompatibility.status,
+      nativeMugen11Certified:false,
+      ikemenExtensions:"additional-not-baseline",
       compiledNumericExpressions: true,
       scriptInterpreter: true,
       luaMatchHooks: true,
@@ -329,6 +351,10 @@ export class CoreSession {
         resource,
         new Map(bank.sprites.map((s, i) => [s.group + "," + s.number, i])),
       );
+      // Stage layers and helper-heavy characters can submit 100+ quads per
+      // render. Scan palettes once per SFF bank instead of linear-searching
+      // the palette list for every sprite on every rendered frame.
+      this.paletteIndices.set(resource,firstPaletteByIndex(bank.palettes));
     }
     return this.banks.get(resource);
   }
@@ -377,8 +403,8 @@ export class CoreSession {
       }
       const indexed = sprite.indexed,
         meta = bank.sprites[index],
-        palette = bank.palettes?.find(
-          (p) => p.index === (sprite.palette ?? meta.palette),
+        palette = this.paletteIndices.get(resource)?.get(
+          sprite.palette ?? meta.palette,
         );
       let pair = palette ? [palette.group, palette.number] : [1, 1];
       pair = remaps?.get(pair.join(",")) || remaps?.get("*") || pair;
@@ -445,11 +471,20 @@ export class CoreSession {
         } else {
           const index = Number(id.slice(split+1)), meta = this.spriteMetadata.get(id);
           if (!Number.isSafeInteger(index) || index < 0 || !meta) continue;
-          const decoded = bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) || bank.decode(index);
-          const pixels = meta.indexed ? decoded.indices : decoded.rgba;
-          if (!pixels || pixels.length !== meta.w * meta.h * (meta.indexed ? 1 : 4)) continue;
-          assets.push({id,width:meta.w,height:meta.h,indexed:meta.indexed,pixels:new Uint8Array(pixels)});
-          bank.clearDecodedCache?.();
+          let pixels=this.spriteRestoreCache.get(id);
+          if(!pixels){
+            const decoded=bank.decodeForDisplay?.(index) ||
+              bank.decodeIndexed?.(index) || bank.decode(index);
+            pixels=meta.indexed?decoded.indices:decoded.rgba;
+            if(!pixels || pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
+              continue;
+            this.spriteRestoreCache.put(id,pixels);
+            bank.clearDecodedCache?.();
+          }
+          if(pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
+            continue;
+          assets.push({id,width:meta.w,height:meta.h,indexed:meta.indexed,
+            pixels:new Uint8Array(pixels)});
         }
       } catch (error) {
         this.issue('texture-restore', 'Could not restore sprite ' + id + ': ' + error.message);
@@ -683,7 +718,12 @@ export class CoreSession {
     stageLayer(-1);
     stageLayer(0);
     const layers = [];
+    const helperFrameStats={alive:0,hidden:0,submitted:0,missingAnimation:0,missingSprite:0};
     for (const actor of [...m.renderEntities, ...m.drawProjectiles]) {
+      if(actor.parent&&!actor.destroyed){
+        helperFrameStats.alive++;
+        if(actor.asserted.has("invisible"))helperFrameStats.hidden++;
+      }
       if (!actor.destroyed && !actor.asserted.has("invisible"))
         layers.push({ priority: actor.sprPriority || 0, actor });
       for (const effect of actor.drawExplods || [])
@@ -768,7 +808,8 @@ export class CoreSession {
           (actor.drawOffset?.y || 0) +
           constant(actor, "size.draw.offset.y") * baseScale(actor),
       });
-      this.quad(draws, actor.character, sampleFighterAnimation(actor), {
+      const visibleFrame=sampleFighterAnimation(actor);
+      const drawn=this.quad(draws, actor.character, visibleFrame, {
         ...pos,
         sx:
           zoom *
@@ -786,7 +827,13 @@ export class CoreSession {
         palette: this.effects.paletteFor(actor),
         trans: actor.trans,
       });
+      if(actor.parent&&!actor.destroyed){
+        if(!visibleFrame)helperFrameStats.missingAnimation++;
+        else if(!drawn)helperFrameStats.missingSprite++;
+        else helperFrameStats.submitted++;
+      }
     }
+    this.helperFrameStats=helperFrameStats;
     stageLayer(1);
     const sparks = this.sparks.map((s) => ({
       ...world(s),
@@ -838,6 +885,7 @@ export class CoreSession {
     const stage = this.match.stage, view = this.match.view;
     return {
       engine: "Kenjatime Core",
+      compatibility: this.legacyCompatibility,
       presentation: this.presentation,
       viewport: stage ? {
         displayWidth: view.displayWidth, displayHeight: view.displayHeight,
@@ -851,23 +899,73 @@ export class CoreSession {
         name: a.name,
         x: a.pos.x,
         y: a.pos.y,
+        facing: a.facing,
+        liveTargets: a.targets.filter(t=>!t.destroyed).length,
         life: a.life,
         maxLife: a.maxLife,
         power: a.power,
         maxPower: a.maxPower,
         state: a.stateNo,
         time: a.time,
+        moveType: a.moveType,
+        // Expose CPU/script state to the isolated R8 recorder. No per-tick
+        // changes to character control or authored MUGEN behavior.
+        aiLevel: a.aiLevel,
+        ctrl: a.ctrl,
+        r8IdleControlRecoveries: a.r8IdleControlRecoveries || 0,
+        stateTime: a.time,
+        velX: a.vel.x,
+        velY: a.vel.y,
+        cpuMode: !this.match.cpus.has(a) ? "human"
+          : this.match.cpus.get(a).nativeAI ? "native-cns"
+          : this.match.cpus.get(a).authoredAI ? "authored-ailevel" : "generic",
+        cpuLastCommand: this.match.cpus.get(a)?.lastCommand ?? "",
+        cpuRawInput: [...(this.match.cpus.get(a)?.raw ?? [])].sort().join("+"),
+        cpuMatchedCommands: this.match.cpus.get(a)?.buffer?.active?.size ?? 0,
+        legacyAIFlag: a.legacyAIFlag ?? null,
+        legacyAIValue: a.legacyAIFlag === undefined ? null : a.vars[a.legacyAIFlag],
+        controllerDiagnostics: a.diagnostics.filter(d => [
+          "controller", "parameter-bottom", "missing-state", "state-loop",
+          "unsupported-controller", "unsupported-trigger",
+        ].includes(d.type)).length,
+        hitPauseTime: a.hitPauseTime,
+        pendingStateNo: a._pendingStateEntry?.number ?? null,
+        pendingStateOwnerId: a._pendingStateEntry?.owner?.id ?? null,
         anim: a.anim,
+        animElem: a.frameIndex + 1,
+        stateOwnerId: a.stateOwner?.id ?? a.id,
+        animationOwnerId: a.animationOwner?.id ?? a.id,
       })),
       ticks: this.match.ticks,
+      helperStats: {...this.match.helperStats},
+      helperFrameStats: {...this.helperFrameStats},
+      helpers:this.match.entities.filter(a=>a.parent).map(a=>({
+        id:a.id,helperId:a.helperId,parentId:a.parent?.id,
+        rootId:a.root?.id,state:a.stateNo,anim:a.anim,
+        moveType:a.moveType,hitPauseTime:a.hitPauseTime,
+        pendingStateNo:a._pendingStateEntry?.number??null,
+        pendingStateOwnerId:a._pendingStateEntry?.owner?.id??null,
+        stateOwnerId:a.stateOwner?.id ?? a.id,
+        animationOwnerId:a.animationOwner?.id ?? a.id,
+        boundTargetId:a.bound?.target?.id ?? null,
+        bindTime:a.bound?.time ?? null,
+        frame:a.frameIndex,x:a.pos.x,y:a.pos.y,
+        facing:a.facing,liveTargets:a.targets.filter(t=>!t.destroyed).length,
+        invisible:a.asserted.has("invisible")
+      })),
       roundState: this.match.roundFlow?.roundState ?? 2,
       roundNo: this.match.roundFlow?.roundNo ?? 1,
       roundPhaseTime: this.match.roundFlow?.phaseTime ?? 0,
       roundTimeLeft: this.match.roundFlow?.timeLeft ?? -1,
+      roundKoHoldTicks: [...(this.match.roundFlow?.zeroLifeNoKOTicks || [0, 0])],
+      endlessMode: this.match.roundFlow?.rules.endless === true,
+      roundWins: {...(this.match.roundFlow?.wins || {player:0,opponent:0})},
       roundWinner: this.match.roundFlow?.roundWinner ?? null,
       roundReason: this.match.roundFlow?.reason ?? null,
       matchOver: this.match.roundFlow?.matchOver ?? false,
       expressions: this.expressions.stats,
+      interpreterCache: expressionCacheStats(),
+      spriteRestoreCache: this.spriteRestoreCache.stats,
       capabilities: this.capabilities,
       diagnostics: [...this.match.diagnostics, ...this.issues.values()],
     };
@@ -884,7 +982,9 @@ export class CoreSession {
     this.closed = true;
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
+    this.paletteIndices.clear();
     this.sent.clear();
+    this.spriteRestoreCache.clear();
     this.paletteFallbacks.clear();
     this.gameEffects=[];
     this.events = [];

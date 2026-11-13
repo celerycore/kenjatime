@@ -3,6 +3,8 @@ import {PRESENTATION_WIDE,PRESENTATION_NATIVE,normalizePresentation} from "./pre
 import { gamepadKeys } from "../input-buffer.js";
 import { CoreAudio } from "./audio.js";
 import { CoreVideos } from "./video-source.js";
+import { FIGHT_BANNER_TICKS } from "./fight-start.js";
+import {nextQuality,qualityLabel,defaultQualityForDevice} from "./render-quality.js";
 import "./battle.css";
 import "./hud.css";
 let active;
@@ -75,8 +77,16 @@ export async function openCoreBattle({
     gpu,
     backend,
     raf,
-    quality = "auto",
+    quality = defaultQualityForDevice({
+      coarsePointer:window.matchMedia?.('(pointer: coarse)')?.matches===true,
+      touchPoints:navigator.maxTouchPoints||0,
+      viewportWidth:window.innerWidth||0,
+    }),
     enabled = true;
+  // The label must agree with the framebuffer selected at startup; before
+  // this fix the phone's default silently remained full 960x540.
+  host.querySelector("[data-quality]").textContent =
+    "Visuals: "+qualityLabel(quality);
   const keyboard = [new Set(), new Set()];
   const lastPadKeys = [null, null];
   const send = (message, transfer = []) => {
@@ -198,14 +208,14 @@ export async function openCoreBattle({
       const label = isTraining ? "TRAINING"
         : phase === 0 ? "INTRO"
         : phase === 1 ? `ROUND ${round}`
-        : phase === 2 ? timer < 0 ? "∞" : String(Math.ceil(timer / 60))
+        : phase === 2 ? state.endlessMode ? `∞ · ROUND ${round}` : timer < 0 ? "∞" : String(Math.ceil(timer / 60))
         : phase === 3 ? state.roundReason === "time" ? "TIME" : "K.O."
         : state.matchOver ? "MATCH OVER" : "ROUND OVER";
       const roundTag = host.querySelector(".core-round");
       if (roundTag.textContent !== label) roundTag.textContent = label;
       const announcement = isTraining || phase === 0 ? ""
         : phase === 1 ? `ROUND ${round}`
-        : phase === 2 && elapsed < 42 ? "FIGHT!"
+        : phase === 2 && elapsed < FIGHT_BANNER_TICKS ? "FIGHT!"
         : phase === 3 ? state.roundReason === "time" ? "TIME OVER" : "K.O."
         : phase === 4 ? winner ? `${winner} WINS` : "DRAW GAME" : "";
       const banner = host.querySelector(".core-announcement");
@@ -332,10 +342,12 @@ export async function openCoreBattle({
     applyPresentation(presentation === PRESENTATION_NATIVE ? PRESENTATION_WIDE : PRESENTATION_NATIVE);
   };
   host.querySelector("[data-quality]").onclick = () => {
-    quality = quality === "auto" ? "sharp" : "auto";
-    send({ type: "quality", value: quality });
-    host.querySelector("[data-quality]").textContent =
-      "Visuals: " + (quality === "auto" ? "Auto" : "Sharp");
+    // R8 mobile: Performance is a genuine low-resolution GPU preset.
+    // It changes only WebGL presentation, never authored animation or AI.
+    quality=nextQuality(quality);
+    send({type:"quality",value:quality});
+    host.querySelector("[data-quality]").textContent=
+      "Visuals: "+qualityLabel(quality);
   };
   window.addEventListener("keydown", keys);
   window.addEventListener("keyup", keys);
