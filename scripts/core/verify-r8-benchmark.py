@@ -122,9 +122,9 @@ try:
         }
         page.locator('[data-r8-stop]').click()
         assert page.locator('[data-r8-export]').is_enabled()
-        csv = page.evaluate('window.__kenjatimeR8Benchmark.csv()')
-        assert 'r8_index_mib' in csv and 'missing_palette_draws' in csv and 'endless_mode' in csv and 'round_number' in csv and 'simulation_hz' in csv and 'simulation_ticks' in csv and 'simulation_backlog_ticks' in csv and 'helpers_alive' in csv and 'helpers_missing_state' in csv and 'helper_state_map' in csv and 'mugen11_p1_duplicate_globals' in csv and 'mugen11_p2_duplicate_globals' in csv and 'p1_state_owner_id' in csv and 'p2_state_owner_id' in csv and 'p1_animation_owner_id' in csv and 'p2_animation_owner_id' in csv and len(csv.splitlines()) >= 4
-        parsed_csv = list(csv.reader(io.StringIO(csv)))
+        csv_text = page.evaluate('window.__kenjatimeR8Benchmark.csv()')
+        assert 'r8_index_mib' in csv_text and 'missing_palette_draws' in csv_text and 'endless_mode' in csv_text and 'round_number' in csv_text and 'simulation_hz' in csv_text and 'simulation_ticks' in csv_text and 'simulation_backlog_ticks' in csv_text and 'helpers_alive' in csv_text and 'helpers_missing_state' in csv_text and 'helper_state_map' in csv_text and 'mugen11_p1_duplicate_globals' in csv_text and 'mugen11_p2_duplicate_globals' in csv_text and 'p1_state_owner_id' in csv_text and 'p2_state_owner_id' in csv_text and 'p1_animation_owner_id' in csv_text and 'p2_animation_owner_id' in csv_text and len(csv_text.splitlines()) >= 4
+        parsed_csv = list(csv.reader(io.StringIO(csv_text)))
         assert len(parsed_csv) >= 4
         assert len(parsed_csv[0]) == len(parsed_csv[1]) == len(parsed_csv[-1]), (
             'CSV header and sample column counts differ', len(parsed_csv[0]), len(parsed_csv[1]), len(parsed_csv[-1]))
