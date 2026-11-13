@@ -392,7 +392,7 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  * only a byte-order reference; actual sprite decoding is done by sffV1().
  */
 export function embeddedSffV1RgbPalette(bytes){
- if(!(bytes instanceof Uint8Array)||bytes.length<544||new TextDecoder().decode(bytes.subarray(0,12))!=='ElecbyteSpr\\0'||bytes[15]!==1)return null;
+ if(!(bytes instanceof Uint8Array)||bytes.length<544||(new TextDecoder().decode(bytes.subarray(0,11))!=='ElecbyteSpr'||bytes[11]!==0)||bytes[15]!==1)return null;
  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),count=view.getUint32(20,true);
  if(count>20000)return null;
  let offset=view.getUint32(24,true),first=null;
