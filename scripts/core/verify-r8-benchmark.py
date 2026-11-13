@@ -24,6 +24,8 @@ try:
         page.wait_for_function("document.querySelector('#status')?.textContent === 'Ready when you are.'", timeout=30000)
         assert page.title() == 'Kenjatime Core · PR #17 R8 Benchmark'
         assert page.locator('#kenjatime-r8-benchmark').count() == 1
+        # The HUD must not obscure archive/file chooser controls during setup.
+        assert not page.locator('#kenjatime-r8-benchmark details').evaluate('(el) => el.open')
         assert page.locator('#core-qa-guide').count() == 1
         assert page.locator('#endless-mode').count() == 1
         assert not page.locator('#endless-mode').is_checked()
@@ -63,6 +65,8 @@ try:
         assert page.locator('#endless-mode').is_checked()
         page.locator('#fight-now').click()
         page.wait_for_function('window.__kenjatimeCoreBattle?.gpu()?.frames > 10', timeout=40000)
+        # Open after match starts, so recording remains reachable.
+        assert page.locator('#kenjatime-r8-benchmark details').evaluate('(el) => el.open')
         page.locator('[data-r8-start]').click()
         page.wait_for_function('window.__kenjatimeR8Benchmark.snapshot().samples >= 3', timeout=20000)
         snapshot = page.evaluate('window.__kenjatimeR8Benchmark.snapshot()')
