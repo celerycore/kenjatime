@@ -67,6 +67,8 @@ try:
         page.wait_for_function('window.__kenjatimeCoreBattle?.gpu()?.frames > 10', timeout=40000)
         # Open after match starts, so recording remains reachable.
         assert page.locator('#kenjatime-r8-benchmark details').evaluate('(el) => el.open')
+        assert page.locator('#kenjatime-r8-benchmark details').evaluate(
+            '(el) => getComputedStyle(el).overflowY == "auto" && el.clientHeight <= window.innerHeight')
         page.locator('[data-r8-start]').click()
         page.wait_for_function('window.__kenjatimeR8Benchmark.snapshot().samples >= 3', timeout=20000)
         snapshot = page.evaluate('window.__kenjatimeR8Benchmark.snapshot()')
