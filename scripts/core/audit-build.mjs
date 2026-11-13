@@ -2,6 +2,7 @@
 import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, relative } from "node:path";
+import { hasExternalEngineReference, isExternalEnginePayloadPath } from "./build-audit-policy.mjs";
 const root = resolve("dist-core"),
   files = [];
 function walk(dir) {
@@ -12,15 +13,15 @@ function walk(dir) {
   }
 }
 walk(root);
-const forbidden =
-  /ikemen|wasm_exec|kenjatimeEngineSnapshot|kenjatimeAudioPull|GOGC|go\.importObject/i;
+// Audit actual bundled engine references, not words describing the
+// IKEMEN compatibility dialect in the independent Core implementation.
 for (const path of files) {
   if (
     /\.(js|html|json|css|txt)$/.test(path) &&
-    forbidden.test(readFileSync(path, "utf8"))
+    hasExternalEngineReference(readFileSync(path, "utf8"))
   )
     throw Error("External engine reference in " + relative(root, path));
-  if (/(?:^|\/)(?:core\.zip|ikemen[^/]*|wasm_exec\.js)$/.test(path))
+  if (isExternalEnginePayloadPath(path))
     throw Error("External engine payload in " + path);
 }
 const manifest = JSON.parse(readFileSync(resolve(root, ".vite/manifest.json"))),
