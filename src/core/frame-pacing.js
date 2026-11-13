@@ -31,3 +31,9 @@ export function nextTickEstimate(previousMs, observedMs) {
   const baseline = Number.isFinite(previousMs) && previousMs > 0 ? previousMs : observedMs;
   return baseline * 0.75 + observedMs * 0.25;
 }
+
+/** Backlog must never be part of the visibility gate. The cadence is
+ * intentionally separate from deterministic tick completion. */
+export function presentationDue(clock, time, {hidden=false, paused=false, dirty=false, renderFps=60}={}) {
+  return !hidden && (!paused || dirty) && clock.renderDue(time, renderFps);
+}
