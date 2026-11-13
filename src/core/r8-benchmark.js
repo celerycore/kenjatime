@@ -63,7 +63,9 @@ panel.innerHTML = `
   </details>`;
 document.body.append(panel);
 const details = panel.querySelector("details");
-details.open = window.innerWidth >= 1000;
+// Keep the archive and match-setup controls accessible. Open the HUD only
+// after entering a fight on desktop; mobile users can expand it manually.
+details.open = false;
 const element = key => panel.querySelector('[data-r8="' + key + '"]');
 const startButton = panel.querySelector("[data-r8-start]");
 const stopButton = panel.querySelector("[data-r8-stop]");
@@ -214,6 +216,7 @@ startButton.addEventListener("click", start);
 stopButton.addEventListener("click", () => stop());
 exportButton.addEventListener("click", downloadCsv);
 window.addEventListener("kenjatime:battle", ({detail}) => {
+  details.open = detail.active && window.innerWidth >= 1000;
   if (!detail.active) {
     previous = null;
     if (recording) stop("Match closed");
