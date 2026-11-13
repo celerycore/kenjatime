@@ -42,6 +42,12 @@ const fields = [
   "expression_wasm_calls", "expression_interpreted_calls",
   "expression_deoptimized_calls", "expression_compiled_functions",
   "gpu_texture_budget_mib", "gpu_texture_budget_upgrades",
+  // Bounded R8 CPU caches; appended to preserve older recorder schema.
+  "interpreter_ast_cache_hits", "interpreter_ast_cache_misses",
+  "interpreter_ast_cache_evictions", "interpreter_ast_cache_entries",
+  "sprite_restore_cache_hits", "sprite_restore_cache_misses",
+  "sprite_restore_cache_evictions", "sprite_restore_cache_stores",
+  "sprite_restore_cache_resident_mib",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -60,6 +66,8 @@ panel.innerHTML = `
         <div><small>Render CPU submit</small><strong data-r8="cpu">—</strong></div>
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
         <div><small>GPU residency budget</small><strong data-r8="cachelimit">—</strong></div>
+        <div><small>Sprite CPU restore cache</small><strong data-r8="spritecache">—</strong></div>
+        <div><small>Expression AST cache hits/misses</small><strong data-r8="astcache">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
         <div><small>Palettes RGBA8</small><strong data-r8="palettes">—</strong></div>
         <div><small>Truecolor RGBA8</small><strong data-r8="rgba">—</strong></div>
@@ -154,6 +162,10 @@ function sample() {
   element("resident").textContent = mib(gpu.textureBytes);
   element("cachelimit").textContent = mib(gpu.textureBudgetBytes||64*MB) +
     " · " + (gpu.textureBudgetUpgrades??0) + " expansions";
+  element("spritecache").textContent = (state.spriteRestoreCache?.hits??0) +
+    " hits · " + mib(state.spriteRestoreCache?.bytes??0);
+  element("astcache").textContent = (state.interpreterCache?.hits??0) +
+    " / " + (state.interpreterCache?.misses??0);
   element("indexed").textContent = mib(gpu.indexedTextureBytes);
   element("palettes").textContent = mib(gpu.paletteTextureBytes);
   element("rgba").textContent = mib(gpu.truecolorTextureBytes);
@@ -247,6 +259,11 @@ function sample() {
     state.expressions?.deoptimized ?? "", state.expressions?.compiled ?? "",
     Number.isFinite(gpu.textureBudgetBytes) ? number(gpu.textureBudgetBytes/MB,3) : "",
     gpu.textureBudgetUpgrades ?? "",
+    state.interpreterCache?.hits ?? "", state.interpreterCache?.misses ?? "",
+    state.interpreterCache?.evictions ?? "", state.interpreterCache?.size ?? "",
+    state.spriteRestoreCache?.hits ?? "", state.spriteRestoreCache?.misses ?? "",
+    state.spriteRestoreCache?.evictions ?? "", state.spriteRestoreCache?.stores ?? "",
+    Number.isFinite(state.spriteRestoreCache?.bytes) ? number(state.spriteRestoreCache.bytes/MB,3) : "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }

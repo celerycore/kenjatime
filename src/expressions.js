@@ -37,7 +37,15 @@ const MAX_SOURCE = 8192;
 const MAX_TOKENS = 2048;
 const MAX_DEPTH = 96;
 const MAX_STEPS = 8192;
+// Bounded cache of immutable CNS AST executors. Helper-heavy MUGEN AIs can
+// evaluate thousands of distinct non-numeric / redirected expressions.
+// The former 512-entry FIFO cache repeatedly reparsed them during combat.
+export const EXPRESSION_CACHE_CAPACITY = 8192;
 const cache = new Map();
+const cacheCounters = {hits:0,misses:0,evictions:0};
+export function expressionCacheStats(){
+  return {...cacheCounters,size:cache.size,capacity:EXPRESSION_CACHE_CAPACITY};
+}
 const precedence = {
   '||': 1, '^^': 2, '&&': 3, '|': 4, '^': 5, '&': 6,
   ':=': 7, '=': 8, '!=': 8, '<': 9, '>': 9, '<=': 9, '>=': 9,
@@ -278,12 +286,19 @@ export function parseExpression(source) {
 }
 
 export function compileExpression(source) {
-  if (cache.has(source)) return cache.get(source);
+  // A single lookup matters when a real match requests millions of
+  // interpreted expressions; the function is never undefined in the cache.
+  const existing=cache.get(source);
+  if(existing){cacheCounters.hits++;return existing;}
+  cacheCounters.misses++;
   const ast = parseExpression(source);
   const compiled = context => execute(ast, context || {}, source);
-  // A caller cannot mutate a shared AST. The closure is the cached artifact.
-  if (cache.size >= 512) cache.delete(cache.keys().next().value);
-  cache.set(source, compiled);
+  // Retain the exact authored AST and execution order; no JIT eval/Function.
+  if(cache.size>=EXPRESSION_CACHE_CAPACITY){
+    cache.delete(cache.keys().next().value);
+    cacheCounters.evictions++;
+  }
+  cache.set(source,compiled);
   return compiled;
 }
 
@@ -292,7 +307,10 @@ export function evaluateExpression(source, context = {}) {
 }
 
 export function evaluateTypedExpression(source, context = {}) {
-  return compileExpression(source)({...context,typedResult:true});
+  // FighterRuntime already supplies an immutable typed context, so spreading
+  // it creates needless garbage on each JS interpreter fallback.
+  return compileExpression(source)(
+    context.typedResult===true?context:{...context,typedResult:true});
 }
 
 const numeric = (value, float = false) => {
