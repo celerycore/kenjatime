@@ -149,7 +149,7 @@ export class CoreSession {
     this.spriteMetadata = new Map();
     // Admit sprites only after the GPU has evicted them once. This bounds
     // repeated R8 SFF decode/restore costs without expanding every archive.
-    this.spriteRestoreCache = new SpriteRestoreCache();
+    this.spriteRestoreCache = new SpriteRestoreCache({requireRepeat:true});
     this.paletteFallbacks = new Map();
     this.sent = new Set();
     this.assets = [];
