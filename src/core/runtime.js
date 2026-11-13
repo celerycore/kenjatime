@@ -6,7 +6,7 @@ import { TickInputBuffer } from "../input-buffer.js";
 import { soundArchive } from "../formats.js";
 import { FrameScheduler } from "./frame-scheduler.js";
 import { AdaptiveResolution } from "./adaptive-resolution.js";
-import { framePacing, nextTickEstimate } from "./frame-pacing.js";
+import { framePacing, nextTickEstimate, presentationDue } from "./frame-pacing.js";
 /** Worker-owned simulation/renderer. The UI owns only input, audio sinks and HUD. */
 export function createCoreRuntime(emit) {
   let session,
@@ -182,11 +182,9 @@ export function createCoreRuntime(emit) {
       // during catch-up, and return to the regular 60 FPS when caught up.
       const presentation = framePacing(clock.debt, estimatedTickMs);
       lastRenderTargetFps = presentation.renderFps;
-      if (
-        !hidden &&
-        (!paused || dirty) &&
-        clock.renderDue(time, presentation.renderFps)
-      ) {
+      if (presentationDue(clock, time, {
+        hidden, paused, dirty, renderFps: presentation.renderFps,
+      })) {
         if (presentation.backlog) renderWithBacklogCount++;
         const start = performance.now(),
           packet = session.frame();
