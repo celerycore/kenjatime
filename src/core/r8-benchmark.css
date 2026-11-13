@@ -1,7 +1,7 @@
 /* Benchmark HUD only: isolated PR #17 preview build. */
 #kenjatime-r8-benchmark{position:fixed;right:12px;top:12px;z-index:9999;width:min(310px,calc(100vw - 24px));font:12px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:#eaf2ff;pointer-events:none}
-#kenjatime-r8-benchmark details{pointer-events:auto;border:1px solid #5c91b8;border-radius:12px;background:rgba(10,19,32,.95);box-shadow:0 8px 30px #0007;overflow:hidden}
-#kenjatime-r8-benchmark summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:750;background:#12223c;display:flex;justify-content:space-between;align-items:center;gap:8px}
+#kenjatime-r8-benchmark details{pointer-events:auto;border:1px solid #5c91b8;border-radius:12px;background:rgba(10,19,32,.95);box-shadow:0 8px 30px #0007;max-height:calc(100dvh - 24px);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
+#kenjatime-r8-benchmark summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:750;background:#12223c;position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:8px}
 #kenjatime-r8-benchmark summary::-webkit-details-marker{display:none}
 #kenjatime-r8-benchmark summary span{font-size:10px;color:#a6dcff}
 #kenjatime-r8-benchmark .r8-bench-content{padding:12px}
@@ -15,4 +15,4 @@
 #kenjatime-r8-benchmark button:disabled{opacity:.4;cursor:default}
 #kenjatime-r8-benchmark .r8-bench-status{color:#d1edff;min-height:20px;overflow-wrap:anywhere}
 #kenjatime-r8-benchmark .r8-bench-note{color:#8eabc8;font-size:10px;margin:8px 0 0}
-@media(max-width:900px){#kenjatime-r8-benchmark{top:8px;bottom:auto;right:8px;width:min(275px,calc(100vw - 16px))}}
+@media(max-width:900px){#kenjatime-r8-benchmark{top:8px;bottom:auto;right:8px;width:min(275px,calc(100vw - 16px))}#kenjatime-r8-benchmark details{max-height:calc(100dvh - 16px)}}
