@@ -51,6 +51,7 @@ const fields = [
   "sprite_restore_deferred_admissions", "sprite_restore_promotions",
   "sprite_restore_probation_entries", "gpu_offscreen_culled_draws",
   "gpu_pre_cull_draws",
+  "render_quality_mode", "expression_direct_reads",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -65,6 +66,8 @@ panel.innerHTML = `
         <div><small>Simulation clock</small><strong data-r8="simulation">—</strong></div>
         <div><small>Tick backlog</small><strong data-r8="backlog">—</strong></div>
         <div><small>Simulation tick CPU</small><strong data-r8="tickcpu">—</strong></div>
+        <div><small>Graphics preset</small><strong data-r8="qualitymode">—</strong></div>
+        <div><small>Direct numeric trigger reads</small><strong data-r8="directread">—</strong></div>
         <div><small>Rendered with backlog</small><strong data-r8="backlogdraw">—</strong></div>
         <div><small>Render CPU submit</small><strong data-r8="cpu">—</strong></div>
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
@@ -162,6 +165,9 @@ function sample() {
   element("simulation").textContent = state.simulationHz ? state.simulationHz + " Hz" : "—";
   element("backlog").textContent = state.simulationBacklogTicks ?? "—";
   element("tickcpu").textContent = number(state.simulationTickCpuMs, 2) + " ms/tick";
+  element("qualitymode").textContent = (state.renderQuality??"unknown") +
+    " · scale " + number(state.resolutionScale,2);
+  element("directread").textContent = String(state.expressions?.direct??0);
   element("backlogdraw").textContent = (state.renderWithBacklogCount ?? 0) + " frames · target " + (state.renderTargetFps ?? "—") + " FPS";
   element("cpu").textContent = number(gpu.frameCpuSubmitMs) + " ms";
   element("resident").textContent = mib(gpu.textureBytes);
@@ -277,6 +283,8 @@ function sample() {
     state.spriteRestoreCache?.promotions??"",
     state.spriteRestoreCache?.probationEntries??"",
     gpu.offscreenCulledDraws??"",gpu.submittedDraws??"",
+    state.renderQuality??"",
+    state.expressions?.direct??"",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }

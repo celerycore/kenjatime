@@ -17,3 +17,16 @@ export function qualityLabel(value){
   const quality=normalizeQuality(value);
   return quality==='performance'?'Performance':quality==='sharp'?'Sharp':'Auto';
 }
+
+/** R8 browser battles should begin in the mobile preset on actual touch
+ * devices, not silently at full 960x540 when the user forgets to tap Visuals.
+ * This does not change simulation speed, script timing or hitboxes.
+ * Desktop and coarse-pointer-free computers retain Auto by default.
+ */
+export function defaultQualityForDevice({
+  coarsePointer=false,touchPoints=0,viewportWidth=0,
+}={}){
+  return coarsePointer ||
+    (Number(touchPoints)>0 && Number(viewportWidth)>0 && viewportWidth<=900)
+    ? 'performance' : 'auto';
+}
