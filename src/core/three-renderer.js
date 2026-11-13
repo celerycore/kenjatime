@@ -3,6 +3,7 @@
  */
 import {planTextureEvictions} from "./texture-residency.js";
 import {TextureBudgetGovernor, GPU_MIB} from "./texture-budget-governor.js";
+import {visibleArenaDraws} from "./quad-visibility.js";
 import {
   WebGLRenderer,
   Scene,
@@ -336,11 +337,16 @@ export class CoreThreeRenderer {
       );
     if (this.canvas.width !== width || this.canvas.height !== height)
       this.renderer.setSize(width, height, false);
-    // Frame residency is determined by actual draws, not by every animation
+    // Cull logical 960x540 offscreen quads BEFORE texture upload and LRU
+    // pinning. The user can lose 4000+ GPU textures per 90s on large stages;
+    // art outside the arena must not evict visible sprites.
+    const visibility=visibleArenaDraws(frame.draws);
+    const visibleDraws=visibility.visible;
+    // Frame residency is determined by visible draws, not by every animation
     // ever visited during this match. Imported character SFFs can contain
     // hundreds of MiB of sprites even when only a handful are visible.
     const activeTextures = new Set(['@white', '@spark']);
-    for (const draw of frame.draws || []) {
+    for (const draw of visibleDraws) {
       if (draw.texture) activeTextures.add(draw.texture);
       if (draw.indexed && draw.palette) activeTextures.add(draw.palette);
     }
@@ -364,7 +370,7 @@ export class CoreThreeRenderer {
     this.missingPaletteDraws = 0;
     this.grid.visible = !!frame.grid;
     this.grid.material.uniforms.ground.value = frame.ground || 450;
-    const draws = frame.draws.concat(
+    const draws = visibleDraws.concat(
       (frame.sparks || []).map((s) => {
         const scale = (12 - s.age) * 0.3 + 1;
         return {
@@ -462,6 +468,8 @@ export class CoreThreeRenderer {
       backend: "Kenjatime Core · Three.js",
       frames: this.frames,
       draws: draws.length,
+      submittedDraws: (frame.draws?.length||0)+(frame.sparks?.length||0),
+      offscreenCulledDraws:visibility.culled,
       textureBytes: this.textureBytes,
       textureBudgetBytes: this.limit,
       textureBudgetUpgrades: this.textureBudgetGovernor.upgrades,
