@@ -37,11 +37,11 @@ test("42-tick banner plus 60-tick delay release exactly 102 ticks after FIGHT be
  const match=new TrainingMatch(movingFighter(),{rules:settings,initialize:false});
  match.tick();assert.equal(match.roundFlow.roundState,1);
  assert.equal(match.player.stateNo,0);
- assert.equal(match.player.ctrl,0);
+ assert.equal(match.player.ctrl,1, "R8 freezes execution, not the fighter control flag");
  const startX=match.player.pos.x, otherX=match.opponent.pos.x;
  match.tick();assert.equal(match.roundFlow.roundState,2);
  assert.equal(match.roundFlow.phaseTime,0);
- assert.equal(match.player.ctrl,0);
+ assert.equal(match.player.ctrl,1, "R8 freezes execution, not the fighter control flag");
  const roundTimer=match.roundFlow.timeLeft;
  for(let i=1;i<=BENCHMARK_START_LOCK_TICKS;i++){
    assert.equal(fightStartLocked(match.roundFlow),true);
@@ -50,7 +50,7 @@ test("42-tick banner plus 60-tick delay release exactly 102 ticks after FIGHT be
    assert.equal(match.opponent.pos.x,otherX,`opponent moved on held tick ${i}`);
    assert.equal(match.player.stateNo,0);
    assert.equal(match.opponent.stateNo,0);
-   assert.equal(match.player.ctrl,0);
+   assert.equal(match.player.ctrl,1, "R8 freezes execution, not the fighter control flag");
    assert.equal(match.roundFlow.timeLeft,roundTimer);
  }
  assert.equal(match.roundFlow.phaseTime,BENCHMARK_START_LOCK_TICKS);
@@ -74,7 +74,7 @@ test("round-start idle lock is re-armed on every Endless Round reset",()=>{
  match.tick();assert.equal(match.roundFlow.roundNo,round+1);
  assert.equal(match.roundFlow.roundState,0);
  match.tick();assert.equal(match.roundFlow.roundState,1);
- assert.equal(match.player.ctrl,0);
+ assert.equal(match.player.ctrl,1, "R8 freezes execution, not the fighter control flag");
  const nextX=match.player.pos.x;
  match.tick();assert.equal(match.roundFlow.roundState,2);
  for(let i=0;i<BENCHMARK_START_LOCK_TICKS;i++)match.tick();
