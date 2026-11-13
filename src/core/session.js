@@ -92,8 +92,13 @@ export class CoreSession {
       if (error) throw Error(`${error.source}:${error.line}: ${error.message}`);
     }
     this.legacyCompatibility = legacyCompatibilityReport([p1,p2],programs);
+    // The original 4096-function limit was saturated by Nu-13 + Tomoka:
+    // ~2.4 million later expression evaluations fell back to JS parsing.
+    // R8 can spend a little more startup time compiling numeric CNS/ZSS
+    // expressions to reduce CPU costs throughout an endless match.
     this.expressions = new WasmExpressions(
       programExpressions(programs.values()),
+      {maxFunctions:8192,maxBytes:4*1024*1024},
     );
     this.commands = [p1, p2].map((c) => {
       const path = c.checks.find((k) => k.key === "cmd" && k.ok)?.path;
