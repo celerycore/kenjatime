@@ -357,6 +357,33 @@ export class FighterRuntime {
     this.helperId = options.helperId ?? 0; this.keyCtrl = options.keyCtrl ?? !this.parent;
     this.ownPal = options.ownPal ?? false; this.teamSide = options.teamSide ?? this.root.options?.teamSide ?? 1;
     this.commonAnimations = options.commonAnimations || new Map();
+    // Reuse the same expression host callbacks on every evaluation. Complex
+    // MUGEN/IKEMEN characters can evaluate millions of CNS conditions per
+    // match, and allocating three closures and a context object for each
+    // expression created enormous Android GC pressure.
+    this._evaluationSource = null;
+    this._evaluationController = null;
+    this._expressionResolve = (name, args = [], redirect = null) => {
+      if(name==='zsslocal'){
+        const value=this._zssContext?.locals.get(String(args[0]));
+        if(!value)throw new UnsupportedExpressionError(`ZSS local ${args[0]} is unavailable.`);
+        if(value.bottom)throw value.error;
+        return value;
+      }
+      return this.resolveTrigger(name,args,redirect);
+    };
+    this._expressionAssign = (name,args,value) => this.assignVariable(name,args,value);
+    this._expressionWarning = error => {
+      if(!error.bottom)this.diagnostic('expression-warning',
+        `${this._evaluationSource}: ${error.message}`,this._evaluationController);
+    };
+    const shared={
+      resolve:this._expressionResolve,
+      assign:this._expressionAssign,
+      onWarning:this._expressionWarning,
+    };
+    this._expressionContext={...shared,typedResult:false};
+    this._typedExpressionContext={...shared,typedResult:true};
     this.reset();
   }
 
@@ -438,29 +465,31 @@ export class FighterRuntime {
   set power(value) { if(this.parent)this.root.power=value;else this._power=value; }
 
   evaluate(source, controller = this._executing, typed=false) {
+    // Scoped metadata preserves nested expression/redirect diagnostics while
+    // shared immutable resolver contexts avoid allocation in the hot path.
+    const prevSource=this._evaluationSource,prevController=this._evaluationController;
+    this._evaluationSource=source;this._evaluationController=controller;
     try {
-      return (this.options.expressionEvaluator|| (typed?evaluateTypedExpression:evaluateExpression))(source, {
-        resolve: (name, args = [], redirect = null) => {
-          if(name==='zsslocal'){
-            const value=this._zssContext?.locals.get(String(args[0]));if(!value)throw new UnsupportedExpressionError(`ZSS local ${args[0]} is unavailable.`);
-            if(value.bottom)throw value.error;return value;
-          }
-          return this.resolveTrigger(name, args, redirect);
-        },
-        assign: (name, args, value) => this.assignVariable(name, args, value),
-        onWarning: error => { if (!error.bottom) this.diagnostic('expression-warning', `${source}: ${error.message}`, controller); },
-        typedResult:typed,
-      });
+      return (this.options.expressionEvaluator||
+        (typed?evaluateTypedExpression:evaluateExpression))(
+          source, typed?this._typedExpressionContext:this._expressionContext);
     } catch (error) {
       if (!error.bottom) this.diagnostic('expression', `${source}: ${error.message}`, controller);
       throw error;
+    } finally {
+      this._evaluationSource=prevSource;this._evaluationController=prevController;
     }
   }
 
   variableArray(name) {
-    const arrays = { var: this.vars, fvar: this.fvars, sysvar: this.sysvars, sysfvar: this.sysfvars };
-    if (!arrays[name]) throw new Error(`Unsupported assignable variable: ${name}`);
-    return arrays[name];
+    // No temporary object for every var()/fvar() AI trigger.
+    switch(name){
+      case 'var': return this.vars;
+      case 'fvar': return this.fvars;
+      case 'sysvar': return this.sysvars;
+      case 'sysfvar': return this.sysfvars;
+      default: throw new Error(`Unsupported assignable variable: ${name}`);
+    }
   }
   assignVariable(name, args, value) {
     const array = this.variableArray(name.toLowerCase()), index = integer(args[0]);
@@ -548,35 +577,92 @@ export class FighterRuntime {
       throw new Error(`Unsupported GetHitVar field: ${key}`);
     }
     if(name==='inguarddist')return +(this.world?this.inGuardDistance||false:inGuardDistance(this,this.opponent?[this.opponent]:[]));
-    const other = this.opponent;
-    const flow=this.world?.roundFlow,side=this.root===this.world?.player?'player':'opponent',won=!!flow?.roundWinner&&flow.roundWinner===side,lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
-    const values = {
-      animelem: this.scriptAnimationClock.frameIndex + 1,
-      alive: +this.alive, gametime: this.world?.ticks??this.gameTime,
-      hitshakeover: +((this.world?.orderedPhases?(this.getHitVars.hitshaketime||0):this.hitPauseTime)===0), hitover: +(this.hitTime < 0),
-      movereversed: this.moveReversed || 0,
-      numhelper: this.ownedHelpers().length, numexplod: this.explods.length,
-      numtarget: this.targets.filter(t=>!t.destroyed).length,
-      numenemy: other ? 1 : 0, numpartner: 0, ishelper: +!!this.parent,
-      roundstate: this.roundState ?? 2, roundsexisted: this.roundsExisted ?? 0, roundno: this.roundNo ?? 1, matchno: this.matchNo ?? 1, matchover:+!!this.world?.matchOver,
-      teamside: this.teamSide ?? this.id, teampower: this.power, tickspersecond: 60,
-      aiLevel: this.aiLevel || 0, ailevel: this.aiLevel || 0, palno: this.paletteNo || 1,
-      teammode:'single',
-      ishometeam:+(this.teamSide===1),
-      authorname: this.character.def?.info?.author || '',
-      numproj: (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed).length, win:flow?+won:+(this.roundState === 4 && this.alive && other?.life <= 0),
-      lose:flow?+lost:+(this.roundState === 4 && !this.alive), drawgame:flow?+(flow.roundWinner==='draw'):+(this.roundState === 4 && !this.alive && other?.life <= 0),
-      winko:+(won&&flow.reason!=='time'),wintime:+(won&&flow.reason==='time'),winperfect:+(won&&this.life===this.maxLife),loseko:+(lost&&flow.reason!=='time'),losetime:+(lost&&flow.reason==='time'),loseperfect:+(lost&&other?.life===other?.maxLife),
-      camerazoom:this.cameraZoom??1,gamewidth:(this.world?.view.width??320)/scale,gameheight:(this.world?.view.height??240)/scale,
-      screenwidth:320/scale,screenheight:(this.world?.view.displayHeight??240)/scale,
-      leftedge:(this.world?.view.left??-160)/scale,rightedge:(this.world?.view.right??160)/scale,topedge:(this.world?.view.top??-240)/scale,bottomedge:(this.world?.view.bottom??0)/scale,
-      frontedge:(this.facing===1?this.world?.view.right??160:this.world?.view.left??-160)/scale,backedge:(this.facing===1?this.world?.view.left??-160:this.world?.view.right??160)/scale,
-      canrecover: +(!!this.getHitVars.fall&&this.getHitVars['fall.recover']!==0&&(this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4)), hitfall: this.getHitVars.fall || 0,
-      'hitvel x': (this.getHitVars.xvel||0)*this.coordinateScale/scale,'hitvel y':(this.getHitVars.yvel||0)*this.coordinateScale/scale,
-      'pos x': (this.pos.x-(this.cameraPos?.x||0)) / scale, 'pos y': this.pos.y / scale, 'vel x': this.vel.x / scale, 'vel y': this.vel.y / scale,
-      'screenpos x': (this.pos.x-(this.world?.view.left??-160)) / scale, 'screenpos y': (this.pos.y-(this.world?.view.top??-240)) / scale,
-      'camerapos x': (this.cameraPos?.x || 0) / scale, 'camerapos y': (this.cameraPos?.y || 0) / scale,
-    };
+    const other=this.opponent;
+    // Numeric MUGEN triggers are queried thousands of times per simulation
+    // tick by large CNS AIs. The old eager 'values' object ran helper,
+    // projectile and target scans for EVERY trigger (including AILevel and
+    // P2Dist). Resolve only the requested field, without materializing a
+    // multi-field object on the hot path.
+    switch(name){
+      case 'animelem': return this.scriptAnimationClock.frameIndex+1;
+      case 'alive': return +this.alive;
+      case 'gametime': return this.world?.ticks??this.gameTime;
+      case 'hitshakeover': return +((this.world?.orderedPhases?
+        (this.getHitVars.hitshaketime||0):this.hitPauseTime)===0);
+      case 'hitover': return +(this.hitTime<0);
+      case 'movereversed': return this.moveReversed||0;
+      case 'numhelper': if(!args.length)return this.ownedHelpers().length;break;
+      case 'numexplod': if(!args.length)return this.explods.length;break;
+      case 'numtarget': if(!args.length)return this.targets.filter(t=>!t.destroyed).length;break;
+      case 'numenemy': return other?1:0;
+      case 'numpartner': return 0;
+      case 'ishelper': if(!args.length)return +!!this.parent;break;
+      case 'roundstate': return this.roundState??2;
+      case 'roundsexisted': return this.roundsExisted??0;
+      case 'roundno': return this.roundNo??1;
+      case 'matchno': return this.matchNo??1;
+      case 'matchover': return +!!this.world?.matchOver;
+      case 'teamside': return this.teamSide??this.id;
+      case 'teampower': return this.power;
+      case 'tickspersecond': return 60;
+      case 'ailevel': return this.aiLevel||0;
+      case 'palno': return this.paletteNo||1;
+      case 'teammode': return 'single';
+      case 'ishometeam': return +(this.teamSide===1);
+      case 'authorname': return this.character.def?.info?.author||'';
+      case 'numproj': return (this.world?.projectiles||[]).filter(
+        p=>p.owner===this&&!p.removing&&!p.removed).length;
+      case 'canrecover': return +(!!this.getHitVars.fall&&
+        this.getHitVars['fall.recover']!==0&&
+        (this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4));
+      case 'hitfall': return this.getHitVars.fall||0;
+      case 'hitvel x': return (this.getHitVars.xvel||0)*this.coordinateScale/scale;
+      case 'hitvel y': return (this.getHitVars.yvel||0)*this.coordinateScale/scale;
+      case 'pos x': return (this.pos.x-(this.cameraPos?.x||0))/scale;
+      case 'pos y': return this.pos.y/scale;
+      case 'vel x': return this.vel.x/scale;
+      case 'vel y': return this.vel.y/scale;
+      case 'screenpos x': return (this.pos.x-(this.world?.view.left??-160))/scale;
+      case 'screenpos y': return (this.pos.y-(this.world?.view.top??-240))/scale;
+      case 'camerapos x': return (this.cameraPos?.x||0)/scale;
+      case 'camerapos y': return (this.cameraPos?.y||0)/scale;
+      case 'camerazoom': return this.cameraZoom??1;
+      case 'gamewidth': return (this.world?.view.width??320)/scale;
+      case 'gameheight': return (this.world?.view.height??240)/scale;
+      case 'screenwidth': return 320/scale;
+      case 'screenheight': return (this.world?.view.displayHeight??240)/scale;
+      case 'leftedge': return (this.world?.view.left??-160)/scale;
+      case 'rightedge': return (this.world?.view.right??160)/scale;
+      case 'topedge': return (this.world?.view.top??-240)/scale;
+      case 'bottomedge': return (this.world?.view.bottom??0)/scale;
+      case 'frontedge': return (this.facing===1?
+        this.world?.view.right??160:this.world?.view.left??-160)/scale;
+      case 'backedge': return (this.facing===1?
+        this.world?.view.left??-160:this.world?.view.right??160)/scale;
+      case 'win':
+      case 'lose':
+      case 'drawgame':
+      case 'winko':
+      case 'wintime':
+      case 'winperfect':
+      case 'loseko':
+      case 'losetime':
+      case 'loseperfect':{
+        const flow=this.world?.roundFlow;
+        const side=this.root===this.world?.player?'player':'opponent';
+        const won=!!flow?.roundWinner&&flow.roundWinner===side;
+        const lost=!!flow?.roundWinner&&flow.roundWinner!=='draw'&&!won;
+        if(name==='win')return flow?+won:+(this.roundState===4&&this.alive&&other?.life<=0);
+        if(name==='lose')return flow?+lost:+(this.roundState===4&&!this.alive);
+        if(name==='drawgame')return flow?+(flow.roundWinner==='draw'):+(this.roundState===4&&!this.alive&&other?.life<=0);
+        if(name==='winko')return +(won&&flow.reason!=='time');
+        if(name==='wintime')return +(won&&flow.reason==='time');
+        if(name==='winperfect')return +(won&&this.life===this.maxLife);
+        if(name==='loseko')return +(lost&&flow.reason!=='time');
+        if(name==='losetime')return +(lost&&flow.reason==='time');
+        return +(lost&&other?.life===other?.maxLife);
+      }
+    }
     if(name==='stagevar'){if(!this.world?.stage)throw Error('StageVar requires an imported stage.');return this.world.stage.variable(args[0]);}
     if (name === 'ishelper' && args.length) return +(!!this.parent && this.helperId === +args[0]);
     if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === Math.max(0,Math.trunc(+args[0]))).length;
@@ -632,7 +718,7 @@ export class FighterRuntime {
       if (!hit || name === 'hitdefattr' && this.moveType !== 'A') return 0;
       return +matchAttribute(args.map(String).join(','),hit);
     }
-    if (Object.hasOwn(values, name)) return values[name];
+
     throw new UnsupportedExpressionError(`Unsupported trigger: ${name}`);
   }
 

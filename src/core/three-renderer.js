@@ -2,6 +2,7 @@
  * indexed pixels and palettes are separate textures, never per-frame RGBA copies.
  */
 import {planTextureEvictions} from "./texture-residency.js";
+import {TextureBudgetGovernor, GPU_MIB} from "./texture-budget-governor.js";
 import {
   WebGLRenderer,
   Scene,
@@ -72,6 +73,12 @@ export class CoreThreeRenderer {
     };
     canvas.addEventListener("webglcontextlost", this.contextLost);
     this.limit = maxTextureBytes;
+    // Only the default 64 MiB R8 cache may expand, and never above 96 MiB.
+    // Explicitly constrained renderers keep their exact caller-supplied cap.
+    this.textureBudgetGovernor = new TextureBudgetGovernor({
+      initialBytes:this.limit,
+      maxBytes:maxTextureBytes===64*GPU_MIB?96*GPU_MIB:this.limit,
+    });
     this.textureBytes = 0;
     // Raw resident pixel bytes by format; video/model allocations are tracked separately.
     this.textureBreakdown = { indexed: 0, palette: 0, rgba: 0 };
@@ -447,11 +454,17 @@ export class CoreThreeRenderer {
     }
     this.renderer.setScissorTest(false);
     this.frames++;
+    this.limit=this.textureBudgetGovernor.observe({
+      frames:this.frames,evictions:this.evictedTextures,
+      residentBytes:this.textureBytes,
+    });
     this.stats = {
       backend: "Kenjatime Core · Three.js",
       frames: this.frames,
       draws: draws.length,
       textureBytes: this.textureBytes,
+      textureBudgetBytes: this.limit,
+      textureBudgetUpgrades: this.textureBudgetGovernor.upgrades,
       textures: this.textures.size,
       textureEvictions: this.evictedTextures,
       deferredTextures: this.deferredTextures,
