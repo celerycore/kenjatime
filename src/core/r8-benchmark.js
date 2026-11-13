@@ -34,6 +34,7 @@ const fields = [
   "p1_legacy_ai_flag", "p2_legacy_ai_flag",
   "p1_legacy_ai_value", "p2_legacy_ai_value",
   "p1_controller_diagnostics", "p2_controller_diagnostics",
+  "p1_r8_ctrl_recoveries", "p2_r8_ctrl_recoveries",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -66,6 +67,7 @@ panel.innerHTML = `
         <div><small>CPU mode / level / control P1 · P2</small><strong data-r8="ai">—</strong></div>
         <div><small>CPU physical input P1 · P2</small><strong data-r8="aiinput">—</strong></div>
         <div><small>Script/controller diagnostics P1 · P2</small><strong data-r8="aidiagnostics">—</strong></div>
+        <div><small>R8 idle CPU Ctrl recovery P1 · P2</small><strong data-r8="airecoveries">—</strong></div>
       </div>
       <div class="r8-bench-actions">
         <button type="button" data-r8-start>Start recording</button>
@@ -73,7 +75,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input and controller diagnostics to investigate idle custom characters. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input, controller diagnostics, and R8 recovery counts. A recovery is an explicit R8 compatibility fallback for stranded idle CPU control; it is not native MUGEN 1.1 behavior certification. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -157,6 +159,7 @@ function sample() {
   element("ai").textContent = cpuSummary(state.players?.[0]) + " · " + cpuSummary(state.players?.[1]);
   element("aiinput").textContent = (state.players?.[0]?.cpuRawInput || "idle") + " · " + (state.players?.[1]?.cpuRawInput || "idle");
   element("aidiagnostics").textContent = (state.players?.[0]?.controllerDiagnostics ?? "—") + " / " + (state.players?.[1]?.controllerDiagnostics ?? "—");
+  element("airecoveries").textContent = (state.players?.[0]?.r8IdleControlRecoveries ?? 0) + " / " + (state.players?.[1]?.r8IdleControlRecoveries ?? 0);
   if (!recording) return;
   const seconds = (now - startedAt) / 1000;
   highest = Math.max(highest, gpu.textureBytes || 0);
@@ -221,6 +224,7 @@ function sample() {
     state.players?.[0]?.legacyAIFlag ?? "", state.players?.[1]?.legacyAIFlag ?? "",
     state.players?.[0]?.legacyAIValue ?? "", state.players?.[1]?.legacyAIValue ?? "",
     state.players?.[0]?.controllerDiagnostics ?? "", state.players?.[1]?.controllerDiagnostics ?? "",
+    state.players?.[0]?.r8IdleControlRecoveries ?? 0, state.players?.[1]?.r8IdleControlRecoveries ?? 0,
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }

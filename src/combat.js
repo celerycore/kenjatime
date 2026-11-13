@@ -280,8 +280,44 @@ export class TrainingMatch {
     if(!roundStartHeld&&this._benchmarkStartHeld){
       this._benchmarkStartHeld=false;
       for(const root of [this.player,this.opponent])
-        if(root.stateNo===0)root.ctrl=1;
+        if(root.stateNo===0 && root.program.states.get(0)?.values?.ctrl===undefined)
+          root.ctrl=1;
       this.commandBuffers.clear();
+    }
+    // R8-only recovery for legacy CPU actors stranded in a neutral idle
+    // state after the benchmark's synthetic round-start lock. Unlike real
+    // authored cutscenes, StateDef 0 normally has no CtrlSet and expects
+    // control to be supplied by the transition into that state.
+    // Do not touch humans, non-idle states, authored explicit control locks,
+    // or matches without this R8 timing rule. Report every recovery because
+    // it is a compatibility fallback, not a MUGEN 1.1 parity claim.
+    if(this.roundFlow?.rules?.fightStartLockTicks > 0 &&
+        this.roundFlow.roundState===2 && !roundStartHeld){
+      for(const root of [this.player,this.opponent]){
+        if(root.aiLevel<=0||root.stateNo!==0||root.ctrl||root.moveType!=='I'||
+            root.stateType!=='S'||root._initializing||root.hitPauseTime>0||
+            root.stateOwner!==root){
+          root._r8IdleControlWait=0;
+          continue;
+        }
+        const idle=root.program.states.get(0);
+        const authoredLock=idle?.values?.ctrl !== undefined ||
+          (idle?.controllers||[]).some(s=>s.type==='ctrlset' &&
+            /^0(?:\.0+)?$/.test(String(s.values?.value||'').trim()));
+        if(authoredLock){
+          root._r8IdleControlWait=0;
+          continue;
+        }
+        root._r8IdleControlWait=(root._r8IdleControlWait||0)+1;
+        if(root._r8IdleControlWait>=30){
+          root._r8IdleControlWait=0;
+          root.ctrl=1;
+          root.r8IdleControlRecoveries=(root.r8IdleControlRecoveries||0)+1;
+          root.diagnostic('r8-control-recovery',
+            'Idle CPU control restored after 30 active frames in StateDef 0; ' +
+            'verify native MUGEN 1.1 behavior before production.');
+        }
+      }
     }
     // Pre-fight StateDef -2 scripts may reset the AI variable during intros.
     // Reactivate CPU-owned legacy AI for every fighting tick, including the
@@ -315,7 +351,9 @@ export class TrainingMatch {
         fighter.pendingAssertedInputs?.clear();
         fighter.vel.x=0;fighter.vel.y=0;
         if(!fighter.parent){
-          fighter.ctrl=0;
+          // R8 already skips AI, CNS, movement and physical inputs during
+          // the hold. Do not mutate Ctrl: older imported common1.cns idle
+          // states have no Ctrl=1 to recover from a synthetic control loss.
           if(fighter.currentFrame)fighter.advanceAnimation();
           fighter.collisionFrame=fighter.currentFrame;
           fighter.collisionAnimationOwner=fighter.animationOwner;
@@ -535,9 +573,11 @@ export class TrainingMatch {
           this._benchmarkStartHeld=true;
           for(const actor of [this.player,this.opponent]){
             // Standard MUGEN State 0 / AIR action 0 is the fighter's idle pose.
-            if(actor.program.states.has(0))actor.changeState(0,0,actor);
+            if(actor.program.states.has(0))actor.changeState(0,1,actor);
             if(actor.animations.has(0))actor.changeAnimation(0);
-            actor.ctrl=0;
+            // StateDef 0 may explicitly request Ctrl=0; honor that rather
+            // than overriding authored CNS. The lock itself prevents all
+            // execution and movement until the 102-tick hold expires.
             actor.vel.x=0;actor.vel.y=0;actor.pos.y=0;
             actor.asserted.clear();
           }
