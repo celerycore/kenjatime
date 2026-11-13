@@ -150,6 +150,16 @@ function controllerRules(controller){
   if(!rules.groups.has(1))rules.errors.push({line:controller.line,message:'A state controller requires at least one trigger1.'});
   let next=1;while(rules.groups.has(next))next++;
   for(const [n,entries]of rules.groups)if(n>=next){rules.groups.delete(n);rules.warnings.push({line:entries[0].line,message:`trigger${n} is ignored because trigger${next} is missing.`});}
+  // Legacy MUGEN controllers, including helper-heavy character AI, may
+  // evaluate thousands of trigger groups each simulation tick. The original
+  // shouldRun() filtered triggerall, sorted groups, and spread controller
+  // metadata on *every evaluation*. Prepare immutable expression contexts
+  // once for the authored static CNS program instead. Entry references keep
+  // evaluation source text and diagnostics at the original script line.
+  const prepared=entry=>({entry,context:{...controller,line:entry.line}});
+  rules.triggerAll=controller.entries.filter(entry=>entry.key==='triggerall').map(prepared);
+  rules.sortedGroups=[...rules.groups].sort(([a],[b])=>a-b)
+    .map(([,entries])=>entries.map(prepared));
   controllerMetadata.set(controller,rules);return rules;
 }
 
@@ -741,17 +751,15 @@ export class FighterRuntime {
   shouldRun(controller, paused) {
     const rules=controllerRules(controller);if(rules.errors.length)return false;
     if (paused && !rules.ignorehitpause) return false;
-    const all = controller.entries.filter(entry => entry.key === 'triggerall');
-    for (const trigger of all) {
-      try { if (!truth(this.evaluate(trigger.value, { ...controller, line: trigger.line }))) return false; }
+    for (const trigger of rules.triggerAll) {
+      try { if (!truth(this.evaluate(trigger.entry.value, trigger.context))) return false; }
       catch { return false; }
     }
-    const groups = rules.groups;
     let enabled = false;
-    for (const [, group] of [...groups].sort(([a], [b]) => a - b)) {
+    for (const group of rules.sortedGroups) {
       let matches = true;
       for (const trigger of group) {
-        try { if (!truth(this.evaluate(trigger.value, { ...controller, line: trigger.line }))) { matches = false; break; } }
+        try { if (!truth(this.evaluate(trigger.entry.value, trigger.context))) { matches = false; break; } }
         catch { matches = false; break; }
       }
       if (matches) { enabled = true; break; }
