@@ -387,7 +387,50 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  return{sprites,palettes,decode,decodeIndexed,decodeForDisplay,decodeWithPalette,paletteColors,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
-export function decodeAct(bytes){
+/** A MUGEN SFF v1 character may supply a PCX palette in every sprite.
+ * Prefer the 0,0 sprite's palette, otherwise the first embedded one. This is
+ * only a byte-order reference; actual sprite decoding is done by sffV1().
+ */
+export function embeddedSffV1RgbPalette(bytes){
+ if(!(bytes instanceof Uint8Array)||bytes.length<544||(new TextDecoder().decode(bytes.subarray(0,11))!=='ElecbyteSpr'||bytes[11]!==0)||bytes[15]!==1)return null;
+ const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),count=view.getUint32(20,true);
+ if(count>20000)return null;
+ let offset=view.getUint32(24,true),first=null;
+ const visited=new Set();
+ for(let i=0;i<count;i++){
+  if(offset<512||offset+32>bytes.length||visited.has(offset))break;
+  visited.add(offset);
+  const length=view.getUint32(offset+4,true),end=offset+32+length;
+  if(end>bytes.length)break;
+  if(length>=897&&bytes[end-769]===12){
+   const palette=bytes.subarray(end-768,end);
+   if(!first)first=palette;
+   if(view.getUint16(offset+12,true)===0&&view.getUint16(offset+14,true)===0)return palette;
+  }
+  const next=view.getUint32(offset,true);
+  if(!next)break;
+  offset=next;
+ }
+ return first;
+}
+
+/** Most legacy MUGEN ACT files store colors in reverse index order, but
+ * exported ACT files (including MaidForBlood) can store direct 0..255 RGB.
+ * Compare against the authoritative embedded PCX colors when available;
+ * keep the historical reversed interpretation if evidence is ambiguous.
+ */
+export function detectActPaletteOrder(bytes,reference){
  if(!(bytes instanceof Uint8Array)||![768,772].includes(bytes.length))throw Error('ACT palette must contain 768 RGB bytes, with an optional 4-byte footer.');
- const rgba=new Uint8Array(1024);for(let i=0;i<256;i++){const source=(255-i)*3;rgba.set([bytes[source],bytes[source+1],bytes[source+2],i?255:0],i*4);}return rgba;
+ if(!(reference instanceof Uint8Array)||reference.length!==768)return 'reversed';
+ let forward=0,reversed=0;
+ for(let i=0;i<256;i++)for(let c=0;c<3;c++){
+  const color=reference[i*3+c],direct=bytes[i*3+c]-color,backward=bytes[(255-i)*3+c]-color;
+  forward+=direct*direct;reversed+=backward*backward;
+ }
+ return forward<reversed*.7?'forward':'reversed';
+}
+export function decodeAct(bytes,{order='reversed'}={}){
+ if(!(bytes instanceof Uint8Array)||![768,772].includes(bytes.length))throw Error('ACT palette must contain 768 RGB bytes, with an optional 4-byte footer.');
+ if(order!=='forward'&&order!=='reversed')throw Error('Invalid ACT palette ordering');
+ const rgba=new Uint8Array(1024);for(let i=0;i<256;i++){const source=(order==='forward'?i:255-i)*3;rgba.set([bytes[source],bytes[source+1],bytes[source+2],i?255:0],i*4);}return rgba;
 }
