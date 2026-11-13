@@ -12,6 +12,7 @@ const CORE_COMMON_STATES = commonStates({ orderedPhases: true });
 import { parseCommands, CommandBuffer } from "../commands.js";
 import { splitArguments,expressionCacheStats } from "../expressions.js";
 import { SpriteRestoreCache } from "./sprite-restore-cache.js";
+import {firstPaletteByIndex} from "./palette-index.js";
 import { EffectsState } from "../effects.js";
 import { characterSpriteBank } from "../palettes.js";
 import { baseScale } from "../coordinates.js";
@@ -145,6 +146,7 @@ export class CoreSession {
     this.effects = new EffectsState();
     this.banks = new Map();
     this.indices = new Map();
+    this.paletteIndices = new Map();
     this.bankIds = new Map();
     this.spriteMetadata = new Map();
     // Admit sprites only after the GPU has evicted them once. This bounds
@@ -349,6 +351,10 @@ export class CoreSession {
         resource,
         new Map(bank.sprites.map((s, i) => [s.group + "," + s.number, i])),
       );
+      // Stage layers and helper-heavy characters can submit 100+ quads per
+      // render. Scan palettes once per SFF bank instead of linear-searching
+      // the palette list for every sprite on every rendered frame.
+      this.paletteIndices.set(resource,firstPaletteByIndex(bank.palettes));
     }
     return this.banks.get(resource);
   }
@@ -397,8 +403,8 @@ export class CoreSession {
       }
       const indexed = sprite.indexed,
         meta = bank.sprites[index],
-        palette = bank.palettes?.find(
-          (p) => p.index === (sprite.palette ?? meta.palette),
+        palette = this.paletteIndices.get(resource)?.get(
+          sprite.palette ?? meta.palette,
         );
       let pair = palette ? [palette.group, palette.number] : [1, 1];
       pair = remaps?.get(pair.join(",")) || remaps?.get("*") || pair;
@@ -976,6 +982,7 @@ export class CoreSession {
     this.closed = true;
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
+    this.paletteIndices.clear();
     this.sent.clear();
     this.spriteRestoreCache.clear();
     this.paletteFallbacks.clear();
