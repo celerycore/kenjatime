@@ -357,6 +357,33 @@ export class FighterRuntime {
     this.helperId = options.helperId ?? 0; this.keyCtrl = options.keyCtrl ?? !this.parent;
     this.ownPal = options.ownPal ?? false; this.teamSide = options.teamSide ?? this.root.options?.teamSide ?? 1;
     this.commonAnimations = options.commonAnimations || new Map();
+    // Reuse the same expression host callbacks on every evaluation. Complex
+    // MUGEN/IKEMEN characters can evaluate millions of CNS conditions per
+    // match, and allocating three closures and a context object for each
+    // expression created enormous Android GC pressure.
+    this._evaluationSource = null;
+    this._evaluationController = null;
+    this._expressionResolve = (name, args = [], redirect = null) => {
+      if(name==='zsslocal'){
+        const value=this._zssContext?.locals.get(String(args[0]));
+        if(!value)throw new UnsupportedExpressionError(`ZSS local ${args[0]} is unavailable.`);
+        if(value.bottom)throw value.error;
+        return value;
+      }
+      return this.resolveTrigger(name,args,redirect);
+    };
+    this._expressionAssign = (name,args,value) => this.assignVariable(name,args,value);
+    this._expressionWarning = error => {
+      if(!error.bottom)this.diagnostic('expression-warning',
+        `${this._evaluationSource}: ${error.message}`,this._evaluationController);
+    };
+    const shared={
+      resolve:this._expressionResolve,
+      assign:this._expressionAssign,
+      onWarning:this._expressionWarning,
+    };
+    this._expressionContext={...shared,typedResult:false};
+    this._typedExpressionContext={...shared,typedResult:true};
     this.reset();
   }
 
@@ -438,22 +465,19 @@ export class FighterRuntime {
   set power(value) { if(this.parent)this.root.power=value;else this._power=value; }
 
   evaluate(source, controller = this._executing, typed=false) {
+    // Scoped metadata preserves nested expression/redirect diagnostics while
+    // shared immutable resolver contexts avoid allocation in the hot path.
+    const prevSource=this._evaluationSource,prevController=this._evaluationController;
+    this._evaluationSource=source;this._evaluationController=controller;
     try {
-      return (this.options.expressionEvaluator|| (typed?evaluateTypedExpression:evaluateExpression))(source, {
-        resolve: (name, args = [], redirect = null) => {
-          if(name==='zsslocal'){
-            const value=this._zssContext?.locals.get(String(args[0]));if(!value)throw new UnsupportedExpressionError(`ZSS local ${args[0]} is unavailable.`);
-            if(value.bottom)throw value.error;return value;
-          }
-          return this.resolveTrigger(name, args, redirect);
-        },
-        assign: (name, args, value) => this.assignVariable(name, args, value),
-        onWarning: error => { if (!error.bottom) this.diagnostic('expression-warning', `${source}: ${error.message}`, controller); },
-        typedResult:typed,
-      });
+      return (this.options.expressionEvaluator||
+        (typed?evaluateTypedExpression:evaluateExpression))(
+          source, typed?this._typedExpressionContext:this._expressionContext);
     } catch (error) {
       if (!error.bottom) this.diagnostic('expression', `${source}: ${error.message}`, controller);
       throw error;
+    } finally {
+      this._evaluationSource=prevSource;this._evaluationController=prevController;
     }
   }
 
