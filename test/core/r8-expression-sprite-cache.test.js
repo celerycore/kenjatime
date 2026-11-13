@@ -45,13 +45,15 @@ test('CPU sprite restoration cache retains immutable pixels with bounded memory'
   assert.deepEqual([...cache.get('sprite-a')],[1,2,3,4]);
   assert.equal(cache.put('sprite-b',b),true);
   assert.equal(cache.bytes,24);
+  // Touch A after B was inserted to explicitly test LRU recency.
+  assert.deepEqual([...cache.get('sprite-a')],[1,2,3,4]);
   assert.equal(cache.put('sprite-c',new Uint8Array(16).fill(9)),true);
   assert.equal(cache.bytes,16+4); // cached a was recently touched, b evicted
   assert.equal(cache.get('sprite-b'),null);
   assert.deepEqual([...cache.get('sprite-a')],[1,2,3,4]);
   assert.equal(cache.put('oversize',new Uint8Array(33)),false);
   assert.equal(cache.put('invalid',new Uint8Array()),false);
-  assert.equal(cache.stats.hits,2);
+  assert.equal(cache.stats.hits,3);
   assert.equal(cache.stats.evictions,1);
   assert.ok(cache.bytes<=cache.limit);
   cache.clear();
