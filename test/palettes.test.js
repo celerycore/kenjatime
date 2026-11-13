@@ -20,6 +20,31 @@ function sff1(specs){
 }
 function act(color){const bytes=new Uint8Array(768);bytes.set(color,254*3);bytes.set([255,0,255],255*3);return bytes;}
 
+
+test('MaidForBlood forward-order ACT is auto-detected using embedded PCX palette without changing native ACT behavior',()=>{
+ const expected=colors([71,119,167]); // index 0=magenta, index 1=RGB
+ const reversed=new Uint8Array(768);
+ for(let i=0;i<256;i++)reversed.set(expected.subarray(i*3,i*3+3),(255-i)*3);
+ const fixture=sff1([{group:0,number:0,palette:expected},{group:2000,number:0,shared:1,withPalette:true},{group:2000,number:1,link:1}]);
+ const forwardChar=sff(fixture,{externalPalettes:new Map([[1,expected],[2,expected]])});
+ assert.deepEqual([...forwardChar.decode(0).rgba.slice(4,8)],[71,119,167,255]);
+ assert.deepEqual([...forwardChar.decodeWithPalette(1,1,2).rgba.slice(4,8)],[71,119,167,255]);
+ assert.equal(forwardChar.decode(2).rgba[3],0);
+ const standardChar=sff(fixture,{externalPalettes:new Map([[1,reversed]])});
+ assert.deepEqual([...standardChar.decode(0).rgba.slice(4,8)],[71,119,167,255]);
+ // No PCX reference: the standard ACT reversal remains the default.
+ assert.deepEqual([...decodeAct(reversed).slice(4,8)],[71,119,167,255]);
+ assert.notDeepEqual([...decodeAct(expected).slice(4,8)],[71,119,167,255]);
+ const [character]=archive(zipSync({
+  'maid/maid.def':strToU8('[Info]\\nname=MaidForBlood\\n[Files]\\nsprite=maid.sff\\npal1=maid.act\\npal2=maid.act'),
+  'maid/maid.sff':fixture,'maid/maid.act':expected
+ }));
+ const bank=characterSpriteBank(character);
+ assert.deepEqual(bank.selectablePalettes,[1,2]);
+ assert.deepEqual([...bank.decodeWithPalette(1,1,2).rgba.slice(4,8)],[71,119,167,255]);
+ assert.equal(bank.diagnostics.length,0);
+});
+
 test('ACT palettes reverse RGB entries into indexed colors and keep index zero transparent',()=>{
   const palette=decodeAct(act([10,20,30]));assert.deepEqual([...palette.slice(0,8)],[255,0,255,0,10,20,30,255]);
   const extended=new Uint8Array(772);extended.set(act([3,2,1]));assert.equal(decodeAct(extended)[4],3);assert.throws(()=>decodeAct(new Uint8Array(767)),/768/);
