@@ -39,6 +39,8 @@ const fields = [
   "simulation_worker_batch_cpu_ms", "simulation_worker_tick_cpu_ms",
   "simulation_worker_batch_ticks", "simulation_worker_batch_limit",
   "render_with_backlog_count", "render_target_fps",
+  "expression_wasm_calls", "expression_interpreted_calls",
+  "expression_deoptimized_calls", "expression_compiled_functions",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -237,6 +239,8 @@ function sample() {
     Number.isFinite(state.simulationTickCpuMs) ? number(state.simulationTickCpuMs, 3) : "",
     state.simulationBatchTicks ?? "", state.simulationBatchLimit ?? "",
     state.renderWithBacklogCount ?? "", state.renderTargetFps ?? "",
+    state.expressions?.wasm ?? "", state.expressions?.interpreted ?? "",
+    state.expressions?.deoptimized ?? "", state.expressions?.compiled ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
