@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {sff,decodeAct,archive} from '../src/formats.js';
+import {sff,decodeAct,detectActPaletteOrder,archive} from '../src/formats.js';
 import {characterSpriteBank} from '../src/palettes.js';
 import {zipSync,strToU8} from 'fflate';
 
@@ -19,6 +19,28 @@ function sff1(specs){
   }return bytes;
 }
 function act(color){const bytes=new Uint8Array(768);bytes.set(color,254*3);bytes.set([255,0,255],255*3);return bytes;}
+
+
+test('MaidForBlood ACT exports in forward color-index order render correctly for P1 and P2',()=>{
+ const embedded=colors([71,119,167]),alternate=colors([10,201,74]);
+ const reversed=new Uint8Array(768);
+ for(let i=0;i<256;i++)reversed.set(embedded.subarray(i*3,i*3+3),(255-i)*3);
+ assert.equal(detectActPaletteOrder(embedded,embedded),'forward');
+ assert.equal(detectActPaletteOrder(reversed,embedded),'reversed');
+ const fixture=sff1([{group:0,number:0,palette:embedded},{group:2000,number:0,shared:1},{group:2000,number:1,link:1}]);
+ const [fighter]=archive(zipSync({
+  'maid/MaidForBlood.def':strToU8('[Info]\\nname=MaidForBlood\\n[Files]\\nsprite=maid.sff\\npal1=maid.act\\npal2=alt.act'),
+  'maid/maid.sff':fixture,'maid/maid.act':embedded,'maid/alt.act':alternate
+ }));
+ const bank=characterSpriteBank(fighter);
+ assert.equal(bank.version,1);
+ assert.deepEqual(bank.selectablePalettes,[1,2]);
+ assert.deepEqual([...bank.decode(0).rgba.slice(4,8)],[71,119,167,255]);
+ assert.deepEqual([...bank.decodeWithPalette(1,1,2).rgba.slice(4,8)],[10,201,74,255]);
+ assert.equal(bank.decode(0).rgba[3],0);
+ assert.equal(bank.decode(2).rgba[3],0);
+ assert.deepEqual(bank.diagnostics,[]);
+});
 
 test('ACT palettes reverse RGB entries into indexed colors and keep index zero transparent',()=>{
   const palette=decodeAct(act([10,20,30]));assert.deepEqual([...palette.slice(0,8)],[255,0,255,0,10,20,30,255]);
