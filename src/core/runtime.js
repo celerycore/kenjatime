@@ -227,6 +227,7 @@ export function createCoreRuntime(emit) {
             renderTargetFps: lastRenderTargetFps,
             renderWithBacklogCount,
             resolutionScale: scale,
+            renderQuality: quality,
           },
           gpu: renderer.stats,
         });
