@@ -22,6 +22,18 @@ const fields = [
   "helpers_destroyed", "helpers_hidden", "helpers_submitted",
   "helpers_missing_animation", "helpers_missing_sprite", "helper_state_map",
   "mugen11_p1_duplicate_globals", "mugen11_p2_duplicate_globals",
+  // AI investigation columns deliberately append after the established R8
+  // schema so earlier benchmark parsers can keep using their known names.
+  "p1_character", "p2_character", "p1_ai_level", "p2_ai_level",
+  "p1_ctrl", "p2_ctrl", "p1_state_time", "p2_state_time",
+  "p1_pos_x", "p2_pos_x", "p1_pos_y", "p2_pos_y",
+  "p1_vel_x", "p2_vel_x", "p1_cpu_mode", "p2_cpu_mode",
+  "p1_cpu_last_command", "p2_cpu_last_command",
+  "p1_cpu_raw_input", "p2_cpu_raw_input",
+  "p1_cpu_matched_commands", "p2_cpu_matched_commands",
+  "p1_legacy_ai_flag", "p2_legacy_ai_flag",
+  "p1_legacy_ai_value", "p2_legacy_ai_value",
+  "p1_controller_diagnostics", "p2_controller_diagnostics",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -51,6 +63,9 @@ panel.innerHTML = `
         <div><small>Facing P1 / P2</small><strong data-r8="facing">—</strong></div>
         <div><small>Move types P1 / P2</small><strong data-r8="movetype">—</strong></div>
         <div><small>Pending hit states P1 / P2</small><strong data-r8="pendinghits">—</strong></div>
+        <div><small>CPU mode / level / control P1 · P2</small><strong data-r8="ai">—</strong></div>
+        <div><small>CPU physical input P1 · P2</small><strong data-r8="aiinput">—</strong></div>
+        <div><small>Script/controller diagnostics P1 · P2</small><strong data-r8="aidiagnostics">—</strong></div>
       </div>
       <div class="r8-bench-actions">
         <button type="button" data-r8-start>Start recording</button>
@@ -58,7 +73,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input and controller diagnostics to investigate idle custom characters. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -137,6 +152,11 @@ function sample() {
   element("facing").textContent = (state.players?.[0]?.facing ?? "—") + " / " + (state.players?.[1]?.facing ?? "—");
   element("movetype").textContent = (state.players?.[0]?.moveType ?? "—") + " / " + (state.players?.[1]?.moveType ?? "—");
   element("pendinghits").textContent = (state.players?.[0]?.pendingStateNo ?? "—") + " / " + (state.players?.[1]?.pendingStateNo ?? "—");
+  const cpuSummary = p => p ? (p.cpuMode ?? "unknown") + " L" + (p.aiLevel ?? "—") +
+    " ctrl=" + (p.ctrl ?? "—") + " state=" + (p.state ?? "—") : "—";
+  element("ai").textContent = cpuSummary(state.players?.[0]) + " · " + cpuSummary(state.players?.[1]);
+  element("aiinput").textContent = (state.players?.[0]?.cpuRawInput || "idle") + " · " + (state.players?.[1]?.cpuRawInput || "idle");
+  element("aidiagnostics").textContent = (state.players?.[0]?.controllerDiagnostics ?? "—") + " / " + (state.players?.[1]?.controllerDiagnostics ?? "—");
   if (!recording) return;
   const seconds = (now - startedAt) / 1000;
   highest = Math.max(highest, gpu.textureBytes || 0);
@@ -187,6 +207,20 @@ function sample() {
        h.pendingStateNo??"",h.pendingStateOwnerId??""].join(":")).join("|"),
     state.compatibility?.characters?.[0]?.duplicateGlobalStates ?? "",
     state.compatibility?.characters?.[1]?.duplicateGlobalStates ?? "",
+    state.players?.[0]?.name ?? "", state.players?.[1]?.name ?? "",
+    state.players?.[0]?.aiLevel ?? "", state.players?.[1]?.aiLevel ?? "",
+    state.players?.[0]?.ctrl ?? "", state.players?.[1]?.ctrl ?? "",
+    state.players?.[0]?.stateTime ?? "", state.players?.[1]?.stateTime ?? "",
+    state.players?.[0]?.x ?? "", state.players?.[1]?.x ?? "",
+    state.players?.[0]?.y ?? "", state.players?.[1]?.y ?? "",
+    state.players?.[0]?.velX ?? "", state.players?.[1]?.velX ?? "",
+    state.players?.[0]?.cpuMode ?? "", state.players?.[1]?.cpuMode ?? "",
+    state.players?.[0]?.cpuLastCommand ?? "", state.players?.[1]?.cpuLastCommand ?? "",
+    state.players?.[0]?.cpuRawInput ?? "", state.players?.[1]?.cpuRawInput ?? "",
+    state.players?.[0]?.cpuMatchedCommands ?? "", state.players?.[1]?.cpuMatchedCommands ?? "",
+    state.players?.[0]?.legacyAIFlag ?? "", state.players?.[1]?.legacyAIFlag ?? "",
+    state.players?.[0]?.legacyAIValue ?? "", state.players?.[1]?.legacyAIValue ?? "",
+    state.players?.[0]?.controllerDiagnostics ?? "", state.players?.[1]?.controllerDiagnostics ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }

@@ -884,6 +884,25 @@ export class CoreSession {
         state: a.stateNo,
         time: a.time,
         moveType: a.moveType,
+        // Expose CPU/script state to the isolated R8 recorder. No per-tick
+        // changes to character control or authored MUGEN behavior.
+        aiLevel: a.aiLevel,
+        ctrl: a.ctrl,
+        stateTime: a.time,
+        velX: a.vel.x,
+        velY: a.vel.y,
+        cpuMode: !this.match.cpus.has(a) ? "human"
+          : this.match.cpus.get(a).nativeAI ? "native-cns"
+          : this.match.cpus.get(a).authoredAI ? "authored-ailevel" : "generic",
+        cpuLastCommand: this.match.cpus.get(a)?.lastCommand ?? "",
+        cpuRawInput: [...(this.match.cpus.get(a)?.raw ?? [])].sort().join("+"),
+        cpuMatchedCommands: this.match.cpus.get(a)?.buffer?.active?.size ?? 0,
+        legacyAIFlag: a.legacyAIFlag ?? null,
+        legacyAIValue: a.legacyAIFlag === undefined ? null : a.vars[a.legacyAIFlag],
+        controllerDiagnostics: a.diagnostics.filter(d => [
+          "controller", "parameter-bottom", "missing-state", "state-loop",
+          "unsupported-controller", "unsupported-trigger",
+        ].includes(d.type)).length,
         hitPauseTime: a.hitPauseTime,
         pendingStateNo: a._pendingStateEntry?.number ?? null,
         pendingStateOwnerId: a._pendingStateEntry?.owner?.id ?? null,
