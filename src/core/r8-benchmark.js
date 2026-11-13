@@ -48,6 +48,9 @@ const fields = [
   "sprite_restore_cache_hits", "sprite_restore_cache_misses",
   "sprite_restore_cache_evictions", "sprite_restore_cache_stores",
   "sprite_restore_cache_resident_mib",
+  "sprite_restore_deferred_admissions", "sprite_restore_promotions",
+  "sprite_restore_probation_entries", "gpu_offscreen_culled_draws",
+  "gpu_pre_cull_draws",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -72,6 +75,8 @@ panel.innerHTML = `
         <div><small>Palettes RGBA8</small><strong data-r8="palettes">—</strong></div>
         <div><small>Truecolor RGBA8</small><strong data-r8="rgba">—</strong></div>
         <div><small>Texture evictions</small><strong data-r8="evictions">—</strong></div>
+        <div><small>Offscreen quads avoided</small><strong data-r8="culled">—</strong></div>
+        <div><small>Sprite admission deferrals</small><strong data-r8="probation">—</strong></div>
         <div><small>Missing art / palette draws</small><strong data-r8="missing">—</strong></div>
         <div><small>Helper states / spawned</small><strong data-r8="helpers">—</strong></div>
         <div><small>Helper sprite submissions</small><strong data-r8="helperdraws">—</strong></div>
@@ -170,6 +175,10 @@ function sample() {
   element("palettes").textContent = mib(gpu.paletteTextureBytes);
   element("rgba").textContent = mib(gpu.truecolorTextureBytes);
   element("evictions").textContent = String(gpu.textureEvictions || 0);
+  element("culled").textContent = (gpu.offscreenCulledDraws??0) +
+    " of " + (gpu.submittedDraws??gpu.draws??0);
+  element("probation").textContent = (state.spriteRestoreCache?.deferredAdmissions??0) +
+    " deferred · " + (state.spriteRestoreCache?.promotions??0) + " admitted";
   element("missing").textContent = (gpu.missingFrameTextures || 0) + " / " + (gpu.missingPaletteDraws || 0);
   element("helpers").textContent = (state.helperFrameStats?.alive ?? "—") + " active / " + (state.helperStats?.created ?? "—") + " spawned";
   element("helperdraws").textContent = (state.helperFrameStats?.submitted ?? "—") + " submitted · " + (state.helperFrameStats?.hidden ?? 0) + " hidden";
@@ -264,6 +273,10 @@ function sample() {
     state.spriteRestoreCache?.hits ?? "", state.spriteRestoreCache?.misses ?? "",
     state.spriteRestoreCache?.evictions ?? "", state.spriteRestoreCache?.stores ?? "",
     Number.isFinite(state.spriteRestoreCache?.bytes) ? number(state.spriteRestoreCache.bytes/MB,3) : "",
+    state.spriteRestoreCache?.deferredAdmissions??"",
+    state.spriteRestoreCache?.promotions??"",
+    state.spriteRestoreCache?.probationEntries??"",
+    gpu.offscreenCulledDraws??"",gpu.submittedDraws??"",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }

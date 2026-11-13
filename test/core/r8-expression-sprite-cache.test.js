@@ -73,9 +73,18 @@ test('KFM sprites restored after GPU eviction use exact same indexed pixels',()=
     assert.equal(first.length,1);
     assert.deepEqual([...first[0].pixels],[...image.pixels]);
     assert.equal(session.spriteRestoreCache.stats.misses,1);
+    // First restoration is probation only: one-off images are never copied
+    // into the 16 MiB cache. On the second restoration this sprite is
+    // promoted, and on the third the original decoded bytes are reused.
+    assert.equal(session.spriteRestoreCache.stats.bytes,0);
+    assert.equal(session.spriteRestoreCache.stats.deferredAdmissions,1);
     const second=session.restoreAssets([image.id]);
     assert.equal(second.length,1);
     assert.deepEqual([...second[0].pixels],[...first[0].pixels]);
+    assert.equal(session.spriteRestoreCache.stats.promotions,1);
+    const third=session.restoreAssets([image.id]);
+    assert.equal(third.length,1);
+    assert.deepEqual([...third[0].pixels],[...first[0].pixels]);
     assert.equal(session.spriteRestoreCache.stats.hits,1);
     assert.ok(session.spriteRestoreCache.stats.bytes>0);
     assert.ok(session.snapshot().interpreterCache);

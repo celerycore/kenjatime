@@ -461,6 +461,20 @@ export class FighterRuntime {
   get alive() { return this.life > 0; }
   get paletteRemaps(){return this.parent&&!this.ownPal?this.parent.paletteRemaps:this._paletteRemaps;}
   ownedHelpers() { return this.world ? this.world.entities.filter(p=>p.parent && !p.destroyed && (this===this.root?p.root===this:p.parent===this)) : this.helpers.filter(p=>!p.destroyed); }
+  // No temporary helper arrays for high-frequency NumHelper() AI triggers.
+  // Preserve the exact root-versus-parent ownership and live-state checks.
+  countOwnedHelpers(wanted=null){
+    const members=this.world?.entities||this.helpers;
+    let count=0;
+    for(const p of members){
+      if(!p.parent && this.world || p.destroyed)continue;
+      if(this.world && !(this===this.root?p.root===this:p.parent===this))
+        continue;
+      if(wanted!==null && wanted>0 && p.helperId!==wanted)continue;
+      count++;
+    }
+    return count;
+  }
   get power() { return this.parent ? this.root.power : this._power; }
   set power(value) { if(this.parent)this.root.power=value;else this._power=value; }
 
@@ -518,7 +532,15 @@ export class FighterRuntime {
       else if (type === 'root') target = this.root || this;
       else if (type === 'parent') target = this.parent;
       else if(type==='partner')target=(this.world?.entities||[]).filter(actor=>!actor.parent&&actor!==this.root&&actor.teamSide===this.teamSide)[Math.trunc(redirect.args[0]||0)];
-      else if (type === 'helper') target = this.ownedHelpers().find(helper => !redirect.args.length || helper.helperId === +redirect.args[0]);
+      else if (type === 'helper') {
+        const requested=redirect.args.length?+redirect.args[0]:null;
+        for(const helper of this.world?.entities||this.helpers){
+          if((this.world&&!helper.parent)||helper.destroyed||
+            (this.world&&!(this===this.root?helper.root===this:helper.parent===this)))
+            continue;
+          if(requested===null||helper.helperId===requested){target=helper;break;}
+        }
+      }
       else if (type === 'target') target = this.targets.find(t =>
         !t.destroyed && (!redirect.args.length || (this.targetHitIds.get(t.id)??t.hitId) === +redirect.args[0]));
       else if (type === 'playerid') target = this.world?.findPlayer(+redirect.args[0]) || [this, this.opponent, ...this.helpers].find(t => t?.id === +redirect.args[0]);
@@ -591,9 +613,11 @@ export class FighterRuntime {
         (this.getHitVars.hitshaketime||0):this.hitPauseTime)===0);
       case 'hitover': return +(this.hitTime<0);
       case 'movereversed': return this.moveReversed||0;
-      case 'numhelper': if(!args.length)return this.ownedHelpers().length;break;
+      case 'numhelper': if(!args.length)return this.countOwnedHelpers();break;
       case 'numexplod': if(!args.length)return this.explods.length;break;
-      case 'numtarget': if(!args.length)return this.targets.filter(t=>!t.destroyed).length;break;
+      case 'numtarget': if(!args.length){
+        let n=0;for(const t of this.targets)if(!t.destroyed)n++;return n;
+      }break;
       case 'numenemy': return other?1:0;
       case 'numpartner': return 0;
       case 'ishelper': if(!args.length)return +!!this.parent;break;
@@ -610,8 +634,11 @@ export class FighterRuntime {
       case 'teammode': return 'single';
       case 'ishometeam': return +(this.teamSide===1);
       case 'authorname': return this.character.def?.info?.author||'';
-      case 'numproj': return (this.world?.projectiles||[]).filter(
-        p=>p.owner===this&&!p.removing&&!p.removed).length;
+      case 'numproj': {
+        let n=0;for(const p of this.world?.projectiles||[])
+          if(p.owner===this&&!p.removing&&!p.removed)n++;
+        return n;
+      }
       case 'canrecover': return +(!!this.getHitVars.fall&&
         this.getHitVars['fall.recover']!==0&&
         (this.getHitVars['fall.time']||0)>=(this.getHitVars['fall.recovertime']??4));
@@ -665,7 +692,12 @@ export class FighterRuntime {
     }
     if(name==='stagevar'){if(!this.world?.stage)throw Error('StageVar requires an imported stage.');return this.world.stage.variable(args[0]);}
     if (name === 'ishelper' && args.length) return +(!!this.parent && this.helperId === +args[0]);
-    if (name === 'numprojid') return (this.world?.projectiles || []).filter(p => p.owner === this && !p.removing && !p.removed && p.projId === Math.max(0,Math.trunc(+args[0]))).length;
+    if (name === 'numprojid') {
+      const requested=Math.max(0,Math.trunc(+args[0]));
+      let n=0;for(const p of this.world?.projectiles||[])
+        if(p.owner===this&&!p.removing&&!p.removed&&p.projId===requested)n++;
+      return n;
+    }
     // Legacy scripts also use parenthesized ProjHit(id), although the
     // official syntax uses a numeric suffix. Preserve the one-tick contact
     // flag using the existing projectile history.
@@ -682,9 +714,16 @@ export class FighterRuntime {
       return record && (!wanted || record.projId === wanted) && (kind === 'contact' ? ['hit','guarded'].includes(record.type) : record.type === kind) ? (this.world?.ticks ?? this.gameTime) - record.tick : -1;
     }
     if (/^(parentdist|rootdist) [xy]$/.test(name)) { const parent = !this.parent?null:name.startsWith('parent') ? this.parent : this.root; if (!parent||parent.destroyed||name.startsWith('parent')&&!parent.alive) { const e = Error('No live parent or root'); e.bottom = true; throw e; } const axis = name.at(-1); return (parent.pos[axis] - this.pos[axis]) * (axis === 'x' ? this.facing : 1) / scale; }
-    if (name === 'numexplod' && args.length) return this.explods.filter(e => e.id === +args[0]).length;
-    if (name === 'numhelper' && args.length) return this.ownedHelpers().filter(h => +args[0] <= 0 || h.helperId === +args[0]).length;
-    if (name === 'numtarget' && args.length) return this.targets.filter(t => !t.destroyed && (+args[0] < 0 || (this.targetHitIds.get(t.id)??t.hitId) === +args[0])).length;
+    if (name === 'numexplod' && args.length){
+      let n=0;for(const e of this.explods)if(e.id===+args[0])n++;return n;
+    }
+    if (name === 'numhelper' && args.length) return this.countOwnedHelpers(+args[0]);
+    if (name === 'numtarget' && args.length){
+      const wanted=+args[0];let n=0;
+      for(const t of this.targets)
+        if(!t.destroyed && (wanted<0||(this.targetHitIds.get(t.id)??t.hitId)===wanted))n++;
+      return n;
+    }
     if (name === 'playeridexist') return +(this.world?.findPlayer(+args[0]) || [this, other, ...this.helpers].find(p => p?.id === +args[0] && !p.destroyed) ? 1 : 0);
     if (['frontedgedist','backedgedist','frontedgebodydist','backedgebodydist'].includes(name)) {
       const front = name.startsWith('front');
