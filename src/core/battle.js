@@ -4,7 +4,7 @@ import { gamepadKeys } from "../input-buffer.js";
 import { CoreAudio } from "./audio.js";
 import { CoreVideos } from "./video-source.js";
 import { FIGHT_BANNER_TICKS } from "./fight-start.js";
-import {nextQuality,qualityLabel} from "./render-quality.js";
+import {nextQuality,qualityLabel,defaultQualityForDevice} from "./render-quality.js";
 import "./battle.css";
 import "./hud.css";
 let active;
@@ -77,8 +77,16 @@ export async function openCoreBattle({
     gpu,
     backend,
     raf,
-    quality = "auto",
+    quality = defaultQualityForDevice({
+      coarsePointer:window.matchMedia?.('(pointer: coarse)')?.matches===true,
+      touchPoints:navigator.maxTouchPoints||0,
+      viewportWidth:window.innerWidth||0,
+    }),
     enabled = true;
+  // The label must agree with the framebuffer selected at startup; before
+  // this fix the phone's default silently remained full 960x540.
+  host.querySelector("[data-quality]").textContent =
+    "Visuals: "+qualityLabel(quality);
   const keyboard = [new Set(), new Set()];
   const lastPadKeys = [null, null];
   const send = (message, transfer = []) => {
