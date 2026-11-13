@@ -280,7 +280,8 @@ export class TrainingMatch {
     if(!roundStartHeld&&this._benchmarkStartHeld){
       this._benchmarkStartHeld=false;
       for(const root of [this.player,this.opponent])
-        if(root.stateNo===0)root.ctrl=1;
+        if(root.stateNo===0 && root.program.states.get(0)?.values?.ctrl===undefined)
+          root.ctrl=1;
       this.commandBuffers.clear();
     }
     // R8-only recovery for legacy CPU actors stranded in a neutral idle
@@ -293,13 +294,17 @@ export class TrainingMatch {
     if(this.roundFlow?.rules?.fightStartLockTicks > 0 &&
         this.roundFlow.roundState===2 && !roundStartHeld){
       for(const root of [this.player,this.opponent]){
+        if(root.aiLevel<=0||root.stateNo!==0||root.ctrl||root.moveType!=='I'||
+            root.stateType!=='S'||root._initializing||root.hitPauseTime>0||
+            root.stateOwner!==root){
+          root._r8IdleControlWait=0;
+          continue;
+        }
         const idle=root.program.states.get(0);
         const authoredLock=idle?.values?.ctrl !== undefined ||
           (idle?.controllers||[]).some(s=>s.type==='ctrlset' &&
             /^0(?:\.0+)?$/.test(String(s.values?.value||'').trim()));
-        if(root.aiLevel<=0||root.stateNo!==0||root.ctrl||root.moveType!=='I'||
-            root.stateType!=='S'||root._initializing||root.hitPauseTime>0||
-            root.stateOwner!==root||authoredLock){
+        if(authoredLock){
           root._r8IdleControlWait=0;
           continue;
         }
@@ -570,9 +575,9 @@ export class TrainingMatch {
             // Standard MUGEN State 0 / AIR action 0 is the fighter's idle pose.
             if(actor.program.states.has(0))actor.changeState(0,1,actor);
             if(actor.animations.has(0))actor.changeAnimation(0);
-            // Keep Ctrl available internally; the lock itself prevents all
-            // state execution and movement until the 102-tick hold expires.
-            actor.ctrl=1;
+            // StateDef 0 may explicitly request Ctrl=0; honor that rather
+            // than overriding authored CNS. The lock itself prevents all
+            // execution and movement until the 102-tick hold expires.
             actor.vel.x=0;actor.vel.y=0;actor.pos.y=0;
             actor.asserted.clear();
           }
