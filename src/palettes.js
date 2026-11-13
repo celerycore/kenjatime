@@ -50,7 +50,7 @@ export function characterSpriteBank(character){
  if(banks.has(character))return banks.get(character);
  const diagnostics=[],externalPalettes=new Map(),files=character.files,base=character.path.slice(0,character.path.lastIndexOf('/')+1);
  for(const [key,value]of Object.entries(character.def.files||{}))if(/^pal\d+$/.test(key)&&value){
-  try{const number=Number(key.slice(3));if(number<1||number>256)throw Error(`Invalid palette number ${number}.`);const check=character.checks?.find(c=>c.key===key);let path;if(check)path=check.ok?check.path:null;else{try{path=packagePath(value,base,true);}catch{path=null;}}if(!path||!files[path])throw Error(`Palette file is missing from the ZIP: ${value}`);externalPalettes.set(number,decodeAct(files[path]));}
+  try{const number=Number(key.slice(3));if(number<1||number>256)throw Error(`Invalid palette number ${number}.`);const check=character.checks?.find(c=>c.key===key);let path;if(check)path=check.ok?check.path:null;else{try{path=packagePath(value,base,true);}catch{path=null;}}if(!path||!files[path])throw Error(`Palette file is missing from the ZIP: ${value}`);decodeAct(files[path]);externalPalettes.set(number,files[path]);}
   catch(error){diagnostics.push({type:'palette',source:character.path,line:0,message:error.message});}
  }
  const bank=sff(files[character.sprite.path],{externalPalettes});
