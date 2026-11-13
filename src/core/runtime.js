@@ -6,6 +6,7 @@ import { TickInputBuffer } from "../input-buffer.js";
 import { soundArchive } from "../formats.js";
 import { FrameScheduler } from "./frame-scheduler.js";
 import { AdaptiveResolution } from "./adaptive-resolution.js";
+import { framePacing, nextTickEstimate } from "./frame-pacing.js";
 /** Worker-owned simulation/renderer. The UI owns only input, audio sinks and HUD. */
 export function createCoreRuntime(emit) {
   let session,
@@ -24,7 +25,15 @@ export function createCoreRuntime(emit) {
     moduleStream,
     moduleVolume = 1,
     musicLoop = true,
-    musicSuppressed = false;
+    musicSuppressed = false,
+    // Per-callback measurements stay out of the simulation state/hash.
+    simulationCpuMs = 0,
+    simulationTickCpuMs = 0,
+    simulationBatchTicks = 0,
+    estimatedTickMs = 2,
+    renderWithBacklogCount = 0,
+    lastRenderTargetFps = 60,
+    lastBatchLimit = 4;
   const clock = new FrameClock(),
     inputs = [new TickInputBuffer(), new TickInputBuffer()],
     sounds = new Map(),
@@ -145,7 +154,14 @@ export function createCoreRuntime(emit) {
       // Keep the clock in its monotonic relative microsecond timebase.
       // The physical input queue uses epoch timestamps from the UI;
       // convert only the exact rational tick sample boundary.
-      clock.advance(time, { running: !paused }, (sample) => {
+      // R8: keep expensive imported character scripts in short bounded
+      // simulation batches, leaving time for a visible frame between them.
+      // No elapsed simulation tick is skipped: clock.debt is retained.
+      const plan = framePacing(clock.debt, estimatedTickMs);
+      clock.maxTicks = plan.batchLimit;
+      lastBatchLimit = plan.batchLimit;
+      const simulationStart = performance.now();
+      simulationBatchTicks = clock.advance(time, { running: !paused }, (sample) => {
         const inputDeadline = performance.timeOrigin + sample;
         session.tick(
           inputs[0].sample(inputDeadline),
@@ -154,13 +170,24 @@ export function createCoreRuntime(emit) {
         syncMusicSuppression();
         soundEvents();
       });
+      simulationCpuMs = performance.now() - simulationStart;
+      simulationTickCpuMs = simulationBatchTicks > 0
+        ? simulationCpuMs / simulationBatchTicks : 0;
+      if (simulationBatchTicks > 0)
+        estimatedTickMs = nextTickEstimate(estimatedTickMs, simulationTickCpuMs);
       syncVideos();
+      // Never gate all rendering behind clock.debt < 1. On heavy matches
+      // that debt stays positive indefinitely and produces *zero frames*
+      // while audio and combat continue. Draw at 30 FPS opportunistically
+      // during catch-up, and return to the regular 60 FPS when caught up.
+      const presentation = framePacing(clock.debt, estimatedTickMs);
+      lastRenderTargetFps = presentation.renderFps;
       if (
         !hidden &&
-        clock.debt < 1 &&
         (!paused || dirty) &&
-        clock.renderDue(time, 60)
+        clock.renderDue(time, presentation.renderFps)
       ) {
+        if (presentation.backlog) renderWithBacklogCount++;
         const start = performance.now(),
           packet = session.frame();
         renderer.render(packet, {
@@ -174,7 +201,10 @@ export function createCoreRuntime(emit) {
         dirty = false;
         if (quality === "auto") {
           scale = adaptiveResolution.observe(time, elapsed, {
-            eligible: !packet.assets.length && !paused && !hidden && focused,
+            // Resolution is not the bottleneck while scripts accumulate
+            // tick debt. Avoid needless scaling down on CPU-heavy matches.
+            eligible: !packet.assets.length && !paused && !hidden && focused &&
+              !presentation.backlog,
           });
         }
       }
@@ -191,6 +221,12 @@ export function createCoreRuntime(emit) {
             simulationHz: SIMULATION_HZ,
             simulationTicks: clock.tickCount,
             simulationBacklogTicks: Math.floor(clock.debt),
+            simulationCpuMs,
+            simulationTickCpuMs,
+            simulationBatchTicks,
+            simulationBatchLimit: lastBatchLimit,
+            renderTargetFps: lastRenderTargetFps,
+            renderWithBacklogCount,
             resolutionScale: scale,
           },
           gpu: renderer.stats,
