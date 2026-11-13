@@ -35,6 +35,12 @@ const fields = [
   "p1_legacy_ai_value", "p2_legacy_ai_value",
   "p1_controller_diagnostics", "p2_controller_diagnostics",
   "p1_r8_ctrl_recoveries", "p2_r8_ctrl_recoveries",
+  // R8 worker timing, appended so existing column readers keep working.
+  "simulation_worker_batch_cpu_ms", "simulation_worker_tick_cpu_ms",
+  "simulation_worker_batch_ticks", "simulation_worker_batch_limit",
+  "render_with_backlog_count", "render_target_fps",
+  "expression_wasm_calls", "expression_interpreted_calls",
+  "expression_deoptimized_calls", "expression_compiled_functions",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -48,6 +54,8 @@ panel.innerHTML = `
         <div><small>Rendered FPS</small><strong data-r8="fps">—</strong></div>
         <div><small>Simulation clock</small><strong data-r8="simulation">—</strong></div>
         <div><small>Tick backlog</small><strong data-r8="backlog">—</strong></div>
+        <div><small>Simulation tick CPU</small><strong data-r8="tickcpu">—</strong></div>
+        <div><small>Rendered with backlog</small><strong data-r8="backlogdraw">—</strong></div>
         <div><small>Render CPU submit</small><strong data-r8="cpu">—</strong></div>
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
@@ -75,7 +83,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input, controller diagnostics, and R8 recovery counts. A recovery is an explicit R8 compatibility fallback for stranded idle CPU control; it is not native MUGEN 1.1 behavior certification. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV additionally reports script-worker simulation CPU milliseconds per tick and batch, the tick-batch cap, total frames deliberately shown despite simulation backlog, and the presentation target FPS. Tick debt is never dropped just to make the FPS counter look better. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input, controller diagnostics, and R8 recovery counts. A recovery is an explicit R8 compatibility fallback for stranded idle CPU control; it is not native MUGEN 1.1 behavior certification. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -138,6 +146,8 @@ function sample() {
   element("fps").textContent = Number.isFinite(fps) ? number(fps) : "—";
   element("simulation").textContent = state.simulationHz ? state.simulationHz + " Hz" : "—";
   element("backlog").textContent = state.simulationBacklogTicks ?? "—";
+  element("tickcpu").textContent = number(state.simulationTickCpuMs, 2) + " ms/tick";
+  element("backlogdraw").textContent = (state.renderWithBacklogCount ?? 0) + " frames · target " + (state.renderTargetFps ?? "—") + " FPS";
   element("cpu").textContent = number(gpu.frameCpuSubmitMs) + " ms";
   element("resident").textContent = mib(gpu.textureBytes);
   element("indexed").textContent = mib(gpu.indexedTextureBytes);
@@ -225,6 +235,12 @@ function sample() {
     state.players?.[0]?.legacyAIValue ?? "", state.players?.[1]?.legacyAIValue ?? "",
     state.players?.[0]?.controllerDiagnostics ?? "", state.players?.[1]?.controllerDiagnostics ?? "",
     state.players?.[0]?.r8IdleControlRecoveries ?? 0, state.players?.[1]?.r8IdleControlRecoveries ?? 0,
+    Number.isFinite(state.simulationCpuMs) ? number(state.simulationCpuMs, 3) : "",
+    Number.isFinite(state.simulationTickCpuMs) ? number(state.simulationTickCpuMs, 3) : "",
+    state.simulationBatchTicks ?? "", state.simulationBatchLimit ?? "",
+    state.renderWithBacklogCount ?? "", state.renderTargetFps ?? "",
+    state.expressions?.wasm ?? "", state.expressions?.interpreted ?? "",
+    state.expressions?.deoptimized ?? "", state.expressions?.compiled ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
