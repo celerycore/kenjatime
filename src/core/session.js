@@ -10,7 +10,8 @@ import { TrainingMatch } from "../combat.js";
 import { commonStates } from "../common.js";
 const CORE_COMMON_STATES = commonStates({ orderedPhases: true });
 import { parseCommands, CommandBuffer } from "../commands.js";
-import { splitArguments } from "../expressions.js";
+import { splitArguments,expressionCacheStats } from "../expressions.js";
+import { SpriteRestoreCache } from "./sprite-restore-cache.js";
 import { EffectsState } from "../effects.js";
 import { characterSpriteBank } from "../palettes.js";
 import { baseScale } from "../coordinates.js";
@@ -146,6 +147,9 @@ export class CoreSession {
     this.indices = new Map();
     this.bankIds = new Map();
     this.spriteMetadata = new Map();
+    // Admit sprites only after the GPU has evicted them once. This bounds
+    // repeated R8 SFF decode/restore costs without expanding every archive.
+    this.spriteRestoreCache = new SpriteRestoreCache();
     this.paletteFallbacks = new Map();
     this.sent = new Set();
     this.assets = [];
@@ -461,11 +465,20 @@ export class CoreSession {
         } else {
           const index = Number(id.slice(split+1)), meta = this.spriteMetadata.get(id);
           if (!Number.isSafeInteger(index) || index < 0 || !meta) continue;
-          const decoded = bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) || bank.decode(index);
-          const pixels = meta.indexed ? decoded.indices : decoded.rgba;
-          if (!pixels || pixels.length !== meta.w * meta.h * (meta.indexed ? 1 : 4)) continue;
-          assets.push({id,width:meta.w,height:meta.h,indexed:meta.indexed,pixels:new Uint8Array(pixels)});
-          bank.clearDecodedCache?.();
+          let pixels=this.spriteRestoreCache.get(id);
+          if(!pixels){
+            const decoded=bank.decodeForDisplay?.(index) ||
+              bank.decodeIndexed?.(index) || bank.decode(index);
+            pixels=meta.indexed?decoded.indices:decoded.rgba;
+            if(!pixels || pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
+              continue;
+            this.spriteRestoreCache.put(id,pixels);
+            bank.clearDecodedCache?.();
+          }
+          if(pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
+            continue;
+          assets.push({id,width:meta.w,height:meta.h,indexed:meta.indexed,
+            pixels:new Uint8Array(pixels)});
         }
       } catch (error) {
         this.issue('texture-restore', 'Could not restore sprite ' + id + ': ' + error.message);
@@ -945,6 +958,8 @@ export class CoreSession {
       roundReason: this.match.roundFlow?.reason ?? null,
       matchOver: this.match.roundFlow?.matchOver ?? false,
       expressions: this.expressions.stats,
+      interpreterCache: expressionCacheStats(),
+      spriteRestoreCache: this.spriteRestoreCache.stats,
       capabilities: this.capabilities,
       diagnostics: [...this.match.diagnostics, ...this.issues.values()],
     };
@@ -962,6 +977,7 @@ export class CoreSession {
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
     this.sent.clear();
+    this.spriteRestoreCache.clear();
     this.paletteFallbacks.clear();
     this.gameEffects=[];
     this.events = [];
