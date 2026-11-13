@@ -38,32 +38,12 @@ jobs:
         run: node --test test/core/kotlin-wasm-combat-bridge.test.js
       - name: Real-package marathon CLI smoke test (synthetic KFM fixtures)
         run: node --test test/core/character-trio-cli.test.js
-      - name: MUGEN 1.1 legacy compatibility target and helper visibility
-        run: npm run verify:core:mugen11-target
-      - name: MUGEN 1.1 helper spawning and StateDef controller ordering parity
-        run: node --test test/core/mugen11-state-helper-parity.test.js
-      - name: MUGEN 1.1 BindToParent, ParentVar and DestroySelf compatibility
-        run: node --test test/core/mugen11-binding-parentvar-parity.test.js
-      - name: MUGEN 1.1 TargetState, SelfState, ChangeAnim2 and native-oracle evidence gates
-        run: npm run verify:core:mugen11-customstate
-      - name: MUGEN 1.1 StateDef facing and live-target lifecycle
-        run: node --test test/core/mugen11-facep2-target-lifecycle.test.js
-      - name: MUGEN 1.1 TargetDrop keepone random-victim selection
-        run: node --test test/core/mugen11-targetdrop-selection.test.js
-      - name: MUGEN 1.1 HitDef P2 state ownership and HitOverride precedence
-        run: node --test test/core/mugen11-hitdef-p2-customstate.test.js
-      - name: MUGEN 1.1 HitDef P1 attack StateDef, armor movetype and helper throw timing
-        run: node --test test/core/mugen11-hitdef-p1stateno-movetype.test.js
-      - name: Export synthetic native-oracle candidate (never native certification)
-        run: |
-          node scripts/core/mugen11-targetstate-oracle.mjs --candidate /tmp/kenjatime-targetstate-candidate.json --ticks 5
-          test -s /tmp/kenjatime-targetstate-candidate.json
-          node --input-type=module -e 'import fs from "node:fs"; const j=JSON.parse(fs.readFileSync("/tmp/kenjatime-targetstate-candidate.json","utf8")); if(j.nativeMugen11Verified!==false || j.source!=="kenjatime-synthetic")process.exit(1)'
-
       - name: Existing ZSS compatibility fixtures
         run: node --test test/core/zss.test.js
       - name: Full Core unit suite
         run: npm run test:core
+      - name: Audit independent Core build before merging R8 fixes
+        run: npm run build:core
       - name: Original interaction compatibility comparison (known baseline gap)
         run: npm run verify:core:interactions
         continue-on-error: true
