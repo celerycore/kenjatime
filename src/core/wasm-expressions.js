@@ -458,6 +458,9 @@ export class WasmExpressions {
     this.triggers = [];
     this.counts = {
       wasm: 0,
+      // Direct script reads bypass the Wasm/JS boundary without changing the
+      // compiled numeric expression's f32/i32 return type.
+      direct: 0,
       interpreted: 0,
       deoptimized: 0,
       compiled: 0,
@@ -486,9 +489,19 @@ export class WasmExpressions {
         continue;
       try {
         const builder = new FunctionCompiler(trigger),
-          node = builder.node(parseExpression(source));
+          ast = parseExpression(source),
+          node = builder.node(ast);
         if ((codeBytes += node.code.length) > maxBytes) break;
-        pending.push({ source, type: node.type });
+        // Only direct variable reads with a static integer index qualify.
+        // For every other numeric expression use the existing Wasm compiler.
+        // Parse the AST once rather than trusting an approximate regex.
+        const variableNames = ['var','fvar','sysvar','sysfvar'];
+        const variable = ast.kind==='call' &&
+          variableNames.includes(ast.name) &&
+          ast.args?.length===1 && ast.args[0].kind==='number' &&
+          !ast.args[0].float && Number.isSafeInteger(ast.args[0].value)
+          ? {name:ast.name,args:[ast.args[0].value]} : null;
+        pending.push({ source, type: node.type, direct: variable });
         functions.push({ ...node, locals: builder.locals });
       } catch (error) {
         if (
@@ -570,8 +583,28 @@ export class WasmExpressions {
     const previous = this.context;
     this.context = context;
     try {
-      const value = entry.run();
-      this.counts.wasm++;
+      let value;
+      if(entry.direct && typeof context.resolve==='function'){
+        // Typed MUGEN var/fvar/sysvar/sysfvar reads are overwhelmingly
+        // frequent in helpers/AI. Their numeric result already has exactly
+        // the declared integer/f32 type, so a Wasm trampoline plus imported
+        // JavaScript callback is unnecessary. Any unusual result delegates
+        // to the unchanged Wasm/deoptimization path.
+        const raw=context.resolve(entry.direct.name,entry.direct.args,null);
+        if(typeof raw==='number' && Number.isFinite(raw) &&
+          (entry.type===F || Number.isInteger(raw))){
+          value=entry.type===F?Math.fround(raw):raw|0;
+          if(!Number.isFinite(value))
+            throw new BottomError('Expression produced a non-finite number.');
+          this.counts.direct++;
+        } else {
+          value=entry.run();
+          this.counts.wasm++;
+        }
+      } else {
+        value=entry.run();
+        this.counts.wasm++;
+      }
       return context.typedResult ? { value, float: entry.type === F } : value;
     } catch (error) {
       if (error instanceof TypeChanged) {
