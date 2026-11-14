@@ -273,9 +273,17 @@ export function createCoreRuntime(emit) {
     emit({type:'loading-progress',phase:'Warming sprite cache',progress:0.30});
     await session.preloadSprites({onProgress:state=>{
       emit({type:'loading-progress',phase:'Caching indexed sprite art',
-        progress:0.30+0.58*state.progress,
+        progress:0.30+0.47*state.progress,
         loaded:state.done,total:state.total,bytes:state.bytes,
         cacheMode:state.mode});
+    }});
+    if (closed) return;
+    emit({type:'loading-progress',phase:'Preallocating GPU textures',progress:0.78});
+    await session.preloadGpuSprites(renderer,{onProgress:state=>{
+      emit({type:'loading-progress',phase:'Warming GPU sprite textures',
+        progress:0.78+0.11*state.progress,
+        loaded:state.done,total:state.total,bytes:state.bytes,
+        cacheMode:session.spriteCacheMode});
     }});
     if (closed) return;
     emit({type:'loading-progress',phase:'Preparing arena',progress:0.90});
