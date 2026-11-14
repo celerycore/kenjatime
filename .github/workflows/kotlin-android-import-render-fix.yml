@@ -10,12 +10,15 @@ on:
       - 'src/formats.js'
       - 'src/archive-reader.js'
       - 'src/mobile-library.js'
+      - 'src/uploads.js'
+      - 'src/archive-worker.js'
+      - 'test/core/kotlin-archive-import.test.js'
       - 'scripts/kotlin/**'
       - 'vite.kotlin.config.js'
       - 'capacitor.kotlin.config.json'
       - 'android/app/build.gradle'
       - 'package.json'
-      - '.github/workflows/kotlin-standard-web-android.yml'
+      - '.github/workflows/kotlin-android-import-render-fix.yml'
   workflow_dispatch:
 
 permissions:
