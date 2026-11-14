@@ -106,6 +106,9 @@ try:
         assert state['simulationHz'] == 60, state
         assert state['gameplayFirstFrameskip'] is True, state
         assert isinstance(state['simulationDebtChangeHz'],(int,float)), state
+        assert isinstance(state['workerSchedulerStats']['channelCallbacks'],int), state
+        assert isinstance(state['workerSchedulerStats']['timerCallbacks'],int), state
+        assert isinstance(state['workerSchedulerStats']['available'],bool), state
         assert 0 < state['renderTargetFps'] <= 60, state
         assert state['spritePreload']['mode'] == 'extended', state
         assert state['spritePreload']['loaded'] > 0, state
@@ -188,7 +191,10 @@ try:
             'gameplay_first_frameskip','simulation_debt_change_hz',
             'sprite_hot_admissions_deferred','sprite_hot_promotions',
             'sprite_hot_probation_entries','expression_fallback_executors',
-            'expression_fallback_cache_hits'])
+            'expression_fallback_cache_hits',
+            'worker_message_queue_available','worker_message_queue_callbacks',
+            'worker_timeout_callbacks','worker_animation_callbacks',
+            'worker_stale_queue_messages'])
         assert all(key in parsed_csv[0] for key in
                    ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
                     'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',

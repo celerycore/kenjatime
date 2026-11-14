@@ -68,7 +68,9 @@ test('high-entropy or true-color images retain their original lossless raw repre
 });
 
 test('serious Android backlog amortizes worker scheduling without dropping fixed 60Hz ticks',()=>{
-  assert.equal(framePacing(100,13).batchLimit,1);
+  // With a measured ~13ms tick, two deterministic ticks fit the 28ms
+  // worker catch-up slice well before the old 120-tick threshold.
+  assert.equal(framePacing(100,13).batchLimit,2);
   assert.equal(framePacing(1957,13).batchLimit,2);
   assert.equal(framePacing(1957,9).batchLimit,2);
   assert.equal(framePacing(1957,16).batchLimit,1);

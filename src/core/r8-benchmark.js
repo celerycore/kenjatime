@@ -75,6 +75,10 @@ const fields = [
   "sprite_hot_admissions_deferred","sprite_hot_promotions",
   "sprite_hot_probation_entries","expression_fallback_executors",
   "expression_fallback_cache_hits",
+  // Infinix Nov 14: test worker MessageChannel versus clamped 0ms timers.
+  "worker_message_queue_available","worker_message_queue_callbacks",
+  "worker_timeout_callbacks","worker_animation_callbacks",
+  "worker_stale_queue_messages",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -378,6 +382,11 @@ function sample() {
     state.spriteRestoreCache?.hotProbationEntries??"",
     state.expressions?.fallbackExecutors??"",
     state.expressions?.fallbackCacheHits??"",
+    state.workerSchedulerStats?.available===true?1:0,
+    state.workerSchedulerStats?.channelCallbacks??"",
+    state.workerSchedulerStats?.timerCallbacks??"",
+    state.workerSchedulerStats?.animationCallbacks??"",
+    state.workerSchedulerStats?.staleChannelMessages??"",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
