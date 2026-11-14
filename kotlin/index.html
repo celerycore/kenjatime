@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111b27"><title>Kenjatime · Kotlin/WASM Standard</title></head>
+<body><main id="app">
+  <header><div><strong class="eyebrow">KENJATIME · KOTLIN/WASM</strong><h1>Play the Kotlin engine<span>.</span></h1><p>Deterministic 60 Hz combat in Kotlin/WASM. Rendering can skip frames without skipping authored simulation ticks.</p></div><span id="version">Loading Kotlin/WASM...</span></header>
+  <section class="panel" aria-label="Fighter setup">
+    <h2>Match setup</h2>
+    <div class="controls">
+      <label>Player 1 <select id="p1-select"><option value="kfm">Kung Fu Man · Included</option></select></label>
+      <label>Player 2 <select id="p2-select"><option value="kfm">Kung Fu Man · Included</option></select></label>
+      <label>CPU Level <select id="ai-level"><option value="2">2</option><option value="4" selected>4</option><option value="6">6</option><option value="8">8</option></select></label>
+      <label>Render quality <select id="quality"><option value="performance" selected>Performance</option><option value="balanced">Balanced</option><option value="full">Full</option></select></label>
+      <label class="check"><input id="endless" type="checkbox" checked> Endless benchmark</label>
+      <label class="check"><input id="cpu" type="checkbox" checked> CPU vs CPU</label>
+    </div>
+    <div class="buttons"><label class="import">Import ZIP / RAR / 7z <input id="archive" type="file" accept=".zip,.rar,.7z,.tar,.gz,.xz"></label><button id="preset" type="button" disabled>Tomoka vs Nu-13 preset (install both)</button><button id="start" type="button" disabled>Start Kotlin match</button><button id="pause" type="button" disabled>Pause</button></div>
+    <p id="setup-status" role="status">Loading the bundled Kung Fu Man test character and Kotlin runtime.</p>
+  </section>
+  <section class="panel arena-panel" aria-label="Fighting arena">
+    <div class="arena-box"><canvas id="arena" width="960" height="540" aria-label="Kotlin/WASM fighting game"></canvas><div id="banner" role="status">KOTLIN/WASM · NOW LOADING</div></div>
+    <p class="fine">Keyboard in manual mode: arrows to move, Z / X / C and A / S / D for attacks. CPU mode replays Kotlin-authored deterministic motions. When visual frames are skipped, the authoritative Kotlin combat clock continues.</p>
+  </section>
+  <section class="panel" aria-label="Kotlin benchmark">
+    <h2>Performance benchmark</h2>
+    <div class="stats"><div><span>Simulation</span><b id="hz">—</b></div><div><span>Rendered FPS</span><b id="fps">—</b></div><div><span>Simulation debt</span><b id="debt">—</b></div><div><span>Helpers / Projectiles</span><b id="entities">—</b></div><div><span>Last tick CPU</span><b id="tickcpu">—</b></div><div><span>Engine</span><b id="backend">Kotlin/WASM</b></div></div>
+    <p id="device">Detecting device and browser…</p>
+    <div class="buttons"><button id="record" disabled>Start recording</button><button id="stop-record" disabled>Stop recording</button><button id="csv" disabled>Export CSV</button></div>
+    <p id="record-status">CSV records the Kotlin engine version, device/browser, 60 Hz progress, backlog and visible FPS. No telemetry is uploaded.</p>
+  </section>
+  <footer>Separate Kotlin standard build · MUGEN 1.1 complete parity is not yet verified · Source-owned assets are imported locally</footer>
+</main><script type="module" src="../src/kotlin/page.js"></script></body></html>
