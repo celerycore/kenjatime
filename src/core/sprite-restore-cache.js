@@ -79,6 +79,13 @@ export class SpriteRestoreCache {
     this.hotLimit=hotBytes;
     this.hotMaxSpriteBytes=hotMaxSpriteBytes;
     this.hot=new Map();
+    // A single hit on preloaded indexed art is not a repeat-use signal.
+    // Delay the expensive decoded-R8 admission until a second observed
+    // restore, so one-shot effects cannot push fighting sprites out.
+    this.hotProbation=new Set();
+    this.hotProbationLimit=4096;
+    this.hotDeferredAdmissions=0;
+    this.hotPromotions=0;
     this.hotBytes=0;this.hotHits=0;this.hotStores=0;
     this.hotEvictions=0;
     this.requireRepeat=!!requireRepeat;
@@ -107,6 +114,15 @@ export class SpriteRestoreCache {
       const pixels=unpackSparseR8(entry.data,entry.originalBytes);
       if(this.hotLimit && pixels.length<=this.hotMaxSpriteBytes &&
          pixels.length<=this.hotLimit){
+        if(!this.hotProbation.has(id)){
+          this.hotProbation.add(id);
+          if(this.hotProbation.size>this.hotProbationLimit)
+            this.hotProbation.delete(this.hotProbation.values().next().value);
+          this.hotDeferredAdmissions++;
+          return pixels;
+        }
+        this.hotProbation.delete(id);
+        this.hotPromotions++;
         while(this.hotBytes+pixels.length>this.hotLimit){
           const oldest=this.hot.keys().next().value;
           if(oldest===undefined)break;
@@ -146,6 +162,7 @@ export class SpriteRestoreCache {
     if(preload)this.probation.delete(id);
     // An overwrite makes previous uncompressed bytes obsolete.
     this.removeHot(id);
+    this.hotProbation.delete(id);
     const old=this.entries.get(id);
     if(old){
       this.entries.delete(id);this.bytes-=old.data.byteLength;
@@ -172,6 +189,7 @@ export class SpriteRestoreCache {
       const victim=this.entries.get(oldest);
       this.entries.delete(oldest);this.bytes-=victim.data.byteLength;
       this.removeHot(oldest);
+      this.hotProbation.delete(oldest);
       if(victim.compressed){
         this.compressedEntries--;
         this.rawBytesSaved-=victim.originalBytes-victim.data.byteLength;
@@ -209,11 +227,15 @@ export class SpriteRestoreCache {
       decompressions:this.decompressions,
       hotBytes:this.hotBytes,hotBudgetBytes:this.hotLimit,
       hotEntries:this.hot.size,hotHits:this.hotHits,
-      hotStores:this.hotStores,hotEvictions:this.hotEvictions};
+      hotStores:this.hotStores,hotEvictions:this.hotEvictions,
+      hotDeferredAdmissions:this.hotDeferredAdmissions,
+      hotPromotions:this.hotPromotions,
+      hotProbationEntries:this.hotProbation.size};
   }
   clear(){
     this.entries.clear();this.probation.clear();this.bytes=0;
     this.hot.clear();this.hotBytes=0;
+    this.hotProbation.clear();
     this.compressedEntries=0;this.rawBytesSaved=0;
   }
 }
