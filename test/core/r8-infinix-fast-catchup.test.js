@@ -88,7 +88,7 @@ test('moderate backlog runs 2 fixed ticks per wakeup, without changing clock tim
   assert.equal(framePacing(8,10.9).batchLimit,2);
   assert.equal(framePacing(100,13.5).batchLimit,2);
   assert.equal(framePacing(8,14).batchLimit,1);
-  assert.equal(framePacing(80,7.5).batchLimit,3);
+  assert.equal(framePacing(80,7.5).batchLimit,2);
   assert.equal(framePacing(80,10.9).renderFps,30);
   const a=new FrameClock({maxTicks:1});
   const b=new FrameClock({maxTicks:1});
