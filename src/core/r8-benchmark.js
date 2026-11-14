@@ -54,6 +54,9 @@ const fields = [
   "render_quality_mode", "expression_direct_reads",
   // Stage 1: exact raw stage-video residency and safe frame deferrals.
   "video_gpu_mib", "video_deferred_frames",
+  // Android CSV follow-up: compressed CPU sprite cache telemetry.
+  "sprite_restore_compressed_entries", "sprite_restore_saved_raw_mib",
+  "sprite_restore_decompressions",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -75,6 +78,7 @@ panel.innerHTML = `
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
         <div><small>GPU residency budget</small><strong data-r8="cachelimit">—</strong></div>
         <div><small>Sprite CPU restore cache</small><strong data-r8="spritecache">—</strong></div>
+        <div><small>R8 cached raw bytes saved</small><strong data-r8="cachesavings">—</strong></div>
         <div><small>Expression AST cache hits/misses</small><strong data-r8="astcache">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
         <div><small>Palettes RGBA8</small><strong data-r8="palettes">—</strong></div>
@@ -179,6 +183,8 @@ function sample() {
     " · " + (gpu.textureBudgetUpgrades??0) + " expansions";
   element("spritecache").textContent = (state.spriteRestoreCache?.hits??0) +
     " hits · " + mib(state.spriteRestoreCache?.bytes??0);
+  element("cachesavings").textContent = mib(state.spriteRestoreCache?.rawBytesSaved??0) +
+    " · " + (state.spriteRestoreCache?.compressedEntries??0) + " sprites";
   element("astcache").textContent = (state.interpreterCache?.hits??0) +
     " / " + (state.interpreterCache?.misses??0);
   element("indexed").textContent = mib(gpu.indexedTextureBytes);
@@ -293,6 +299,10 @@ function sample() {
     state.expressions?.direct??"",
     Number.isFinite(gpu.videoTextureBytes) ? number(gpu.videoTextureBytes/MB,3) : "",
     gpu.deferredVideoFrames ?? "",
+    state.spriteRestoreCache?.compressedEntries ?? "",
+    Number.isFinite(state.spriteRestoreCache?.rawBytesSaved)
+      ? number(state.spriteRestoreCache.rawBytesSaved/MB,3) : "",
+    state.spriteRestoreCache?.decompressions ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
