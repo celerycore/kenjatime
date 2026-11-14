@@ -377,8 +377,15 @@ export class CoreSession {
         id = bankId + ":" + index;
       let sprite = this.spriteMetadata.get(id);
       if (!sprite) {
-        const decoded = bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) || bank.decode(index),
-          indexed = !!decoded.indices;
+        // A sprite can be fully outside the viewport. SFFv1 PCX metadata and
+        // indexed SFFv2 table entries are sufficient to form its quad without
+        // decoding any pixel data. Renderer.restoreAssets() requests only the
+        // active, screen-visible IDs after the affine/Window culling pass.
+        const metrics = this.lazySpriteUploads ? bank.spriteMetrics?.(index) : null;
+        const decoded = metrics || bank.decodeIndexOnly?.(index) ||
+          bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) ||
+          bank.decode(index);
+        const indexed = metrics ? !!metrics.indexed : !!decoded.indices;
         if(decoded.sourceIncomplete)this.issue('sprite-incomplete',
           (resource?.sprite?.path||resource?.path||'SFF')+' sprite '+frame.group+','+frame.number+
           ': original PCX contains '+decoded.decodedPrefixPixels+'/'+decoded.totalSourcePixels+
@@ -392,15 +399,28 @@ export class CoreSession {
           indexed,
           colors: decoded.colors,
         };
+        if (!metrics) {
+          // The decoder owns fresh pixel storage; Three's DataTexture reads
+          // the same bytes, and clearDecodedCache releases only map entries.
+          this.assets.push({
+            id, width: sprite.w, height: sprite.h, indexed,
+            pixels: indexed ? decoded.indices : decoded.rgba,
+          });
+          this.sent.add(id);
+          bank.clearDecodedCache();
+        }
+        this.spriteMetadata.set(id, sprite);
+      } else if (!this.lazySpriteUploads && !this.sent.has(id)) {
+        // Preserve standalone frame() callers that expect the first full
+        // sprite payload even after an earlier lazy preview frame.
+        const decoded = bank.decodeIndexOnly?.(index) ||
+          bank.decodeForDisplay?.(index) || bank.decodeIndexed?.(index) ||
+          bank.decode(index);
         this.assets.push({
-          id,
-          width: sprite.w,
-          height: sprite.h,
-          indexed,
-          pixels: new Uint8Array(indexed ? decoded.indices : decoded.rgba),
+          id,width:sprite.w,height:sprite.h,indexed:sprite.indexed,
+          pixels:sprite.indexed?decoded.indices:decoded.rgba,
         });
         this.sent.add(id);
-        this.spriteMetadata.set(id, sprite);
         bank.clearDecodedCache();
       }
       const indexed = sprite.indexed,
@@ -475,8 +495,15 @@ export class CoreSession {
           if (!Number.isSafeInteger(index) || index < 0 || !meta) continue;
           let pixels=this.spriteRestoreCache.get(id);
           if(!pixels){
-            const decoded=bank.decodeForDisplay?.(index) ||
+            const decoded=bank.decodeIndexOnly?.(index) ||
+              bank.decodeForDisplay?.(index) ||
               bank.decodeIndexed?.(index) || bank.decode(index);
+            if(decoded.sourceIncomplete)
+              this.issue('sprite-incomplete',
+                (resource?.sprite?.path||resource?.path||'SFF')+
+                ' sprite index '+index+': original PCX contains '+
+                decoded.decodedPrefixPixels+'/'+decoded.totalSourcePixels+
+                ' encoded pixels. Remaining pixels are transparent; replace source art for native parity.');
             pixels=meta.indexed?decoded.indices:decoded.rgba;
             if(!pixels || pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
               continue;
@@ -485,8 +512,11 @@ export class CoreSession {
           }
           if(pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
             continue;
+          // Read-only GPU upload: both the decoder result and cached bytes
+          // are already independently owned Uint8Arrays. Avoid a second large
+          // allocation/copy every time the sprite returns from GPU eviction.
           assets.push({id,width:meta.w,height:meta.h,indexed:meta.indexed,
-            pixels:new Uint8Array(pixels)});
+            pixels});
         }
       } catch (error) {
         this.issue('texture-restore', 'Could not restore sprite ' + id + ': ' + error.message);
@@ -581,7 +611,8 @@ export class CoreSession {
     });
     return sp;
   }
-  frame() {
+  frame({lazySpriteUploads=false}={}) {
+    this.lazySpriteUploads=lazySpriteUploads===true;
     const m = this.match,
       v = m.view,
       scale = Math.min(960 / (v.displayWidth || 320), 540 / (v.displayHeight || 240)),
