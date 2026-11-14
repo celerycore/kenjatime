@@ -222,15 +222,21 @@ export class CoreSession {
       onProgress({phase:'sprites',done:0,total:0,progress:1,bytes:0});
       return this.preloadStats;
     }
+    const stageResource=this.match.stage?.definition?.sprite?.path
+      ? this.match.stage.definition : null;
+    const fxResource=this.commonEffects.resource;
     const resources=[...new Set([
       this.match.player?.character,this.match.opponent?.character,
+      stageResource,fxResource,
     ])].filter(Boolean);
     const tasks=[];
     for(const resource of resources){
       const bank=this.bank(resource);
       const lookup=this.indices.get(resource);
       const popularity=new Map();
-      for(const action of resource.animations || []){
+      const actions=resource===fxResource
+        ? this.commonEffects.animations.values() : resource.animations || [];
+      for(const action of actions){
         for(const frame of action.frames || []){
           if(!Number.isInteger(frame.group)||frame.group<0||
              !Number.isInteger(frame.number))continue;
@@ -238,6 +244,15 @@ export class CoreSession {
           if(index!==undefined)popularity.set(index,(popularity.get(index)||0)+1);
         }
       }
+      // Static stage backgrounds use BG spriteno rather than an AIR action.
+      if(resource===stageResource)
+        for(const element of stageResource.elements||[]){
+          const pair=element.spriteno;
+          if(!Array.isArray(pair)||pair.length<2)continue;
+          const index=lookup.get(pair[0]+','+pair[1]);
+          if(index!==undefined)
+            popularity.set(index,(popularity.get(index)||0)+16);
+        }
       // Some imported fighters contain incomplete AIR declarations; still
       // prewarm early SFF entries instead of silently skipping all art.
       if(!popularity.size)
