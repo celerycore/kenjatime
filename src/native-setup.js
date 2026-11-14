@@ -20,7 +20,11 @@ const startup=engineHost.diagnostics;
 function status(message){$('#status').textContent=message;}
 async function run(message,action){
  if(busy)return;busy=true;status(message);document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.setAttribute('aria-disabled','true');if(e.tagName==='BUTTON')e.disabled=true;});
- try{await action();}catch(error){status(error.message);}finally{busy=false;document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.removeAttribute('aria-disabled');if(e.tagName==='BUTTON')e.disabled=false;});}
+ try{await action();}catch(error){status(error.message);}finally{busy=false;document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.removeAttribute('aria-disabled');if(e.tagName==='BUTTON')e.disabled=false;});
+  // General busy-state cleanup must not unlock a benchmark preset whose
+  // required character archives have not actually been installed.
+  refreshBenchmarkRoster();
+ }}
 }
 $('.brand small').textContent='KENJATIME';$('header > span').innerHTML='PLAY <b>/</b> YOUR ARENA';$('.tag').textContent='KENJATIME';
 $('.eyebrow').textContent='BRING YOUR FIGHTER';$('h1').innerHTML='Your next match starts here<span>.</span>';
