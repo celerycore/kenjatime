@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "perf/r8-device-browser-and-benchmark-roster-20261114",
+  "sourceCommit": "e591f74bddbaa887931a967f8ee50275a5c5b84d",
+  "channel": "r8-cross-device-roster-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}
