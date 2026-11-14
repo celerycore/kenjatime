@@ -306,8 +306,25 @@ export function sff(bytes,options={}) {
   if(start+sp.length>bytes.length||sp.length<(sp.format?4:0))throw Error('Truncated SFF sprite data');
   return{...sp,indices:decodePixels(bytes.subarray(start+(sp.format?4:0),start+sp.length),sp.w*sp.h,sp.format),colors:palette(sp.palette)};
  }
+ // Indexed SFFv2 geometry is already present in the sprite table. Avoid
+ // decompressing sprites that will be rejected by the 960x540 visibility test.
+ // PNG/true-color entries stay on the established strict decoder path.
+ function spriteMetrics(index,seen=new Set()){
+  if(!Number.isInteger(index)||index<0||index>=sprites.length||seen.has(index))
+   throw Error('Invalid sprite link');
+  seen.add(index);
+  const sp=sprites[index];
+  if(!sp.length){
+   const linked=spriteMetrics(sp.link,seen);
+   return linked?{...linked,...sp,w:linked.w,h:linked.h,indexed:true,
+    colors:palette(sp.palette)}:null;
+  }
+  if(!sp.w||!sp.h||sp.w*sp.h>4e6)throw Error('Invalid SFF sprite dimensions');
+  if(sp.format>=10||![5,8].includes(sp.depth))return null;
+  return {...sp,indexed:true,colors:palette(sp.palette)};
+ }
  const paletteColors=(group,number)=>{const target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return palette(target.index).slice();};
- return {sprites,decode,decodeIndexed,decodeWithPalette,paletteColors,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
+ return {sprites,decode,decodeIndexed,spriteMetrics,decodeWithPalette,paletteColors,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
 function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
