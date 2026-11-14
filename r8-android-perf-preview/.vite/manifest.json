@@ -1,0 +1,183 @@
+{
+  "___vite-browser-external-D7Ct-6yo.js": {
+    "file": "assets/__vite-browser-external-D7Ct-6yo.js",
+    "name": "__vite-browser-external",
+    "isDynamicEntry": true
+  },
+  "_index-SsA865A7.js": {
+    "file": "assets/index-SsA865A7.js",
+    "name": "index",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "___vite-browser-external-D7Ct-6yo.js"
+    ]
+  },
+  "_native-export-wfOli3AJ.js": {
+    "file": "assets/native-export-wfOli3AJ.js",
+    "name": "native-export",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "node_modules/@capacitor/filesystem/dist/esm/web.js",
+      "node_modules/@capacitor/share/dist/esm/web.js"
+    ]
+  },
+  "_runtime-DB_7KNcR.js": {
+    "file": "assets/runtime-DB_7KNcR.js",
+    "name": "runtime",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "_index-SsA865A7.js",
+      "src/core/model-stage.js",
+      "src/module-music.js"
+    ],
+    "assets": [
+      "assets/glue-Dlydm7r2.wasm"
+    ]
+  },
+  "core/index.html": {
+    "file": "assets/core-CSeNc2Z1.js",
+    "name": "core",
+    "src": "core/index.html",
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/@capacitor/app/dist/esm/web.js",
+      "_native-export-wfOli3AJ.js",
+      "src/seven-archive.js",
+      "src/multi-archive.js",
+      "src/zip-encrypted.js",
+      "src/zip-lzma.js",
+      "src/rar-reader.js",
+      "_runtime-DB_7KNcR.js"
+    ],
+    "css": [
+      "assets/core-DJfXUo-H.css"
+    ],
+    "assets": [
+      "assets/kfm-CJEysBIf.zip"
+    ]
+  },
+  "node_modules/7z-wasm/7zz.wasm": {
+    "file": "assets/7zz-CgkXYLdN.wasm",
+    "src": "node_modules/7z-wasm/7zz.wasm"
+  },
+  "node_modules/@capacitor/app/dist/esm/web.js": {
+    "file": "assets/web-BpbVGSoI.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/app/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "node_modules/@capacitor/filesystem/dist/esm/web.js": {
+    "file": "assets/web-D5y_Byvn.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/filesystem/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html",
+      "_native-export-wfOli3AJ.js"
+    ]
+  },
+  "node_modules/@capacitor/share/dist/esm/web.js": {
+    "file": "assets/web-smr-mQtt.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/share/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "node_modules/chiptune3/libopenmpt.worklet.js": {
+    "file": "assets/libopenmpt.worklet-X0cJA8Sf.js",
+    "src": "node_modules/chiptune3/libopenmpt.worklet.js"
+  },
+  "node_modules/wasmoon/dist/glue.wasm": {
+    "file": "assets/glue-Dlydm7r2.wasm",
+    "src": "node_modules/wasmoon/dist/glue.wasm"
+  },
+  "public/kfm.zip": {
+    "file": "assets/kfm-CJEysBIf.zip",
+    "src": "public/kfm.zip"
+  },
+  "src/core/model-stage.js": {
+    "file": "assets/model-stage-BV7L_Yh4.js",
+    "name": "model-stage",
+    "src": "src/core/model-stage.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_runtime-DB_7KNcR.js",
+      "core/index.html"
+    ]
+  },
+  "src/module-music.js": {
+    "file": "assets/module-music-C2Wy91BT.js",
+    "name": "module-music",
+    "src": "src/module-music.js",
+    "isDynamicEntry": true,
+    "assets": [
+      "assets/libopenmpt.worklet-X0cJA8Sf.js"
+    ]
+  },
+  "src/multi-archive.js": {
+    "file": "assets/multi-archive-D_-lK810.js",
+    "name": "multi-archive",
+    "src": "src/multi-archive.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "___vite-browser-external-D7Ct-6yo.js",
+      "core/index.html"
+    ]
+  },
+  "src/rar-reader.js": {
+    "file": "assets/rar-reader-CE1Xojfu.js",
+    "name": "rar-reader",
+    "src": "src/rar-reader.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "src/seven-archive.js": {
+    "file": "assets/seven-archive-DFE9dkY_.js",
+    "name": "seven-archive",
+    "src": "src/seven-archive.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ],
+    "dynamicImports": [
+      "___vite-browser-external-D7Ct-6yo.js"
+    ],
+    "assets": [
+      "assets/7zz-CgkXYLdN.wasm"
+    ]
+  },
+  "src/zip-encrypted.js": {
+    "file": "assets/zip-encrypted-CRl-04yR.js",
+    "name": "zip-encrypted",
+    "src": "src/zip-encrypted.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  },
+  "src/zip-lzma.js": {
+    "file": "assets/zip-lzma-D4vrTC5D.js",
+    "name": "zip-lzma",
+    "src": "src/zip-lzma.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "core/index.html"
+    ]
+  }
+}

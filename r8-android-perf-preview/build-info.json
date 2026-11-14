@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "perf/r8-android-csv-20261114",
+  "sourceCommit": "50ca180c24c85a2884f3aa26828ff76818c28845",
+  "channel": "r8-android-perf-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}

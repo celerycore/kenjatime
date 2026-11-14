@@ -1,0 +1,170 @@
+{
+  "engine": "Kenjatime Core",
+  "independentRuntime": true,
+  "externalEnginePayloads": false,
+  "universalCompatibility": false,
+  "thirdPartyLibraries": true,
+  "files": {
+    "assets/7zz-CgkXYLdN.wasm": {
+      "bytes": 1651931,
+      "sha256": "e16c6997e2eaa89575c0dd1f305074be629c3f4d87246244d37fd19debc8a285"
+    },
+    "assets/__vite-browser-external-B_rT5RHW.js": {
+      "bytes": 110433,
+      "sha256": "0b388e58d58ed37f0e476931f9ad12984677e290436cbb2cf24ec27a9baae6e7"
+    },
+    "assets/__vite-browser-external-Ckx8KI8k.js": {
+      "bytes": 69,
+      "sha256": "f7848e5d5fec2aaf2928f1cab46b7db3636e8b9071841a04b7235a3bf50424cb"
+    },
+    "assets/__vite-browser-external-D7Ct-6yo.js": {
+      "bytes": 130,
+      "sha256": "18c7eb5102634686ac6062381a09b4ddb18933678e599ba74a2e33d690f97134"
+    },
+    "assets/archive-export-worker-B13reBXS.js": {
+      "bytes": 10772,
+      "sha256": "a42a92a7b7ad5d3a626ec8a9ae4a2150135cb1f6d7d8533a7d639fa63018e42f"
+    },
+    "assets/archive-worker-CCCTuZjO.js": {
+      "bytes": 47913,
+      "sha256": "8205aff933fd8e93dfaea410b767bbc588cae4f7774e4aa89430b0d5cb3a703a"
+    },
+    "assets/core-CSeNc2Z1.js": {
+      "bytes": 308842,
+      "sha256": "35418c99d8276136fe979a73cb7dd7e1733adbdd902431e5a64a01e4d80eafdd"
+    },
+    "assets/core-DJfXUo-H.css": {
+      "bytes": 27077,
+      "sha256": "cecca9031a2126a00ec4bb570e5d5083bd864cd7fa2dbaedf608dfb74deaea2b"
+    },
+    "assets/glue-Dlydm7r2.wasm": {
+      "bytes": 271581,
+      "sha256": "95f3f19ddb740125883bc41d5ec670cd0828e7b58c8bdad385323cbff497b55c"
+    },
+    "assets/index-SsA865A7.js": {
+      "bytes": 110600,
+      "sha256": "f54f2d486c8ba2a2657fe818fd79c7a79be0ebd7b19d1312b004995c2ca97cd6"
+    },
+    "assets/kfm-CJEysBIf.zip": {
+      "bytes": 303491,
+      "sha256": "f526ddbe96c36b9bcd23cf995fc587e21e82c69e041a0be0cfe535cb148c9df4"
+    },
+    "assets/libarchive-CvbwXclq.wasm": {
+      "bytes": 613235,
+      "sha256": "99889a4e7c3d1968303ef334a0ca89efffaf8867eb7cbd7c265602d8e0b50e63"
+    },
+    "assets/libopenmpt.worklet-X0cJA8Sf.js": {
+      "bytes": 1538505,
+      "sha256": "a4dc170ba5f5904d2c22af57b002287bee77c4f0cf29bdeab2846f2f7c7eadf2"
+    },
+    "assets/model-stage-BV7L_Yh4.js": {
+      "bytes": 59836,
+      "sha256": "ca74532d4d18f6b8ac07ee60ef53ad8cc46619b63b2a8c69b699681839f9cf96"
+    },
+    "assets/model-stage-Pn9Cqg7a.js": {
+      "bytes": 59805,
+      "sha256": "bbaf6846494afe3db383f5c5904c9bf4d2723d24a4c9a21446f8c2d856dfaa4b"
+    },
+    "assets/module-music-C2Wy91BT.js": {
+      "bytes": 1581,
+      "sha256": "342b68d1c0f1dceb2740826bf0cb70fbad6beb59efe3b788dd16a03166d38524"
+    },
+    "assets/multi-archive-BXZRvPOb.js": {
+      "bytes": 76526,
+      "sha256": "d867b84a10cf8b6f029e52672ef39b8c696b1febd4a7a391bc174d771bc59289"
+    },
+    "assets/multi-archive-D_-lK810.js": {
+      "bytes": 76526,
+      "sha256": "9b14531d1108b60fcfc66f9cb9647a739ca3501cfa576565d7a0b397f5ba201f"
+    },
+    "assets/native-export-wfOli3AJ.js": {
+      "bytes": 2271,
+      "sha256": "8950e967e9732ccb6ef27b543c093f4e0ea46d4112d9ce79abfad688bcdf7d8c"
+    },
+    "assets/rar-reader-C-7ldJ7H.js": {
+      "bytes": 43999,
+      "sha256": "154cdb509a4c4a3e3379eff6816e0781e6c0c753cba71c1bdca97b6bf71fb412"
+    },
+    "assets/rar-reader-CE1Xojfu.js": {
+      "bytes": 43989,
+      "sha256": "bb6cd0846c90fdf54b8f28e2d8e5cd3d62abc1844f1a439d375a516ae4b0a0f9"
+    },
+    "assets/runtime-DB_7KNcR.js": {
+      "bytes": 747778,
+      "sha256": "5148f0548536ed778c6054a5b87936fb7b00f81faa6edffcd7421c04c66eb5c7"
+    },
+    "assets/seven-archive-CymKPMoL.js": {
+      "bytes": 58428,
+      "sha256": "83bfbbc590de2a9577b5db768d2a71acab04cd921be21aaeb4a90d87a3f6d3cc"
+    },
+    "assets/seven-archive-DFE9dkY_.js": {
+      "bytes": 58436,
+      "sha256": "7899ca31be195c1f2db5fd0466f72941193db5b4795966b457cc4ff71f93f735"
+    },
+    "assets/unrar-De7VYsPt.wasm": {
+      "bytes": 207593,
+      "sha256": "c7d79f869196e3c79c053ba74a8f629116de8293a94f60cc851bbcd7977d0c2b"
+    },
+    "assets/web-BpbVGSoI.js": {
+      "bytes": 841,
+      "sha256": "c1a4f46aef54dfcab89a738b84f9bed1f55e004758123cdc307568c678ecbee6"
+    },
+    "assets/web-D5y_Byvn.js": {
+      "bytes": 8769,
+      "sha256": "d946f9850cc128140b468507df2130080c7aa05196cc1ac7d3d22ba9a2775093"
+    },
+    "assets/web-smr-mQtt.js": {
+      "bytes": 360,
+      "sha256": "7ea7cdf8eb94e262ea0f922a0d9d9052f82b0d80ce83516a7232d0c6a3f83982"
+    },
+    "assets/worker-BQCcqduw.js": {
+      "bytes": 929670,
+      "sha256": "67e1ea2c639860ec537ba092f07fcd0f029e8412f00b415cf1872c11a272752a"
+    },
+    "assets/zip-encrypted-BprokCcH.js": {
+      "bytes": 66024,
+      "sha256": "b0ddd97a12f1c491f0dfd9e626b72146ddefd5847cc498074a73b54282aa6251"
+    },
+    "assets/zip-encrypted-CRl-04yR.js": {
+      "bytes": 66014,
+      "sha256": "741d751070e6a75ffa32bb6f0800b01fc138a6753db7fb457d9cf410f8c97255"
+    },
+    "assets/zip-lzma-CYY9RBUo.js": {
+      "bytes": 11661,
+      "sha256": "14fe579c79ea319fc2f92558348d6dd10c55571b3f65b8b2584bc2bd768adeda"
+    },
+    "assets/zip-lzma-D4vrTC5D.js": {
+      "bytes": 11651,
+      "sha256": "8ea9486da4aeff6fa14ceec3762e3d514ae00f008ced685c187b3f1a545fc835"
+    },
+    "core/index.html": {
+      "bytes": 458,
+      "sha256": "e12e2d0279eb426775da2e09fa4682c6ecc456b8d8f06817d71702d0a02a830a"
+    },
+    "index.html": {
+      "bytes": 303,
+      "sha256": "9bb627fb6ce049a8cfea124a0665bd27caa3737f4a57111920be37c701f99f4e"
+    },
+    "provenance/modules-1092332c8ab1.json": {
+      "bytes": 5394,
+      "sha256": "1092332c8ab168e078d5082cfc862d805e882c261ca677c069f9790e13f9b986"
+    },
+    "provenance/modules-483b595cbbb5.json": {
+      "bytes": 580,
+      "sha256": "483b595cbbb5a3fec3f341258580c77faff890a51ed96462ce524c992972b775"
+    },
+    "provenance/modules-5448d0132ce0.json": {
+      "bytes": 8771,
+      "sha256": "5448d0132ce061ff7cff37252401428f5543b28c142ca23d00fe8d58b31c9e88"
+    },
+    "provenance/modules-ff2eab4a0962.json": {
+      "bytes": 3292,
+      "sha256": "ff2eab4a0962c9f87c8982b642ef4fddf6c8426b4060a92f249d50b0b4e2c69e"
+    },
+    "NOTICES.txt": {
+      "bytes": 82232,
+      "sha256": "ba87ce525c7a677261c69274b3ca279c3aa673303bbbfcaebf0f13bc3ce251dd"
+    }
+  },
+  "scope": "Build-isolation audit; does not establish behavioral parity or originality of imported character data."
+}
