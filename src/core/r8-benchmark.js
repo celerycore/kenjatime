@@ -59,6 +59,11 @@ const fields = [
   "sprite_restore_decompressions", "gpu_texture_reuses",
   "frame_packet_build_ms", "frame_sprite_restore_ms",
   "frame_renderer_cpu_ms",
+  // Extended CPU/GPU warmup; append-only CSV fields for the Android A/B.
+  "sprite_preload_mode", "sprite_preload_candidates",
+  "sprite_preload_attempted", "sprite_preload_loaded",
+  "sprite_preload_duration_ms", "sprite_preload_resident_mib",
+  "sprite_cpu_cache_budget_mib",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -82,6 +87,7 @@ panel.innerHTML = `
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
         <div><small>GPU residency budget</small><strong data-r8="cachelimit">—</strong></div>
         <div><small>Sprite CPU restore cache</small><strong data-r8="spritecache">—</strong></div>
+        <div><small>Preloaded sprite art</small><strong data-r8="preload">—</strong></div>
         <div><small>R8 cached raw bytes saved</small><strong data-r8="cachesavings">—</strong></div>
         <div><small>Expression AST cache hits/misses</small><strong data-r8="astcache">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
@@ -190,6 +196,10 @@ function sample() {
     " · " + (gpu.textureBudgetUpgrades??0) + " expansions";
   element("spritecache").textContent = (state.spriteRestoreCache?.hits??0) +
     " hits · " + mib(state.spriteRestoreCache?.bytes??0);
+  element("preload").textContent =
+    (state.spritePreload?.mode||'legacy')+' · '+
+    (state.spritePreload?.loaded??0)+' sprites · '+
+    mib(state.spriteRestoreCache?.budgetBytes??0);
   element("cachesavings").textContent = mib(state.spriteRestoreCache?.rawBytesSaved??0) +
     " · " + (state.spriteRestoreCache?.compressedEntries??0) + " sprites";
   element("astcache").textContent = (state.interpreterCache?.hits??0) +
@@ -315,6 +325,16 @@ function sample() {
     Number.isFinite(gpu.framePacketBuildMs) ? number(gpu.framePacketBuildMs,3) : "",
     Number.isFinite(gpu.frameSpriteRestoreCpuMs) ? number(gpu.frameSpriteRestoreCpuMs,3) : "",
     Number.isFinite(gpu.frameRendererCpuMs) ? number(gpu.frameRendererCpuMs,3) : "",
+    state.spritePreload?.mode??"",
+    state.spritePreload?.candidates??"",
+    state.spritePreload?.attempted??"",
+    state.spritePreload?.loaded??"",
+    Number.isFinite(state.spritePreload?.durationMs)
+      ? number(state.spritePreload.durationMs,1) : "",
+    Number.isFinite(state.spritePreload?.bytes)
+      ? number(state.spritePreload.bytes/MB,3) : "",
+    Number.isFinite(state.spriteRestoreCache?.budgetBytes)
+      ? number(state.spriteRestoreCache.budgetBytes/MB,3) : "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
