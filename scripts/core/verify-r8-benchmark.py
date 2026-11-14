@@ -105,6 +105,14 @@ try:
         assert state['spritePreload']['loaded'] > 0, state
         assert 0 < state['spritePreload']['bytes'] <= 128*1024*1024, state
         assert state['spriteRestoreCache']['budgetBytes'] == 128*1024*1024, state
+        assert state['spriteRestoreCache']['hotBudgetBytes'] == 48*1024*1024, state
+        assert 0 <= state['spriteRestoreCache']['hotBytes'] <= 48*1024*1024, state
+        assert state['spritePreload']['gpuLoaded'] > 0, state
+        assert state['spritePreload']['gpuBytes'] > 0, state
+        assert gpu['gpuPreloadUploads'] > 0, gpu
+        assert gpu['gpuPreloadBytes'] > 0, gpu
+        assert page.locator('[data-r8="hotcache"]').count() == 1
+        assert page.locator('[data-r8="gpuwarm"]').count() == 1
         assert gpu['textureBudgetBytes'] == 128*1024*1024, gpu
         assert page.locator('[data-r8="preload"]').count() == 1
         assert state['simulationTicks'] >= 10, state
@@ -165,7 +173,12 @@ try:
             'sprite_preload_mode','sprite_preload_candidates',
             'sprite_preload_attempted','sprite_preload_loaded',
             'sprite_preload_duration_ms','sprite_preload_resident_mib',
-            'sprite_cpu_cache_budget_mib'])
+            'sprite_cpu_cache_budget_mib',
+            'sprite_hot_cache_resident_mib','sprite_hot_cache_budget_mib',
+            'sprite_hot_cache_hits','sprite_hot_cache_evictions',
+            'sprite_hot_cache_entries','sprite_hot_cache_stores',
+            'gpu_preload_uploads','gpu_preload_resident_mib',
+            'gpu_preload_duration_ms','gpu_adaptive_cache_upgrades'])
         assert all(key in parsed_csv[0] for key in
                    ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
                     'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',

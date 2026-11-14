@@ -139,15 +139,47 @@ export class CoreThreeRenderer {
    * growth, each preset is a hard bound and stays separate from live Core.
    * Legacy uses the existing measured 64->96 MiB governor. */
   configureSpriteMemory(mode) {
-    const caps={balanced:96,extended:128,maximum:160};
-    if(!Object.hasOwn(caps,mode))return this.limit;
-    const bytes=caps[mode]*GPU_MIB;
+    const tiers={
+      balanced:{start:96,max:96},
+      extended:{start:128,max:160},
+      maximum:{start:160,max:192},
+    };
+    const tier=tiers[mode];
+    if(!tier)return this.limit;
+    const bytes=tier.start*GPU_MIB;
     if(this.textureBytes>bytes)throw Error('GPU resident art exceeds selected cache cap.');
     this.limit=bytes;
     this.textureBudgetGovernor=new TextureBudgetGovernor({
-      initialBytes:bytes,maxBytes:bytes,
+      initialBytes:bytes,maxBytes:tier.max*GPU_MIB,
+      stepBytes:16*GPU_MIB,windowFrames:45,evictionThreshold:40,
     });
     return this.limit;
+  }
+  /** During NOW LOADING, allocate actual GL storage (not just a JS
+   * DataTexture object) for a small fair share of common indexed sprites.
+   * Never alters palettes, residency accounting, or current-frame pins.
+   * If the driver refuses allocation, the source CPU sprite remains intact. */
+  preloadIndexedTexture(asset) {
+    if(!asset?.indexed || this.closed || this.lost)return false;
+    const existed=this.textures.has(asset.id);
+    if(existed)return true;
+    if(!this.upload(asset,this.activeTextureIds||new Set()))return false;
+    const texture=this.textures.get(asset.id);
+    try {
+      // Explicit eager WebGL2 upload: otherwise Three.js only reserves GPU
+      // backing the first time a sprite becomes visible during combat.
+      this.renderer.initTexture(texture);
+      this.gpuPreloadUploads=(this.gpuPreloadUploads||0)+1;
+      this.gpuPreloadBytes=(this.gpuPreloadBytes||0)+asset.pixels.length;
+      return true;
+    }catch{
+      texture.dispose();
+      this.textures.delete(asset.id);
+      this.textureBytes=Math.max(0,this.textureBytes-asset.pixels.length);
+      this.textureBreakdown.indexed=Math.max(0,
+        this.textureBreakdown.indexed-asset.pixels.length);
+      return false;
+    }
   }
   /** Reserve raw GPU backing bytes, never evicting the current visible frame. */
   makeRoomFor(requiredBytes, activeIds = new Set()) {
@@ -539,6 +571,8 @@ export class CoreThreeRenderer {
       textures: this.textures.size,
       textureEvictions: this.evictedTextures,
       recycledTextures: this.recycledTextures || 0,
+      gpuPreloadUploads:this.gpuPreloadUploads||0,
+      gpuPreloadBytes:this.gpuPreloadBytes||0,
       deferredTextures: this.deferredTextures,
       missingFrameTextures: this.missingFrameTextures || 0,
       missingPaletteDraws: this.missingPaletteDraws || 0,

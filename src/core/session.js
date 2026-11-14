@@ -157,8 +157,10 @@ export class CoreSession {
     const cacheBudgets = {legacy:16,balanced:64,extended:128,maximum:192};
     this.spriteCacheMode = Object.hasOwn(cacheBudgets,selection.spriteCacheMode)
       ? selection.spriteCacheMode : 'extended';
+    const rawHotBudgets={legacy:0,balanced:16,extended:48,maximum:64};
     this.spriteRestoreCache = new SpriteRestoreCache({
       requireRepeat:true,maxBytes:cacheBudgets[this.spriteCacheMode]*1024*1024,
+      hotBytes:rawHotBudgets[this.spriteCacheMode]*1024*1024,
     });
     this.preloadStats={mode:this.spriteCacheMode,attempted:0,loaded:0,
       skipped:0,bytes:0,durationMs:0,candidates:0};
@@ -308,6 +310,72 @@ export class CoreSession {
     this.preloadStats.bytes=this.spriteRestoreCache.bytes;
     this.preloadStats.durationMs=performance.now()-startedAt;
     return this.preloadStats;
+  }
+  /** Preallocate a bounded working set of textures while NOW LOADING is
+   * visible. Source bytes are already in the 128 MiB compressed CPU cache.
+   * Round-robin banks so one large SFF cannot starve the other fighter.
+   * WebGL allocations are created via the renderer's native initTexture.
+   */
+  async preloadGpuSprites(renderer,{onProgress=()=>{}}={}) {
+    const stats={attempted:0,loaded:0,bytes:0,durationMs:0};
+    if(this.spriteCacheMode==='legacy')return stats;
+    const startedAt=performance.now();
+    const caps={balanced:24,extended:48,maximum:64};
+    const ceiling=Math.min(caps[this.spriteCacheMode]*1024*1024,
+      Math.floor(renderer.limit*0.40));
+    const perBank=new Map();
+    for(const [id,entry] of this.spriteRestoreCache.entries) {
+      const colon=id.indexOf(':');
+      if(colon<1)continue;
+      const bankId=id.slice(0,colon);
+      if(!perBank.has(bankId))perBank.set(bankId,[]);
+      perBank.get(bankId).push({id,entry,bankId,
+        index:Number(id.slice(colon+1))});
+    }
+    // Array.pop() selects highest-frequency end of each bank without O(n)
+    // shifting thousands of records during a memory-heavy loading screen.
+    const pools=[...perBank.values()];
+    const total=pools.reduce((n,x)=>n+x.length,0);
+    let processed=0;
+    onProgress({phase:'gpu',done:0,total,progress:0,bytes:0});
+    while(pools.some(pool=>pool.length>0) && !this.closed){
+      for(const pool of pools) {
+        if(!pool.length||this.closed)continue;
+        const {id,entry,index,bankId}=pool.pop();
+        processed++;stats.attempted++;
+        try{
+          const resource=this.resourcesByBankId.get(bankId);
+          const bank=this.banks.get(resource);
+          const metadata=bank?.spriteMetrics?.(index);
+          if(metadata?.indexed && entry.originalBytes===metadata.w*metadata.h &&
+             entry.originalBytes<=1024*1024 &&
+             stats.bytes+entry.originalBytes<=ceiling){
+            const pixels=this.spriteRestoreCache.peek(id);
+            if(pixels && renderer.preloadIndexedTexture({
+              id,width:metadata.w,height:metadata.h,indexed:true,pixels
+            })){
+              stats.bytes+=entry.originalBytes;
+              stats.loaded++;
+            }
+          }
+        }catch{
+          // Some real phones reject GL uploads near their memory limit.
+          // Keep the CPU cache valid, and retry normal visible-frame uploads.
+        }
+        if(processed%24===0 || processed===total){
+          onProgress({phase:'gpu',done:processed,total,
+            progress:processed/Math.max(1,total),bytes:stats.bytes});
+          await new Promise(resolve=>setTimeout(resolve,0));
+        }
+      }
+      if(stats.bytes>=ceiling)break;
+    }
+    stats.durationMs=performance.now()-startedAt;
+    this.preloadStats.gpuLoaded=stats.loaded;
+    this.preloadStats.gpuBytes=stats.bytes;
+    this.preloadStats.gpuDurationMs=stats.durationMs;
+    onProgress({phase:'gpu',done:total,total,progress:1,bytes:stats.bytes});
+    return stats;
   }
   async initializeScripts() {
     if (

@@ -87,7 +87,8 @@ test('graphics budget presets use exact raw caps without lifting legacy governor
   for(const [mode,size] of [['balanced',96],['extended',128],['maximum',160]]){
     assert.equal(renderer.configureSpriteMemory(mode),size*MB);
     assert.equal(renderer.textureBudgetGovernor.currentBytes,size*MB);
-    assert.equal(renderer.textureBudgetGovernor.maxBytes,size*MB);
+    assert.equal(renderer.textureBudgetGovernor.maxBytes,
+      (mode==='extended'?160:mode==='maximum'?192:size)*MB);
     assert.equal(renderer.textureBudgetGovernor.upgrades,0);
   }
   renderer.textureBytes=161*MB;
