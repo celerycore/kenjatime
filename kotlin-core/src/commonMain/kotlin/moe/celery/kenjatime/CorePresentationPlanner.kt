@@ -58,10 +58,24 @@ object CorePresentationPlanner {
                  facingRight: Boolean, action: AirAnimationPlayer?,
                  definition: FighterDefinition, life: Int) {
             val frame = action?.frame
+            val face = if(facingRight) 1 else -1
+            val zoom=camera?.zoom ?: 1.0
+            // AIR frame offsets are authored in the fighter's localcoord and
+            // are applied before the SFF pivot. The old JS renderer ignored
+            // them, causing specials and helper animation frames to drift.
+            val drawX=pixelX(x256,camera)+
+                (frame?.offsetX ?: 0)*320.0/definition.localCoordWidth*
+                HORIZONTAL_SCALE*zoom*face
+            val drawY=pixelY(y256,camera)+
+                (frame?.offsetY ?: 0)*240.0/definition.localCoordHeight*
+                VERTICAL_SCALE*zoom
+            val flip=frame?.flip?.uppercase() ?: ""
             json.append("{\"side\":").append(side)
                 .append(",\"kind\":\"").append(kind).append("\"")
-                .append(",\"x\":").append(pixelX(x256,camera))
-                .append(",\"y\":").append(pixelY(y256,camera))
+                .append(",\"x\":").append(drawX)
+                .append(",\"y\":").append(drawY)
+                .append(",\"flipX\":").append(if('H' in flip) -1 else 1)
+                .append(",\"flipY\":").append(if('V' in flip) -1 else 1)
                 .append(",\"scale\":").append(camera?.zoom ?: 1.0)
                 .append(",\"spriteScaleX\":").append(320.0 / definition.localCoordWidth)
                 .append(",\"spriteScaleY\":").append(240.0 / definition.localCoordHeight)
