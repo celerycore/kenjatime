@@ -372,6 +372,66 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  }
  function decodeWithPalette(index,group,number){const original=decode(index),target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return recolor(original,colors[target.index]);}
  const paletteColors=(group,number)=>{const target=palettes.find(p=>p.group===group&&p.number===number);if(!target)throw Error(`Palette ${group},${number} does not exist`);return colors[target.index].slice();};
+ // R8 presentation can resolve geometry without decompressing a PCX,
+ // and can decode the index plane directly without expanding to RGBA.
+ // Strict decode()/decodeIndexed() above stay intact for exports and parity.
+ function spriteMetrics(index,seen=new Set()){
+  if(!Number.isInteger(index)||index<0||index>=sprites.length||seen.has(index))
+   throw Error('Invalid SFF v1 sprite link');
+  seen.add(index);
+  const sp=sprites[index];
+  if(!sp.length){
+   const linked=spriteMetrics(sp.link,seen);
+   return {...sp,w:linked.w,h:linked.h,palette:linked.palette,
+    colors:linked.colors,indexed:true};
+  }
+  const data=bytes.subarray(sp.offset,sp.offset+sp.length);
+  if(data.length<128||data[0]!==10||data[2]!==1||data[3]!==8||data[65]!==1)
+   throw Error('Only indexed 8-bit PCX sprites are supported');
+  const d=new DataView(data.buffer,data.byteOffset,data.byteLength);
+  const w=d.getUint16(8,true)-d.getUint16(4,true)+1;
+  const h=d.getUint16(10,true)-d.getUint16(6,true)+1;
+  const stride=d.getUint16(66,true);
+  if(w<=0||h<=0||w*h>4e6||stride*h>8e6||stride<w)
+   throw Error('Invalid PCX dimensions');
+  const palette=colors[sp.palette];
+  if(!palette)throw Error('PCX palette missing');
+  return {...sp,w,h,stride,colors:palette,indexed:true};
+ }
+ function decodeIndexOnly(index,seen=new Set()){
+  if(!Number.isInteger(index)||index<0||index>=sprites.length||seen.has(index))
+   throw Error('Invalid SFF v1 sprite link');
+  seen.add(index);
+  const sp=sprites[index];
+  if(!sp.length){
+   const linked=decodeIndexOnly(sp.link,seen);
+   return {...linked,...sp,w:linked.w,h:linked.h,palette:linked.palette,
+    colors:linked.colors,indices:linked.indices};
+  }
+  const meta=spriteMetrics(index),data=bytes.subarray(sp.offset,sp.offset+sp.length);
+  const total=meta.stride*meta.h;
+  const flat=new Uint8Array(total);
+  const end=data.length>=897&&data[data.length-769]===12?data.length-769:data.length;
+  let pos=128,cursor=0;
+  while(cursor<total){
+   if(pos>=end)break;
+   let value=data[pos++],run=1;
+   if((value&192)===192){
+    run=value&63;
+    if(pos>=end)break;
+    value=data[pos++];
+   }
+   if(!run||cursor+run>total)throw Error('Invalid PCX run');
+   flat.fill(value,cursor,cursor+run);cursor+=run;
+  }
+  const indices=meta.stride===meta.w?flat:new Uint8Array(meta.w*meta.h);
+  if(meta.stride!==meta.w)
+   for(let y=0;y<meta.h;y++)
+    indices.set(flat.subarray(y*meta.stride,y*meta.stride+meta.w),y*meta.w);
+  return {...meta,indices,
+   ...(cursor<total?{sourceIncomplete:true,decodedPrefixPixels:cursor,
+    totalSourcePixels:total}:{})};
+ }
  const decodeIndexed=index=>{const sprite=decode(index);return {...sprite,colors:colors[sprite.palette]};};
  // Display-only recovery for valid PCX prefixes with missing trailing bytes.
  // Strict decode/decodeIndexed remain unchanged for validation and export.
@@ -384,7 +444,7 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
      return {...sprite,colors:colors[sprite.palette]};
    }
  };
- return{sprites,palettes,decode,decodeIndexed,decodeForDisplay,decodeWithPalette,paletteColors,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
+ return{sprites,palettes,decode,decodeIndexed,decodeIndexOnly,spriteMetrics,decodeForDisplay,decodeWithPalette,paletteColors,version:1,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
 /** A MUGEN SFF v1 character may supply a PCX palette in every sprite.
