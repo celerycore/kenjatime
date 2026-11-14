@@ -7,7 +7,8 @@ import { soundArchive } from "../formats.js";
 import { FrameScheduler } from "./frame-scheduler.js";
 import { AdaptiveResolution } from "./adaptive-resolution.js";
 import {normalizeQuality,qualityStartingScale} from "./render-quality.js";
-import { framePacing, nextTickEstimate, presentationDue } from "./frame-pacing.js";
+import { framePacing, nextTickEstimate, presentationDue, SimulationDebtTrend,
+  gameplayFirstRenderFps } from "./frame-pacing.js";
 /** Worker-owned simulation/renderer. The UI owns only input, audio sinks and HUD. */
 export function createCoreRuntime(emit) {
   let session,
@@ -34,13 +35,16 @@ export function createCoreRuntime(emit) {
     estimatedTickMs = 2,
     renderWithBacklogCount = 0,
     lastRenderTargetFps = 60,
-    lastBatchLimit = 4;
+    lastBatchLimit = 4,
+    gameplayFirst=true,
+    debtRate=0;
   const clock = new FrameClock(),
     inputs = [new TickInputBuffer(), new TickInputBuffer()],
     sounds = new Map(),
     sentSounds = new Set(),
     soundKeys = new Map(),
-    adaptiveResolution = new AdaptiveResolution();
+    adaptiveResolution = new AdaptiveResolution(),
+    debtTrend = new SimulationDebtTrend();
   const videoStates = new Map(),
     failedVideos = new Set();
   function syncVideos() {
@@ -182,9 +186,14 @@ export function createCoreRuntime(emit) {
       // while audio and combat continue. Draw at 30 FPS opportunistically
       // during catch-up, and return to the regular 60 FPS when caught up.
       const presentation = framePacing(clock.debt, estimatedTickMs);
-      lastRenderTargetFps = presentation.renderFps;
+      debtRate=debtTrend.observe(time,clock.debt);
+      lastRenderTargetFps = gameplayFirst
+        ? gameplayFirstRenderFps({
+            debt:clock.debt,debtRate,tickCpuMs:estimatedTickMs,
+          })
+        : presentation.renderFps;
       if (presentationDue(clock, time, {
-        hidden, paused, dirty, renderFps: presentation.renderFps,
+        hidden, paused, dirty, renderFps: lastRenderTargetFps,
       })) {
         if (presentation.backlog) renderWithBacklogCount++;
         const start = performance.now(),
@@ -240,6 +249,8 @@ export function createCoreRuntime(emit) {
             simulationBatchTicks,
             simulationBatchLimit: lastBatchLimit,
             renderTargetFps: lastRenderTargetFps,
+            gameplayFirstFrameskip:gameplayFirst,
+            simulationDebtChangeHz:debtRate,
             renderWithBacklogCount,
             resolutionScale: scale,
             renderQuality: quality,
@@ -261,6 +272,7 @@ export function createCoreRuntime(emit) {
     quality: value = "auto",
   }) {
     quality=normalizeQuality(value);
+    gameplayFirst=selection?.gameplayFirst!==false;
     scale=qualityStartingScale(quality);
     emit({type:'loading-progress',phase:'Initializing graphics',progress:0.03});
     if (!renderer) prepare(canvas);
