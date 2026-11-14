@@ -28,7 +28,7 @@ test("bundled KFM has a complete playable SFF/AIR/CNS source",()=>{
 test("split script RAR plus root SFF RAR reference resolves one real bytes asset",()=>{
  const left=Object.fromEntries(Object.entries(kfm).filter(([p])=>p!=="kfm/kfm.sff"));
  const right={"kfm.sff":kfm["kfm/kfm.sff"]};
- assert.ok(availableKotlinFighters(left,"script-only").missing.some(x=>/kfm/i.test(x.name)));
+ assert.ok(availableKotlinFighters(left,"script-only").missing.some(x=>/Kung Fu Man/i.test(x.name)));
  assert.equal(availableKotlinFighters(right,"sprite-only").ready.length,0);
  const combined=joinImportedResources([{files:left},{files:right}]);
  assert.strictEqual(combined["kfm/kfm.sff"],kfm["kfm/kfm.sff"]);
@@ -40,7 +40,7 @@ test("nonunique SFF basename is not guessed or silently chosen",()=>{
  const broken=joinImportedResources([{files:left},
    {files:{"first/kfm.sff":kfm["kfm/kfm.sff"],"second/kfm.sff":kfm["kfm/kfm.sff"]}}]);
  assert.equal(broken["kfm/kfm.sff"],undefined);
- assert.ok(availableKotlinFighters(broken,"ambiguous").missing.some(x=>/kfm/i.test(x.name)));
+ assert.ok(availableKotlinFighters(broken,"ambiguous").missing.some(x=>/Kung Fu Man/i.test(x.name)));
 });
 
 test("corrupt sprite source never appears fully installed",()=>{
