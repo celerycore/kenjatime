@@ -188,7 +188,7 @@ export function createCoreRuntime(emit) {
       })) {
         if (presentation.backlog) renderWithBacklogCount++;
         const start = performance.now(),
-          packet = session.frame();
+          packet = session.frame({lazySpriteUploads:true});
         const packetBuildMs = performance.now() - start;
         let restoreCpuMs = 0;
         const rendererStart = performance.now();
