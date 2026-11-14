@@ -84,6 +84,15 @@ test('over-budget video frame is deferred without deleting visible sprites or th
     assert.equal(g.textures.has('visible-fighter'),true);
     assert.equal(g.textures.has('stage:video'),false);
     assert.equal(g.evictedTextures,0);
+    // As soon as the fighter is no longer visible, a later video frame
+    // succeeds without restarting combat or permanently failing that source.
+    g.activeTextureIds = new Set();
+    const retry=bitmap();
+    assert.equal(g.updateVideo({id:'stage:video',bitmap:retry}),true);
+    assert.equal(retry.closes,1);
+    assert.equal(g.textures.has('visible-fighter'),false);
+    assert.equal(g.textures.has('stage:video'),true);
+    assert.equal(g.deferredVideoFrames,1);
   } finally {dispose(g);}
 });
 
