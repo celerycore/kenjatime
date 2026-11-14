@@ -31,7 +31,7 @@ jobs:
       - name: Projectile memory and broadphase regression
         run: node --test test/core/projectile-stress-optimization.test.js
       - name: Forest/Ako/Asuna GPU residency and native-scale camera tests
-        run: node --test test/core/gpu-residency-regression.test.js test/core/legacy-stage-viewport-regression.test.js
+        run: node --test test/core/gpu-residency-regression.test.js test/core/r8-video-residency.test.js test/core/legacy-stage-viewport-regression.test.js
       - name: Extended ZSS globals regression
         run: node --test test/core/extended-global-scheduler.test.js
       - name: Experimental Kotlin/Wasm host adapter parity
