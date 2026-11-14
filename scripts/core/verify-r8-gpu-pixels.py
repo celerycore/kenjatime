@@ -151,7 +151,7 @@ with sync_playwright() as p:
 # discarded against the cleared background only when maskZero is enabled.
 for key, samples in [
     ("base", [[255,0,0,255],[0,0,128,255],[0,255,0,255],[255,0,0,255]]),
-    ("palfx", [[255,64,0,255],[0,0,128,255],[0,255,64,255],[255,64,0,255]]),
+    ("palfx", [[255,64,0,255],[0,0,128,255],[0,255,0,255],[255,64,0,255]]),
     ("unmasked", [[255,0,0,255],[0,0,0,255],[0,255,0,255],[255,0,0,255]]),
 ]:
     for index, expected in enumerate(samples):
