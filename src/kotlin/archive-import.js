@@ -60,8 +60,11 @@ export function availableKotlinFighters(files,source){
   const candidates=charactersFromFiles(files);
   const ready=[],missing=[];
   for(const fighter of candidates){
+    // MUGEN's global common1.cns is typically installed by the engine rather
+    // than packaged inside KFM. Do not reject the bundled playable sample
+    // merely because its DEF references that shared external common state.
     const relevant=fighter.checks.filter(c=>c.key==="sprite"||c.key==="anim"||
-      c.key==="cmd"||/^(cns|st\d*|stcommon)$/.test(c.key));
+      c.key==="cmd"||/^(cns|st\d*)$/.test(c.key));
     const absent=relevant.filter(c=>!c.ok);
     const name=copyLabel(fighter.def.info?.displayname||
       fighter.def.info?.name||fighter.path);
