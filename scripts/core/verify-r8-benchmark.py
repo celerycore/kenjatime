@@ -69,6 +69,13 @@ try:
         assert page.locator('#gameplay-first-mode').count() == 1
         assert page.locator('#gameplay-first-mode').input_value() == 'gameplay'
         assert page.locator('#gameplay-first-mode option').count() == 2
+        assert page.locator('#r8-matchup-preset').count() == 1
+        assert page.locator('[data-r8-fighter="tomoka"]').count() == 1
+        assert page.locator('[data-r8-fighter="nu13"]').count() == 1
+        assert page.locator('#r8-select-matchup').is_disabled(), (
+            'Characters must not be fabricated as playable without actual archives')
+        assert page.locator('#r8-import-tomoka').is_visible()
+        assert page.locator('#r8-import-nu13').is_visible()
         page.locator('#arena-mode').select_option('cpu')
         page.locator('#endless-mode').check()
         assert page.locator('#endless-mode').is_checked()
@@ -83,7 +90,11 @@ try:
             '(el) => getComputedStyle(el).overflowY == "auto" && el.clientHeight <= window.innerHeight')
         page.locator('[data-r8-start]').click()
         page.wait_for_function('window.__kenjatimeR8Benchmark.snapshot().samples >= 3', timeout=20000)
+        page.wait_for_function('window.__kenjatimeR8Benchmark.snapshot().device?.browserName !== "Unknown"',timeout=10000)
         snapshot = page.evaluate('window.__kenjatimeR8Benchmark.snapshot()')
+        assert snapshot['device']['browserName'] != 'Unknown', snapshot
+        assert snapshot['device']['osName'] != 'Unknown', snapshot
+        assert page.locator('[data-r8="device"]').count() == 1
         gpu = page.evaluate('window.__kenjatimeCoreBattle.gpu()')
         assert snapshot['recording'] and snapshot['samples'] >= 3
         assert 'indexedTextureBytes' in gpu and 'paletteTextureBytes' in gpu
@@ -173,6 +184,10 @@ try:
         assert len(parsed_csv[0]) == len(parsed_csv[1]) == len(parsed_csv[-1]), (
             'CSV header and sample column counts differ', len(parsed_csv[0]), len(parsed_csv[1]), len(parsed_csv[-1]))
         assert 'p2_state_owner_id' in parsed_csv[0] and 'p2_animation_owner_id' in parsed_csv[0]
+        browser_idx=parsed_csv[0].index('browser_name')
+        assert parsed_csv[1][browser_idx] != 'Unknown', parsed_csv[1][browser_idx]
+        assert parsed_csv[1][parsed_csv[0].index('browser_user_agent')], 'UA missing from CSV'
+        assert parsed_csv[1][parsed_csv[0].index('device_os')] != 'Unknown'
         assert 'video_gpu_mib' in parsed_csv[0] and 'video_deferred_frames' in parsed_csv[0]
         assert all(key in parsed_csv[0] for key in [
             'gpu_texture_reuses','sprite_restore_compressed_entries',
@@ -194,7 +209,11 @@ try:
             'expression_fallback_cache_hits',
             'worker_message_queue_available','worker_message_queue_callbacks',
             'worker_timeout_callbacks','worker_animation_callbacks',
-            'worker_stale_queue_messages'])
+            'worker_stale_queue_messages',
+            'device_model','device_os','device_os_version',
+            'browser_name','browser_version','browser_user_agent',
+            'device_memory_gib','device_cpu_logical_cores',
+            'screen_width_px','screen_height_px','device_pixel_ratio'])
         assert all(key in parsed_csv[0] for key in
                    ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
                     'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',
