@@ -85,7 +85,7 @@ async function load(){
   const produced=typeof imported.default==="function"?
     await imported.default():imported.default;
   const found=[produced,imported,produced?.exports].find(v=>
-    v&&typeof v.ktCoreCreateWithCommands==="function"&&
+    v&&typeof v.ktCoreCreateWithDefinitions==="function"&&
     typeof v.ktCoreAdvanceCpu==="function"&&
     typeof v.ktCoreClockClaim==="function"&&
     typeof v.ktCoreRenderPlan==="function"&&
