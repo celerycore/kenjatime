@@ -157,8 +157,10 @@ export class CoreSession {
     const cacheBudgets = {legacy:16,balanced:64,extended:128,maximum:192};
     this.spriteCacheMode = Object.hasOwn(cacheBudgets,selection.spriteCacheMode)
       ? selection.spriteCacheMode : 'extended';
+    const rawHotBudgets={legacy:0,balanced:16,extended:48,maximum:64};
     this.spriteRestoreCache = new SpriteRestoreCache({
       requireRepeat:true,maxBytes:cacheBudgets[this.spriteCacheMode]*1024*1024,
+      hotBytes:rawHotBudgets[this.spriteCacheMode]*1024*1024,
     });
     this.preloadStats={mode:this.spriteCacheMode,attempted:0,loaded:0,
       skipped:0,bytes:0,durationMs:0,candidates:0};
