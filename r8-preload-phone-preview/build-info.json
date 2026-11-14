@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "perf/r8-preload-now-loading-20261114",
+  "sourceCommit": "3feb40e7a9433164e6da4a468c8edc4b85e6e4aa",
+  "channel": "r8-preload-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}
