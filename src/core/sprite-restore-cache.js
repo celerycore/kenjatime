@@ -66,12 +66,21 @@ function likelySparseR8(pixels) {
  * across imports. Textures use immutable byte arrays; draws never mutate them.
  */
 export class SpriteRestoreCache {
-  constructor({maxBytes=16*1024*1024,requireRepeat=false,probationLimit=4096}={}){
+  constructor({maxBytes=16*1024*1024,requireRepeat=false,probationLimit=4096,
+    hotBytes=0,hotMaxSpriteBytes=1024*1024}={}){
     if(!Number.isSafeInteger(maxBytes)||maxBytes<0)
       throw new RangeError('Invalid sprite restore cache budget.');
     if(!Number.isSafeInteger(probationLimit)||probationLimit<1)
       throw new RangeError('Invalid sprite cache probation capacity.');
+    if(!Number.isSafeInteger(hotBytes)||hotBytes<0||
+       !Number.isSafeInteger(hotMaxSpriteBytes)||hotMaxSpriteBytes<1)
+      throw new RangeError('Invalid raw sprite hot cache budget.');
     this.limit=maxBytes;
+    this.hotLimit=hotBytes;
+    this.hotMaxSpriteBytes=hotMaxSpriteBytes;
+    this.hot=new Map();
+    this.hotBytes=0;this.hotHits=0;this.hotStores=0;
+    this.hotEvictions=0;
     this.requireRepeat=!!requireRepeat;
     this.probationLimit=probationLimit;
     this.probation=new Set();
@@ -88,8 +97,28 @@ export class SpriteRestoreCache {
     this.entries.delete(id);this.entries.set(id,entry);
     this.hits++;
     if(entry.compressed) {
+      const hot=this.hot.get(id);
+      if(hot){
+        this.hot.delete(id);this.hot.set(id,hot);
+        this.hotHits++;
+        return hot;
+      }
       this.decompressions++;
-      return unpackSparseR8(entry.data,entry.originalBytes);
+      const pixels=unpackSparseR8(entry.data,entry.originalBytes);
+      if(this.hotLimit && pixels.length<=this.hotMaxSpriteBytes &&
+         pixels.length<=this.hotLimit){
+        while(this.hotBytes+pixels.length>this.hotLimit){
+          const oldest=this.hot.keys().next().value;
+          if(oldest===undefined)break;
+          const old=this.hot.get(oldest);
+          this.hot.delete(oldest);this.hotBytes-=old.byteLength;
+          this.hotEvictions++;
+        }
+        this.hot.set(id,pixels);
+        this.hotBytes+=pixels.length;
+        this.hotStores++;
+      }
+      return pixels;
     }
     return entry.data;
   }
@@ -115,6 +144,8 @@ export class SpriteRestoreCache {
     // Offline startup warmup may admit a sprite on its first visit. Combat
     // still honors the existing second-chance policy for non-preloaded art.
     if(preload)this.probation.delete(id);
+    // An overwrite makes previous uncompressed bytes obsolete.
+    this.removeHot(id);
     const old=this.entries.get(id);
     if(old){
       this.entries.delete(id);this.bytes-=old.data.byteLength;
@@ -140,6 +171,7 @@ export class SpriteRestoreCache {
       if(oldest===undefined)break;
       const victim=this.entries.get(oldest);
       this.entries.delete(oldest);this.bytes-=victim.data.byteLength;
+      this.removeHot(oldest);
       if(victim.compressed){
         this.compressedEntries--;
         this.rawBytesSaved-=victim.originalBytes-victim.data.byteLength;
@@ -154,16 +186,26 @@ export class SpriteRestoreCache {
     }
     return true;
   }
+  removeHot(id){
+    const old=this.hot.get(id);
+    if(!old)return;
+    this.hot.delete(id);
+    this.hotBytes=Math.max(0,this.hotBytes-old.byteLength);
+  }
   get stats(){
     return {hits:this.hits,misses:this.misses,stores:this.stores,
       evictions:this.evictions,bytes:this.bytes,entries:this.entries.size,
       budgetBytes:this.limit,deferredAdmissions:this.deferredAdmissions,
       promotions:this.promotions,probationEntries:this.probation.size,
       compressedEntries:this.compressedEntries,rawBytesSaved:this.rawBytesSaved,
-      decompressions:this.decompressions};
+      decompressions:this.decompressions,
+      hotBytes:this.hotBytes,hotBudgetBytes:this.hotLimit,
+      hotEntries:this.hot.size,hotHits:this.hotHits,
+      hotStores:this.hotStores,hotEvictions:this.hotEvictions};
   }
   clear(){
     this.entries.clear();this.probation.clear();this.bytes=0;
+    this.hot.clear();this.hotBytes=0;
     this.compressedEntries=0;this.rawBytesSaved=0;
   }
 }
