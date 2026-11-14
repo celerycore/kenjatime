@@ -135,4 +135,84 @@ private object Fights {
 @JsExport fun ktCoreReadDef(source: String, section: String, key: String): String? =
     MugenDefParser.parse(source).section(section)?.get(key)
 
+
+/** All time debt and 60Hz scheduling accounting is owned by Kotlin/Wasm.
+ * The browser and Android WebView only provide monotonic performance.now().
+ */
+private object ClockHandles {
+    var next=1
+    val active=mutableMapOf<Int,CoreTickBudget>()
+    fun get(handle:Int)=active[handle] ?: error("Unknown Kotlin clock handle")
+}
+@JsExport fun ktCoreClockCreate(maxBatch:Int=6):Int {
+    require(ClockHandles.active.size<8)
+    val id=ClockHandles.next++
+    ClockHandles.active[id]=CoreTickBudget(maxBatch)
+    return id
+}
+@JsExport fun ktCoreClockClaim(handle:Int,nowMilliseconds:Double):Int =
+    ClockHandles.get(handle).claim(nowMilliseconds)
+@JsExport fun ktCoreClockCompletedOne(handle:Int) {
+    ClockHandles.get(handle).completedOne()
+}
+@JsExport fun ktCoreClockDebt(handle:Int):Double =
+    ClockHandles.get(handle).overdue.toDouble()
+@JsExport fun ktCoreClockTicks(handle:Int):Double =
+    ClockHandles.get(handle).completed.toDouble()
+@JsExport fun ktCoreClockReset(handle:Int,nowMilliseconds:Double) {
+    ClockHandles.get(handle).reset(nowMilliseconds)
+}
+@JsExport fun ktCoreClockRelease(handle:Int) {
+    ClockHandles.active.remove(handle)
+}
+
+/** Render snapshots are read-only: sprite decode, GPU submission and frame
+ * dropping do not modify the authored 60Hz fight. Projectiles/helpers use the
+ * same AIR definition as their owner. Every entity remains simulated, even
+ * if an overloaded mobile renderer cannot display all of them.
+ */
+@JsExport fun ktCoreVisuals(handle:Int):String {
+    val fight=Fights.get(handle)
+    val result=StringBuilder(1024)
+    result.append("{\"frame\":").append(fight.frame)
+        .append(",\"helpers\":").append(fight.entities.helpers.size)
+        .append(",\"projectiles\":").append(fight.entities.projectiles.size)
+        .append(",\"draws\":[")
+    fun actor(p:FightingCharacter,side:Int,kind:String) {
+        val air=p.animation
+        val sprite=air?.frame
+        result.append("{\"side\":").append(side)
+            .append(",\"kind\":\"").append(kind).append("\"")
+            .append(",\"x\":").append(Fixed.pixels(p.posX))
+            .append(",\"y\":").append(Fixed.pixels(p.posY))
+            .append(",\"facing\":").append(if(p.facingRight)1 else -1)
+            .append(",\"action\":").append(air?.action?.number ?: -1)
+            .append(",\"elem\":").append((air?.index ?: 0)+1)
+            .append(",\"group\":").append(sprite?.group ?: -1)
+            .append(",\"number\":").append(sprite?.sprite ?: -1)
+            .append(",\"life\":").append(p.life)
+            .append("},")
+    }
+    actor(fight.p1,0,"fighter")
+    actor(fight.p2,1,"fighter")
+    for(helper in fight.entities.helpers.take(56)) {
+        actor(helper.actor, if(helper.owner===fight.p1)0 else 1, "helper")
+    }
+    for(projectile in fight.entities.projectiles.take(256)) {
+        val sprite=projectile.action.frame
+        result.append("{\"side\":").append(if(projectile.owner===fight.p1)0 else 1)
+            .append(",\"kind\":\"projectile\"")
+            .append(",\"x\":").append(Fixed.pixels(projectile.x))
+            .append(",\"y\":").append(Fixed.pixels(projectile.y))
+            .append(",\"facing\":").append(if(projectile.owner.facingRight)1 else -1)
+            .append(",\"action\":").append(projectile.action.action.number)
+            .append(",\"elem\":").append(projectile.action.index+1)
+            .append(",\"group\":").append(sprite?.group ?: -1)
+            .append(",\"number\":").append(sprite?.sprite ?: -1)
+            .append(",\"life\":0},")
+    }
+    if(result.last() == ',')result.setLength(result.length-1)
+    return result.append("]}").toString()
+}
+
 fun main() = Unit
