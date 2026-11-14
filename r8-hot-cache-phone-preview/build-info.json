@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "perf/r8-cache-hot-tier-20261114",
+  "sourceCommit": "702373c378765ffe77d0378b030ad5e0afdfa1bd",
+  "channel": "r8-hot-cache-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}
