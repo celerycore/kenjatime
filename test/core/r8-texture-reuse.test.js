@@ -50,7 +50,7 @@ test('never reuse a visible texture or a wrong-sized or wrong-format resource',(
     assert.equal(g.textures.get('palette'),palette);
     assert.equal(g.recycledTextures,0);
     assert.equal(g.deferredTextures,1);
-    assert.equal(g.upload(asset('fresh-32'),new Set(['visible','fresh-32'])),false,
+    assert.equal(g.upload(asset('fresh-32'),new Set(['visible','palette','fresh-32'])),false,
       'same-sized pinned sprite cannot be substituted');
     assert.equal(g.upload(asset('new-pal',256,1,false,'palette'),new Set(['visible','new-pal'])),true,
       'inactive palette can be reused only as a palette');
