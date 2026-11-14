@@ -52,7 +52,7 @@ test('Restricted browser does not invent Infinix model; denied Client Hints fall
    navigator:{userAgent:'Mozilla/5.0 (Linux; Android 10; K) Chrome/157.0.0.0 Mobile Safari/537.36',
      userAgentData:{getHighEntropyValues(){throw Error('blocked')}}},
  });
- assert.equal(info.deviceModel,'K');
+ assert.equal(info.deviceModel,'Unknown');
  assert.equal(info.browserName,'Google Chrome');
  assert.equal(info.deviceMemoryGiB,null);
  assert.equal(info.hardwareConcurrency,null);
