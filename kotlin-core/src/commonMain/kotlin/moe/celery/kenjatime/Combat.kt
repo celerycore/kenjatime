@@ -336,7 +336,7 @@ class FightingCharacter(
             "changestate", "selfstate" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
                 val owner = if (c.type.equals("selfstate", true)) this else scriptOwner
-                val ctrl = args["ctrl"]?.let { CoreExpression.number(it, this, errors) }
+                val ctrl = args["ctrl"]?.let { CoreExpression.number(it, this, errors) ?: return false }
                     ?.takeIf { it >= 0 }?.let { it != 0.0 }
                 if (next == null) errors.add("Invalid state transition value: " + args["value"])
                 else if (enterAuthoredState(next, owner, errors, ctrl)) return true
@@ -344,14 +344,20 @@ class FightingCharacter(
             "targetstate" -> {
                 if ("ctrl" in args) errors.add("TargetState ctrl is not a MUGEN 1.1 parameter; ignored")
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
+                val wanted = args["id"]?.let {
+                    CoreExpression.number(it, this, errors)?.toInt() ?: return false
+                } ?: -1
                 if (next == null) errors.add("Invalid TargetState value")
-                else for (target in targets(integer(args["id"], -1)))
+                else for (target in targets(wanted))
                     target.enterAuthoredState(next, scriptOwner, errors)
             }
             "changeanim", "changeanim2" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
                 val owner = if (c.type.equals("changeanim2", true)) stateOwner else this
-                if (next == null || !changeAnimation(next, owner, integer(args["elem"], 1)))
+                val element = args["elem"]?.let {
+                    CoreExpression.number(it, this, errors)?.toInt() ?: return false
+                } ?: 1
+                if (next == null || !changeAnimation(next, owner, element))
                     errors.add("Missing/invalid ${c.type} action or element: " + args["value"])
             }
             "statetypeset" -> {

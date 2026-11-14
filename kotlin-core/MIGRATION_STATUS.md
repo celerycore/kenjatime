@@ -24,7 +24,7 @@ No new deployment or Android release is implied by these source changes.
 
 Validation of this continuation:
 
-- 81 JVM tests and 78 compiled-Wasm tests pass, including 12 new common
+- 82 JVM tests and 79 compiled-Wasm tests pass, including 13 new common
   custom-state regressions (the other three tests are JVM archive checks).
 - Exported Wasm ABI executes an actual HitDef → TargetState → ChangeAnim2 →
   ChangeState → SelfState sequence with observable script/AIR owner IDs.

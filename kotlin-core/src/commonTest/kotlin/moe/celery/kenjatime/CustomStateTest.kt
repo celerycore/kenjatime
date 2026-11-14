@@ -333,4 +333,32 @@ class CustomStateTest {
         assertTrue(b.control)
         assertTrue(fight.issues.isEmpty(),fight.issues.joinToString())
     }
+
+    @Test fun invalidTargetAndAnimationArgumentsNeverFallBackToAllTargetsOrFirstElement() {
+        val a=actor(1,neutral+"\n"+"""
+            [State 0, invalid target selector]
+            type=TargetState
+            trigger1=1
+            id=unknown_selector
+            value=910
+        """.trimIndent()+"\n"+borrowed)
+        val b=victim()
+        val fight=DeterministicFight(a,b)
+        b.receiveHit(HitDefinition(),true)
+        a.captureTarget(b,71)
+        a.tick(fight.issues)
+        assertSame(b,b.stateOwner)
+        assertEquals(5000,b.stateNo)
+        val c=actor(3,neutral+"\n"+"""
+            [State 0, invalid element]
+            type=ChangeAnim2
+            trigger1=1
+            value=9100
+            elem=unknown_element
+        """.trimIndent())
+        c.tick(fight.issues)
+        assertEquals(0,c.animation?.action?.number)
+        assertTrue(fight.issues.any { it.contains("unknown_selector") })
+        assertTrue(fight.issues.any { it.contains("unknown_element") })
+    }
 }
