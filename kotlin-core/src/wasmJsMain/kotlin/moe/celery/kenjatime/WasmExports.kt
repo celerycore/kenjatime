@@ -55,7 +55,7 @@ private object Fights {
     val fight = Fights.get(handle)
     val actor = if (side == 0) fight.p1 else fight.p2
     require(newState in actor.definition.states) { "Unknown authored StateDef" }
-    actor.changeState(newState)
+    actor.changeState(newState, actor)
 }
 @JsExport fun ktCoreDebugSetFacing(handle: Int, side: Int, facingRight: Boolean) {
     val fight = Fights.get(handle)
@@ -115,6 +115,9 @@ private object Fights {
         ",\"x256\":" + p.posX + ",\"y256\":" + p.posY +
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
         ",\"state\":" + p.stateNo + ",\"stateTime\":" + p.timeInState +
+        ",\"stateOwner\":" + p.stateOwner.id +
+        ",\"animationOwner\":" + p.animationOwner.id +
+        ",\"numTargets\":" + p.targets().size +
         ",\"hitPause\":" + p.hitPauseLeft +
         ",\"power\":" + p.power +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +

@@ -49,6 +49,8 @@ object CoreExpression {
                 "roundstate" -> f.roundState.toDouble()
                 "alive" -> if (f.life>0) 1.0 else 0.0
                 "ishelper" -> if (f.parent!=null) 1.0 else 0.0
+                "incustomstate" -> if (f.stateOwner !== f) 1.0 else 0.0
+                "numtarget" -> f.targets().size.toDouble()
                 "hitcount" -> f.hitCount.toDouble()
                 "movecontact" -> if (f.moveContact) 1.0 else 0.0
                 "movehit" -> if (f.moveHit) 1.0 else 0.0
@@ -95,6 +97,7 @@ object CoreExpression {
                 "numprojid" -> f.world?.entities?.projectiles?.count {
                     it.owner===f && it.projectileId==idx(0)
                 }?.toDouble() ?: 0.0
+                "numtarget" -> f.targets(if (args.isEmpty()) -1 else idx(0)).size.toDouble()
                 else -> throw IllegalArgumentException("Unsupported function: "+name)
             }
             return Value.num(v)

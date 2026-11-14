@@ -1,4 +1,41 @@
-# Kenjatime Kotlin/Wasm combat migration — Phase III (review-only)
+# Kenjatime Kotlin/Wasm combat migration
+
+## Current continuation — November 15, 2026
+
+Based on the separate Kotlin/Wasm 0.7 channel in draft PR #77. That channel
+owns combat, AI, clock and render planning in Kotlin and shares its Wasm
+module between browser and Android. The production JavaScript site remains
+separate. The Phase III section below is historical, not the status of the
+current Kotlin browser adapter.
+
+This continuation adds captured HitDef targets, `TargetState`, `ChangeAnim2`
+and real `SelfState` ownership restoration. Borrowed CNS executes on the
+victim's variables and uses the script owner's state bank. AIR ownership is
+independent of sprite-resource ownership. `ChangeState` remains in the
+borrowed bank; `ChangeAnim` selects the victim's own AIR. Own -2 controllers
+continue during custom states; own -3/-1 are suppressed. Optional HitDef
+`p2stateno`/`p2getp1state` applies the same path to root and helper hits.
+
+`CustomStateTest` is a shared JVM/Wasm synthetic contract suite, not an
+Elecbyte reference capture. Transfers with different DEF localcoord values
+are explicitly rejected with a diagnostic. This does **not** establish
+Nu-13/Tomoka throw parity, general CNS/ZSS completeness or phone performance.
+No new deployment or Android release is implied by these source changes.
+
+Validation of this continuation:
+
+- 82 JVM tests and 79 compiled-Wasm tests pass, including 13 new common
+  custom-state regressions (the other three tests are JVM archive checks).
+- Exported Wasm ABI executes an actual HitDef → TargetState → ChangeAnim2 →
+  ChangeState → SelfState sequence with observable script/AIR owner IDs.
+- The 600-tick real bundled KFM smoke replays deterministically and records
+  three contacts. One unsupported `AnimElem = 3, -1` expression remains;
+  this is structural execution evidence, not complete KFM gameplay parity.
+- Browser build and headless Chromium smoke pass: actual SFF sprites,
+  Wasm-backed RAR companion imports, CSV export and Android 360px layout.
+  This run did not build or install a new APK or test physical-phone FPS.
+
+## Historical Phase III (review-only)
 
 PR: https://github.com/celerycore/kenjatime/pull/12
 
