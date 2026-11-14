@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "perf/r8-render-fps-20261114",
+  "sourceCommit": "8c26b651a12426072203b4afa3ad25d732840e71",
+  "channel": "r8-visible-fps-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}
