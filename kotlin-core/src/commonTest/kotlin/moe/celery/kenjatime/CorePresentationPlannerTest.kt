@@ -39,6 +39,26 @@ class CorePresentationPlannerTest {
         assertEquals(0,CorePresentationPlanner.healthBarWidth(10,0))
     }
 
+    @Test fun Nu13DefLocalcoordIsParsedInKotlinAndChangesVisualScale() {
+        val nu=FighterDefinition.fromScript("Nu-13",
+            "[Begin Action 0]\\n0,0,0,0,-1","",
+            "","[Info]\\nlocalcoord = 1008,756;960,720")
+        val standard=FighterDefinition.fromScript("Tomoka",
+            "[Begin Action 0]\\n0,0,0,0,-1","","",
+            "[Info]\\nname = \\"Tomoka\\"")
+        assertEquals(1008,nu.localCoordWidth)
+        assertEquals(756,nu.localCoordHeight)
+        assertEquals(320,standard.localCoordWidth)
+        assertEquals(240,standard.localCoordHeight)
+        val fight=DeterministicFight(FightingCharacter(nu,1),
+            FightingCharacter(standard,2))
+        fight.configureArena(-250,250)
+        val json=CorePresentationPlanner.snapshot(fight,0)
+        assertTrue(json.contains("\\"spriteScaleX\\":0.317460317"),json)
+        assertTrue(json.contains("\\"spriteScaleY\\":0.317460317"),json)
+        assertTrue(json.contains("\\"spriteScaleX\\":1.0"),json)
+    }
+
     @Test fun KotlinCameraAndSpriteAxesDriveVisualPosition() {
         val a=FightingCharacter(FighterDefinition("A"),1)
         val b=FightingCharacter(FighterDefinition("B"),2)
