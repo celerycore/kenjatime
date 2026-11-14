@@ -5,6 +5,8 @@ import {sff,animations} from './formats.js';
 import {libraryResetURL} from './library-recovery.js';
 import {exportFile} from './export-file.js';
 import {downloadArchiveFromUrl} from './remote-archive.js';
+import {BENCHMARK_MATCHUP,findBenchmarkFighters}
+  from './core/benchmark-roster.js';
 
 export function mountSetup(engineHost){
 document.querySelector('#app').innerHTML=appShell;document.title='Kenjatime';
@@ -18,7 +20,11 @@ const startup=engineHost.diagnostics;
 function status(message){$('#status').textContent=message;}
 async function run(message,action){
  if(busy)return;busy=true;status(message);document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.setAttribute('aria-disabled','true');if(e.tagName==='BUTTON')e.disabled=true;});
- try{await action();}catch(error){status(error.message);}finally{busy=false;document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.removeAttribute('aria-disabled');if(e.tagName==='BUTTON')e.disabled=false;});}
+ try{await action();}catch(error){status(error.message);}finally{busy=false;document.querySelectorAll('button:not([data-startup-action]),.import-actions label').forEach(e=>{e.removeAttribute('aria-disabled');if(e.tagName==='BUTTON')e.disabled=false;});
+  // General busy-state cleanup must not unlock a benchmark preset whose
+  // required character archives have not actually been installed.
+  refreshBenchmarkRoster();
+ }
 }
 $('.brand small').textContent='KENJATIME';$('header > span').innerHTML='PLAY <b>/</b> YOUR ARENA';$('.tag').textContent='KENJATIME';
 $('.eyebrow').textContent='BRING YOUR FIGHTER';$('h1').innerHTML='Your next match starts here<span>.</span>';
@@ -47,6 +53,22 @@ if(document.body.dataset.r8Benchmark==='true'){
 }
 $('.transport').insertAdjacentHTML('afterend','<div id="training-tools" class="training-tools"><label>Opponent <select id="opponent-select"></select></label><label>CPU level <select id="cpu-level">'+Array.from({length:8},(_,i)=>`<option value="${i+1}" ${i===3?'selected':''}>${i+1}</option>`).join('')+'</select></label><label>P1 palette <select id="palette-select"></select></label><label>P2 palette <select id="opponent-palette-select"></select></label></div>');
 $('.roster').insertAdjacentHTML('beforebegin','<section class="mobile-library"><details open><summary>Saved on this device <span id="library-count">0</span></summary><p id="library-status">Imported archives are installed here and stay available after restarting the app.</p><div id="library-items"></div></details></section>');
+// The benchmark roster is a reproducible matchup template. It never inserts
+// fake playable entries or redistributes third-party MUGEN character artwork.
+if(document.body.dataset.r8Benchmark==='true'){
+ const host=document.createElement('section');
+ host.className='r8-matchup-preset';
+ host.id='r8-matchup-preset';
+ host.setAttribute('aria-label','Cross-device benchmark roster');
+ host.innerHTML='<h3>R8 Benchmark Roster · Tomoka Minato vs Nu-13</h3>'+
+   '<p>Use the same character versions on each device. Character files are not bundled; import each archive on the device you are testing.</p>'+
+   '<div class="r8-matchup-fighters"><span data-r8-fighter="tomoka">Tomoka Minato · Not installed</span><span data-r8-fighter="nu13">Nu-13 · Not installed</span></div>'+
+   '<div class="r8-matchup-buttons"><button type="button" class="secondary" id="r8-import-tomoka">Import Tomoka</button><button type="button" class="secondary" id="r8-import-nu13">Import Nu-13</button><button type="button" id="r8-select-matchup" disabled>Select benchmark matchup</button></div>'+
+   '<small id="r8-matchup-status" role="status">Install both character archives to enable the preset.</small>';
+ $('.roster').insertAdjacentElement('beforebegin',host);
+ for(const id of ['r8-import-tomoka','r8-import-nu13'])
+   host.querySelector('#'+id).onclick=()=>$('#browse').click();
+}
 if(engineHost.canResetLibrary){const recovery=document.createElement('p');recovery.className='library-recovery';recovery.innerHTML='<a class="secondary" id="reset-library">Reset library</a> <span>Removes installed fighters, stages and saved archive copies. Your original downloaded files stay intact.</span>';recovery.querySelector('a').href=libraryResetURL();$('.mobile-library').append(recovery);}
 if(startup){
  const panel=document.createElement('details');panel.className='startup-diagnostics';panel.id='startup-diagnostics';panel.innerHTML='<summary>Startup report</summary><p id="startup-progress" role="status"></p><ol id="startup-phases"></ol><button class="secondary" type="button" data-startup-action id="export-startup">Save startup report</button><p>Contains loading timings, device details and library counts. Character files, archive names and passwords are excluded.</p>';
@@ -109,6 +131,22 @@ function choose(id){
  $('#checks').innerHTML=['sprite','anim'].map(key=>`<div><span class="${selected[key]?'ok':'bad'}">${selected[key]?'✓':'!'}</span><b>${key.toUpperCase()}</b><span>${escape(selected[key]||'Not found')}</span></div>`).join('');$('#score').textContent=selected.sprite&&selected.anim?'INSTALLED':'CHECK FILES';
  $('#cards').querySelectorAll('.card').forEach(card=>card.classList.toggle('selected',card.dataset.id===selected.id));remember();void preview();
 }
+function refreshBenchmarkRoster(){
+ const host=$('#r8-matchup-preset');
+ if(!host)return;
+ const found=findBenchmarkFighters(catalog.characters);
+ for(const [key,character] of [['tomoka',found.tomoka],['nu13',found.nu13]]){
+   const label=host.querySelector('[data-r8-fighter="'+key+'"]');
+   label.textContent=(key==='tomoka'?'Tomoka Minato':'Nu-13')+
+     ' · '+(character?'Installed':'Import required');
+   label.dataset.installed=String(!!character);
+   host.querySelector('#r8-import-'+key).hidden=!!character;
+ }
+ host.querySelector('#r8-select-matchup').disabled=!found.ready;
+ host.querySelector('#r8-matchup-status').textContent=found.ready
+   ? 'Both fighters installed. Select the same benchmark preset on each device.'
+   : 'Missing: '+found.missing.join(' and ')+'. Import the corresponding archive on this device.';
+}
 function drawCatalog(data){
  catalog=data;const old=selected?.id;let saved={};try{saved=JSON.parse(localStorage.getItem(selectionKey)||'{}');}catch{}
  $('#count').textContent=String(catalog.characters.length).padStart(2,'0');$('#cards').replaceChildren();
@@ -134,6 +172,7 @@ function drawCatalog(data){
   remove.onclick=()=>void run('Removing installed package…',async()=>{drawCatalog(await native('remove',{packageId:pkg.id}));status('Package removed from this app. The source archive is unchanged.');});row.append(name,open);if(pkg.downloadable){const save=document.createElement('button');save.textContent='Save archive';save.className='secondary';save.onclick=()=>void run('Preparing your archive…',async()=>{await native('downloadArchive',{packageId:pkg.id});status('Archive is ready to save or share.');});row.append(save);}row.append(remove);$('#library-items').append(row);
  }
  choose(catalog.characters.some(c=>c.id===old)?old:saved.character);grid();
+ refreshBenchmarkRoster();
 }
 function applyInstalled(result){
  const previous=new Set(catalog.packages.map(p=>p.id));drawCatalog(result);const added=catalog.packages.find(p=>!previous.has(p.id));if(!added)return;
@@ -180,6 +219,22 @@ $('#archive-url').onkeydown=event=>{
 if(engineHost.importFile){
  $('#drop').addEventListener('dragover',event=>event.preventDefault());
  $('#drop').addEventListener('drop',event=>{event.preventDefault();const files=Array.from(event.dataTransfer.files);if(files.length)void run('Reading archive…',async()=>{applyInstalled(await engineHost.importFile(files,{password:$('#archive-password').value}));$('#archive-password').value='';status('Archive installed. Your fighters and stages are ready to select.');});});
+}
+if($('#r8-select-matchup')){
+ $('#r8-select-matchup').onclick=()=>{
+   const pair=findBenchmarkFighters(catalog.characters);
+   if(!pair.ready){refreshBenchmarkRoster();return;}
+   $('#arena-mode').value=BENCHMARK_MATCHUP.mode;
+   $('#cpu-level').value='4';
+   $('#sprite-cache-mode').value=BENCHMARK_MATCHUP.spriteCacheMode;
+   $('#gameplay-first-mode').value=BENCHMARK_MATCHUP.gameplayFirst?'gameplay':'balanced';
+   if($('#endless-mode'))$('#endless-mode').checked=BENCHMARK_MATCHUP.endless;
+   $('#opponent-select').value=pair.nu13.id;
+   choose(pair.tomoka.id);
+   remember();
+   status('Tomoka Minato vs Nu-13 · CPU level 4 · Extended · Gameplay First · Endless. Start the match, then record a 90-second benchmark.');
+   $('#r8-matchup-status').textContent='Preset selected: Tomoka Minato vs Nu-13 · CPU 4 · Extended · Gameplay First · Endless.';
+ };
 }
 $('#sample').onclick=()=>choose(catalog.characters.find(c=>!c.packageId)?.id);$('#lab').onclick=()=>{$('.viewer').scrollIntoView({block:'start'});};$('#training').onclick=()=>{$('.arena-launch').scrollIntoView({block:'start'});};
 for(const id of ['stage-select','effects-select','opponent-select','arena-mode','palette-select','opponent-palette-select','presentation-select','sprite-cache-mode','gameplay-first-mode',...($('#endless-mode')?['endless-mode']:[])])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
