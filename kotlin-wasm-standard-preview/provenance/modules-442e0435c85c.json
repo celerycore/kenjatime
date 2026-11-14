@@ -1,0 +1,31 @@
+{
+  "sources": {
+    "kotlin/index.html": "29ef110e6c70826affeecb2dafd50b093259f64cc4275ac3b7831e0c7fefede7",
+    "src/archive-kind.js": "dcf3907f4c3fb0b482834c0e105e4de11948b2ccde5797bfcb4ff01571be04b3",
+    "src/archive-limits.js": "e186ccb28385474dc0a775bb8603143ae8235e9f1b907317593fb6aec29d6102",
+    "src/archive-reader.js": "7929afbb0cbd045f98d3e674ab356892af0d3cd26c384663b07eda8b8d18333d",
+    "src/archive-volumes.js": "5d9607c02f909e30cc8766cbc9880aa15f810fbcfbcac4cb7f2ec6039ff91fc4",
+    "src/core/benchmark-device.js": "6f616cf872a2d8db71b7bda1ab08c6c4e607aa6204315ababd8904cd9ff1a4e2",
+    "src/core/benchmark-roster.js": "f9ce467cd3ac8d3cd331ff30608e6e82f164d8642b42e90b795cd202fb4d0c5f",
+    "src/formats.js": "26690205eb8bc6f7a3d4ef9994c38238885e6e3f361f80ad5a0ecf9d459aafc3",
+    "src/kotlin/app.css": "8800fba23d38443e2b2a953f4932972595863861b3a9daefae120a8edde97090",
+    "src/kotlin/page.js": "95ca1f9a67b14a9c0e2a0f3c346f5aedd1738c8c51fac33d98efe9228457e65e",
+    "src/memory-cache.js": "de77963f9cf3d3ec83ab66560dd19f63160e52d3959f561f05b7efde604eb280",
+    "src/mobile-library.js": "812daba5308a5e0967ba5728950b621a726d82b64f3530707cb9ea8e357d4eaa",
+    "src/multi-archive.js": "29bfa35a2a6c7a2919f7d8cc2ef513580e4c69dbfd1293bc178c211cad53638b",
+    "src/rar-reader.js": "c7cf0f9fc1ac1b3af463b93198980b2e9851de5de67dd4c873f698fbfa03907c",
+    "src/seven-archive.js": "19921cb4816451381452d8cac1e0bbedd7cf9a101f97e622d0ae2002bf8a4747",
+    "src/zip-encrypted.js": "c58ee915671a0830dd9fe4834bd7e01e4390eacc4c0abde0f2cd9be4eeb7e5e3",
+    "src/zip-lzma.js": "54619d449e7a23c74893268e2df8deda89c9e0d94807c4f27f3e3f95fabae5ac"
+  },
+  "thirdPartyPackages": [
+    "7z-wasm",
+    "@zip.js/zip.js",
+    "fflate",
+    "fzstd",
+    "libarchive-wasm",
+    "lzma",
+    "node-unrar-js"
+  ],
+  "scope": "Distribution dependency boundary. Third-party graphics, audio, archive and platform libraries retain their own authorship and licenses. This policy does not certify universal behavioral compatibility."
+}
