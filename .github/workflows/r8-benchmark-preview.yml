@@ -98,6 +98,8 @@ jobs:
           python -m pip install 'playwright>=1.57,<2'
           python -m playwright install --with-deps chromium
           npm run verify:core:browser
+      - name: Verify real WebGL2 indexed palette, transparency and PalFX pixels
+        run: python scripts/core/verify-r8-gpu-pixels.py
       - name: Verify live R8 benchmark and exported CSV
         run: python scripts/core/verify-r8-benchmark.py
       - name: Embed source identity and reject private character files
