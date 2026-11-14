@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "fix/r8-stage1-video-residency-20261114",
+  "sourceCommit": "5b2b9ffa69a5d1fc7d670a1f58717406098a3cab",
+  "channel": "r8-stage1-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}
