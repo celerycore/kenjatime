@@ -12,6 +12,11 @@ import {findBenchmarkFighters} from "../core/benchmark-roster.js";
  * Simulation and deterministic CPU behavior are compiled Kotlin/WASM.
  */
 const root=document.querySelector("#app"),byId=id=>root.querySelector("#"+id);
+const isAndroidShell=/Android/i.test(navigator.userAgent||"") &&
+  (/;\s*wv[;)]/i.test(navigator.userAgent||"")||
+    window.Capacitor?.isNativePlatform?.()===true||
+    matchMedia("(display-mode: standalone)").matches);
+if(isAndroidShell)document.body.classList.add("android-shell");
 const canvas=byId("arena"),ctx=canvas.getContext("2d",{alpha:false});
 const status=message=>{byId("setup-status").textContent=message};
 const library=new ArchiveLibrary();
@@ -314,6 +319,16 @@ byId("pause").onclick=()=>{
   paused=!paused;worker.postMessage({type:"pause",value:paused});
   byId("pause").textContent=paused?"Resume":"Pause";
 };
+byId("reset").onclick=()=>{
+  worker.postMessage({type:"stop"});
+  running=false;paused=false;latest=null;workerStats=null;
+  byId("pause").disabled=true;
+  byId("pause").textContent="Pause";
+  byId("reset").disabled=true;
+  byId("record").disabled=true;
+  byId("banner").textContent="Kotlin/WASM · Ready";
+  status("Match stopped. Kotlin engine resources released; imported fighters remain installed.");
+};
 function rowToCsv(data){
   return data.map(cell=>'"'+String(cell??"").replaceAll('"','""')+'"').join(",");
 }
@@ -369,6 +384,7 @@ worker.onmessage=({data})=>{
     backend=data.version;byId("version").textContent=backend;refreshRoster();
   }else if(data.type==="started"){
     running=true;paused=false;byId("pause").disabled=false;byId("record").disabled=false;
+    byId("reset").disabled=false;
     byId("pause").textContent="Pause";byId("banner").textContent="Kotlin/WASM · 60 Hz combat";
     status("Kotlin/WASM fight running. Special move frames can be skipped, but Kotlin simulation continues.");
   }else if(data.type==="frame"){
@@ -384,14 +400,16 @@ worker.onmessage=({data})=>{
     byId("banner").textContent=data.value?"Paused · Kotlin fight frozen":"Kotlin/WASM · 60 Hz combat";
   }else if(data.type==="complete"){
     running=false;paused=false;byId("pause").disabled=true;
-    byId("record").disabled=true;
+    byId("reset").disabled=true;byId("record").disabled=true;
     byId("banner").textContent="Match complete";
   }else if(data.type==="error"){
     running=false;paused=false;byId("pause").disabled=true;byId("record").disabled=true;
+    byId("reset").disabled=true;
     byId("banner").textContent="Kotlin/WASM ERROR";
     status("Kotlin runtime error: "+data.message+". The engine will not silently switch to JavaScript.");
   }else if(data.type==="stopped"){
     running=false;byId("pause").disabled=true;
+    byId("reset").disabled=true;
   }
 };
 worker.onerror=event=>{running=false;status("Kotlin worker could not start: "+event.message)};
