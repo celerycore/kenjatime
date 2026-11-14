@@ -33,7 +33,7 @@ $('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" ari
 // make heavy imported MUGEN fighters smoother at the cost of slower loading.
 const spriteCacheLabel=document.createElement('label');
 spriteCacheLabel.className='sprite-cache-setting';
-spriteCacheLabel.innerHTML='Sprite cache <select id="sprite-cache-mode" aria-label="Sprite preload and cache size"><option value="legacy">Legacy · 16 MiB · no preload</option><option value="balanced">Balanced · 64 MiB · preload</option><option value="extended" selected>Extended · 128 MiB · preload</option><option value="maximum">Maximum · 192 MiB · preload (high RAM)</option></select>';
+spriteCacheLabel.innerHTML='Sprite cache <select id="sprite-cache-mode" aria-label="Sprite preload and cache size"><option value="legacy">Legacy · 16 MiB CPU · no preload</option><option value="balanced">Balanced · 64 + 16 MiB hot · GPU 96</option><option value="extended" selected>Extended · 128 + 48 MiB hot · GPU 128–160</option><option value="maximum">Maximum · 192 + 64 MiB hot · GPU 160–192 (high RAM)</option></select>';
 $('.arena-launch').insertBefore(spriteCacheLabel,$('#fight-now'));
 // Benchmark-only match control: production pages do not set this flag.
 if(document.body.dataset.r8Benchmark==='true'){
