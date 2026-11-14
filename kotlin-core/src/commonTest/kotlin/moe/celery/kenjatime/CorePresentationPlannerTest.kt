@@ -70,6 +70,23 @@ class CorePresentationPlannerTest {
         assertTrue(json.contains("\"spriteScaleX\":1.0"),json)
     }
 
+    @Test fun authoredAirOffsetsAndFlipsAreRenderedInKotlin() {
+        val action=AirAction(0,listOf(
+            AirFrame(10,2,10,-5,-1,flip="HV")))
+        val definition=FighterDefinition("A",
+            animations=mapOf(0 to action))
+        val fight=DeterministicFight(FightingCharacter(definition,1),
+            FightingCharacter(FighterDefinition("B"),2))
+        fight.configureArena(-250,250)
+        val json=CorePresentationPlanner.snapshot(fight,0)
+        assertTrue(json.contains("\"x\":494.0"),json)
+        assertTrue(json.contains("\"y\":429.5"),json)
+        assertTrue(json.contains("\"flipX\":-1"),json)
+        assertTrue(json.contains("\"flipY\":-1"),json)
+        assertTrue(json.contains("\"group\":10"),json)
+        assertTrue(json.contains("\"number\":2"),json)
+    }
+
     @Test fun KotlinCameraAndSpriteAxesDriveVisualPosition() {
         val a=FightingCharacter(FighterDefinition("A"),1)
         val b=FightingCharacter(FighterDefinition("B"),2)
