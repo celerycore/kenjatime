@@ -17,10 +17,11 @@ const browserPatterns=[
 const androidModel=ua=>{
   const match=ua.match(/Android\s+[\d.]+;\s*([^)]+)/i);
   if(!match)return "";
-  return clean(match[1]
+  const model=clean(match[1]
     .replace(/;\s*(?:wv|U)(?=;|$)/gi,"")
     .replace(/\s*Build\/.*/i,"")
     .split(";").map(x=>x.trim()).filter(x=>x&&!/^Mobile$/i.test(x)).at(-1)||"",90);
+  return /^(?:K|wv|U|Mobile|Unknown)$/i.test(model)?"":model;
 };
 export function parseBenchmarkAgent(userAgent=""){
   const ua=clean(userAgent,512);
