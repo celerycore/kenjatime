@@ -2,6 +2,7 @@
 import "./r8-benchmark.css";
 import {collectBenchmarkDeviceInfo,describeBenchmarkDevice,parseBenchmarkAgent}
   from "./benchmark-device.js";
+import {BENCHMARK_MATCHUP} from "./benchmark-roster.js";
 
 const MB = 1024 * 1024;
 const number = (value, digits = 1) => Number.isFinite(value) ? value.toFixed(digits) : "—";
@@ -87,6 +88,7 @@ const fields = [
   "browser_name","browser_version","browser_user_agent",
   "device_memory_gib","device_cpu_logical_cores",
   "screen_width_px","screen_height_px","device_pixel_ratio",
+  "engine_build_version","engine_build_revision","benchmark_matchup_id",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -419,6 +421,13 @@ function sample() {
     deviceInfo.hardwareConcurrency??"",
     deviceInfo.screenWidth??"",deviceInfo.screenHeight??"",
     deviceInfo.pixelRatio??"",
+    typeof __KENJATIME_APP_VERSION__!=="undefined"?
+      __KENJATIME_APP_VERSION__:"",
+    typeof __KENJATIME_STARTUP_REVISION__!=="undefined"?
+      __KENJATIME_STARTUP_REVISION__:"",
+    state.players?.[0]?.name==="Tomoka Minato"&&
+      /^nu[\s-]*13$/i.test(state.players?.[1]?.name||"")
+      ? BENCHMARK_MATCHUP.id:"",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
