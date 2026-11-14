@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.celerycore.kenjatime.kotlin",
+  "appName": "Kenjatime Kotlin",
+  "webDir": "dist-kotlin",
+  "server": {
+    "appStartPath": "/kotlin/index.html",
+    "androidScheme": "https",
+    "hostname": "localhost"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "minWebViewVersion": 113
+  }
+}
