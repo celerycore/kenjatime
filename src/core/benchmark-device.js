@@ -18,7 +18,7 @@ const androidModel=ua=>{
   const match=ua.match(/Android\s+[\d.]+;\s*([^)]+)/i);
   if(!match)return "";
   return clean(match[1]
-    .replace(/;?\s*(?:wv|U|Build\/[^;)]+|[A-Z]{2}_[A-Z]{2})/gi,"")
+    .replace(/;\s*(?:wv|U)(?=;|$)/gi,"")
     .replace(/\s*Build\/.*/i,"")
     .split(";").map(x=>x.trim()).filter(x=>x&&!/^Mobile$/i.test(x)).at(-1)||"",90);
 };
