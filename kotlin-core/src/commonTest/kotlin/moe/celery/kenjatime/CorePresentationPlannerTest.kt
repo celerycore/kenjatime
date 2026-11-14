@@ -50,6 +50,17 @@ class CorePresentationPlannerTest {
         assertEquals(756,nu.localCoordHeight)
         assertEquals(320,standard.localCoordWidth)
         assertEquals(240,standard.localCoordHeight)
+        assertEquals(81,nu.collisionScaleX)
+        assertEquals(81,nu.collisionScaleY)
+        assertEquals(Fixed.ONE,standard.collisionScaleX)
+        assertEquals(Fixed.ONE,standard.collisionScaleY)
+        // Equivalent hitboxes are smaller in shared stage space when authored
+        // for high-resolution localcoord, including projectile hit geometry.
+        val rect=MugenRect(-50,-60,50,0)
+        val scaled=rect.world(0,0,true,nu.collisionScaleX,nu.collisionScaleY)
+        val normal=rect.world(0,0,true,standard.collisionScaleX,standard.collisionScaleY)
+        assertEquals(8100,scaled.x2-scaled.x1)
+        assertEquals(25600,normal.x2-normal.x1)
         val fight=DeterministicFight(FightingCharacter(nu,1),
             FightingCharacter(standard,2))
         fight.configureArena(-250,250)
