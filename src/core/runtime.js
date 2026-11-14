@@ -251,6 +251,7 @@ export function createCoreRuntime(emit) {
             renderTargetFps: lastRenderTargetFps,
             gameplayFirstFrameskip:gameplayFirst,
             simulationDebtChangeHz:debtRate,
+            workerSchedulerStats:scheduler.stats,
             renderWithBacklogCount,
             resolutionScale: scale,
             renderQuality: quality,
@@ -466,7 +467,7 @@ export function createCoreRuntime(emit) {
   function stop() {
     if (closed) return;
     closed = true;
-    scheduler.cancel();
+    scheduler.close();
     audioPort?.close();
     moduleDecoder?.close();
     session?.close();
