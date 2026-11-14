@@ -77,6 +77,10 @@ try:
         assert 'indexedTextureBytes' in gpu and 'paletteTextureBytes' in gpu
         assert 'videoTextureBytes' in gpu and 'deferredVideoFrames' in gpu
         assert 'recycledTextures' in gpu and gpu['recycledTextures'] >= 0
+        assert all(key in gpu and gpu[key] >= 0 for key in [
+            'framePacketBuildMs','frameSpriteRestoreCpuMs','frameRendererCpuMs'])
+        assert page.locator('[data-r8="packetCpu"]').count() == 1
+        assert page.locator('[data-r8="restoreCpu"]').count() == 1
         assert page.locator('[data-r8="recycled"]').count() == 1
         assert page.locator('[data-r8="cachesavings"]').count() == 1
         assert gpu['textureBytes'] >= sum(gpu[key] for key in
@@ -140,7 +144,9 @@ try:
         assert 'video_gpu_mib' in parsed_csv[0] and 'video_deferred_frames' in parsed_csv[0]
         assert all(key in parsed_csv[0] for key in [
             'gpu_texture_reuses','sprite_restore_compressed_entries',
-            'sprite_restore_saved_raw_mib','sprite_restore_decompressions'])
+            'sprite_restore_saved_raw_mib','sprite_restore_decompressions',
+            'frame_packet_build_ms','frame_sprite_restore_ms',
+            'frame_renderer_cpu_ms'])
         assert all(key in parsed_csv[0] for key in
                    ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
                     'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',
