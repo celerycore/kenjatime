@@ -213,7 +213,8 @@ try:
             'device_model','device_os','device_os_version',
             'browser_name','browser_version','browser_user_agent',
             'device_memory_gib','device_cpu_logical_cores',
-            'screen_width_px','screen_height_px','device_pixel_ratio'])
+            'screen_width_px','screen_height_px','device_pixel_ratio',
+            'engine_build_version','engine_build_revision','benchmark_matchup_id'])
         assert all(key in parsed_csv[0] for key in
                    ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
                     'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',
