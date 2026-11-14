@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "perf/r8-gameplay-first-frameskip-20261114",
+  "sourceCommit": "5babcdafa51484fc6da3a9c756a7b35db15a7987",
+  "channel": "r8-gameplay-first-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}
