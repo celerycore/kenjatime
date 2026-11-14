@@ -25,8 +25,6 @@ export function framePacing(debt, estimatedTickMs = 2) {
   // NEVER alter the fixed 60 Hz tick boundaries or discard accumulated debt.
   if (debt >= 8 && tickMs >= 5 && tickMs <= 13.5)
     batchLimit = Math.max(batchLimit,2);
-  if (debt >= 80 && tickMs >= 3 && tickMs <= 8)
-    batchLimit = Math.max(batchLimit,3);
   return {
     backlog,
     batchLimit,
