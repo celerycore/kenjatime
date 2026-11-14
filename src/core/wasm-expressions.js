@@ -595,8 +595,7 @@ export class WasmExpressions {
           this.fallbackExecutors.delete(this.fallbackExecutors.keys().next().value);
         this.fallbackExecutors.set(source,executor);
       }else this.fallbackCacheHits++;
-      return executor(context.typedResult===true
-        ? context : context);
+      return executor(context);
     }
     const previous = this.context;
     this.context = context;
