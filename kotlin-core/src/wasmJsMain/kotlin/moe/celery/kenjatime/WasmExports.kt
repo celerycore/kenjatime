@@ -20,10 +20,18 @@ private object Fights {
 @JsExport fun ktCoreCreateWithCommands(
     name1: String, name2: String, air1: String, air2: String,
     cns1: String, cns2: String, cmd1: String, cmd2: String
+): Int = ktCoreCreateWithDefinitions(name1,name2,air1,air2,cns1,cns2,cmd1,cmd2,"","")
+
+/** Parse actual MUGEN DEF [Info] inside Kotlin, so different character
+ * localcoord (e.g. Nu-13's 1008x756) is not guessed by a JS renderer. */
+@JsExport fun ktCoreCreateWithDefinitions(
+    name1: String, name2: String, air1: String, air2: String,
+    cns1: String, cns2: String, cmd1: String, cmd2: String,
+    def1: String, def2: String
 ): Int {
     require(Fights.active.size < 8) { "Too many active fights" }
-    val a = FighterDefinition.fromScript(name1, air1, cns1, cmd1)
-    val b = FighterDefinition.fromScript(name2, air2, cns2, cmd2)
+    val a = FighterDefinition.fromScript(name1, air1, cns1, cmd1,def1)
+    val b = FighterDefinition.fromScript(name2, air2, cns2, cmd2,def2)
     val id = Fights.next++
     val left = FightingCharacter(a, 1, MugenCommandParser.parseFile(cmd1))
     val right = FightingCharacter(b, 2, MugenCommandParser.parseFile(cmd2))
