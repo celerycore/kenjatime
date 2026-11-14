@@ -1,0 +1,7 @@
+{
+  "sources": {
+    "src/kotlin/worker.js": "e118442cede427cfa6a6086540d1d6fde9dc6712123a01cb2d150c05649d78f7"
+  },
+  "thirdPartyPackages": [],
+  "scope": "Distribution dependency boundary. Third-party graphics, audio, archive and platform libraries retain their own authorship and licenses. This policy does not certify universal behavioral compatibility."
+}

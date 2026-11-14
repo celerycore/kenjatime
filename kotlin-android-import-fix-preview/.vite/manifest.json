@@ -1,0 +1,104 @@
+{
+  "___vite-browser-external-D7Ct-6yo.js": {
+    "file": "assets/__vite-browser-external-D7Ct-6yo.js",
+    "name": "__vite-browser-external",
+    "isDynamicEntry": true
+  },
+  "__commonjsHelpers-Bx2EM-6T.js": {
+    "file": "assets/_commonjsHelpers-Bx2EM-6T.js",
+    "name": "_commonjsHelpers"
+  },
+  "_archive-reader-BpLB4BrW.js": {
+    "file": "assets/archive-reader-BpLB4BrW.js",
+    "name": "archive-reader",
+    "isDynamicEntry": true,
+    "imports": [
+      "kotlin/index.html"
+    ],
+    "dynamicImports": [
+      "src/seven-archive.js",
+      "src/multi-archive.js",
+      "src/zip-encrypted.js",
+      "src/zip-lzma.js",
+      "src/rar-reader.js"
+    ]
+  },
+  "kotlin/index.html": {
+    "file": "assets/kotlin-DZPl34RC.js",
+    "name": "kotlin",
+    "src": "kotlin/index.html",
+    "isEntry": true,
+    "dynamicImports": [
+      "_archive-reader-BpLB4BrW.js"
+    ],
+    "css": [
+      "assets/kotlin-CTziFe-k.css"
+    ],
+    "assets": [
+      "assets/kfm-CJEysBIf.zip"
+    ]
+  },
+  "node_modules/7z-wasm/7zz.wasm": {
+    "file": "assets/7zz-CgkXYLdN.wasm",
+    "src": "node_modules/7z-wasm/7zz.wasm"
+  },
+  "public/kfm.zip": {
+    "file": "assets/kfm-CJEysBIf.zip",
+    "src": "public/kfm.zip"
+  },
+  "src/multi-archive.js": {
+    "file": "assets/multi-archive-FFIkDqmt.js",
+    "name": "multi-archive",
+    "src": "src/multi-archive.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "___vite-browser-external-D7Ct-6yo.js",
+      "__commonjsHelpers-Bx2EM-6T.js",
+      "kotlin/index.html"
+    ]
+  },
+  "src/rar-reader.js": {
+    "file": "assets/rar-reader-Esuy_m32.js",
+    "name": "rar-reader",
+    "src": "src/rar-reader.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "kotlin/index.html"
+    ]
+  },
+  "src/seven-archive.js": {
+    "file": "assets/seven-archive-C1jqniVo.js",
+    "name": "seven-archive",
+    "src": "src/seven-archive.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "kotlin/index.html",
+      "_archive-reader-BpLB4BrW.js"
+    ],
+    "dynamicImports": [
+      "___vite-browser-external-D7Ct-6yo.js"
+    ],
+    "assets": [
+      "assets/7zz-CgkXYLdN.wasm"
+    ]
+  },
+  "src/zip-encrypted.js": {
+    "file": "assets/zip-encrypted-byvnsvn8.js",
+    "name": "zip-encrypted",
+    "src": "src/zip-encrypted.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "kotlin/index.html"
+    ]
+  },
+  "src/zip-lzma.js": {
+    "file": "assets/zip-lzma-DICmGrTA.js",
+    "name": "zip-lzma",
+    "src": "src/zip-lzma.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "kotlin/index.html",
+      "__commonjsHelpers-Bx2EM-6T.js"
+    ]
+  }
+}

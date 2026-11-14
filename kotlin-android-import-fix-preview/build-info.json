@@ -1,0 +1,30 @@
+{
+  "engine": "Kotlin/WASM",
+  "channel": "kotlin-standard",
+  "sourceCommit": "e8f5605560fadd6c442f7a5deb0daf2225f0fb26",
+  "browserAndAndroidUseSameWasm": true,
+  "nativeMugen11ParityCertified": false,
+  "physicalAndroidPerformanceVerified": false,
+  "files": [
+    {
+      "name": "kenjatime-kotlin-core.import-object.mjs",
+      "bytes": 4917
+    },
+    {
+      "name": "kenjatime-kotlin-core.js-builtins.mjs",
+      "bytes": 2095
+    },
+    {
+      "name": "kenjatime-kotlin-core.mjs",
+      "bytes": 3919
+    },
+    {
+      "name": "kenjatime-kotlin-core.wasm",
+      "bytes": 787249
+    },
+    {
+      "name": "kenjatime-kotlin-core.wasm.map",
+      "bytes": 43131
+    }
+  ]
+}
