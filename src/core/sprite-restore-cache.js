@@ -186,6 +186,14 @@ export class SpriteRestoreCache {
     }
     return true;
   }
+  /** Inspect preloaded immutable bytes without moving LRU order or inflating
+   * combat cache hit/miss counters. Used only during NOW LOADING GPU warmup. */
+  peek(id){
+    const entry=this.entries.get(id);
+    if(!entry)return null;
+    return entry.compressed
+      ? unpackSparseR8(entry.data,entry.originalBytes):entry.data;
+  }
   removeHot(id){
     const old=this.hot.get(id);
     if(!old)return;
