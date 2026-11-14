@@ -94,6 +94,7 @@ export function availableKotlinFighters(files,source){
       continue;
     }
     ready.push({
+      defText:decodeText(files[fighter.path]),
       id:source+":"+fighter.path,
       name,source,
       air:decodeText(files[path("anim")]),

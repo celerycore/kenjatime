@@ -48,10 +48,12 @@ function pump(){
     elapsedCpuMs+=cpu;
     lastBatchCpu=count?cpu/count:0;
     const debt=api.ktCoreClockDebt(clock);
-    const interval=debt>12?48:debt>3?40:33;
-    if(now-lastSnapshot>=interval){
-      // Kotlin generates all fighter/helper/projectile render information.
-      emit("frame",{visuals:JSON.parse(api.ktCoreVisuals(handle)),debt,backend:backendVersion});
+    // Kotlin/WASM owns the presentation pacing tiers and camera projection,
+    // so JS never invents a different render frame rate or stage coordinates.
+    const targetFps=api.ktCorePresentationFps(debt);
+    if(now-lastSnapshot>=1000/targetFps){
+      emit("frame",{visuals:JSON.parse(api.ktCoreRenderPlan(handle,debt)),
+        debt,backend:backendVersion});
       lastSnapshot=now;
     }
     if(now-lastStats>=500){
@@ -83,10 +85,11 @@ async function load(){
   const produced=typeof imported.default==="function"?
     await imported.default():imported.default;
   const found=[produced,imported,produced?.exports].find(v=>
-    v&&typeof v.ktCoreCreateWithCommands==="function"&&
+    v&&typeof v.ktCoreCreateWithDefinitions==="function"&&
     typeof v.ktCoreAdvanceCpu==="function"&&
     typeof v.ktCoreClockClaim==="function"&&
-    typeof v.ktCoreVisuals==="function");
+    typeof v.ktCoreRenderPlan==="function"&&
+    typeof v.ktCorePresentationFps==="function");
   if(!found)throw Error("Compiled Kotlin/WASM standard API unavailable: no JavaScript combat fallback.");
   api=found;
   backendVersion=api.ktCoreVersion();
@@ -101,8 +104,8 @@ self.onmessage=async({data})=>{
       await load();
       release();
       const a=data.p1,b=data.p2;
-      handle=api.ktCoreCreateWithCommands(a.name,b.name,
-        a.air,b.air,a.cns,b.cns,a.cmd,b.cmd);
+      handle=api.ktCoreCreateWithDefinitions(a.name,b.name,
+        a.air,b.air,a.cns,b.cns,a.cmd,b.cmd,a.defText,b.defText);
       api.ktCoreSetup(handle,-70*256,0,70*256,0);
       api.ktCoreConfigureArena(handle,-250,250,0,true,true);
       endless=data.endless!==false;

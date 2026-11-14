@@ -40,6 +40,13 @@ try:
         # always drew rectangular placeholders despite passing engine tests.
         page.wait_for_function("window.__kenjatimeKotlinQA?.spritePaints > 5",
             timeout=30000)
+        plan=page.evaluate("window.__kenjatimeKotlinQA.renderPlan")
+        assert plan["targetFps"] in [12,20,30,60],plan
+        assert plan["backlog"]>=0,plan
+        assert len(plan["health"])==2,plan
+        assert len(plan["draws"])>=2,plan
+        assert all("spriteScaleX" in draw and "spriteScaleY" in draw
+                   for draw in plan["draws"]),plan
         assert page.evaluate("window.__kenjatimeKotlinQA.placeholderPaints") < (
             page.evaluate("window.__kenjatimeKotlinQA.spritePaints") * 2)
         page.locator("#record").click()
@@ -83,6 +90,11 @@ try:
         page.locator("#start").click()
         page.wait_for_function("window.__kenjatimeKotlinQA.lastVisualFrame > 20",timeout=30000)
         result["importedCharacterRendered"]=True
+        imported_plan=page.evaluate("window.__kenjatimeKotlinQA.renderPlan")
+        assert len(imported_plan["draws"])>=2,imported_plan
+        assert imported_plan["draws"][0]["spriteScaleX"]>0
+        assert imported_plan["draws"][0]["spriteScaleY"]>0
+        result["kotlinRenderPlan"]=True
 
         # A real 360-css-pixel Android WebView viewport, with native status-bar
         # insets, may NEVER horizontally scroll or overlap its two selectors.

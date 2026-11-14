@@ -43,7 +43,8 @@ class CoreProjectile(
         ticksLeft--
     }
     fun hitBoxes(): List<MugenRect> = action.frame?.boxes?.filter { it.attack }
-        ?.map { it.rect.world(x, y, owner.facingRight) } ?: emptyList()
+        ?.map { it.rect.world(x, y, owner.facingRight,
+            owner.definition.collisionScaleX,owner.definition.collisionScaleY) } ?: emptyList()
     fun canHit(id: Int): Boolean = id !in targets
     fun markHit(id: Int) { targets.add(id) }
 }

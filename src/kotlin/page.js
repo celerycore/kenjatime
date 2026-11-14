@@ -174,8 +174,7 @@ function render(){
   requestAnimationFrame(render);
   const now=performance.now();
   if(!latest)return;
-  const debt=workerStats?.backlog||0;
-  const targetFps=debt>=12?12:debt>=5?20:debt>1?30:60;
+  const targetFps=latest.targetFps||60; // authoritative Kotlin plan
   const interval=1000/targetFps;
   if(now-lastDraw<interval-1.5)return;
   lastDraw=now;drawn++;frameSamples++;
@@ -194,13 +193,18 @@ function render(){
   const draws=latest.draws||[];
   for(const fighter of draws){
     const item=images[fighter.side]||images[0];
-    const x=480+fighter.x*1.4;
-    const y=435+fighter.y*1.1;
+    const x=fighter.x;
+    const y=fighter.y; // both projected by Kotlin's deterministic camera
     const img=spriteImage(item,fighter.group,fighter.number);
     if(img){
-      const renderedScale=Math.min(1.8,360/img.w,340/img.h);
+      // Authored localcoord comes from Kotlin's DEF parser (Nu-13 1008x756,
+      // standard MUGEN 320x240). Avoid hard-coding a 1:1 character scale.
+      const sx=(fighter.spriteScaleX||1)*(fighter.scale||1);
+      const sy=(fighter.spriteScaleY||1)*(fighter.scale||1);
+      const visualCap=Math.min(1.8,360/(img.w*sx),340/(img.h*sy));
       ctx.save();ctx.translate(x,y);
-      ctx.scale(fighter.facing<0?-renderedScale:renderedScale,renderedScale);
+      ctx.scale((fighter.facing<0?-1:1)*(fighter.flipX||1)*sx*visualCap,
+        (fighter.flipY||1)*sy*visualCap);
       ctx.imageSmoothingEnabled=false;
       // Sprite X/Y originate in authored SFF axes, not image center.
       ctx.drawImage(img.image,-img.x,-img.y);
@@ -215,11 +219,10 @@ function render(){
       placeholderCount++;
     }
   }
-  const life=[...draws].filter(d=>d.kind==="fighter");
-  const l1=life.find(d=>d.side===0)?.life||0,l2=life.find(d=>d.side===1)?.life||0;
+  const life=latest.health||[0,0]; // correct authored maxLife from Kotlin
   ctx.fillStyle="#0b1521";ctx.fillRect(22,20,382,31);ctx.fillRect(556,20,382,31);
-  ctx.fillStyle="#95d78f";ctx.fillRect(25,23,Math.max(0,Math.min(376,l1/1000*376)),25);
-  ctx.fillStyle="#80bbf0";ctx.fillRect(559,23,Math.max(0,Math.min(376,l2/1000*376)),25);
+  ctx.fillStyle="#95d78f";ctx.fillRect(25,23,life[0],25);
+  ctx.fillStyle="#80bbf0";ctx.fillRect(559,23,life[1],25);
   ctx.fillStyle="#e9f2fa";ctx.font="14px system-ui";
   ctx.fillText(activeNames[0],26,69);ctx.textAlign="right";ctx.fillText(activeNames[1],934,69);ctx.textAlign="left";
 }
@@ -307,8 +310,8 @@ function begin(){
   images=[p1,p2];activeNames=[p1.name,p2.name];
   startedAt=performance.now();previousTime=0;previousTick=0;workerStats=null;latest=null;
   worker.postMessage({type:"start",
-    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd},
-    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd},
+    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||""},
+    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||""},
     cpu:byId("cpu").checked,endless:byId("endless").checked,
     level:+byId("ai-level").value
   });
@@ -419,6 +422,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get importedCount(){return fighters.size-1},
   get sources(){return [...installedTables.values()].map(x=>x.name)},
   get lastVisualFrame(){return latest?.frame??0},
+  get renderPlan(){return latest},
   get warning(){return images.find(x=>x?.warning)?.warning||""}
 });
 async function initialize(){

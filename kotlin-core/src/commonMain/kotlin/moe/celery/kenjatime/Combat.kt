@@ -57,18 +57,39 @@ data class FighterDefinition(
     val groundBack: Int = 15,
     val airGravity: Int = Fixed.of(0.7),
     val xScale: Int = Fixed.ONE,
-    val yScale: Int = Fixed.ONE
+    val yScale: Int = Fixed.ONE,
+    val localCoordWidth: Int = 320,
+    val localCoordHeight: Int = 240
 ) {
+    /** AIR collision boxes use the character's local coordinates. Convert
+     * them into the common 320x240 stage collision space, using fixed-point
+     * integer scales. This is required for mixed 1008x756/320x240 matches.
+     */
+    val collisionScaleX: Int
+        get() = ((xScale.toLong()*320)/localCoordWidth).coerceIn(1,65536).toInt()
+    val collisionScaleY: Int
+        get() = ((yScale.toLong()*240)/localCoordHeight).coerceIn(1,65536).toInt()
     companion object {
-        fun fromScript(name: String, air: String, cns: String, cmd: String = ""): FighterDefinition {
+        fun fromScript(name: String, air: String, cns: String, cmd: String = "",
+                       defText: String = ""): FighterDefinition {
             val constants = MugenCnsParser.constants(cns)
+            // Character localcoord is authored in DEF, not the AIR or CNS.
+            // Nu-13 uses 1008x756. Never assume every character is 320x240.
+            val local = if(defText.isBlank()) emptyList() else
+                MugenDefParser.parse(defText).section("info")
+                    ?.get("localcoord")?.split(',') ?: emptyList()
+            val localWidth=local.getOrNull(0)?.trim()?.toIntOrNull()
+                ?.takeIf { it in 160..4096 } ?: 320
+            val localHeight=local.getOrNull(1)?.trim()?.toIntOrNull()
+                ?.takeIf { it in 120..4096 } ?: 240
             // MUGEN CMD embeds StateDef -1 and controllers AFTER [Command] sections.
             // Motion definitions alone cannot activate any authored combat move.
             val allStates = if (cmd.isBlank()) cns else cns + "\n" + cmd
             return FighterDefinition(
                 name, MugenAirParser.parse(air), MugenCnsParser.parse(allStates),
                 constants.maxLife, constants.front, constants.back,
-                constants.gravity, constants.xScale, constants.yScale
+                constants.gravity, constants.xScale, constants.yScale,
+                localWidth,localHeight
             )
         }
     }
@@ -240,9 +261,11 @@ class FightingCharacter(
     fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
     fun markHit(target: Int) { struck.add(target) }
     fun attackBoxes(): List<MugenRect> = animation?.frame?.boxes
-        ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight, definition.xScale, definition.yScale) } ?: emptyList()
+        ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight,
+            definition.collisionScaleX,definition.collisionScaleY) } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
-        ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
+        ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight,
+            definition.collisionScaleX,definition.collisionScaleY) } ?: emptyList()
     private fun number(raw: String?, default: Int = 0): Int =
         raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(Fixed::of) } ?: default
     private fun integer(raw: String?, default: Int = 0): Int =
