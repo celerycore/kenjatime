@@ -44,3 +44,48 @@ export function nextTickEstimate(previousMs, observedMs) {
 export function presentationDue(clock, time, {hidden=false, paused=false, dirty=false, renderFps=60}={}) {
   return !hidden && (!paused || dirty) && clock.renderDue(time, renderFps);
 }
+
+
+/** Measure the rate of *change* in clock debt, not its absolute size.
+ * Clock debt is never discarded: this signal only governs how often pixels
+ * are submitted. A slow phone can recover 60 Hz gameplay by presenting fewer
+ * visual snapshots while every MUGEN/IKEMEN tick continues in order.
+ */
+export class SimulationDebtTrend {
+  constructor({windowMs=1000}={}) {
+    this.windowMs=windowMs;
+    this.lastTime=null;
+    this.lastDebt=0;
+    this.rate=0;
+  }
+  observe(time,debt) {
+    if(!Number.isFinite(time)||!Number.isFinite(debt))return this.rate;
+    if(this.lastTime===null || time<this.lastTime) {
+      this.lastTime=time;this.lastDebt=Math.max(0,debt);this.rate=0;
+      return this.rate;
+    }
+    const elapsed=time-this.lastTime;
+    if(elapsed<this.windowMs)return this.rate;
+    this.rate=(Math.max(0,debt)-this.lastDebt)*1000/elapsed;
+    this.lastTime=time;
+    this.lastDebt=Math.max(0,debt);
+    return this.rate;
+  }
+}
+
+/** Optional gameplay-first frame skipping. A draw is NEVER substituted for a
+ * deterministic tick, and no fighter's AIR animation frames are skipped.
+ * The UI sees fewer world snapshots, but tick-based gameplay stays unchanged.
+ * The stable 12/15/20/24/30 FPS tiers avoid browser timer churn and let us
+ * observe whether CPU time is better spent on simulation than rendering.
+ */
+export function gameplayFirstRenderFps({
+  debt=0,debtRate=0,tickCpuMs=0,
+}={}) {
+  if(!Number.isFinite(debt)||debt<1)return NORMAL_PRESENTATION_FPS;
+  if(debtRate>=10 || tickCpuMs>=16)return 12;
+  if(debtRate>=4 || tickCpuMs>=14)return 15;
+  if(debtRate>=1 || tickCpuMs>=12)return 20;
+  if(debt>=60)return 24;
+  return BACKLOG_PRESENTATION_FPS;
+}
