@@ -60,11 +60,20 @@ try:
         summary['checks']['androidDocumentPicker'] = True
         summary['checks']['isolatedLabel'] = True
 
+        cache=page.locator('#sprite-cache-mode')
+        assert cache.count() == 1
+        assert cache.input_value() == 'extended'
+        assert {x['value'] for x in cache.locator('option').evaluate_all(
+            '(options) => options.map(x => ({value:x.value}))')} == {
+            'legacy','balanced','extended','maximum'}
         page.locator('#arena-mode').select_option('cpu')
         page.locator('#endless-mode').check()
         assert page.locator('#endless-mode').is_checked()
         page.locator('#fight-now').click()
-        page.wait_for_function('window.__kenjatimeCoreBattle?.gpu()?.frames > 10', timeout=40000)
+        page.wait_for_function('window.__kenjatimeCoreBattle?.gpu()?.frames > 10', timeout=90000)
+        assert page.locator('.kenjatime-now-loading').count() == 1
+        assert page.locator('.kenjatime-now-loading').is_hidden()
+        assert page.locator('.kenjatime-now-loading .kenjatime-loading-title').text_content() == 'NOW LOADING'
         # Open after match starts, so recording remains reachable.
         assert page.locator('#kenjatime-r8-benchmark details').evaluate('(el) => el.open')
         assert page.locator('#kenjatime-r8-benchmark details').evaluate(
@@ -92,6 +101,12 @@ try:
         state = page.evaluate('window.__kenjatimeCoreBattle.snapshot()')
         assert state['endlessMode'] is True and state['roundTimeLeft'] == -1, state
         assert state['simulationHz'] == 60, state
+        assert state['spritePreload']['mode'] == 'extended', state
+        assert state['spritePreload']['loaded'] > 0, state
+        assert 0 < state['spritePreload']['bytes'] <= 128*1024*1024, state
+        assert state['spriteRestoreCache']['budgetBytes'] == 128*1024*1024, state
+        assert gpu['textureBudgetBytes'] == 128*1024*1024, gpu
+        assert page.locator('[data-r8="preload"]').count() == 1
         assert state['simulationTicks'] >= 10, state
         assert state['simulationBacklogTicks'] >= 0, state
         assert state['compatibility']['id'] == 'mugen-1.1', state
@@ -146,7 +161,11 @@ try:
             'gpu_texture_reuses','sprite_restore_compressed_entries',
             'sprite_restore_saved_raw_mib','sprite_restore_decompressions',
             'frame_packet_build_ms','frame_sprite_restore_ms',
-            'frame_renderer_cpu_ms'])
+            'frame_renderer_cpu_ms',
+            'sprite_preload_mode','sprite_preload_candidates',
+            'sprite_preload_attempted','sprite_preload_loaded',
+            'sprite_preload_duration_ms','sprite_preload_resident_mib',
+            'sprite_cpu_cache_budget_mib'])
         assert all(key in parsed_csv[0] for key in
                    ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
                     'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',
