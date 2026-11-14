@@ -189,14 +189,29 @@ export function createCoreRuntime(emit) {
         if (presentation.backlog) renderWithBacklogCount++;
         const start = performance.now(),
           packet = session.frame();
+        const packetBuildMs = performance.now() - start;
+        let restoreCpuMs = 0;
+        const rendererStart = performance.now();
         renderer.render(packet, {
           width: Math.round(960 * scale),
           height: Math.round(540 * scale),
-          restoreAssets: ids => session.restoreAssets(ids),
+          restoreAssets: ids => {
+            const restoredAt = performance.now();
+            const result = session.restoreAssets(ids);
+            restoreCpuMs += performance.now() - restoredAt;
+            return result;
+          },
         });
+        const rendererCpuMs = performance.now() - rendererStart;
         const elapsed = performance.now() - start;
-        // CPU-side packet build + GL submission time; NOT a GPU completion timer.
-        if (renderer.stats) renderer.stats.frameCpuSubmitMs = elapsed;
+        // Separate packet creation, SFF reconstruction, and GL submission.
+        // These are CPU timing estimates, NOT asynchronous GPU completion.
+        if (renderer.stats) {
+          renderer.stats.frameCpuSubmitMs = elapsed;
+          renderer.stats.framePacketBuildMs = packetBuildMs;
+          renderer.stats.frameSpriteRestoreCpuMs = restoreCpuMs;
+          renderer.stats.frameRendererCpuMs = rendererCpuMs;
+        }
         dirty = false;
         if (quality === "auto") {
           scale = adaptiveResolution.observe(time, elapsed, {
