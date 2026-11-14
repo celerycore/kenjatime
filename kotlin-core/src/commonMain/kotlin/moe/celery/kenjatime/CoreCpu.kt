@@ -84,6 +84,16 @@ class CoreTickBudget(private val maximumBatch: Int = 6) {
         completed++
         overdue = (target - completed).coerceAtLeast(0L)
     }
+    /** Drop paused wall time without resetting simulation tick numbering.
+     * Input buffers, hitpause, states, AI timing and replay tick identity all
+     * continue at the next exact authored 60 Hz tick on resume.
+     */
+    fun resume(nowMs: Double) {
+        require(nowMs.isFinite())
+        epochMs = nowMs - completed.toDouble() * 1000.0 / 60.0
+        target = completed
+        overdue = 0L
+    }
     fun reset(nowMs: Double) {
         require(nowMs.isFinite())
         epochMs=nowMs; completed=0; overdue=0; target=0
