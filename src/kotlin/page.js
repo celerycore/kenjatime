@@ -309,8 +309,8 @@ function begin(){
   images=[p1,p2];activeNames=[p1.name,p2.name];
   startedAt=performance.now();previousTime=0;previousTick=0;workerStats=null;latest=null;
   worker.postMessage({type:"start",
-    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd},
-    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd},
+    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||""},
+    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||""},
     cpu:byId("cpu").checked,endless:byId("endless").checked,
     level:+byId("ai-level").value
   });
