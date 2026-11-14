@@ -41,11 +41,11 @@ class CorePresentationPlannerTest {
 
     @Test fun Nu13DefLocalcoordIsParsedInKotlinAndChangesVisualScale() {
         val nu=FighterDefinition.fromScript("Nu-13",
-            "[Begin Action 0]\\n0,0,0,0,-1","",
-            "","[Info]\\nlocalcoord = 1008,756;960,720")
+            "[Begin Action 0]\n0,0,0,0,-1","",
+            "","[Info]\nlocalcoord = 1008,756;960,720")
         val standard=FighterDefinition.fromScript("Tomoka",
-            "[Begin Action 0]\\n0,0,0,0,-1","","",
-            "[Info]\\nname = \\"Tomoka\\"")
+            "[Begin Action 0]\n0,0,0,0,-1","","",
+            "[Info]\nname = \"Tomoka\"")
         assertEquals(1008,nu.localCoordWidth)
         assertEquals(756,nu.localCoordHeight)
         assertEquals(320,standard.localCoordWidth)
@@ -54,9 +54,9 @@ class CorePresentationPlannerTest {
             FightingCharacter(standard,2))
         fight.configureArena(-250,250)
         val json=CorePresentationPlanner.snapshot(fight,0)
-        assertTrue(json.contains("\\"spriteScaleX\\":0.317460317"),json)
-        assertTrue(json.contains("\\"spriteScaleY\\":0.317460317"),json)
-        assertTrue(json.contains("\\"spriteScaleX\\":1.0"),json)
+        assertTrue(json.contains("\"spriteScaleX\":0.317460317"),json)
+        assertTrue(json.contains("\"spriteScaleY\":0.317460317"),json)
+        assertTrue(json.contains("\"spriteScaleX\":1.0"),json)
     }
 
     @Test fun KotlinCameraAndSpriteAxesDriveVisualPosition() {
