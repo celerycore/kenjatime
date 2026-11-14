@@ -77,6 +77,9 @@ export async function collectBenchmarkDeviceInfo({
     browserVersion=clean(preferred.version,40)||browserVersion;
   }
   const osName=parsed.osName==="Unknown" ? clean(hints.platform||data?.platform,50)||"Unknown":parsed.osName;
+  // Android's reduced UA often reports a frozen major version of 10.
+  // Explicit high-entropy platformVersion takes precedence when available.
+  const osVersion=clean(hints.platformVersion,40)||parsed.osVersion;
   const deviceModel=clean(hints.model||parsed.deviceModel,90)||"Unknown";
   const memory=Number(nav?.deviceMemory);
   const cpu=Number(nav?.hardwareConcurrency);
@@ -84,7 +87,7 @@ export async function collectBenchmarkDeviceInfo({
   const height=Number(screenInfo?.height);
   const dpr=Number(pixelRatio);
   return {
-    deviceModel,osName,osVersion:parsed.osVersion,
+    deviceModel,osName,osVersion,
     browserName,browserVersion,userAgent:parsed.userAgent,
     deviceMemoryGiB:Number.isFinite(memory)&&memory>0?memory:null,
     hardwareConcurrency:Number.isInteger(cpu)&&cpu>0?cpu:null,
