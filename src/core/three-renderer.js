@@ -135,6 +135,20 @@ export class CoreThreeRenderer {
         }
     this.upload({ id: "@spark", width: 8, height: 8, pixels });
   }
+  /** Experimental A/B budget for imported indexed art. Unlike unlimited
+   * growth, each preset is a hard bound and stays separate from live Core.
+   * Legacy uses the existing measured 64->96 MiB governor. */
+  configureSpriteMemory(mode) {
+    const caps={balanced:96,extended:128,maximum:160};
+    if(!Object.hasOwn(caps,mode))return this.limit;
+    const bytes=caps[mode]*GPU_MIB;
+    if(this.textureBytes>bytes)throw Error('GPU resident art exceeds selected cache cap.');
+    this.limit=bytes;
+    this.textureBudgetGovernor=new TextureBudgetGovernor({
+      initialBytes:bytes,maxBytes:bytes,
+    });
+    return this.limit;
+  }
   /** Reserve raw GPU backing bytes, never evicting the current visible frame. */
   makeRoomFor(requiredBytes, activeIds = new Set()) {
     const evictions = planTextureEvictions(
