@@ -134,6 +134,31 @@ export class CoreThreeRenderer {
         }
     this.upload({ id: "@spark", width: 8, height: 8, pixels });
   }
+  /** Reserve raw GPU backing bytes, never evicting the current visible frame. */
+  makeRoomFor(requiredBytes, activeIds = new Set()) {
+    const evictions = planTextureEvictions(
+      this.textures, this.textureBytes, requiredBytes, this.limit, activeIds,
+    );
+    if (!evictions) return false;
+    for (const id of evictions) {
+      const old = this.textures.get(id);
+      if (!old) continue;
+      const bytes = old.userData?.residentBytes ?? old.userData?.videoBytes ?? 0;
+      const kind = old.userData?.kind;
+      old.dispose();
+      this.textureBytes -= bytes;
+      this.textureBreakdown ||= { indexed: 0, palette: 0, rgba: 0, video: 0 };
+      const counter = kind === "indexed8" ? "indexed" :
+        kind === "rgba8" ? "rgba" :
+        kind === "palette" ? "palette" :
+        kind === "video" ? "video" : null;
+      if (counter) this.textureBreakdown[counter] =
+        Math.max(0, (this.textureBreakdown[counter] || 0) - bytes);
+      this.textures.delete(id);
+      this.evictedTextures++;
+    }
+    return true;
+  }
   upload(asset, activeIds = new Set()) {
     if (this.textures.has(asset.id)) return true;
     const isPalette = asset.role === "palette" ||
@@ -158,29 +183,10 @@ export class CoreThreeRenderer {
       throw Error("Invalid GPU asset dimensions.");
     if (isPalette && (asset.indexed || asset.width !== 256 || asset.height !== 1))
       throw Error("A GPU palette must be a 256x1 RGBA8 texture.");
-    if (this.textureBytes + pixels.length > this.limit) {
-      const evictions = planTextureEvictions(
-        this.textures, this.textureBytes, pixels.length, this.limit, activeIds,
-      );
-      if (!evictions) {
-        // If a pathological frame genuinely exceeds GPU capacity, keep the
-        // simulation alive and omit only that image; never kill the match.
-        this.deferredTextures++;
-        return false;
-      }
-      for (const id of evictions) {
-        const old = this.textures.get(id);
-        if (!old) continue;
-        old.dispose();
-        this.textureBytes -= old.userData.residentBytes || old.userData.videoBytes || 0;
-        const oldKind = old.userData.kind;
-        this.textureBreakdown ||= { indexed: 0, palette: 0, rgba: 0 };
-        if (oldKind === "indexed8") this.textureBreakdown.indexed -= old.userData.residentBytes;
-        else if (oldKind === "palette") this.textureBreakdown.palette -= old.userData.residentBytes;
-        else if (oldKind === "rgba8") this.textureBreakdown.rgba -= old.userData.residentBytes;
-        this.textures.delete(id);
-        this.evictedTextures++;
-      }
+    if (!this.makeRoomFor(pixels.length, activeIds)) {
+      // An oversized visible frame is deferred, never a reason to stop combat.
+      this.deferredTextures++;
+      return false;
     }
     const texture = new DataTexture(
       pixels,
@@ -291,9 +297,19 @@ export class CoreThreeRenderer {
       )
         throw Error("Invalid stage video frame dimensions.");
       let texture = this.textures.get(data.id);
+      if (texture && texture.userData.kind !== "video")
+        throw Error("Stage video texture ID conflicts with an existing sprite.");
       const old = texture?.userData.videoBytes || 0;
-      if (this.textureBytes - old + bytes > this.limit)
-        throw Error("GPU texture budget exceeded by stage video.");
+      // Replace an existing video in place: reserve only its growth. Preserve
+      // the last displayed frame and the video being updated during eviction.
+      const protectedIds = new Set(this.activeTextureIds || []);
+      protectedIds.add(data.id);
+      if (!this.makeRoomFor(Math.max(0, bytes - old), protectedIds)) {
+        // Temporary memory pressure must not permanently disable a video or
+        // cause an error that ends the match. A later frame can try again.
+        this.deferredVideoFrames = (this.deferredVideoFrames || 0) + 1;
+        return false;
+      }
       if (!texture) {
         texture = new Texture();
         texture.generateMipmaps = false;
@@ -307,7 +323,10 @@ export class CoreThreeRenderer {
       texture.needsUpdate = true;
       this.renderer.initTexture(texture);
       texture.userData.videoBytes = bytes;
+      texture.userData.kind = "video";
       this.textureBytes += bytes - old;
+      this.textureBreakdown ||= { indexed: 0, palette: 0, rgba: 0, video: 0 };
+      this.textureBreakdown.video = (this.textureBreakdown.video || 0) + bytes - old;
       this.videoUploads = (this.videoUploads || 0) + 1;
       return true;
     } finally {
@@ -350,6 +369,9 @@ export class CoreThreeRenderer {
       if (draw.texture) activeTextures.add(draw.texture);
       if (draw.indexed && draw.palette) activeTextures.add(draw.palette);
     }
+    // Also protect these IDs when asynchronous stage-video updates arrive
+    // between presentation frames.
+    this.activeTextureIds = activeTextures;
     for (const asset of frame.assets || [])
       if (activeTextures.has(asset.id)) this.upload(asset, activeTextures);
     let missing = [...activeTextures].filter(id => !this.textures.has(id));
@@ -481,6 +503,8 @@ export class CoreThreeRenderer {
       indexedTextureBytes: this.textureBreakdown?.indexed || 0,
       paletteTextureBytes: this.textureBreakdown?.palette || 0,
       truecolorTextureBytes: this.textureBreakdown?.rgba || 0,
+      videoTextureBytes: this.textureBreakdown?.video || 0,
+      deferredVideoFrames: this.deferredVideoFrames || 0,
       // Raw index bytes saved versus expanding the same images to RGBA8.
       indexedRawBytesSaved: (this.textureBreakdown?.indexed || 0) * 3,
       width,
@@ -503,5 +527,6 @@ export class CoreThreeRenderer {
     this.renderer.dispose();
     this.renderer.forceContextLoss();
     this.textures.clear();
+    this.activeTextureIds?.clear();
   }
 }
