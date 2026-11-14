@@ -152,7 +152,16 @@ export class CoreSession {
     this.spriteMetadata = new Map();
     // Admit sprites only after the GPU has evicted them once. This bounds
     // repeated R8 SFF decode/restore costs without expanding every archive.
-    this.spriteRestoreCache = new SpriteRestoreCache({requireRepeat:true});
+    // Trade startup cost and bounded CPU memory for fewer SFF decodes during
+    // combat. Existing 16 MiB mode remains selectable for A/B and low RAM.
+    const cacheBudgets = {legacy:16,balanced:64,extended:128,maximum:192};
+    this.spriteCacheMode = Object.hasOwn(cacheBudgets,selection.spriteCacheMode)
+      ? selection.spriteCacheMode : 'extended';
+    this.spriteRestoreCache = new SpriteRestoreCache({
+      requireRepeat:true,maxBytes:cacheBudgets[this.spriteCacheMode]*1024*1024,
+    });
+    this.preloadStats={mode:this.spriteCacheMode,attempted:0,loaded:0,
+      skipped:0,bytes:0,durationMs:0,candidates:0};
     this.paletteFallbacks = new Map();
     this.sent = new Set();
     this.assets = [];
@@ -202,6 +211,103 @@ export class CoreSession {
   issue(type, message) {
     const key = type + ":" + message;
     if (this.issues.size < 2000) this.issues.set(key, { type, message });
+  }
+  /** Before combat, cache the unique indexed art referenced by both AIR
+   * programs. Startup may take longer; gameplay's 60Hz clock has not started.
+   * Always bound decoded CPU residency. Never hold transient RGBA expansions.
+   */
+  async preloadSprites({onProgress=()=>{}}={}) {
+    const startedAt=performance.now();
+    if(this.spriteCacheMode==='legacy'){
+      onProgress({phase:'sprites',done:0,total:0,progress:1,bytes:0});
+      return this.preloadStats;
+    }
+    const stageResource=this.match.stage?.definition?.sprite?.path
+      ? this.match.stage.definition : null;
+    const fxResource=this.commonEffects.resource;
+    const resources=[...new Set([
+      this.match.player?.character,this.match.opponent?.character,
+      stageResource,fxResource,
+    ])].filter(Boolean);
+    const tasks=[];
+    for(const resource of resources){
+      const bank=this.bank(resource);
+      const lookup=this.indices.get(resource);
+      const popularity=new Map();
+      const actions=resource===fxResource
+        ? this.commonEffects.animations.values() : resource.animations || [];
+      for(const action of actions){
+        for(const frame of action.frames || []){
+          if(!Number.isInteger(frame.group)||frame.group<0||
+             !Number.isInteger(frame.number))continue;
+          const index=lookup.get(frame.group+','+frame.number);
+          if(index!==undefined)popularity.set(index,(popularity.get(index)||0)+1);
+        }
+      }
+      // Static stage backgrounds use BG spriteno rather than an AIR action.
+      if(resource===stageResource)
+        for(const element of stageResource.elements||[]){
+          const pair=element.spriteno;
+          if(!Array.isArray(pair)||pair.length<2)continue;
+          const index=lookup.get(pair[0]+','+pair[1]);
+          if(index!==undefined)
+            popularity.set(index,(popularity.get(index)||0)+16);
+        }
+      // Some imported fighters contain incomplete AIR declarations; still
+      // prewarm early SFF entries instead of silently skipping all art.
+      if(!popularity.size)
+        for(let i=0;i<Math.min(bank.sprites.length,1024);i++)
+          popularity.set(i,1);
+      // Select the most-referenced artwork for the finite warmup budget.
+      // Admit least popular first, so the hottest sprites remain at the MRU
+      // end if the cache fills. This does not affect authored draw order.
+      const selected=[...popularity]
+        .sort((a,b)=>b[1]-a[1]||a[0]-b[0])
+        .slice(0,6000)
+        .sort((a,b)=>a[1]-b[1]||b[0]-a[0]);
+      for(const [index] of selected)
+        tasks.push({resource,bank,index,id:this.bankIds.get(resource)+':'+index});
+    }
+    this.preloadStats.candidates=tasks.length;
+    onProgress({phase:'sprites',done:0,total:tasks.length,progress:0,
+      bytes:0,mode:this.spriteCacheMode});
+    for(let i=0;i<tasks.length;i++){
+      if(this.closed)break;
+      const {bank,index,id}=tasks[i];
+      if(!this.spriteRestoreCache.entries.has(id)){
+        try{
+          // SFFv1 PCX and SFFv2 indexed entries decode only their index
+          // plane. Truecolor sprites are handled on demand as before.
+          const decoded=bank.decodeIndexOnly?.(index)||
+            bank.decodeIndexed?.(index);
+          const pixels=decoded?.indices;
+          if(pixels instanceof Uint8Array&&pixels.length>0&&
+             pixels.length<=4*1024*1024&&
+             this.spriteRestoreCache.put(id,pixels,{indexed:true,preload:true}))
+            this.preloadStats.loaded++;
+          else this.preloadStats.skipped++;
+        }catch{
+          // Nonportable legacy art must never prevent combat from starting.
+          // The original restore path can still diagnose invalid sprites.
+          this.preloadStats.skipped++;
+        }
+      }
+      this.preloadStats.attempted++;
+      if((i+1)%32===0 || i+1===tasks.length){
+        const bank=tasks[i].bank;
+        bank.clearDecodedCache?.();
+        onProgress({phase:'sprites',done:i+1,total:tasks.length,
+          progress:(i+1)/tasks.length,
+          bytes:this.spriteRestoreCache.bytes,
+          mode:this.spriteCacheMode});
+        // Yield the worker event loop so NOW LOADING can paint and a
+        // cancellation can be processed even on an Infinix browser.
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+    }
+    this.preloadStats.bytes=this.spriteRestoreCache.bytes;
+    this.preloadStats.durationMs=performance.now()-startedAt;
+    return this.preloadStats;
   }
   async initializeScripts() {
     if (
@@ -999,6 +1105,7 @@ export class CoreSession {
       expressions: this.expressions.stats,
       interpreterCache: expressionCacheStats(),
       spriteRestoreCache: this.spriteRestoreCache.stats,
+      spritePreload: {...this.preloadStats},
       capabilities: this.capabilities,
       diagnostics: [...this.match.diagnostics, ...this.issues.values()],
     };

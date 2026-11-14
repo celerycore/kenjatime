@@ -262,10 +262,23 @@ export function createCoreRuntime(emit) {
   }) {
     quality=normalizeQuality(value);
     scale=qualityStartingScale(quality);
+    emit({type:'loading-progress',phase:'Initializing graphics',progress:0.03});
     if (!renderer) prepare(canvas);
+    emit({type:'loading-progress',phase:'Compiling character scripts',progress:0.10});
     session = new CoreSession(files, selection);
+    renderer.configureSpriteMemory(session.spriteCacheMode);
+    emit({type:'loading-progress',phase:'Preparing combat and audio',progress:0.22});
     await session.initializeScripts();
     if (closed) return;
+    emit({type:'loading-progress',phase:'Warming sprite cache',progress:0.30});
+    await session.preloadSprites({onProgress:state=>{
+      emit({type:'loading-progress',phase:'Caching indexed sprite art',
+        progress:0.30+0.58*state.progress,
+        loaded:state.done,total:state.total,bytes:state.bytes,
+        cacheMode:state.mode});
+    }});
+    if (closed) return;
+    emit({type:'loading-progress',phase:'Preparing arena',progress:0.90});
     try {
       session.modelReady = await renderer.loadStage(
         session.match.stage?.definition,
@@ -327,6 +340,11 @@ export function createCoreRuntime(emit) {
       }
     }
     if (closed) return;
+    emit({type:'loading-progress',phase:'Starting fight',progress:1,
+      loaded:session.preloadStats.loaded,
+      total:session.preloadStats.candidates,
+      bytes:session.preloadStats.bytes,
+      cacheMode:session.spriteCacheMode});
     started = true;
     emit({ type: "ready", capabilities: session.capabilities });
     schedule();

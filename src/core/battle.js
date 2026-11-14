@@ -46,7 +46,7 @@ export async function openCoreBattle({
   host.className = "kenjatime-battle";
   host.setAttribute("aria-label", "Kenjatime arena");
   host.innerHTML =
-    '<div class="kenjatime-battle-screen"><div class="kenjatime-fight-frame"><canvas width="960" height="540" aria-label="Fighting arena"></canvas><strong class="core-announcement" aria-live="off" hidden></strong><div class="core-hud"><div data-player="0"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div><span class="core-round">ROUND 1</span><div data-player="1"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div></div><p class="kenjatime-battle-status" role="status">Preparing your match…</p></div></div><div class="kenjatime-battle-bar"><button class="secondary" data-menu>Menu</button><button class="secondary" data-pause>Pause</button><button class="secondary" data-sound>Sound on</button><button class="secondary" data-quality>Visuals: Auto</button><button class="secondary" data-presentation aria-label="Toggle native 4 by 3 or widescreen 16 by 9 match framing">Screen: 16:9</button></div>';
+    '<div class="kenjatime-battle-screen"><div class="kenjatime-fight-frame"><canvas width="960" height="540" aria-label="Fighting arena"></canvas><strong class="core-announcement" aria-live="off" hidden></strong><div class="core-hud"><div data-player="0"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div><span class="core-round">ROUND 1</span><div data-player="1"><b></b><meter min="0" max="1000" value="1000"></meter><small></small></div></div><section class="kenjatime-now-loading" role="status" aria-live="polite"><span class="kenjatime-loading-title">NOW LOADING</span><strong data-load-phase>Preparing your match…</strong><progress value="0" max="100" aria-label="Match loading progress"></progress><small data-load-detail>Compiling fighters and preparing assets</small></section></div></div><div class="kenjatime-battle-bar"><button class="secondary" data-menu>Menu</button><button class="secondary" data-pause>Pause</button><button class="secondary" data-sound>Sound on</button><button class="secondary" data-quality>Visuals: Auto</button><button class="secondary" data-presentation aria-label="Toggle native 4 by 3 or widescreen 16 by 9 match framing">Screen: 16:9</button></div>';
   let presentation = normalizePresentation(selection.presentation);
   selection.presentation = presentation;
   const screen = host.querySelector('.kenjatime-battle-screen');
@@ -135,6 +135,24 @@ export async function openCoreBattle({
   touch.panel.hidden = false;
   function update(data) {
     if (closed) return;
+    if(data.type==='loading-progress'){
+      const loading=host.querySelector('.kenjatime-now-loading');
+      if(loading && !ready){
+        const percent=Math.max(0,Math.min(100,
+          Math.round((Number(data.progress)||0)*100)));
+        loading.querySelector('[data-load-phase]').textContent=
+          data.phase||'Preparing your match';
+        loading.querySelector('progress').value=percent;
+        const detail=loading.querySelector('[data-load-detail]');
+        const cached=Number(data.bytes)||0;
+        detail.textContent=Number.isFinite(data.total)&&data.total>0
+          ? (data.loaded||0).toLocaleString()+' / '+
+            data.total.toLocaleString()+' sprites · '+
+            (cached/1048576).toFixed(1)+' MiB cached · '+percent+'%'
+          : percent+'% · Loading character and stage resources';
+      }
+      return;
+    }
     if (data.type === "video-init") {
       videos.open(data);
       return;

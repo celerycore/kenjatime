@@ -467,6 +467,9 @@ export function createLibraryHost(options) {
             palette: data.palette || 1,
             opponentPalette: data.opponentPalette || 1,
             presentation: data.presentation === "native-4-3" ? "native-4-3" : "widescreen-16-9",
+            // Only these explicit bounded presets reach the Core worker.
+            spriteCacheMode: ['legacy','balanced','extended','maximum']
+              .includes(data.spriteCacheMode) ? data.spriteCacheMode : 'extended',
             effectsPackage: fxPackage ? `imports/${fxPackage.id}/` : undefined,
           },
           onProgress: (m) => window.__kenjatimeNativeProgress?.(m),

@@ -93,7 +93,7 @@ export class SpriteRestoreCache {
     }
     return entry.data;
   }
-  put(id,pixels,{indexed=false}={}){
+  put(id,pixels,{indexed=false,preload=false}={}){
     if(typeof id!=='string'||!(pixels instanceof Uint8Array)||!pixels.length||
        pixels.byteLength>this.limit||!this.limit)
       return false;
@@ -101,7 +101,7 @@ export class SpriteRestoreCache {
     // evicted sprites only once. Previously every miss was copied into the
     // 16 MiB cache, evicting everything and yielding zero cache hits.
     // Admit a pixel allocation only after this id has been restored twice.
-    if(this.requireRepeat && !this.entries.has(id)){
+    if(this.requireRepeat && !preload && !this.entries.has(id)){
       if(!this.probation.has(id)){
         this.probation.add(id);
         if(this.probation.size>this.probationLimit)
@@ -112,6 +112,9 @@ export class SpriteRestoreCache {
       this.probation.delete(id);
       this.promotions++;
     }
+    // Offline startup warmup may admit a sprite on its first visit. Combat
+    // still honors the existing second-chance policy for non-preloaded art.
+    if(preload)this.probation.delete(id);
     const old=this.entries.get(id);
     if(old){
       this.entries.delete(id);this.bytes-=old.data.byteLength;

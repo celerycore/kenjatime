@@ -136,3 +136,29 @@
     background: #141b24bc;
   }
 }
+
+/* Loading screen stays on top of the game canvas while the worker predecodes
+   original MUGEN sprite indexes. Uses real progress, not an invented timer. */
+.kenjatime-now-loading {
+  position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:13px;text-align:center;
+  padding:clamp(16px,5vw,38px);box-sizing:border-box;
+  background:linear-gradient(135deg,#0a1020 0%,#11223a 57%,#0b1426 100%);
+  color:#e4ffb7;pointer-events:none;
+}
+.kenjatime-now-loading[hidden]{display:none!important}
+.kenjatime-loading-title {
+  display:block;font-size:clamp(19px,4.7vw,38px);font-weight:900;
+  letter-spacing:.14em;color:#d3fb8d;text-shadow:0 1px 14px #b5eb6733;
+}
+.kenjatime-now-loading strong{
+  color:#dce7fa;font-size:clamp(12px,2.1vw,17px);font-weight:650;
+}
+.kenjatime-now-loading progress{
+  display:block;width:min(370px,82%);height:12px;
+  border:1px solid #628b72;border-radius:20px;overflow:hidden;
+  background:#1b3244;accent-color:#d3fb8d;
+}
+.kenjatime-now-loading progress::-webkit-progress-bar{background:#1b3244}
+.kenjatime-now-loading progress::-webkit-progress-value{background:#d3fb8d}
+.kenjatime-now-loading small{color:#9ab8ca;font-size:clamp(10px,1.8vw,13px)}
