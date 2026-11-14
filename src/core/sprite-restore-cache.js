@@ -43,7 +43,9 @@ export function unpackSparseR8(encoded, pixelCount) {
 }
 
 function likelySparseR8(pixels) {
-  const step=Math.max(1,Math.floor(pixels.length/64));
+  // Odd sampling stride avoids aliasing power-of-two sprite widths and
+  // repeated 8/16-byte patterns (common in indexed PCX/SFF art).
+  const step=Math.max(1,Math.floor(pixels.length/64))|1;
   let sampled=0,zeros=0;
   for(let i=0;i<pixels.length && sampled<64;i+=step) {
     sampled++;
