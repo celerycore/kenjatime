@@ -553,8 +553,10 @@ export class WasmExpressions {
       return n | 0;
     };
     const host = {
-      readInt: (...args) => read(...args, false),
-      readFloat: (...args) => read(...args, true),
+      // Wasm imports call these millions of times in complex CNS AI.
+      // Fixed arity avoids a rest-parameter array and spread for every read.
+      readInt: (id,count,a,b) => read(id,count,a,b,false),
+      readFloat: (id,count,a,b) => read(id,count,a,b,true),
       finite: (value) => {
         if (!Number.isFinite(value))
           throw new BottomError("Expression produced a non-finite number.");
