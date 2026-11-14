@@ -85,6 +85,7 @@ export class CoreThreeRenderer {
     this.textureBreakdown = { indexed: 0, palette: 0, rgba: 0 };
     this.textures = new Map();
     this.evictedTextures = 0;
+    this.recycledTextures = 0;
     this.deferredTextures = 0;
     this.slots = [];
     this.frames = 0;
@@ -159,6 +160,30 @@ export class CoreThreeRenderer {
     }
     return true;
   }
+  /** Rebind an inactive, same-size GPU DataTexture instead of allocating and
+   * destroying an identical WebGL texture each time huge SFF frames churn.
+   * Only exact type and dimensions may be reused: never convert indexed R8,
+   * 256x1 palettes or RGBA pixels into one another. */
+  recycleTexture(asset,kind,pixels,activeIds) {
+    for(const [oldId,texture] of this.textures) {
+      if(oldId==='@white'||oldId==='@spark'||activeIds.has(oldId))continue;
+      if(texture.userData.kind!==kind ||
+         texture.userData.residentBytes!==pixels.length ||
+         texture.image?.width!==asset.width ||
+         texture.image?.height!==asset.height)continue;
+      // The DataTexture and its GL allocation retain their original format.
+      // Replacing the pixel backing and marking it dirty uses Three's texture
+      // update path; a current-frame draw never holds this old ID.
+      texture.image.data=pixels;
+      texture.needsUpdate=true;
+      this.textures.delete(oldId);
+      this.textures.set(asset.id,texture);
+      this.evictedTextures++;
+      this.recycledTextures=(this.recycledTextures||0)+1;
+      return true;
+    }
+    return false;
+  }
   upload(asset, activeIds = new Set()) {
     if (this.textures.has(asset.id)) return true;
     const isPalette = asset.role === "palette" ||
@@ -183,6 +208,8 @@ export class CoreThreeRenderer {
       throw Error("Invalid GPU asset dimensions.");
     if (isPalette && (asset.indexed || asset.width !== 256 || asset.height !== 1))
       throw Error("A GPU palette must be a 256x1 RGBA8 texture.");
+    if(this.textureBytes+pixels.length>this.limit &&
+       this.recycleTexture(asset,kind,pixels,activeIds))return true;
     if (!this.makeRoomFor(pixels.length, activeIds)) {
       // An oversized visible frame is deferred, never a reason to stop combat.
       this.deferredTextures++;
@@ -497,6 +524,7 @@ export class CoreThreeRenderer {
       textureBudgetUpgrades: this.textureBudgetGovernor.upgrades,
       textures: this.textures.size,
       textureEvictions: this.evictedTextures,
+      recycledTextures: this.recycledTextures || 0,
       deferredTextures: this.deferredTextures,
       missingFrameTextures: this.missingFrameTextures || 0,
       missingPaletteDraws: this.missingPaletteDraws || 0,

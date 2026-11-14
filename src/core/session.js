@@ -148,6 +148,7 @@ export class CoreSession {
     this.indices = new Map();
     this.paletteIndices = new Map();
     this.bankIds = new Map();
+    this.resourcesByBankId = new Map();
     this.spriteMetadata = new Map();
     // Admit sprites only after the GPU has evicted them once. This bounds
     // repeated R8 SFF decode/restore costs without expanding every archive.
@@ -347,6 +348,7 @@ export class CoreSession {
         : sff(resource.files[resource.sprite.path]);
       this.banks.set(resource, bank);
       this.bankIds.set(resource, this.banks.size);
+      this.resourcesByBankId.set(String(this.banks.size),resource);
       this.indices.set(
         resource,
         new Map(bank.sprites.map((s, i) => [s.group + "," + s.number, i])),
@@ -454,7 +456,7 @@ export class CoreSession {
   restoreAssets(ids) {
     const assets = [];
     if (this.closed) return assets;
-    const resources = new Map([...this.bankIds].map(([resource, id]) => [String(id), resource]));
+    const resources = this.resourcesByBankId;
     for (const id of new Set(ids || [])) {
       if (typeof id !== 'string' || id.startsWith('@')) continue;
       const split = id.indexOf(':'),resource = resources.get(id.slice(0, split));
@@ -478,7 +480,7 @@ export class CoreSession {
             pixels=meta.indexed?decoded.indices:decoded.rgba;
             if(!pixels || pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
               continue;
-            this.spriteRestoreCache.put(id,pixels);
+            this.spriteRestoreCache.put(id,pixels,{indexed:meta.indexed});
             bank.clearDecodedCache?.();
           }
           if(pixels.length!==meta.w*meta.h*(meta.indexed?1:4))
@@ -982,6 +984,7 @@ export class CoreSession {
     this.closed = true;
     for (const b of this.banks.values()) b.clearDecodedCache();
     this.banks.clear();
+    this.resourcesByBankId.clear();
     this.paletteIndices.clear();
     this.sent.clear();
     this.spriteRestoreCache.clear();

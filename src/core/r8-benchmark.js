@@ -54,6 +54,11 @@ const fields = [
   "render_quality_mode", "expression_direct_reads",
   // Stage 1: exact raw stage-video residency and safe frame deferrals.
   "video_gpu_mib", "video_deferred_frames",
+  // Android CSV follow-up: compressed CPU sprite cache telemetry.
+  "sprite_restore_compressed_entries", "sprite_restore_saved_raw_mib",
+  "sprite_restore_decompressions", "gpu_texture_reuses",
+  "frame_packet_build_ms", "frame_sprite_restore_ms",
+  "frame_renderer_cpu_ms",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -72,9 +77,12 @@ panel.innerHTML = `
         <div><small>Direct numeric trigger reads</small><strong data-r8="directread">—</strong></div>
         <div><small>Rendered with backlog</small><strong data-r8="backlogdraw">—</strong></div>
         <div><small>Render CPU submit</small><strong data-r8="cpu">—</strong></div>
+        <div><small>Frame packet CPU</small><strong data-r8="packetCpu">—</strong></div>
+        <div><small>SFF restore CPU</small><strong data-r8="restoreCpu">—</strong></div>
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
         <div><small>GPU residency budget</small><strong data-r8="cachelimit">—</strong></div>
         <div><small>Sprite CPU restore cache</small><strong data-r8="spritecache">—</strong></div>
+        <div><small>R8 cached raw bytes saved</small><strong data-r8="cachesavings">—</strong></div>
         <div><small>Expression AST cache hits/misses</small><strong data-r8="astcache">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
         <div><small>Palettes RGBA8</small><strong data-r8="palettes">—</strong></div>
@@ -82,6 +90,7 @@ panel.innerHTML = `
         <div><small>Stage video GPU</small><strong data-r8="videomem">—</strong></div>
         <div><small>Video frame deferrals</small><strong data-r8="videodeferred">—</strong></div>
         <div><small>Texture evictions</small><strong data-r8="evictions">—</strong></div>
+        <div><small>GPU allocations recycled</small><strong data-r8="recycled">—</strong></div>
         <div><small>Offscreen quads avoided</small><strong data-r8="culled">—</strong></div>
         <div><small>Sprite admission deferrals</small><strong data-r8="probation">—</strong></div>
         <div><small>Missing art / palette draws</small><strong data-r8="missing">—</strong></div>
@@ -174,11 +183,15 @@ function sample() {
   element("directread").textContent = String(state.expressions?.direct??0);
   element("backlogdraw").textContent = (state.renderWithBacklogCount ?? 0) + " frames · target " + (state.renderTargetFps ?? "—") + " FPS";
   element("cpu").textContent = number(gpu.frameCpuSubmitMs) + " ms";
+  element("packetCpu").textContent = number(gpu.framePacketBuildMs,2) + " ms";
+  element("restoreCpu").textContent = number(gpu.frameSpriteRestoreCpuMs,2) + " ms";
   element("resident").textContent = mib(gpu.textureBytes);
   element("cachelimit").textContent = mib(gpu.textureBudgetBytes||64*MB) +
     " · " + (gpu.textureBudgetUpgrades??0) + " expansions";
   element("spritecache").textContent = (state.spriteRestoreCache?.hits??0) +
     " hits · " + mib(state.spriteRestoreCache?.bytes??0);
+  element("cachesavings").textContent = mib(state.spriteRestoreCache?.rawBytesSaved??0) +
+    " · " + (state.spriteRestoreCache?.compressedEntries??0) + " sprites";
   element("astcache").textContent = (state.interpreterCache?.hits??0) +
     " / " + (state.interpreterCache?.misses??0);
   element("indexed").textContent = mib(gpu.indexedTextureBytes);
@@ -187,6 +200,7 @@ function sample() {
   element("videomem").textContent = mib(gpu.videoTextureBytes);
   element("videodeferred").textContent = String(gpu.deferredVideoFrames || 0);
   element("evictions").textContent = String(gpu.textureEvictions || 0);
+  element("recycled").textContent = String(gpu.recycledTextures || 0);
   element("culled").textContent = (gpu.offscreenCulledDraws??0) +
     " of " + (gpu.submittedDraws??gpu.draws??0);
   element("probation").textContent = (state.spriteRestoreCache?.deferredAdmissions??0) +
@@ -293,6 +307,14 @@ function sample() {
     state.expressions?.direct??"",
     Number.isFinite(gpu.videoTextureBytes) ? number(gpu.videoTextureBytes/MB,3) : "",
     gpu.deferredVideoFrames ?? "",
+    state.spriteRestoreCache?.compressedEntries ?? "",
+    Number.isFinite(state.spriteRestoreCache?.rawBytesSaved)
+      ? number(state.spriteRestoreCache.rawBytesSaved/MB,3) : "",
+    state.spriteRestoreCache?.decompressions ?? "",
+    gpu.recycledTextures ?? "",
+    Number.isFinite(gpu.framePacketBuildMs) ? number(gpu.framePacketBuildMs,3) : "",
+    Number.isFinite(gpu.frameSpriteRestoreCpuMs) ? number(gpu.frameSpriteRestoreCpuMs,3) : "",
+    Number.isFinite(gpu.frameRendererCpuMs) ? number(gpu.frameRendererCpuMs,3) : "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
