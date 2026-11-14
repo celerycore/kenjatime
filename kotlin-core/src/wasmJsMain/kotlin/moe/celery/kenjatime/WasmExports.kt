@@ -9,7 +9,7 @@ private object Fights {
     fun get(handle: Int): DeterministicFight = active[handle] ?: error("Unknown fight handle")
 }
 /** Kotlin/Wasm is the authoritative engine of the 0.6 web + Android channel. */
-@JsExport fun ktCoreVersion(): String = "0.6.1-kotlin-wasm-standard"
+@JsExport fun ktCoreVersion(): String = "0.7.0-kotlin-wasm-standard"
 @JsExport fun ktCoreCreate(
     name1: String, name2: String, air1: String, air2: String, cns1: String, cns2: String
 ): Int {
@@ -169,53 +169,20 @@ private object ClockHandles {
     ClockHandles.active.remove(handle)
 }
 
-/** Render snapshots are read-only: sprite decode, GPU submission and frame
- * dropping do not modify the authored 60Hz fight. Projectiles/helpers use the
- * same AIR definition as their owner. Every entity remains simulated, even
- * if an overloaded mobile renderer cannot display all of them.
+/** Kotlin is the sole owner of camera projection, visual entities and
+ * frame-skip policy. JavaScript only paints the immutable plan.
  */
-@JsExport fun ktCoreVisuals(handle:Int):String {
-    val fight=Fights.get(handle)
-    val result=StringBuilder(1024)
-    result.append("{\"frame\":").append(fight.frame)
-        .append(",\"helpers\":").append(fight.entities.helpers.size)
-        .append(",\"projectiles\":").append(fight.entities.projectiles.size)
-        .append(",\"draws\":[")
-    fun actor(p:FightingCharacter,side:Int,kind:String) {
-        val air=p.animation
-        val sprite=air?.frame
-        result.append("{\"side\":").append(side)
-            .append(",\"kind\":\"").append(kind).append("\"")
-            .append(",\"x\":").append(Fixed.pixels(p.posX))
-            .append(",\"y\":").append(Fixed.pixels(p.posY))
-            .append(",\"facing\":").append(if(p.facingRight)1 else -1)
-            .append(",\"action\":").append(air?.action?.number ?: -1)
-            .append(",\"elem\":").append((air?.index ?: 0)+1)
-            .append(",\"group\":").append(sprite?.group ?: -1)
-            .append(",\"number\":").append(sprite?.sprite ?: -1)
-            .append(",\"life\":").append(p.life)
-            .append("},")
-    }
-    actor(fight.p1,0,"fighter")
-    actor(fight.p2,1,"fighter")
-    for(helper in fight.entities.helpers.take(56)) {
-        actor(helper.actor, if(helper.owner===fight.p1)0 else 1, "helper")
-    }
-    for(projectile in fight.entities.projectiles.take(256)) {
-        val sprite=projectile.action.frame
-        result.append("{\"side\":").append(if(projectile.owner===fight.p1)0 else 1)
-            .append(",\"kind\":\"projectile\"")
-            .append(",\"x\":").append(Fixed.pixels(projectile.x))
-            .append(",\"y\":").append(Fixed.pixels(projectile.y))
-            .append(",\"facing\":").append(if(projectile.owner.facingRight)1 else -1)
-            .append(",\"action\":").append(projectile.action.action.number)
-            .append(",\"elem\":").append(projectile.action.index+1)
-            .append(",\"group\":").append(sprite?.group ?: -1)
-            .append(",\"number\":").append(sprite?.sprite ?: -1)
-            .append(",\"life\":0},")
-    }
-    if(result.last() == ',')result.setLength(result.length-1)
-    return result.append("]}").toString()
-}
+@JsExport fun ktCorePresentationFps(debtTicks: Double): Int =
+    CorePresentationPlanner.targetFps(
+        if(debtTicks.isFinite()) debtTicks.toLong().coerceAtLeast(0) else 0L
+    )
+@JsExport fun ktCoreRenderPlan(handle: Int, debtTicks: Double): String =
+    CorePresentationPlanner.snapshot(
+        Fights.get(handle),
+        if(debtTicks.isFinite()) debtTicks.toLong().coerceAtLeast(0) else 0L
+    )
+/** Legacy Kotlin snapshot API retained for older Kotlin-only tests. */
+@JsExport fun ktCoreVisuals(handle: Int): String =
+    CorePresentationPlanner.snapshot(Fights.get(handle), 0L)
 
 fun main() = Unit
