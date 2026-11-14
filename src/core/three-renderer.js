@@ -185,6 +185,7 @@ export class CoreThreeRenderer {
   makeRoomFor(requiredBytes, activeIds = new Set()) {
     const evictions = planTextureEvictions(
       this.textures, this.textureBytes, requiredBytes, this.limit, activeIds,
+      {coldFirst:true},
     );
     if (!evictions) return false;
     for (const id of evictions) {
@@ -222,6 +223,7 @@ export class CoreThreeRenderer {
       // update path; a current-frame draw never holds this old ID.
       texture.image.data=pixels;
       texture.needsUpdate=true;
+      texture.userData.visibleFrames=0;
       this.textures.delete(oldId);
       this.textures.set(asset.id,texture);
       this.evictedTextures++;
@@ -280,6 +282,7 @@ export class CoreThreeRenderer {
     texture.needsUpdate = true;
     texture.userData.residentBytes = pixels.length;
     texture.userData.kind = kind;
+    texture.userData.visibleFrames=0;
     this.textures.set(asset.id, texture);
     this.textureBytes += pixels.length;
     this.textureBreakdown ||= { indexed: 0, palette: 0, rgba: 0 };
@@ -459,7 +462,10 @@ export class CoreThreeRenderer {
     // pinned for the whole render; a previous frame's art may be evicted.
     for (const id of activeTextures) {
       const tex = this.textures.get(id);
-      if (tex) { this.textures.delete(id); this.textures.set(id, tex); }
+      if (tex) {
+        tex.userData.visibleFrames=Math.min(2,(tex.userData.visibleFrames||0)+1);
+        this.textures.delete(id); this.textures.set(id, tex);
+      }
     }
     this.missingFrameTextures = missing.length;
     this.missingPaletteDraws = 0;
