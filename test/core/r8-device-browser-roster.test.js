@@ -35,7 +35,7 @@ test('Browser UA Client Hints model and full version override reduced Android UA
      userAgentData:{platform:'Android',brands:[{brand:'Chromium',version:'157'}],
        async getHighEntropyValues(keys){
          assert.ok(keys.includes('model')&&keys.includes('fullVersionList'));
-         return {model:'Infinix Note 30',platform:'Android',
+         return {model:'Infinix Note 30',platform:'Android',platformVersion:'14.0.0',
            fullVersionList:[{brand:'Chromium',version:'157.0.0.0'},
              {brand:'Google Chrome',version:'157.0.7612.123'}]};
        }},
@@ -45,6 +45,7 @@ test('Browser UA Client Hints model and full version override reduced Android UA
  assert.equal(info.browserName,'Google Chrome');
  assert.equal(info.browserVersion,'157.0.7612.123');
  assert.equal(info.osName,'Android');
+ assert.equal(info.osVersion,'14.0.0');
 });
 
 test('Restricted browser does not invent Infinix model; denied Client Hints fall back safely',async()=>{
