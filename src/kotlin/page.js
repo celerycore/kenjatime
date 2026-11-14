@@ -203,7 +203,8 @@ function render(){
       const sy=(fighter.spriteScaleY||1)*(fighter.scale||1);
       const visualCap=Math.min(1.8,360/(img.w*sx),340/(img.h*sy));
       ctx.save();ctx.translate(x,y);
-      ctx.scale(fighter.facing<0?-sx*visualCap:sx*visualCap,sy*visualCap);
+      ctx.scale((fighter.facing<0?-1:1)*(fighter.flipX||1)*sx*visualCap,
+        (fighter.flipY||1)*sy*visualCap);
       ctx.imageSmoothingEnabled=false;
       // Sprite X/Y originate in authored SFF axes, not image center.
       ctx.drawImage(img.image,-img.x,-img.y);
