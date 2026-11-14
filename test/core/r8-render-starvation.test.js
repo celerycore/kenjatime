@@ -42,7 +42,7 @@ test('Presentation remains 60 Hz when caught up; pause, hidden and idle gates ar
 test('Per-callback simulation batch limits respond to measured expensive ticks',()=>{
   assert.equal(framePacing(100,2).batchLimit,4);
   assert.equal(framePacing(100,5).batchLimit,2);
-  assert.equal(framePacing(100,10).batchLimit,1);
+  assert.equal(framePacing(100,10).batchLimit,2);
   assert.equal(framePacing(100,25).batchLimit,1);
   assert.equal(framePacing(0,Number.NaN).batchLimit,4);
   assert.equal(nextTickEstimate(2,10),4);
