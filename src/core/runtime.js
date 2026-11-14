@@ -266,6 +266,7 @@ export function createCoreRuntime(emit) {
     if (!renderer) prepare(canvas);
     emit({type:'loading-progress',phase:'Compiling character scripts',progress:0.10});
     session = new CoreSession(files, selection);
+    renderer.configureSpriteMemory(session.spriteCacheMode);
     emit({type:'loading-progress',phase:'Preparing combat and audio',progress:0.22});
     await session.initializeScripts();
     if (closed) return;
