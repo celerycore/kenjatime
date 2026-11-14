@@ -24,7 +24,7 @@ async function run(message,action){
   // General busy-state cleanup must not unlock a benchmark preset whose
   // required character archives have not actually been installed.
   refreshBenchmarkRoster();
- }}
+ }
 }
 $('.brand small').textContent='KENJATIME';$('header > span').innerHTML='PLAY <b>/</b> YOUR ARENA';$('.tag').textContent='KENJATIME';
 $('.eyebrow').textContent='BRING YOUR FIGHTER';$('h1').innerHTML='Your next match starts here<span>.</span>';
