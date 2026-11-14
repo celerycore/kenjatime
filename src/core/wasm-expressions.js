@@ -4,6 +4,7 @@
  */
 import {
   parseExpression,
+  compileExpression,
   evaluateExpression,
   evaluateTypedExpression,
   BottomError,
@@ -455,6 +456,11 @@ export class WasmExpressions {
       throw RangeError("Invalid numeric compilation budget.");
     this.context = null;
     this.entries = new Map();
+    // Non-numeric authored expressions cannot be compiled to Wasm. Cache
+    // their already-validated AST executors once per match rather than
+    // repeating a second global AST-cache lookup ~1.5M times per 90 s.
+    this.fallbackExecutors=new Map();
+    this.fallbackCacheHits=0;
     this.triggers = [];
     this.counts = {
       wasm: 0,
@@ -582,9 +588,14 @@ export class WasmExpressions {
     const entry = this.entries.get(source);
     if (!entry) {
       this.counts.interpreted++;
-      return (
-        context.typedResult ? evaluateTypedExpression : evaluateExpression
-      )(source, context);
+      let executor=this.fallbackExecutors.get(source);
+      if(!executor) {
+        executor=compileExpression(source);
+        if(this.fallbackExecutors.size>=4096)
+          this.fallbackExecutors.delete(this.fallbackExecutors.keys().next().value);
+        this.fallbackExecutors.set(source,executor);
+      }else this.fallbackCacheHits++;
+      return executor(context);
     }
     const previous = this.context;
     this.context = context;
@@ -636,6 +647,8 @@ export class WasmExpressions {
     }
   }
   get stats() {
-    return { ...this.counts, activeFunctions: this.entries.size };
+    return {...this.counts,activeFunctions:this.entries.size,
+      fallbackExecutors:this.fallbackExecutors.size,
+      fallbackCacheHits:this.fallbackCacheHits};
   }
 }

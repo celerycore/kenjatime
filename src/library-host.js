@@ -470,6 +470,7 @@ export function createLibraryHost(options) {
             // Only these explicit bounded presets reach the Core worker.
             spriteCacheMode: ['legacy','balanced','extended','maximum']
               .includes(data.spriteCacheMode) ? data.spriteCacheMode : 'extended',
+            gameplayFirst: data.gameplayFirst !== false,
             effectsPackage: fxPackage ? `imports/${fxPackage.id}/` : undefined,
           },
           onProgress: (m) => window.__kenjatimeNativeProgress?.(m),

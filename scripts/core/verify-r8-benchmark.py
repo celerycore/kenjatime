@@ -66,6 +66,9 @@ try:
         assert {x['value'] for x in cache.locator('option').evaluate_all(
             '(options) => options.map(x => ({value:x.value}))')} == {
             'legacy','balanced','extended','maximum'}
+        assert page.locator('#gameplay-first-mode').count() == 1
+        assert page.locator('#gameplay-first-mode').input_value() == 'gameplay'
+        assert page.locator('#gameplay-first-mode option').count() == 2
         page.locator('#arena-mode').select_option('cpu')
         page.locator('#endless-mode').check()
         assert page.locator('#endless-mode').is_checked()
@@ -101,6 +104,9 @@ try:
         state = page.evaluate('window.__kenjatimeCoreBattle.snapshot()')
         assert state['endlessMode'] is True and state['roundTimeLeft'] == -1, state
         assert state['simulationHz'] == 60, state
+        assert state['gameplayFirstFrameskip'] is True, state
+        assert isinstance(state['simulationDebtChangeHz'],(int,float)), state
+        assert 0 < state['renderTargetFps'] <= 60, state
         assert state['spritePreload']['mode'] == 'extended', state
         assert state['spritePreload']['loaded'] > 0, state
         assert 0 < state['spritePreload']['bytes'] <= 128*1024*1024, state
@@ -178,7 +184,11 @@ try:
             'sprite_hot_cache_hits','sprite_hot_cache_evictions',
             'sprite_hot_cache_entries','sprite_hot_cache_stores',
             'gpu_preload_uploads','gpu_preload_resident_mib',
-            'gpu_preload_duration_ms','gpu_adaptive_cache_upgrades'])
+            'gpu_preload_duration_ms','gpu_adaptive_cache_upgrades',
+            'gameplay_first_frameskip','simulation_debt_change_hz',
+            'sprite_hot_admissions_deferred','sprite_hot_promotions',
+            'sprite_hot_probation_entries','expression_fallback_executors',
+            'expression_fallback_cache_hits'])
         assert all(key in parsed_csv[0] for key in
                    ['p1_facing','p2_facing','p1_live_targets','p2_live_targets',
                     'p1_movetype','p2_movetype','p1_hitpause_ticks','p2_hitpause_ticks',
