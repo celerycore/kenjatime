@@ -18,8 +18,8 @@ android {
             versionName "0.5.8-core-preview"
         }
         if (kotlinStandard) {
-            versionCode 15
-            versionName "0.6.0-kotlin-wasm"
+            versionCode 16
+            versionName "0.6.1-kotlin-wasm"
         }
         manifestPlaceholders = [kenjatimeAppLabel: kotlinStandard ? 'Kenjatime Kotlin' : (corePreview ? 'Kenjatime Core Preview' : '@string/app_name'),
                                 kenjatimeActivityLabel: kotlinStandard ? 'Kenjatime Kotlin' : (corePreview ? 'Kenjatime Core Preview' : '@string/title_activity_main')]
