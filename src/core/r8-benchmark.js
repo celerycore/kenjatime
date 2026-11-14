@@ -52,6 +52,8 @@ const fields = [
   "sprite_restore_probation_entries", "gpu_offscreen_culled_draws",
   "gpu_pre_cull_draws",
   "render_quality_mode", "expression_direct_reads",
+  // Stage 1: exact raw stage-video residency and safe frame deferrals.
+  "video_gpu_mib", "video_deferred_frames",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -77,6 +79,8 @@ panel.innerHTML = `
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
         <div><small>Palettes RGBA8</small><strong data-r8="palettes">—</strong></div>
         <div><small>Truecolor RGBA8</small><strong data-r8="rgba">—</strong></div>
+        <div><small>Stage video GPU</small><strong data-r8="videomem">—</strong></div>
+        <div><small>Video frame deferrals</small><strong data-r8="videodeferred">—</strong></div>
         <div><small>Texture evictions</small><strong data-r8="evictions">—</strong></div>
         <div><small>Offscreen quads avoided</small><strong data-r8="culled">—</strong></div>
         <div><small>Sprite admission deferrals</small><strong data-r8="probation">—</strong></div>
@@ -180,6 +184,8 @@ function sample() {
   element("indexed").textContent = mib(gpu.indexedTextureBytes);
   element("palettes").textContent = mib(gpu.paletteTextureBytes);
   element("rgba").textContent = mib(gpu.truecolorTextureBytes);
+  element("videomem").textContent = mib(gpu.videoTextureBytes);
+  element("videodeferred").textContent = String(gpu.deferredVideoFrames || 0);
   element("evictions").textContent = String(gpu.textureEvictions || 0);
   element("culled").textContent = (gpu.offscreenCulledDraws??0) +
     " of " + (gpu.submittedDraws??gpu.draws??0);
@@ -285,6 +291,8 @@ function sample() {
     gpu.offscreenCulledDraws??"",gpu.submittedDraws??"",
     state.renderQuality??"",
     state.expressions?.direct??"",
+    Number.isFinite(gpu.videoTextureBytes) ? number(gpu.videoTextureBytes/MB,3) : "",
+    gpu.deferredVideoFrames ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }

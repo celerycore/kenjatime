@@ -31,7 +31,7 @@ jobs:
       - name: Projectile memory and broadphase regression
         run: node --test test/core/projectile-stress-optimization.test.js
       - name: Forest/Ako/Asuna GPU residency and native-scale camera tests
-        run: node --test test/core/gpu-residency-regression.test.js test/core/legacy-stage-viewport-regression.test.js
+        run: node --test test/core/gpu-residency-regression.test.js test/core/r8-video-residency.test.js test/core/legacy-stage-viewport-regression.test.js
       - name: Extended ZSS globals regression
         run: node --test test/core/extended-global-scheduler.test.js
       - name: Experimental Kotlin/Wasm host adapter parity
@@ -44,6 +44,15 @@ jobs:
         run: npm run test:core
       - name: Audit independent Core build before merging R8 fixes
         run: npm run build:core
+      - name: Verify indexed R8 palette/PalFX pixels on real WebGL2
+        run: |
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+          python scripts/core/verify-r8-gpu-pixels.py
+      - name: Verify browser KFM match on isolated R8 Core
+        run: npm run verify:core:browser
+      - name: Verify isolated R8 HUD and CSV export
+        run: python scripts/core/verify-r8-benchmark.py
       - name: Original interaction compatibility comparison (known baseline gap)
         run: npm run verify:core:interactions
         continue-on-error: true

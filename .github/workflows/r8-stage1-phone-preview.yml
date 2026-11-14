@@ -1,0 +1,130 @@
+name: Kenjatime R8 Stage 1 Phone QA Preview
+
+on:
+  push:
+    branches: [fix/r8-stage1-video-residency-20261114]
+    paths:
+      - 'src/**'
+      - 'core/**'
+      - 'test/core/**'
+      - 'scripts/core/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.core.config.js'
+      - '.github/workflows/r8-stage1-phone-preview.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kenjatime-r8-stage1-phone-preview
+  cancel-in-progress: true
+
+jobs:
+  verify-and-publish-isolated-phone-preview:
+    if: github.ref == 'refs/heads/fix/r8-stage1-video-residency-20261114'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout isolated Stage 1 review branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/r8-stage1-video-residency-20261114
+          persist-credentials: false
+      - name: Verify source commit identity
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = "$GITHUB_SHA"
+          echo "STAGE1_SHA=$source_sha" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify indexed R8, PalFX bindings, texture eviction and video recovery
+        run: node --test test/core/indexed-r8-textures.test.js test/core/gpu-residency-regression.test.js test/core/r8-video-residency.test.js
+      - name: Run complete Core regression suite
+        run: npm run test:core
+      - name: Build isolated benchmark
+        run: npm run build:core
+      - name: Verify real WebGL2 shader pixels, KFM fight and CSV
+        run: |
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+          python scripts/core/verify-r8-gpu-pixels.py
+          npm run verify:core:browser
+          python scripts/core/verify-r8-benchmark.py
+      - name: Mark review-only build and reject private character packages
+        run: |
+          node --input-type=module -e '
+            import {writeFileSync} from "node:fs";
+            writeFileSync("dist-core/build-info.json",JSON.stringify({
+              repository:"celerycore/kenjatime",sourceBranch:"fix/r8-stage1-video-residency-20261114",
+              sourceCommit:process.env.STAGE1_SHA,channel:"r8-stage1-qa",
+              productionArcadeUpdated:false,physicalAndroidVerified:false,
+              nativeMugen11Certified:false,kotlinWasmDefault:false,
+              scope:"Review-only phone preview; not the production engine"
+            },null,2)+"\n");
+          '
+          test -f dist-core/core/index.html
+          ! find dist-core -type f | grep -Ei '/(Ako|Asuna|Dark.Donald|Rare.Akuma|Nu.?13|Forest.of.King.Cruel)\.(zip|rar|7z)$'
+      - name: Save independent phone-QA archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-r8-stage1-phone-qa
+          path: dist-core/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Checkout production Pages for isolated path publishing
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: existing-pages
+          persist-credentials: true
+      - name: Publish ONLY /r8-stage1-preview/ (guard live Core checksums)
+        run: |
+          set -euo pipefail
+          for path in index.html .nojekyll arcade/core/index.html core-test/core/index.html; do
+            test -f "existing-pages/$path"
+          done
+          sha256sum existing-pages/index.html existing-pages/.nojekyll existing-pages/arcade/core/index.html existing-pages/core-test/core/index.html > /tmp/kenjatime-stage1-live-checksums
+          mkdir -p existing-pages/r8-stage1-preview
+          rsync -a --delete dist-core/ existing-pages/r8-stage1-preview/
+          test -f existing-pages/r8-stage1-preview/core/index.html
+          test -f existing-pages/r8-stage1-preview/build-info.json
+          sha256sum -c /tmp/kenjatime-stage1-live-checksums
+          cd existing-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- r8-stage1-preview
+          if git diff --cached --quiet; then
+            echo "Isolated phone QA already current."
+          else
+            if git diff --cached --name-only | grep -v '^r8-stage1-preview/'; then
+              echo "Refusing to touch paths outside Stage 1 preview." >&2
+              exit 1
+            fi
+            git commit -m "Publish isolated Kenjatime Stage 1 phone QA $STAGE1_SHA"
+            git pull --rebase origin gh-pages
+            git push origin HEAD:gh-pages
+          fi
+      - name: Verify public QA site matches exact tested commit
+        run: |
+          set -euo pipefail
+          base="https://celerycore.github.io/kenjatime/r8-stage1-preview"
+          for attempt in $(seq 1 36); do
+            response="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "$base/build-info.json?rev=$STAGE1_SHA" || true)"
+            if [[ "$response" == *"$STAGE1_SHA"* ]] && [[ "$response" == *'"channel": "r8-stage1-qa"'* ]]; then
+              curl -fsSL --max-time 20 "$base/core/index.html" | grep -q 'Kenjatime Core'
+              echo "VERIFIED: $base/core/index.html for $STAGE1_SHA"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Isolated public phone QA did not report this commit." >&2
+          exit 1
