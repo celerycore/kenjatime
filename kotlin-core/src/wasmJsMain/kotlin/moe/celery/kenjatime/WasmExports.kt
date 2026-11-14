@@ -9,7 +9,7 @@ private object Fights {
     fun get(handle: Int): DeterministicFight = active[handle] ?: error("Unknown fight handle")
 }
 /** Kotlin/Wasm is the authoritative engine of the 0.6 web + Android channel. */
-@JsExport fun ktCoreVersion(): String = "0.6.0-kotlin-wasm-standard"
+@JsExport fun ktCoreVersion(): String = "0.6.1-kotlin-wasm-standard"
 @JsExport fun ktCoreCreate(
     name1: String, name2: String, air1: String, air2: String, cns1: String, cns2: String
 ): Int {
@@ -161,6 +161,9 @@ private object ClockHandles {
     ClockHandles.get(handle).completed.toDouble()
 @JsExport fun ktCoreClockReset(handle:Int,nowMilliseconds:Double) {
     ClockHandles.get(handle).reset(nowMilliseconds)
+}
+@JsExport fun ktCoreClockResume(handle:Int,nowMilliseconds:Double) {
+    ClockHandles.get(handle).resume(nowMilliseconds)
 }
 @JsExport fun ktCoreClockRelease(handle:Int) {
     ClockHandles.active.remove(handle)

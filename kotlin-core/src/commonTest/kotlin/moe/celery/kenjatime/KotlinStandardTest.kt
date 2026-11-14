@@ -36,6 +36,20 @@ class KotlinStandardTest {
         assertEquals(1,clock.claim(2017.0))
     }
 
+    @Test fun resumeKeepsAuthoritativeTicksWithoutCountingTimeSpentPaused() {
+        val clock=CoreTickBudget(6)
+        clock.claim(0.0)
+        repeat(6) { clock.completedOne() }
+        assertEquals(6L,clock.completed)
+        clock.resume(180000.0)
+        assertEquals(6L,clock.completed)
+        assertEquals(0L,clock.overdue)
+        assertEquals(0,clock.claim(180000.0))
+        assertEquals(1,clock.claim(180017.0))
+        clock.completedOne()
+        assertEquals(7L,clock.completed)
+    }
+
     @Test fun benchmarkAiPerformsDeterministicMovementAndQcfSpecialMotions() {
         val a=FightingCharacter(FighterDefinition("A"),1)
         val b=FightingCharacter(FighterDefinition("B"),2)

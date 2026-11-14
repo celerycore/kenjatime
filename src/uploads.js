@@ -25,7 +25,7 @@ export async function readArchiveFile(file){
 }
 
 /** Transfer archive buffers; load RAR decoding only inside the disposable worker. */
-export function unpackArchive(bytes,{onProgress=()=>{},password='',prepareStageData=true}={}){
+export function unpackArchive(bytes,{onProgress=()=>{},password='',prepareStageData=true,allowAssetOnly=false}={}){
   return new Promise((resolve,reject)=>{
     let worker;
     try{worker=new Worker(new URL('./archive-worker.js',import.meta.url),{type:'module'});}
@@ -35,7 +35,7 @@ export function unpackArchive(bytes,{onProgress=()=>{},password='',prepareStageD
     worker.onmessage=({data})=>{if(data.progress){onProgress(data.progress);return;}finish(data.error?Error(data.error):null,data.result);};
     worker.onerror=()=>finish(Error('The archive reader stopped. Close other browser tabs and try again, or import a smaller character package.'));
     worker.onmessageerror=()=>finish(Error('The browser could not receive the character package. Try again with fewer files.'));
-    try{const parts=Array.isArray(bytes)?bytes:null;worker.postMessage({...(parts?{parts}:{bytes}),password,prepareStageData},parts?[...new Set(parts.map(p=>p.bytes.buffer))]:[bytes.buffer]);}catch(error){finish(error);}
+    try{const parts=Array.isArray(bytes)?bytes:null;worker.postMessage({...(parts?{parts}:{bytes}),password,prepareStageData,allowAssetOnly},parts?[...new Set(parts.map(p=>p.bytes.buffer))]:[bytes.buffer]);}catch(error){finish(error);}
   });
 }
 

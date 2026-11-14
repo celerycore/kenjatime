@@ -1,0 +1,171 @@
+name: Kenjatime Kotlin/WASM Android Archive and Renderer Fix
+
+on:
+  push:
+    branches: [fix/kotlin-android-import-render-20261115]
+    paths:
+      - 'kotlin-core/**'
+      - 'kotlin/**'
+      - 'src/kotlin/**'
+      - 'src/formats.js'
+      - 'src/archive-reader.js'
+      - 'src/mobile-library.js'
+      - 'src/uploads.js'
+      - 'src/archive-worker.js'
+      - 'test/core/kotlin-archive-import.test.js'
+      - 'scripts/kotlin/**'
+      - 'vite.kotlin.config.js'
+      - 'capacitor.kotlin.config.json'
+      - 'android/app/build.gradle'
+      - 'package.json'
+      - '.github/workflows/kotlin-android-import-render-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kenjatime-kotlin-android-import-fix-preview
+  cancel-in-progress: true
+
+jobs:
+  kotlin-web-android:
+    if: github.ref == 'refs/heads/fix/kotlin-android-import-render-20261115'
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - name: Checkout Kotlin standard source
+        uses: actions/checkout@v4
+        with:
+          ref: fix/kotlin-android-import-render-20261115
+          persist-credentials: false
+      - name: Lock source SHA
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "KOTLIN_STANDARD_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Real bundled KFM SFF, split Nu13-style archives and collision test
+        run: |
+          node --test test/core/kotlin-archive-import.test.js
+          node scripts/kotlin/create-import-fixtures.mjs
+      - name: Kotlin JVM deterministic tests
+        run: ./android/gradlew -p kotlin-core jvmTest --stacktrace
+      - name: Kotlin compiled WebAssembly tests
+        run: ./android/gradlew -p kotlin-core wasmJsNodeTest --stacktrace
+      - name: Build sole shared Kotlin/WASM engine
+        run: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack --stacktrace
+      - name: Verify real compiled Kotlin/WASM ABI and bundled KFM fight
+        run: |
+          node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
+          node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs
+      - name: Prohibit JavaScript-owned simulation in new Kotlin application
+        run: |
+          set -euo pipefail
+          ! grep -REn '(CoreSession|TrainingMatch|createCoreRuntime|src/combat|new FrameClock)' src/kotlin
+          test -f kotlin-core/src/commonMain/kotlin/moe/celery/kenjatime/CoreCpu.kt
+      - name: Package Kotlin standard browser build
+        run: npm run build:kotlin
+      - name: Test actual browser Kotlin engine, RAR Wasm decoder, SFF sprites, mobile layout and CSV
+        run: |
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+          python scripts/kotlin/verify-browser.py
+      - name: Package identical Kotlin build for Android
+        run: npm run android:kotlin:copy
+      - name: Compile separately installable Android Kotlin APK
+        run: cd android && ./gradlew -PkenjatimeKotlinStandard=true :app:assembleDebug --stacktrace
+      - name: Verify actual APK contains identical browser Kotlin Wasm
+        run: python scripts/kotlin/verify-android.py
+      - name: Save Android 360px layout diagnostic screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-kotlin-0-6-1-android-layout
+          path: test-output/kotlin-android-layout.png
+          retention-days: 30
+          if-no-files-found: error
+      - name: Reject copied private fighter archives
+        run: |
+          set -euo pipefail
+          ! find dist-kotlin -type f | grep -Ei '/(Nu.?13|Tomoka|Dark.Donald|Rare.Akuma)\.(zip|rar|7z)$'
+          test -f dist-kotlin/kotlin/index.html
+          test -f dist-kotlin/wasm/kenjatime-kotlin-core.wasm
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Save browser Kotlin standard build
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-kotlin-0-6-1-browser
+          path: dist-kotlin/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Save Android Kotlin standard APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenjatime-kotlin-0-6-1-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+          if-no-files-found: error
+      - name: Checkout gh-pages without modifying the existing production site
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: existing-pages
+          persist-credentials: true
+      - name: Publish ONLY isolated Kotlin standard preview
+        run: |
+          set -euo pipefail
+          for path in index.html .nojekyll arcade/core/index.html core-test/core/index.html; do
+            test -f "existing-pages/$path"
+          done
+          sha256sum existing-pages/index.html existing-pages/.nojekyll existing-pages/arcade/core/index.html existing-pages/core-test/core/index.html > /tmp/kenjatime-kotlin-production-hashes
+          mkdir -p existing-pages/kotlin-android-import-fix-preview
+          rsync -a --delete dist-kotlin/ existing-pages/kotlin-android-import-fix-preview/
+          sha256sum -c /tmp/kenjatime-kotlin-production-hashes
+          test -f existing-pages/kotlin-android-import-fix-preview/kotlin/index.html
+          test -f existing-pages/kotlin-android-import-fix-preview/wasm/kenjatime-kotlin-core.wasm
+          cd existing-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- kotlin-android-import-fix-preview
+          if ! git diff --cached --quiet; then
+            if git diff --cached --name-only | grep -v '^kotlin-android-import-fix-preview/'; then
+              echo "Refusing to modify production site" >&2
+              exit 1
+            fi
+            git commit -m "Publish Kotlin/WASM Android 0.6.1 import and SFF repair $KOTLIN_STANDARD_SHA"
+            git pull --rebase origin gh-pages
+            git push origin HEAD:gh-pages
+          fi
+      - name: Verify real public Kotlin/WASM preview and exact source build
+        run: |
+          set -euo pipefail
+          base="https://celerycore.github.io/kenjatime/kotlin-android-import-fix-preview"
+          for attempt in $(seq 1 36); do
+            response="$(curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "$base/build-info.json?rev=$KOTLIN_STANDARD_SHA" || true)"
+            if [[ "$response" == *"$KOTLIN_STANDARD_SHA"* ]] && [[ "$response" == *'"channel": "kotlin-standard"'* ]]; then
+              curl -fsSL --max-time 20 "$base/kotlin/index.html" | grep -q 'Kotlin/WASM'
+              curl -fsSL --max-time 20 "$base/wasm/kenjatime-kotlin-core.wasm" -o /tmp/kotlin-standard.wasm
+              cmp -s /tmp/kotlin-standard.wasm dist-kotlin/wasm/kenjatime-kotlin-core.wasm
+              echo "VERIFIED: browser and Android share Kotlin/WASM $KOTLIN_STANDARD_SHA"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Kotlin standard public preview has not propagated" >&2
+          exit 1

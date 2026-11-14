@@ -1,6 +1,9 @@
 import "./app.css";
 import {unpackArchiveBytes} from "../archive-reader.js";
-import {charactersFromFiles,decodeText,sff} from "../formats.js";
+import {sff} from "../formats.js";
+import {readInstalledArchive,joinImportedResources,availableKotlinFighters}
+  from "./archive-import.js";
+import {archiveAccept} from "../uploads.js";
 import {ArchiveLibrary} from "../mobile-library.js";
 import {collectBenchmarkDeviceInfo,describeBenchmarkDevice} from "../core/benchmark-device.js";
 import {findBenchmarkFighters} from "../core/benchmark-roster.js";
@@ -9,10 +12,19 @@ import {findBenchmarkFighters} from "../core/benchmark-roster.js";
  * Simulation and deterministic CPU behavior are compiled Kotlin/WASM.
  */
 const root=document.querySelector("#app"),byId=id=>root.querySelector("#"+id);
+const isAndroidShell=/Android/i.test(navigator.userAgent||"") &&
+  (/;\s*wv[;)]/i.test(navigator.userAgent||"")||
+    window.Capacitor?.isNativePlatform?.()===true||
+    matchMedia("(display-mode: standalone)").matches);
+if(isAndroidShell)document.body.classList.add("android-shell");
 const canvas=byId("arena"),ctx=canvas.getContext("2d",{alpha:false});
 const status=message=>{byId("setup-status").textContent=message};
 const library=new ArchiveLibrary();
 const fighters=new Map();
+const installedTables=new Map();
+let importInProgress=false,paintedSpriteCount=0,placeholderCount=0;
+const debugWarning=new Set();
+const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
 const worker=new Worker(new URL("./worker.js",import.meta.url),{type:"module"});
 let backend="",running=false,paused=false,latest=null,lastDraw=0;
@@ -33,34 +45,41 @@ function safeName(fighter){
   return fighter.def.info?.displayname||fighter.def.info?.name||fighter.path.split("/").at(-1);
 }
 async function readFighter(bytes,archiveName){
-  if(bytes.length>256*MB)throw Error("Archive exceeds 256 MiB compressed limit.");
-  const files=await unpackArchiveBytes(bytes,{
-    filename:archiveName,onProgress:message=>status(message),
-  });
-  const discovered=charactersFromFiles(files).filter(c=>c.sprite?.ok&&
-    c.checks.some(x=>x.key==="anim"&&x.ok));
-  if(!discovered.length)throw Error("No complete MUGEN DEF/AIR/SFF character found in "+archiveName);
-  const pick=discovered[0];
-  const entry=(key)=>pick.checks.find(x=>x.key===key&&x.ok)?.path;
-  const airPath=entry("anim"),cmdPath=entry("cmd");
-  const statePaths=pick.checks.filter(x=>x.ok&&/^(cns|st\d*|stcommon)$/.test(x.key))
-    .map(x=>x.path);
-  // We do not substitute unsupported ZSS controllers with idle/neutral rules.
-  if(statePaths.some(p=>p.endsWith(".zss"))){
-    throw Error("Kotlin/WASM does not yet support this character's ZSS state files. Import a CNS-based build.");
-  }
-  if(!statePaths.length)throw Error("This MUGEN character has no complete CNS/ST states.");
-  const result={
-    id:archiveName+":"+pick.path,name:safeName(pick),source:archiveName,
-    air:decodeText(files[airPath]),
-    cns:statePaths.map(p=>decodeText(files[p])).join("\n"),
-    cmd:cmdPath?decodeText(files[cmdPath]):"",
-    spriteBytes:files[pick.sprite.path],
-    imageCache:new Map(),decodedBytes:0,bank:null,index:null,
-    unavailable:false
-  };
-  return result;
+  // Bundled sample is a small trusted ZIP: keep lightweight synchronous ZIP
+  // decompression; imported RAR/7z are handled by the dedicated decoder worker.
+  const {unpackArchiveBytes}=await import("../archive-reader.js");
+  const files=await unpackArchiveBytes(bytes,{filename:archiveName});
+  const parsed=availableKotlinFighters(files,archiveName);
+  if(!parsed.ready.length)throw Error("Included fighter is missing SFF, AIR or CNS files");
+  return parsed.ready[0];
 }
+function installedStatus(){
+  const pieces=[...installedTables.values()];
+  if(!pieces.length)return;
+  const combined=joinImportedResources(pieces);
+  const result=availableKotlinFighters(combined,
+    pieces.length>1?"Imported combined character archives":pieces[0].name);
+  for(const fighter of result.ready){
+    const stableId="installed:"+fighter.name.toLowerCase().replace(/\\s+/g,"-");
+    const previous=fighters.get(stableId);
+    if(previous?.spriteBytes===fighter.spriteBytes)continue;
+    fighter.id=stableId;
+    fighters.set(stableId,fighter);
+  }
+  refreshRoster();
+  if(result.ready.length){
+    status("Installed "+result.ready.map(f=>f.name).join(", ")+
+      " with actual AIR/CNS and SFF sprites. Kotlin MUGEN 1.1 parity is still incomplete.");
+  }else if(result.missing.length){
+    const pending=result.missing[0];
+    status(pending.name+" is incomplete. Required resource(s): "+
+      pending.files.slice(0,5).join(", ")+
+      ". Select its companion RAR/SFF archive; already extracted files are retained.");
+  }else{
+    status("Archive extracted, but no complete MUGEN character DEF was found. Add the character archive.");
+  }
+}
+
 function refreshRoster(){
   for(const side of [0,1]){
     const selector=byId(side?"p2-select":"p1-select"),old=selector.value;
@@ -84,11 +103,14 @@ function refreshRoster(){
 }
 function initialiseSpriteArt(item){
   if(item.bank||item.unavailable)return;
-  if(item.spriteBytes?.byteLength>192*MB){
-    item.unavailable=true;return;
+  // Nu-13's original SFF can exceed 280 MiB: parse its header once and
+  // decode only visible sprite frames. Never reject a real fighter merely
+  // because its archive contains a large SFF.
+  if(item.spriteBytes?.byteLength>480*MB){
+    item.unavailable=true;item.warning="SFF exceeds supported 480 MiB decoded limit";return;
   }
   try{
-    item.bank=sff(item.spriteBytes);
+    item.bank=sff(item.spriteBytes,{cacheBytes:8*MB});
     item.index=new Map();
     for(let i=0;i<item.bank.sprites.length;i++){
       const sp=item.bank.sprites[i];
@@ -97,6 +119,7 @@ function initialiseSpriteArt(item){
     }
   }catch(error){
     item.unavailable=true;
+    item.warning="SFF parse failed: "+error.message;
     console.warn("Visual-only SFF preview unavailable",error.message);
   }
 }
@@ -108,16 +131,24 @@ function spriteImage(item,group,number){
   const existing=item.imageCache.get(key);
   if(existing){
     item.imageCache.delete(key);item.imageCache.set(key,existing);
-    return existing.image;
+    return existing;
   }
   const index=item.index.get(key);
   if(index===undefined)return null;
   try{
-    const sprite=item.bank.decodeWithPalette(index,1);
+    // The original code passed only two arguments to decodeWithPalette,
+    // always threw "Palette 1,undefined does not exist" and silently
+    // rendered every fighter as a rectangle. Use the SFF's real palette.
+    let sprite=item.bank.decode(index);
+    if(item.bank.palettes.some(p=>p.group===1&&p.number===1)){
+      try{sprite=item.bank.decodeWithPalette(index,1,1)}
+      catch{/* A character may use its authored embedded palette. */}
+    }
     if(!sprite||sprite.w<=0||sprite.h<=0||sprite.w*sprite.h>2*1024*1024)return null;
     const image=document.createElement("canvas");
     image.width=sprite.w;image.height=sprite.h;
-    image.getContext("2d").putImageData(new ImageData(sprite.rgba,sprite.w,sprite.h),0,0);
+    image.getContext("2d").putImageData(
+      new ImageData(new Uint8ClampedArray(sprite.rgba),sprite.w,sprite.h),0,0);
     const bytes=sprite.w*sprite.h*4;
     // 32 MiB visual hot cache. Kotlin simulation does not depend on this.
     const limit=32*MB;
@@ -126,9 +157,18 @@ function spriteImage(item,group,number){
       item.decodedBytes-=item.imageCache.get(oldest).bytes;
       item.imageCache.delete(oldest);
     }
-    if(bytes<=limit){item.imageCache.set(key,{image,bytes});item.decodedBytes+=bytes;}
-    return image;
-  }catch(error){return null;}
+    const entry={image,bytes,w:sprite.w,h:sprite.h,
+      x:sprite.x||0,y:sprite.y||0};
+    if(bytes<=limit){item.imageCache.set(key,entry);item.decodedBytes+=bytes;}
+    return entry;
+  }catch(error){
+    if(!debugWarning.has(item.id+":"+key)){
+      debugWarning.add(item.id+":"+key);
+      item.warning="Sprite "+key+": "+error.message;
+      console.warn("Cannot decode authored SFF sprite",item.name,key,error.message);
+    }
+    return null;
+  }
 }
 function render(){
   requestAnimationFrame(render);
@@ -158,18 +198,21 @@ function render(){
     const y=435+fighter.y*1.1;
     const img=spriteImage(item,fighter.group,fighter.number);
     if(img){
-      const renderedScale=Math.min(1.8,360/img.width,340/img.height);
+      const renderedScale=Math.min(1.8,360/img.w,340/img.h);
       ctx.save();ctx.translate(x,y);
       ctx.scale(fighter.facing<0?-renderedScale:renderedScale,renderedScale);
       ctx.imageSmoothingEnabled=false;
-      ctx.drawImage(img,-img.width/2,-img.height);
+      // Sprite X/Y originate in authored SFF axes, not image center.
+      ctx.drawImage(img.image,-img.x,-img.y);
       ctx.restore();
+      paintedSpriteCount++;
     }else{
       // When huge SFF sprites cannot be decoded on this phone, show a
       // visible placeholder without inventing artwork or blocking combat.
       ctx.fillStyle=fighter.side?"#8cc4ea":"#a6dd84";
       const size=fighter.kind==="fighter"?17:8;
       ctx.fillRect(x-size,y-size*3,size*2,size*3);
+      placeholderCount++;
     }
   }
   const life=[...draws].filter(d=>d.kind==="fighter");
@@ -207,26 +250,44 @@ window.addEventListener("blur",()=>{inputs.pressed.clear();updateInput();});
 document.addEventListener("visibilitychange",()=>{
   if(running&&document.hidden&&!paused)byId("pause").click();
 });
-async function importFile(file,{save=true}={}){
-  if(!file) return;
-  status("Importing "+file.name+" into Kotlin/WASM character library...");
-  const bytes=new Uint8Array(await file.arrayBuffer());
-  const fighter=await readFighter(bytes,file.name);
-  // Name-based roster matching is optional; select actual installed fighters.
-  fighters.set(fighter.id,fighter);
-  if(save){
-    try{await library.save(file)}catch(error){
-      status("Imported for this session; device storage was full: "+error.message);
+async function importFiles(files,{save=true}={}){
+  const list=Array.from(files||[]);
+  if(!list.length||importInProgress)return;
+  importInProgress=true;
+  byId("archive").disabled=true;
+  try{
+    const installed=[];
+    for(const file of list){
+      if(!file)continue;
+      const id=file.name+":"+file.size+":"+(file.lastModified||0);
+      if(installedTables.has(id))continue;
+      status("Extracting "+file.name+" with the bundled RAR/7z Wasm decoder…");
+      const files=await readInstalledArchive(file,message=>
+        status(file.name+": "+message));
+      installedTables.set(id,{name:file.name,files});
+      installed.push(file);
     }
+    installedStatus();
+    // Save even if the first imported archive is only the Nu-13 scripts;
+    // the second SFF archive will complete its real resource references.
+    if(save)for(const file of installed){
+      try{await library.save(file)}
+      catch(error){status("Installed for this session; unable to save "+
+        file.name+" for next launch: "+error.message);}
+    }
+  }catch(error){
+    status("Import failed: "+error.message+
+      ". The previous installed characters were not removed.");
+  }finally{
+    importInProgress=false;
+    byId("archive").disabled=false;
+    byId("archive").value="";
   }
-  refreshRoster();
-  status(fighter.name+" imported. Some complex CNS/ZSS controllers and MUGEN 1.1 behaviors remain unverified.");
 }
-byId("archive").onchange=async()=>{
-  const file=byId("archive").files[0];
-  try{await importFile(file)}catch(error){status("Import failed: "+error.message)}
-  byId("archive").value="";
-};
+byId("archive").accept=archiveAccept;
+byId("archive").multiple=true;
+byId("archive").onchange=async()=>importFiles(byId("archive").files);
+
 byId("preset").onclick=()=>{
   const entries=Array.from(fighters.values());
   const found=findBenchmarkFighters(entries.map(x=>({
@@ -257,6 +318,16 @@ byId("start").onclick=()=>{if(running)worker.postMessage({type:"stop"});begin()}
 byId("pause").onclick=()=>{
   paused=!paused;worker.postMessage({type:"pause",value:paused});
   byId("pause").textContent=paused?"Resume":"Pause";
+};
+byId("reset").onclick=()=>{
+  worker.postMessage({type:"stop"});
+  running=false;paused=false;latest=null;workerStats=null;
+  byId("pause").disabled=true;
+  byId("pause").textContent="Pause";
+  byId("reset").disabled=true;
+  byId("record").disabled=true;
+  byId("banner").textContent="Kotlin/WASM · Ready";
+  status("Match stopped. Kotlin engine resources released; imported fighters remain installed.");
 };
 function rowToCsv(data){
   return data.map(cell=>'"'+String(cell??"").replaceAll('"','""')+'"').join(",");
@@ -313,6 +384,7 @@ worker.onmessage=({data})=>{
     backend=data.version;byId("version").textContent=backend;refreshRoster();
   }else if(data.type==="started"){
     running=true;paused=false;byId("pause").disabled=false;byId("record").disabled=false;
+    byId("reset").disabled=false;
     byId("pause").textContent="Pause";byId("banner").textContent="Kotlin/WASM · 60 Hz combat";
     status("Kotlin/WASM fight running. Special move frames can be skipped, but Kotlin simulation continues.");
   }else if(data.type==="frame"){
@@ -328,17 +400,27 @@ worker.onmessage=({data})=>{
     byId("banner").textContent=data.value?"Paused · Kotlin fight frozen":"Kotlin/WASM · 60 Hz combat";
   }else if(data.type==="complete"){
     running=false;paused=false;byId("pause").disabled=true;
-    byId("record").disabled=true;
+    byId("reset").disabled=true;byId("record").disabled=true;
     byId("banner").textContent="Match complete";
   }else if(data.type==="error"){
     running=false;paused=false;byId("pause").disabled=true;byId("record").disabled=true;
+    byId("reset").disabled=true;
     byId("banner").textContent="Kotlin/WASM ERROR";
     status("Kotlin runtime error: "+data.message+". The engine will not silently switch to JavaScript.");
   }else if(data.type==="stopped"){
     running=false;byId("pause").disabled=true;
+    byId("reset").disabled=true;
   }
 };
 worker.onerror=event=>{running=false;status("Kotlin worker could not start: "+event.message)};
+window.__kenjatimeKotlinQA=Object.freeze({
+  get spritePaints(){return paintedSpriteCount},
+  get placeholderPaints(){return placeholderCount},
+  get importedCount(){return fighters.size-1},
+  get sources(){return [...installedTables.values()].map(x=>x.name)},
+  get lastVisualFrame(){return latest?.frame??0},
+  get warning(){return images.find(x=>x?.warning)?.warning||""}
+});
 async function initialize(){
   setQuality();
   requestAnimationFrame(render);
@@ -357,7 +439,7 @@ async function initialize(){
       if(entry.size>200*MB)continue;
       try{
         const row=await library.read(entry.id);
-        await importFile(row.file,{save:false});
+        await importFiles([row.file],{save:false});
       }catch(error){console.warn("Skipping incompatible installed archive",error.message)}
     }
   }catch{}

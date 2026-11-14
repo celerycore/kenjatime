@@ -126,9 +126,9 @@ self.onmessage=async({data})=>{
       if(!paused&&working){
         // Paused wall time is never converted to gameplay ticks.
         const tickCount=api.ktCoreClockTicks(clock);
-        // Rather than reset the gameplay frame, preserve the match and
-        // start a new wall-clock epoch for the Kotlin budget.
-        api.ktCoreClockReset(clock,performance.now());
+        // Resume Kotlin's authoritative clock with the same completed tick
+        // count; never zero a benchmark halfway through the match.
+        api.ktCoreClockResume(clock,performance.now());
         emit("resumed",{matchFrame:tickCount});
         schedule(0);
       }
