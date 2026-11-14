@@ -57,6 +57,8 @@ const fields = [
   // Android CSV follow-up: compressed CPU sprite cache telemetry.
   "sprite_restore_compressed_entries", "sprite_restore_saved_raw_mib",
   "sprite_restore_decompressions", "gpu_texture_reuses",
+  "frame_packet_build_ms", "frame_sprite_restore_ms",
+  "frame_renderer_cpu_ms",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -75,6 +77,8 @@ panel.innerHTML = `
         <div><small>Direct numeric trigger reads</small><strong data-r8="directread">—</strong></div>
         <div><small>Rendered with backlog</small><strong data-r8="backlogdraw">—</strong></div>
         <div><small>Render CPU submit</small><strong data-r8="cpu">—</strong></div>
+        <div><small>Frame packet CPU</small><strong data-r8="packetCpu">—</strong></div>
+        <div><small>SFF restore CPU</small><strong data-r8="restoreCpu">—</strong></div>
         <div><small>GPU resident (raw)</small><strong data-r8="resident">—</strong></div>
         <div><small>GPU residency budget</small><strong data-r8="cachelimit">—</strong></div>
         <div><small>Sprite CPU restore cache</small><strong data-r8="spritecache">—</strong></div>
@@ -179,6 +183,8 @@ function sample() {
   element("directread").textContent = String(state.expressions?.direct??0);
   element("backlogdraw").textContent = (state.renderWithBacklogCount ?? 0) + " frames · target " + (state.renderTargetFps ?? "—") + " FPS";
   element("cpu").textContent = number(gpu.frameCpuSubmitMs) + " ms";
+  element("packetCpu").textContent = number(gpu.framePacketBuildMs,2) + " ms";
+  element("restoreCpu").textContent = number(gpu.frameSpriteRestoreCpuMs,2) + " ms";
   element("resident").textContent = mib(gpu.textureBytes);
   element("cachelimit").textContent = mib(gpu.textureBudgetBytes||64*MB) +
     " · " + (gpu.textureBudgetUpgrades??0) + " expansions";
@@ -306,6 +312,9 @@ function sample() {
       ? number(state.spriteRestoreCache.rawBytesSaved/MB,3) : "",
     state.spriteRestoreCache?.decompressions ?? "",
     gpu.recycledTextures ?? "",
+    Number.isFinite(gpu.framePacketBuildMs) ? number(gpu.framePacketBuildMs,3) : "",
+    Number.isFinite(gpu.frameSpriteRestoreCpuMs) ? number(gpu.frameSpriteRestoreCpuMs,3) : "",
+    Number.isFinite(gpu.frameRendererCpuMs) ? number(gpu.frameRendererCpuMs,3) : "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
