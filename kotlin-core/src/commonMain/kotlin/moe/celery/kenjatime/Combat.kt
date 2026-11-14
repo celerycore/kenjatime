@@ -61,6 +61,14 @@ data class FighterDefinition(
     val localCoordWidth: Int = 320,
     val localCoordHeight: Int = 240
 ) {
+    /** AIR collision boxes use the character's local coordinates. Convert
+     * them into the common 320x240 stage collision space, using fixed-point
+     * integer scales. This is required for mixed 1008x756/320x240 matches.
+     */
+    val collisionScaleX: Int
+        get() = ((xScale.toLong()*320)/localCoordWidth).coerceIn(1,65536).toInt()
+    val collisionScaleY: Int
+        get() = ((yScale.toLong()*240)/localCoordHeight).coerceIn(1,65536).toInt()
     companion object {
         fun fromScript(name: String, air: String, cns: String, cmd: String = "",
                        defText: String = ""): FighterDefinition {
@@ -253,9 +261,11 @@ class FightingCharacter(
     fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
     fun markHit(target: Int) { struck.add(target) }
     fun attackBoxes(): List<MugenRect> = animation?.frame?.boxes
-        ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight, definition.xScale, definition.yScale) } ?: emptyList()
+        ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight,
+            definition.collisionScaleX,definition.collisionScaleY) } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
-        ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight) } ?: emptyList()
+        ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight,
+            definition.collisionScaleX,definition.collisionScaleY) } ?: emptyList()
     private fun number(raw: String?, default: Int = 0): Int =
         raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(Fixed::of) } ?: default
     private fun integer(raw: String?, default: Int = 0): Int =
