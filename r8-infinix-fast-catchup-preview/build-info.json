@@ -1,0 +1,11 @@
+{
+  "repository": "celerycore/kenjatime",
+  "sourceBranch": "perf/r8-infinix-worker-fast-catchup-20261114",
+  "sourceCommit": "69a31554a4a12f5c73381a6ca57e6a9b245e48a4",
+  "channel": "r8-infinix-fast-catchup-qa",
+  "productionArcadeUpdated": false,
+  "physicalAndroidVerified": false,
+  "nativeMugen11Certified": false,
+  "kotlinWasmDefault": false,
+  "scope": "Review-only phone preview; not the production engine"
+}
