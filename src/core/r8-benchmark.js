@@ -64,6 +64,12 @@ const fields = [
   "sprite_preload_attempted", "sprite_preload_loaded",
   "sprite_preload_duration_ms", "sprite_preload_resident_mib",
   "sprite_cpu_cache_budget_mib",
+  // GPU pre-upload and decoded hot-tier costs vs real fighting FPS.
+  "sprite_hot_cache_resident_mib","sprite_hot_cache_budget_mib",
+  "sprite_hot_cache_hits","sprite_hot_cache_evictions",
+  "sprite_hot_cache_entries","sprite_hot_cache_stores",
+  "gpu_preload_uploads","gpu_preload_resident_mib",
+  "gpu_preload_duration_ms","gpu_adaptive_cache_upgrades",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -88,6 +94,8 @@ panel.innerHTML = `
         <div><small>GPU residency budget</small><strong data-r8="cachelimit">—</strong></div>
         <div><small>Sprite CPU restore cache</small><strong data-r8="spritecache">—</strong></div>
         <div><small>Preloaded sprite art</small><strong data-r8="preload">—</strong></div>
+        <div><small>Decoded hot cache</small><strong data-r8="hotcache">—</strong></div>
+        <div><small>Preuploaded GPU art</small><strong data-r8="gpuwarm">—</strong></div>
         <div><small>R8 cached raw bytes saved</small><strong data-r8="cachesavings">—</strong></div>
         <div><small>Expression AST cache hits/misses</small><strong data-r8="astcache">—</strong></div>
         <div><small>Indexed R8</small><strong data-r8="indexed">—</strong></div>
@@ -200,6 +208,12 @@ function sample() {
     (state.spritePreload?.mode||'legacy')+' · '+
     (state.spritePreload?.loaded??0)+' sprites · '+
     mib(state.spriteRestoreCache?.budgetBytes??0);
+  element("hotcache").textContent =
+    (state.spriteRestoreCache?.hotHits??0)+' hits · '+
+    mib(state.spriteRestoreCache?.hotBytes??0);
+  element("gpuwarm").textContent =
+    (gpu.gpuPreloadUploads??0)+' sprites · '+
+    mib(gpu.gpuPreloadBytes??0);
   element("cachesavings").textContent = mib(state.spriteRestoreCache?.rawBytesSaved??0) +
     " · " + (state.spriteRestoreCache?.compressedEntries??0) + " sprites";
   element("astcache").textContent = (state.interpreterCache?.hits??0) +
@@ -335,6 +349,20 @@ function sample() {
       ? number(state.spritePreload.bytes/MB,3) : "",
     Number.isFinite(state.spriteRestoreCache?.budgetBytes)
       ? number(state.spriteRestoreCache.budgetBytes/MB,3) : "",
+    Number.isFinite(state.spriteRestoreCache?.hotBytes)
+      ? number(state.spriteRestoreCache.hotBytes/MB,3) : "",
+    Number.isFinite(state.spriteRestoreCache?.hotBudgetBytes)
+      ? number(state.spriteRestoreCache.hotBudgetBytes/MB,3) : "",
+    state.spriteRestoreCache?.hotHits??"",
+    state.spriteRestoreCache?.hotEvictions??"",
+    state.spriteRestoreCache?.hotEntries??"",
+    state.spriteRestoreCache?.hotStores??"",
+    gpu.gpuPreloadUploads??"",
+    Number.isFinite(gpu.gpuPreloadBytes)
+      ? number(gpu.gpuPreloadBytes/MB,3) : "",
+    Number.isFinite(state.spritePreload?.gpuDurationMs)
+      ? number(state.spritePreload.gpuDurationMs,1) : "",
+    gpu.textureBudgetUpgrades??"",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
