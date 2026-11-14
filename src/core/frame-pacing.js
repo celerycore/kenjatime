@@ -18,13 +18,15 @@ export function framePacing(debt, estimatedTickMs = 2) {
   const tickMs = Number.isFinite(estimatedTickMs) && estimatedTickMs > 0
     ? estimatedTickMs : 2;
   let batchLimit = Math.max(1, Math.min(4, Math.floor(10 / Math.max(0.5, tickMs))));
-  // The Android Nu-13/Tomoka trace showed 1 tick per callback for 92 s,
-  // with an eventual 1,957-tick backlog. In sustained severe debt, two
-  // moderately expensive ticks in one worker callback amortize browser timer
-  // wakeup/clamping overhead. Cap the simulation slice to ~28 ms: never
-  // drop ticks, run incomplete controller phases, or alter render visibility.
-  if (debt >= 120 && tickMs > 5 && tickMs <= 14)
+  // In the Nov 14 Infinix trace, debt remained above 8 for most of the
+  // 90s while 1-tick callbacks repeatedly entered catch-up scheduling.
+  // Amortize queue wakeups with 2 ticks at ~10–13 ms/tick, but cap this
+  // *estimated* simulation slice at ~28 ms to retain render/input fairness.
+  // NEVER alter the fixed 60 Hz tick boundaries or discard accumulated debt.
+  if (debt >= 8 && tickMs >= 5 && tickMs <= 13.5)
     batchLimit = Math.max(batchLimit,2);
+  if (debt >= 80 && tickMs >= 3 && tickMs <= 8)
+    batchLimit = Math.max(batchLimit,3);
   return {
     backlog,
     batchLimit,
