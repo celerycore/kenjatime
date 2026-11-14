@@ -421,6 +421,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get importedCount(){return fighters.size-1},
   get sources(){return [...installedTables.values()].map(x=>x.name)},
   get lastVisualFrame(){return latest?.frame??0},
+  get renderPlan(){return latest},
   get warning(){return images.find(x=>x?.warning)?.warning||""}
 });
 async function initialize(){
