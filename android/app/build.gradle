@@ -1,12 +1,14 @@
 apply plugin: 'com.android.application'
 def corePreview = providers.gradleProperty('kenjatimeCorePreview').getOrElse('true') == 'true'
+def kotlinStandard = providers.gradleProperty('kenjatimeKotlinStandard').getOrElse('false') == 'true'
 
 android {
     namespace = "io.github.celerycore.kenjatime"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "io.github.celerycore.kenjatime"
-        if (corePreview) applicationIdSuffix ".core.preview"
+        if (kotlinStandard) applicationIdSuffix ".kotlin"
+        else if (corePreview) applicationIdSuffix ".core.preview"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 13
@@ -15,8 +17,12 @@ android {
             versionCode 9
             versionName "0.5.8-core-preview"
         }
-        manifestPlaceholders = [kenjatimeAppLabel: corePreview ? 'Kenjatime Core Preview' : '@string/app_name',
-                                kenjatimeActivityLabel: corePreview ? 'Kenjatime Core Preview' : '@string/title_activity_main']
+        if (kotlinStandard) {
+            versionCode 15
+            versionName "0.6.0-kotlin-wasm"
+        }
+        manifestPlaceholders = [kenjatimeAppLabel: kotlinStandard ? 'Kenjatime Kotlin' : (corePreview ? 'Kenjatime Core Preview' : '@string/app_name'),
+                                kenjatimeActivityLabel: kotlinStandard ? 'Kenjatime Kotlin' : (corePreview ? 'Kenjatime Core Preview' : '@string/title_activity_main')]
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

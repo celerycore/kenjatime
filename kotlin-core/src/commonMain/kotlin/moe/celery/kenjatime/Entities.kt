@@ -100,6 +100,13 @@ class CoreEntities(private val match: DeterministicFight) {
     fun step(errors: MutableSet<String>) {
         if (helpers.isEmpty() && projectiles.isEmpty()) return
         val newRequests = mutableListOf<EntityRequest>()
+        // Special moves can have dozens of helpers/projectiles against the
+        // same victim. Reuse its immutable world-space hurtboxes *within this
+        // one tick* and invalidate immediately when a hit changes its state.
+        // This does not cache across movement, ticks or hit-state transitions.
+        val targetHurt = mutableMapOf<FightingCharacter, List<MugenRect>>()
+        fun hurt(target: FightingCharacter): List<MugenRect> =
+            targetHurt.getOrPut(target) { target.hurtBoxes() }
         val current = helpers.toList()
         for (helper in current) {
             if (helper.actor.destroyed) continue
@@ -115,7 +122,7 @@ class CoreEntities(private val match: DeterministicFight) {
             val hit = helper.actor.activeHitDef
             if (hit != null && helper.actor.hitPauseLeft == 0 && enemy.canReceive(hit) &&
                 helper.actor.canHit(enemy.id) &&
-                helper.actor.attackBoxes().any { a -> enemy.hurtBoxes().any { a.intersects(it) } }) {
+                helper.actor.attackBoxes().any { a -> hurt(enemy).any { a.intersects(it) } }) {
                 val guarded = enemy.blocks(hit)
                 helper.actor.markHit(enemy.id)
                 helper.actor.moveContact = true
@@ -125,6 +132,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 match.contacts.add(FightContact(helper.actor.id, enemy.id, guarded,
                     if (guarded) hit.guardDamage else hit.damage))
                 enemy.receiveHit(hit, helper.actor.facingRight, guarded)
+                targetHurt.remove(enemy) // Next helper sees the new hit animation.
             }
         }
         for (projectile in projectiles) {
@@ -132,12 +140,13 @@ class CoreEntities(private val match: DeterministicFight) {
             projectile.step()
             val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue
-            if (projectile.hitBoxes().any { box -> enemy.hurtBoxes().any { box.intersects(it) } }) {
+            if (projectile.hitBoxes().any { box -> hurt(enemy).any { box.intersects(it) } }) {
                 val guarded = enemy.blocks(projectile.hit)
                 projectile.markHit(enemy.id)
                 match.contacts.add(FightContact(projectile.entityId, enemy.id, guarded,
                     if (guarded) projectile.hit.guardDamage else projectile.hit.damage))
                 enemy.receiveHit(projectile.hit, projectile.owner.facingRight, guarded)
+                targetHurt.remove(enemy)
                 projectile.ticksLeft = 0
             }
         }
