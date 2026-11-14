@@ -332,14 +332,16 @@ export class CoreSession {
       perBank.get(bankId).push({id,entry,bankId,
         index:Number(id.slice(colon+1))});
     }
-    const pools=[...perBank.values()].map(items=>items.reverse());
+    // Array.pop() selects highest-frequency end of each bank without O(n)
+    // shifting thousands of records during a memory-heavy loading screen.
+    const pools=[...perBank.values()];
     const total=pools.reduce((n,x)=>n+x.length,0);
     let processed=0;
     onProgress({phase:'gpu',done:0,total,progress:0,bytes:0});
     while(pools.some(pool=>pool.length>0) && !this.closed){
       for(const pool of pools) {
         if(!pool.length||this.closed)continue;
-        const {id,entry,index,bankId}=pool.shift();
+        const {id,entry,index,bankId}=pool.pop();
         processed++;stats.attempted++;
         try{
           const resource=this.resourcesByBankId.get(bankId);
