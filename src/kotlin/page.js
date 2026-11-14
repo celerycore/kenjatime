@@ -197,10 +197,13 @@ function render(){
     const y=fighter.y; // both projected by Kotlin's deterministic camera
     const img=spriteImage(item,fighter.group,fighter.number);
     if(img){
-      const renderedScale=Math.min(1.8,360/img.w,340/img.h) *
-        (fighter.scale||1);
+      // Authored localcoord comes from Kotlin's DEF parser (Nu-13 1008x756,
+      // standard MUGEN 320x240). Avoid hard-coding a 1:1 character scale.
+      const sx=(fighter.spriteScaleX||1)*(fighter.scale||1);
+      const sy=(fighter.spriteScaleY||1)*(fighter.scale||1);
+      const visualCap=Math.min(1.8,360/(img.w*sx),340/(img.h*sy));
       ctx.save();ctx.translate(x,y);
-      ctx.scale(fighter.facing<0?-renderedScale:renderedScale,renderedScale);
+      ctx.scale(fighter.facing<0?-sx*visualCap:sx*visualCap,sy*visualCap);
       ctx.imageSmoothingEnabled=false;
       // Sprite X/Y originate in authored SFF axes, not image center.
       ctx.drawImage(img.image,-img.x,-img.y);
