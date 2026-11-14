@@ -17,7 +17,14 @@ export function framePacing(debt, estimatedTickMs = 2) {
   // interrupted without breaking original MUGEN controller order.
   const tickMs = Number.isFinite(estimatedTickMs) && estimatedTickMs > 0
     ? estimatedTickMs : 2;
-  const batchLimit = Math.max(1, Math.min(4, Math.floor(10 / Math.max(0.5, tickMs))));
+  let batchLimit = Math.max(1, Math.min(4, Math.floor(10 / Math.max(0.5, tickMs))));
+  // The Android Nu-13/Tomoka trace showed 1 tick per callback for 92 s,
+  // with an eventual 1,957-tick backlog. In sustained severe debt, two
+  // moderately expensive ticks in one worker callback amortize browser timer
+  // wakeup/clamping overhead. Cap the simulation slice to ~28 ms: never
+  // drop ticks, run incomplete controller phases, or alter render visibility.
+  if (debt >= 120 && tickMs > 5 && tickMs <= 14)
+    batchLimit = Math.max(batchLimit,2);
   return {
     backlog,
     batchLimit,
