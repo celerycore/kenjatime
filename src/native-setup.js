@@ -29,6 +29,12 @@ $('#upload').textContent='＋ Import character / archive';$('#add-stage').textCo
 $('.heading').insertAdjacentHTML('afterend','<section class="stage-library" aria-label="Stage setup"><label>Stage <select id="stage-select"></select></label><span id="stage-summary"></span></section>');
 $('.stage-library').insertAdjacentHTML('afterend','<section class="stage-library" aria-label="Common effects"><label>Common effects <select id="effects-select"><option value="">From chosen stage / fighter (if included)</option></select></label><span>Optional original fightfx AIR/SFF pack</span></section>');
 $('.viewer').insertAdjacentHTML('beforebegin','<section class="arena-launch" aria-label="Match setup"><label>Play mode <select id="arena-mode"><option value="solo">Player vs CPU</option><option value="versus">Two players</option><option value="cpu">Watch CPU match</option><option value="training">Training</option></select></label><label>Screen format <select id="presentation-select" aria-label="Match screen format"><option value="widescreen-16-9">16:9 Widescreen</option><option value="native-4-3">4:3 Native-style</option></select></label><button type="button" class="primary" id="fight-now">Fight now</button><span>Choose your fighter in the roster and your rival under Opponent.</span></section>');
+// Sprite warmup is a selectable tradeoff: larger decoded CPU caches can
+// make heavy imported MUGEN fighters smoother at the cost of slower loading.
+const spriteCacheLabel=document.createElement('label');
+spriteCacheLabel.className='sprite-cache-setting';
+spriteCacheLabel.innerHTML='Sprite cache <select id="sprite-cache-mode" aria-label="Sprite preload and cache size"><option value="legacy">Legacy · 16 MiB · no preload</option><option value="balanced">Balanced · 64 MiB · preload</option><option value="extended" selected>Extended · 128 MiB · preload</option><option value="maximum">Maximum · 192 MiB · preload (high RAM)</option></select>';
+$('.arena-launch').insertBefore(spriteCacheLabel,$('#fight-now'));
 // Benchmark-only match control: production pages do not set this flag.
 if(document.body.dataset.r8Benchmark==='true'){
  const wrapper=document.createElement('label');wrapper.className='r8-endless-toggle';
@@ -91,7 +97,7 @@ async function drawPreview(step){
   else{ctx.font='15px system-ui';ctx.fillText('Preview unavailable',center,280);ctx.fillText('Ready to use in a match',center,305);}
  });canvas.dataset.previewCount=String(images.filter(Boolean).length);canvas.setAttribute('aria-label',`Match preview: Player 1 ${selected.name}, Player 2 ${rival.name}`);
 }
-function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,fxPackage:$('#effects-select').value,mode:$('#arena-mode').value,presentation:$('#presentation-select').value,...($('#endless-mode')?{endless:$('#endless-mode').checked}:{})}));}catch{}}
+function remember(){try{localStorage.setItem(selectionKey,JSON.stringify({character:selected?.id,opponent:$('#opponent-select').value,stage:$('#stage-select').value,fxPackage:$('#effects-select').value,mode:$('#arena-mode').value,presentation:$('#presentation-select').value,spriteCacheMode:$('#sprite-cache-mode').value,...($('#endless-mode')?{endless:$('#endless-mode').checked}:{})}));}catch{}}
 function choose(id){
  selected=catalog.characters.find(c=>c.id===id)||catalog.characters[0];if(!selected)return;
  $('#name').textContent=selected.name;$('#author').textContent=selected.author||'MUGEN character';$('#version').textContent=selected.version||'SFF / AIR';$('#viewtitle').textContent='MATCH PREVIEW · P1 / P2';
@@ -112,6 +118,8 @@ function drawCatalog(data){
  $('#effects-select').innerHTML='<option value="">From chosen stage / fighter (if included)</option>'+catalog.packages.filter(p=>p.commonEffects).map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('');
  if(catalog.stages.some(s=>s.id===saved.stage))$('#stage-select').value=saved.stage;if(catalog.characters.some(c=>c.id===saved.opponent))$('#opponent-select').value=saved.opponent;if(catalog.packages.some(p=>p.id===saved.fxPackage&&p.commonEffects))$('#effects-select').value=saved.fxPackage;
  if(['solo','versus','cpu','training'].includes(saved.mode))$('#arena-mode').value=saved.mode;
+ if(['legacy','balanced','extended','maximum'].includes(saved.spriteCacheMode))
+   $('#sprite-cache-mode').value=saved.spriteCacheMode;
  if(['widescreen-16-9','native-4-3'].includes(saved.presentation))$('#presentation-select').value=saved.presentation;
  if($('#endless-mode'))$('#endless-mode').checked=saved.endless===true;
  $('#stage-summary').textContent='Your stage selection is used for the next match.';$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';
@@ -169,10 +177,10 @@ if(engineHost.importFile){
  $('#drop').addEventListener('drop',event=>{event.preventDefault();const files=Array.from(event.dataTransfer.files);if(files.length)void run('Reading archive…',async()=>{applyInstalled(await engineHost.importFile(files,{password:$('#archive-password').value}));$('#archive-password').value='';status('Archive installed. Your fighters and stages are ready to select.');});});
 }
 $('#sample').onclick=()=>choose(catalog.characters.find(c=>!c.packageId)?.id);$('#lab').onclick=()=>{$('.viewer').scrollIntoView({block:'start'});};$('#training').onclick=()=>{$('.arena-launch').scrollIntoView({block:'start'});};
-for(const id of ['stage-select','effects-select','opponent-select','arena-mode','palette-select','opponent-palette-select','presentation-select',...($('#endless-mode')?['endless-mode']:[])])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
+for(const id of ['stage-select','effects-select','opponent-select','arena-mode','palette-select','opponent-palette-select','presentation-select','sprite-cache-mode',...($('#endless-mode')?['endless-mode']:[])])$('#'+id).onchange=()=>{remember();$('.stage-label').textContent=$('#stage-select').selectedOptions[0]?.textContent||'TRAINING GRID';if(id==='opponent-select'||id.includes('palette'))void preview();};
 $('#fight-now').onclick=()=>void run('Preparing your match…',async()=>{
  if(!selected)throw Error('Import a character before starting a match.');
- const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value,presentation:$('#presentation-select').value,fightfxPackageId:$('#effects-select').value,...($('#endless-mode')?{endless:$('#endless-mode').checked&&$('#arena-mode').value!=='training'}:{})};remember();disposePreview();await native('launch',match);
+ const match={character:selected.id,opponent:$('#opponent-select').value||selected.id,stage:$('#stage-select').value,mode:$('#arena-mode').value,level:+$('#cpu-level').value,palette:+$('#palette-select').value,opponentPalette:+$('#opponent-palette-select').value,presentation:$('#presentation-select').value,spriteCacheMode:$('#sprite-cache-mode').value,fightfxPackageId:$('#effects-select').value,...($('#endless-mode')?{endless:$('#endless-mode').checked&&$('#arena-mode').value!=='training'}:{})};remember();disposePreview();await native('launch',match);
 });
 window.addEventListener('kenjatime:battle',event=>{if(!event.detail.active&&selected){void preview();status('Ready when you are.');}});
 grid();void run('Opening your library…',async()=>{try{const data=await native('catalog');if(startup)startup.measure('catalog-render',()=>drawCatalog(data));else drawCatalog(data);startup?.finish(data.warning?'degraded':'ready');status(data.warning||'Ready when you are.');}catch(error){startup?.finish('failed');throw error;}});
