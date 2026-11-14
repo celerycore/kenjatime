@@ -55,13 +55,16 @@ object CorePresentationPlanner {
             .append(',').append(healthBarWidth(fight.p2.life,fight.p2.definition.maxLife))
             .append("],\"draws\":[")
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
-                 facingRight: Boolean, action: AirAnimationPlayer?, life: Int) {
+                 facingRight: Boolean, action: AirAnimationPlayer?,
+                 definition: FighterDefinition, life: Int) {
             val frame = action?.frame
             json.append("{\"side\":").append(side)
                 .append(",\"kind\":\"").append(kind).append("\"")
                 .append(",\"x\":").append(pixelX(x256,camera))
                 .append(",\"y\":").append(pixelY(y256,camera))
                 .append(",\"scale\":").append(camera?.zoom ?: 1.0)
+                .append(",\"spriteScaleX\":").append(320.0 / definition.localCoordWidth)
+                .append(",\"spriteScaleY\":").append(240.0 / definition.localCoordHeight)
                 .append(",\"facing\":").append(if(facingRight) 1 else -1)
                 .append(",\"action\":").append(action?.action?.number ?: -1)
                 .append(",\"elem\":").append((action?.index ?: 0)+1)
@@ -71,18 +74,20 @@ object CorePresentationPlanner {
                 .append("},")
         }
         draw(0,"fighter",fight.p1.posX,fight.p1.posY,
-            fight.p1.facingRight,fight.p1.animation,fight.p1.life)
+            fight.p1.facingRight,fight.p1.animation,fight.p1.definition,fight.p1.life)
         draw(1,"fighter",fight.p2.posX,fight.p2.posY,
-            fight.p2.facingRight,fight.p2.animation,fight.p2.life)
+            fight.p2.facingRight,fight.p2.animation,fight.p2.definition,fight.p2.life)
         for(helper in fight.entities.helpers) {
             val side = if (helper.owner === fight.p1) 0 else 1
             draw(side,"helper",helper.actor.posX,helper.actor.posY,
-                helper.actor.facingRight,helper.actor.animation,helper.actor.life)
+                helper.actor.facingRight,helper.actor.animation,
+                helper.actor.definition,helper.actor.life)
         }
         for(projectile in fight.entities.projectiles) {
             val side = if(projectile.owner === fight.p1) 0 else 1
             draw(side,"projectile",projectile.x,projectile.y,
-                projectile.owner.facingRight,projectile.action,0)
+                projectile.owner.facingRight,projectile.action,
+                projectile.owner.definition,0)
         }
         if(json.last() == ',')json.setLength(json.length-1)
         return json.append("]}").toString()
