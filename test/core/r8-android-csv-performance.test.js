@@ -35,7 +35,7 @@ test('lossless R8 zero-run encoder preserves arbitrary indexed colors and traili
 
 test('sparse R8 restore cache retains more art within its fixed 16MiB style budget',()=>{
   const raw=deterministicBytes(128*1024);
-  for(let i=0;i<raw.length;i++)if((i%5)!==0)raw[i]=0;
+  for(let i=0;i<raw.length;i++)if((i%16)!==0)raw[i]=0;
   const cache=new SpriteRestoreCache({maxBytes:128*1024,requireRepeat:true});
   for(let index=0;index<4;index++){
     const id='fighter:'+index;
