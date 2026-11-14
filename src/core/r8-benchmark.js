@@ -56,7 +56,7 @@ const fields = [
   "video_gpu_mib", "video_deferred_frames",
   // Android CSV follow-up: compressed CPU sprite cache telemetry.
   "sprite_restore_compressed_entries", "sprite_restore_saved_raw_mib",
-  "sprite_restore_decompressions",
+  "sprite_restore_decompressions", "gpu_texture_reuses",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -86,6 +86,7 @@ panel.innerHTML = `
         <div><small>Stage video GPU</small><strong data-r8="videomem">—</strong></div>
         <div><small>Video frame deferrals</small><strong data-r8="videodeferred">—</strong></div>
         <div><small>Texture evictions</small><strong data-r8="evictions">—</strong></div>
+        <div><small>GPU allocations recycled</small><strong data-r8="recycled">—</strong></div>
         <div><small>Offscreen quads avoided</small><strong data-r8="culled">—</strong></div>
         <div><small>Sprite admission deferrals</small><strong data-r8="probation">—</strong></div>
         <div><small>Missing art / palette draws</small><strong data-r8="missing">—</strong></div>
@@ -193,6 +194,7 @@ function sample() {
   element("videomem").textContent = mib(gpu.videoTextureBytes);
   element("videodeferred").textContent = String(gpu.deferredVideoFrames || 0);
   element("evictions").textContent = String(gpu.textureEvictions || 0);
+  element("recycled").textContent = String(gpu.recycledTextures || 0);
   element("culled").textContent = (gpu.offscreenCulledDraws??0) +
     " of " + (gpu.submittedDraws??gpu.draws??0);
   element("probation").textContent = (state.spriteRestoreCache?.deferredAdmissions??0) +
@@ -303,6 +305,7 @@ function sample() {
     Number.isFinite(state.spriteRestoreCache?.rawBytesSaved)
       ? number(state.spriteRestoreCache.rawBytesSaved/MB,3) : "",
     state.spriteRestoreCache?.decompressions ?? "",
+    gpu.recycledTextures ?? "",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
