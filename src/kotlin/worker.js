@@ -104,8 +104,8 @@ self.onmessage=async({data})=>{
       await load();
       release();
       const a=data.p1,b=data.p2;
-      handle=api.ktCoreCreateWithCommands(a.name,b.name,
-        a.air,b.air,a.cns,b.cns,a.cmd,b.cmd);
+      handle=api.ktCoreCreateWithDefinitions(a.name,b.name,
+        a.air,b.air,a.cns,b.cns,a.cmd,b.cmd,a.defText,b.defText);
       api.ktCoreSetup(handle,-70*256,0,70*256,0);
       api.ktCoreConfigureArena(handle,-250,250,0,true,true);
       endless=data.endless!==false;
