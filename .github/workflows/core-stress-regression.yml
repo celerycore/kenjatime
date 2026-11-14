@@ -49,6 +49,10 @@ jobs:
           python -m pip install 'playwright>=1.57,<2'
           python -m playwright install --with-deps chromium
           python scripts/core/verify-r8-gpu-pixels.py
+      - name: Verify browser KFM match on isolated R8 Core
+        run: npm run verify:core:browser
+      - name: Verify isolated R8 HUD and CSV export
+        run: python scripts/core/verify-r8-benchmark.py
       - name: Original interaction compatibility comparison (known baseline gap)
         run: npm run verify:core:interactions
         continue-on-error: true
