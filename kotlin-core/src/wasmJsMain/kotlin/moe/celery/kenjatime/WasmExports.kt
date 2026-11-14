@@ -162,6 +162,9 @@ private object ClockHandles {
 @JsExport fun ktCoreClockReset(handle:Int,nowMilliseconds:Double) {
     ClockHandles.get(handle).reset(nowMilliseconds)
 }
+@JsExport fun ktCoreClockResume(handle:Int,nowMilliseconds:Double) {
+    ClockHandles.get(handle).resume(nowMilliseconds)
+}
 @JsExport fun ktCoreClockRelease(handle:Int) {
     ClockHandles.active.remove(handle)
 }
