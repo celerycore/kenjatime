@@ -16,7 +16,7 @@ test('R8 presents under simulated 524-tick debt instead of starving WebGL indefi
   assert.ok(clock.debt>=500, 'test creates the reported Nu-13-sized backlog');
   const pacing=framePacing(clock.debt,7);
   assert.equal(pacing.renderFps,BACKLOG_PRESENTATION_FPS);
-  assert.equal(pacing.batchLimit,1);
+  assert.equal(pacing.batchLimit,2,'severe backlog batches two moderate-cost ticks');
   let visible=0;
   for(let i=0;i<20;i++){
     const time=9000+i*40;
