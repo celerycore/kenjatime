@@ -70,6 +70,11 @@ const fields = [
   "sprite_hot_cache_entries","sprite_hot_cache_stores",
   "gpu_preload_uploads","gpu_preload_resident_mib",
   "gpu_preload_duration_ms","gpu_adaptive_cache_upgrades",
+  // Gameplay-first frameskip and reusable-script/cache policy metrics.
+  "gameplay_first_frameskip","simulation_debt_change_hz",
+  "sprite_hot_admissions_deferred","sprite_hot_promotions",
+  "sprite_hot_probation_entries","expression_fallback_executors",
+  "expression_fallback_cache_hits",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -195,7 +200,10 @@ function sample() {
   element("qualitymode").textContent = (state.renderQuality??"unknown") +
     " · scale " + number(state.resolutionScale,2);
   element("directread").textContent = String(state.expressions?.direct??0);
-  element("backlogdraw").textContent = (state.renderWithBacklogCount ?? 0) + " frames · target " + (state.renderTargetFps ?? "—") + " FPS";
+  element("backlogdraw").textContent = (state.renderWithBacklogCount ?? 0) +
+    " frames · target " + (state.renderTargetFps ?? "—") + " FPS · "+
+    (state.gameplayFirstFrameskip?'Gameplay priority':'Balanced')+
+    " · debt rate "+number(state.simulationDebtChangeHz,1)+"/s";
   element("cpu").textContent = number(gpu.frameCpuSubmitMs) + " ms";
   element("packetCpu").textContent = number(gpu.framePacketBuildMs,2) + " ms";
   element("restoreCpu").textContent = number(gpu.frameSpriteRestoreCpuMs,2) + " ms";
@@ -363,6 +371,13 @@ function sample() {
     Number.isFinite(state.spritePreload?.gpuDurationMs)
       ? number(state.spritePreload.gpuDurationMs,1) : "",
     gpu.textureBudgetUpgrades??"",
+    state.gameplayFirstFrameskip===true?1:0,
+    Number.isFinite(state.simulationDebtChangeHz)?number(state.simulationDebtChangeHz,3):"",
+    state.spriteRestoreCache?.hotDeferredAdmissions??"",
+    state.spriteRestoreCache?.hotPromotions??"",
+    state.spriteRestoreCache?.hotProbationEntries??"",
+    state.expressions?.fallbackExecutors??"",
+    state.expressions?.fallbackCacheHits??"",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
