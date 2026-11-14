@@ -8,7 +8,8 @@ private object Fights {
     val active = mutableMapOf<Int, DeterministicFight>()
     fun get(handle: Int): DeterministicFight = active[handle] ?: error("Unknown fight handle")
 }
-@JsExport fun ktCoreVersion(): String = "0.2.0-wasm-combat-preview"
+/** Kotlin/Wasm is the authoritative engine of the 0.6 web + Android channel. */
+@JsExport fun ktCoreVersion(): String = "0.6.0-kotlin-wasm-standard"
 @JsExport fun ktCoreCreate(
     name1: String, name2: String, air1: String, air2: String, cns1: String, cns2: String
 ): Int {
@@ -83,6 +84,14 @@ private object Fights {
     fight.step(InputFrame(p1Direction, p1Buttons.lowercase().toSet()),
         InputFrame(p2Direction, p2Buttons.lowercase().toSet()))
 }
+/** Benchmark AI runs in Kotlin, not in the JavaScript UI or renderer. */
+@JsExport fun ktCoreAdvanceCpu(handle: Int, level: Int) {
+    val fight=Fights.get(handle)
+    val sample=CoreCpu.input(fight.p1, fight.p2, fight.frame, level)
+    val rival=CoreCpu.input(fight.p2, fight.p1, fight.frame, level)
+    fight.step(sample,rival)
+}
+
 @JsExport fun ktCoreChecksum(handle: Int): String = Fights.get(handle).checksum()
 @JsExport fun ktCoreStep(
     handle: Int, p1Direction: Int, p1Buttons: String,
