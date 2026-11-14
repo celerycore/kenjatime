@@ -1,5 +1,7 @@
 /* Isolated PR #17 R8 residency benchmark. Never imported by the production Core. */
 import "./r8-benchmark.css";
+import {collectBenchmarkDeviceInfo,describeBenchmarkDevice,parseBenchmarkAgent}
+  from "./benchmark-device.js";
 
 const MB = 1024 * 1024;
 const number = (value, digits = 1) => Number.isFinite(value) ? value.toFixed(digits) : "—";
@@ -79,6 +81,12 @@ const fields = [
   "worker_message_queue_available","worker_message_queue_callbacks",
   "worker_timeout_callbacks","worker_animation_callbacks",
   "worker_stale_queue_messages",
+  // Local-only, stable per recording: compare the same fighter build on
+  // different phones/browsers without manual hardware annotations.
+  "device_model","device_os","device_os_version",
+  "browser_name","browser_version","browser_user_agent",
+  "device_memory_gib","device_cpu_logical_cores",
+  "screen_width_px","screen_height_px","device_pixel_ratio",
 ];
 const panel = document.createElement("aside");
 panel.id = "kenjatime-r8-benchmark";
@@ -88,6 +96,7 @@ panel.innerHTML = `
     <summary>R8 GPU BENCHMARK <span>MUGEN 1.1 · MEGA</span></summary>
     <div class="r8-bench-content">
       <p>Live GPU residency estimates for the actual match. Mega Update: combined MUGEN 1.1 state/helper/HitDef diagnostics, indexed R8 GPU rendering, large-character import and 60 Hz stress testing. Works with bundled Kung Fu Man or your own locally imported fighters and stages. Native MUGEN 1.1 parity is not certified.</p>
+      <div class="r8-bench-device" role="status">Device and browser: <strong data-r8="device">Detecting…</strong><small>Recorded locally in the CSV only; no device identifier, location, or telemetry uploads.</small></div>
       <div class="r8-bench-readings" aria-live="off">
         <div><small>Rendered FPS</small><strong data-r8="fps">—</strong></div>
         <div><small>Simulation clock</small><strong data-r8="simulation">—</strong></div>
@@ -137,7 +146,7 @@ panel.innerHTML = `
         <button type="button" data-r8-export disabled>Export CSV</button>
       </div>
       <div class="r8-bench-status" data-r8-status role="status">Select a match, then record while it runs.</div>
-      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV additionally reports script-worker simulation CPU milliseconds per tick and batch, the tick-batch cap, total frames deliberately shown despite simulation backlog, and the presentation target FPS. Tick debt is never dropped just to make the FPS counter look better. Under sustained texture eviction pressure R8 may grow its indexed sprite residency budget from 64 up to 96 MiB; growth is measured and exposed in the CSV, but this raw allocation estimate is not total device VRAM. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input, controller diagnostics, and R8 recovery counts. A recovery is an explicit R8 compatibility fallback for stranded idle CPU control; it is not native MUGEN 1.1 behavior certification. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
+      <p class="r8-bench-note">Helper sprite submissions mean a drawable AIR/SFF quad was queued, not necessarily displayed by WebGL. Rejected helpers, duplicate -1/-2/-3 StateDefs and missing state/animation counts help diagnose Tomoka assists. The CSV additionally reports script-worker simulation CPU milliseconds per tick and batch, the tick-batch cap, total frames deliberately shown despite simulation backlog, and the presentation target FPS. Tick debt is never dropped just to make the FPS counter look better. Under sustained texture eviction pressure R8 may grow its indexed sprite residency budget from 64 up to 96 MiB; growth is measured and exposed in the CSV, but this raw allocation estimate is not total device VRAM. The CSV includes device model (when the browser exposes it), OS, browser version, approximate RAM/CPU information, screen size and the local browser user agent for reproducible comparisons across phones and desktop browsers. Unknown model names are not guessed. The CSV also records per-fighter AILevel, control, state duration, position, velocity, authored/generic CPU mode, last planned command, sampled physical input, controller diagnostics, and R8 recovery counts. A recovery is an explicit R8 compatibility fallback for stranded idle CPU control; it is not native MUGEN 1.1 behavior certification. The helper_state_map includes state/animation owner IDs and active bind target/time after the visibility flag. Player state-owner, AIR-owner, facing and *live target* columns help identify TargetState, ChangeAnim2 and SelfState transitions; deferred hit-state owner, movetype and hitpause readings help inspect throw timing; they do not prove native MUGEN 1.1 parity. FPS is rendered frames per wall second and is independent of the fixed 60 Hz simulation clock. Tick backlog indicates delayed simulation work, not dropped ticks. CPU submit excludes asynchronous GPU execution. Memory is raw GPU texture allocation estimate, not total VRAM or device RAM. Background/paused samples are excluded from FPS summaries. No uploads or remote telemetry.</p>
     </div>
   </details>`;
 document.body.append(panel);
@@ -152,6 +161,18 @@ const exportButton = panel.querySelector("[data-r8-export]");
 const status = panel.querySelector("[data-r8-status]");
 let recording = false, rows = [], startedAt = 0, previous = null, highest = 0, lastDisplayedFrames = 0;
 let fpsSum = 0, fpsCount = 0;
+let deviceInfo={...parseBenchmarkAgent(navigator.userAgent||""),
+  deviceMemoryGiB:null,hardwareConcurrency:null,
+  screenWidth:null,screenHeight:null,pixelRatio:null};
+const deviceInfoPromise=collectBenchmarkDeviceInfo()
+  .then(info=>{
+    deviceInfo=info;
+    element("device").textContent=describeBenchmarkDevice(info);
+    return info;
+  }).catch(()=>{
+    element("device").textContent=describeBenchmarkDevice(deviceInfo);
+    return deviceInfo;
+  });
 
 function current() {
   const battle = window.__kenjatimeCoreBattle;
@@ -171,6 +192,9 @@ function start() {
     status.textContent = "Launch a fight first (CPU vs CPU is useful for long stress runs).";
     return;
   }
+  // Device high-entropy Client Hints are optional; always export a
+  // best-effort fallback without delaying or affecting gameplay clocks.
+  void deviceInfoPromise;
   rows = [];
   previous = null;
   highest = 0;
@@ -387,6 +411,14 @@ function sample() {
     state.workerSchedulerStats?.timerCallbacks??"",
     state.workerSchedulerStats?.animationCallbacks??"",
     state.workerSchedulerStats?.staleChannelMessages??"",
+    deviceInfo.deviceModel||"Unknown",
+    deviceInfo.osName||"Unknown",deviceInfo.osVersion||"",
+    deviceInfo.browserName||"Unknown",deviceInfo.browserVersion||"",
+    deviceInfo.userAgent||"",
+    deviceInfo.deviceMemoryGiB??"",
+    deviceInfo.hardwareConcurrency??"",
+    deviceInfo.screenWidth??"",deviceInfo.screenHeight??"",
+    deviceInfo.pixelRatio??"",
   ];
   rows.push(row);
   if (rows.length >= maxSamples) { stop("Recorder limit reached"); return; }
@@ -425,6 +457,7 @@ window.addEventListener("kenjatime:battle", ({detail}) => {
 setInterval(sample, 500);
 export const r8Benchmark = {
   start, stop, csv,
-  snapshot: () => ({ recording, samples: rows.length, maxResidentBytes: highest, frames: lastDisplayedFrames }),
+  snapshot: () => ({ recording, samples: rows.length, maxResidentBytes: highest,
+    frames: lastDisplayedFrames, device:deviceInfo }),
 };
 window.__kenjatimeR8Benchmark = r8Benchmark;
