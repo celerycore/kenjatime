@@ -1,4 +1,4 @@
-import {charactersFromFiles,decodeText,packagePath} from "../formats.js";
+import {charactersFromFiles,decodeText,sff} from "../formats.js";
 import {unpackArchive,readArchiveFile} from "../uploads.js";
 
 /** Kotlin standard's archive adapter: all combat remains in Kotlin/WASM.
@@ -82,6 +82,14 @@ export function availableKotlinFighters(files,source){
     // Reject only unsupported features explicitly rather than replacing
     // these authored moves with fake neutral states.
     const sprites=files[path("sprite")];
+    try{
+      // Parse the real SFF table during import, not after enabling the Fight
+      // button. A corrupt or unsupported sprite bank is never shown playable.
+      sff(sprites,{cacheBytes:256*1024}).clearDecodedCache();
+    }catch(error){
+      missing.push({name,files:["SFF sprite bank: "+error.message]});
+      continue;
+    }
     ready.push({
       id:source+":"+fighter.path,
       name,source,
