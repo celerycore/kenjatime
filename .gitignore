@@ -22,3 +22,8 @@ native-android/**/build/
 __pycache__/
 
 dist-core/
+dist-kotlin/
+kotlin-core/.gradle/
+kotlin-core/.kotlin/
+kotlin-core/build/
+kotlin-core/kotlin-js-store/

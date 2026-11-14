@@ -31,14 +31,14 @@ data class ArenaRules(
     }
     private fun individual(p:FightingCharacter) {
         p.posX=p.posX.coerceIn(left,right)
-        val physics=p.definition.states[p.stateNo]?.physics?.uppercase()
+        val physics=p.stateProgram?.physics?.uppercase()
         if(physics=="A" && p.stateType=="A")p.velY+=p.definition.airGravity
         if(p.posY>=ground && p.velY>0) {
             p.posY=ground
             p.velY=0
             if(p.stateType=="A") {
                 val landing=if(p.definition.states.containsKey(52))52 else 0
-                p.changeState(landing)
+                p.changeState(landing, p)
             }
         }
     }

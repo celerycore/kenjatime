@@ -88,14 +88,14 @@ object CorePresentationPlanner {
                 .append("},")
         }
         draw(0,"fighter",fight.p1.posX,fight.p1.posY,
-            fight.p1.facingRight,fight.p1.animation,fight.p1.definition,fight.p1.life)
+            fight.p1.facingRight,fight.p1.animation,fight.p1.animationOwner.definition,fight.p1.life)
         draw(1,"fighter",fight.p2.posX,fight.p2.posY,
-            fight.p2.facingRight,fight.p2.animation,fight.p2.definition,fight.p2.life)
+            fight.p2.facingRight,fight.p2.animation,fight.p2.animationOwner.definition,fight.p2.life)
         for(helper in fight.entities.helpers) {
             val side = if (helper.owner === fight.p1) 0 else 1
             draw(side,"helper",helper.actor.posX,helper.actor.posY,
                 helper.actor.facingRight,helper.actor.animation,
-                helper.actor.definition,helper.actor.life)
+                helper.actor.animationOwner.definition,helper.actor.life)
         }
         for(projectile in fight.entities.projectiles) {
             val side = if(projectile.owner === fight.p1) 0 else 1

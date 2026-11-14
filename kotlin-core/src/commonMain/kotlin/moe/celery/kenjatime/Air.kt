@@ -25,6 +25,10 @@ class AirAnimationPlayer(val action: AirAction) {
         private set
     val frame: AirFrame? get() = action.frames.getOrNull(index)
     fun reset() { index = 0; tick = 0; finished = false }
+    fun selectElement(element: Int) {
+        require(element in 1..action.frames.size)
+        index = element - 1; tick = 0; finished = false
+    }
     fun advance() {
         val f = frame ?: return
         if (finished || f.duration < 0) return

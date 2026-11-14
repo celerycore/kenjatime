@@ -66,3 +66,76 @@ try {
 } finally {
   api.ktCoreRelease(handle);
 }
+
+// Exercise the new custom-state path through the actual exported Wasm ABI.
+// P2 intentionally has a conflicting state 910 and lacks P1's action 9100.
+const throwAir = `${air}\n[Begin Action 200]\nClsn1:1\nClsn1[0]=0,-60,50,0\n200,0,0,0,-1
+[Begin Action 9100]
+5000,0,0,0,3
+5000,1,0,0,5`;
+const throwCns = `${cns}
+[Statedef 200]
+type=S
+movetype=A
+anim=200
+ctrl=0
+[State 200, HitDef]
+type=HitDef
+trigger1=Time=0
+damage=30
+id=71
+ground.hittime=60
+[State 200, TargetState]
+type=TargetState
+trigger1=NumTarget(71)>0
+persistent=0
+id=71
+value=910
+[Statedef 910]
+type=S
+movetype=H
+[State 910, ChangeAnim2]
+type=ChangeAnim2
+trigger1=Time=0
+value=9100
+elem=2
+[State 910, ChangeState]
+type=ChangeState
+trigger1=Time=1
+value=911
+[Statedef 911]
+type=S
+movetype=H
+[State 911, SelfState]
+type=SelfState
+trigger1=Time=1
+value=0`;
+const custom = api.ktCoreCreate("thrower","victim",throwAir,air,throwCns,
+  `${cns}\n[Statedef 910]\ntype=S\nmovetype=I\nanim=0`);
+try {
+  api.ktCoreSetup(custom,0,0,20*256,0);
+  api.ktCoreDebugForceState(custom,0,200);
+  api.ktCoreAdvance(custom,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(custom,0)).numTargets,1);
+  api.ktCoreAdvance(custom,0,"",0,"");
+  const borrowed = JSON.parse(api.ktCoreSnapshot(custom,1));
+  assert.equal(borrowed.state,910);
+  assert.equal(borrowed.stateOwner,1);
+  assert.equal(borrowed.animationOwner,1);
+  const draws = JSON.parse(api.ktCoreRenderPlan(custom,0)).draws;
+  assert.equal(draws[1].side,1,"Borrowed AIR must keep the victim's SFF resource bank");
+  assert.equal(draws[1].group,5000);
+  assert.equal(draws[1].number,1);
+  api.ktCoreAdvance(custom,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(custom,1)).state,911);
+  api.ktCoreAdvance(custom,0,"",0,"");
+  api.ktCoreAdvance(custom,0,"",0,"");
+  const restored = JSON.parse(api.ktCoreSnapshot(custom,1));
+  assert.equal(restored.state,0);
+  assert.equal(restored.stateOwner,2);
+  assert.equal(restored.animationOwner,2);
+  assert.equal(api.ktCoreIssues(custom),"");
+  console.log("Native Wasm HitDef -> TargetState -> ChangeAnim2 -> SelfState: OK (synthetic, not native MUGEN parity)");
+} finally {
+  api.ktCoreRelease(custom);
+}

@@ -22,7 +22,11 @@ data class HitDefinition(
     val guardPause: Int = hitPause,
     val guardVelocityX: Int = 0,
     val guardVelocityY: Int = 0,
-    val hitTime: Int = 12
+    val hitTime: Int = 12,
+    val id: Int = 0,
+    val p2State: Int? = null,
+    val p2GetP1State: Boolean = true,
+    val stateOwner: FightingCharacter? = null
 )
 data class StateController(
     val type: String,
@@ -202,6 +206,25 @@ class FightingCharacter(
     var moveHit = false
     var moveGuarded = false
     var parent: FightingCharacter? = null
+    /** Script ownership and AIR ownership are independent of the victim's
+     * immutable character definition, variables, life and SFF resources. */
+    var stateOwner: FightingCharacter = this
+        private set
+    var animationOwner: FightingCharacter = this
+        private set
+    private var scriptOwner: FightingCharacter = this
+    val stateProgram: StateProgram? get() = stateOwner.definition.states[stateNo]
+    private val capturedTargets = linkedMapOf<FightingCharacter, Int>()
+    fun targets(hitId: Int = -1): List<FightingCharacter> {
+        return capturedTargets.filter { (target, id) ->
+            target !== this && !target.destroyed && target.life > 0 && target.moveType == "H" &&
+                (hitId == -1 || hitId == id)
+        }.keys.toList()
+    }
+    fun captureTarget(target: FightingCharacter, hitId: Int) {
+        if (target !== this && !target.destroyed && target.life > 0 && target.moveType == "H")
+            capturedTargets[target] = hitId
+    }
     var destroyed = false
     var hitCount = 0
     private var randomState = 0x6d2b79f5 xor id
@@ -234,38 +257,61 @@ class FightingCharacter(
     var animation: AirAnimationPlayer? = null
         private set
     init { changeState(0) }
-    fun changeState(state: Int) {
-        val oldAnim = animation?.action?.number
+    fun changeState(state: Int, owner: FightingCharacter = stateOwner,
+                    controlOverride: Boolean? = null) {
+        stateOwner = owner
         stateNo = state
         timeInState = 0
-        control = state < 5000
         activeHitDef = null
         struck.clear()
         controllerActivation.clear()
         moveContact = false
         moveHit = false
         moveGuarded = false
-        val program = definition.states[state]
+        val program = stateProgram
+        val neutralFallback = owner === this && state == 0 && program == null
         stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
         moveType = program?.moveType ?: (if (state >= 5000) "H" else "I")
-        control = program?.control ?: control
+        control = program?.control ?: controlOverride ?: if (neutralFallback) true else control
         program?.velocityX?.let { velX = it }
         program?.velocityY?.let { velY = it }
-        val newAnim = program?.animation ?: state
-        if (oldAnim != newAnim || animation == null)
-            animation = definition.animations[newAnim]?.let(::AirAnimationPlayer)
+        // Missing StateDef anim preserves the current AIR, including a
+        // borrowed ChangeAnim2 action. Initial synthetic actors may use 0.
+        val newAnim = program?.animation ?: if (neutralFallback || animation == null && state == 0) 0 else null
+        if (newAnim != null && newAnim != -1) changeAnimation(newAnim)
     }
-    fun changeAnimation(id: Int) {
-        animation = definition.animations[id]?.let(::AirAnimationPlayer)
+    fun changeAnimation(id: Int, owner: FightingCharacter = this, element: Int = 1): Boolean {
+        val action = owner.definition.animations[id] ?: return false
+        if (element !in 1..action.frames.size) return false
+        animation = AirAnimationPlayer(action).also { it.selectElement(element) }
+        animationOwner = owner
+        return true
+    }
+    /** Refuse unsupported transfers before changing victim state or control.
+     * World positions stay in the shared fixed-point space. Full mixed-localcoord
+     * expression/velocity conversion remains a separate compatibility gate. */
+    fun enterAuthoredState(state: Int, owner: FightingCharacter,
+                           errors: MutableSet<String>, controlOverride: Boolean? = null): Boolean {
+        if (state !in owner.definition.states && !(owner === this && state == 0)) {
+            errors.add("Missing custom/transition state: $state (owner ${owner.id})")
+            return false
+        }
+        if (owner !== this && (owner.definition.localCoordWidth != definition.localCoordWidth ||
+                owner.definition.localCoordHeight != definition.localCoordHeight)) {
+            errors.add("Unsupported mixed-localcoord custom state: $state")
+            return false
+        }
+        changeState(state, owner, controlOverride)
+        return true
     }
     fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
     fun markHit(target: Int) { struck.add(target) }
     fun attackBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight,
-            definition.collisionScaleX,definition.collisionScaleY) } ?: emptyList()
+            animationOwner.definition.collisionScaleX,animationOwner.definition.collisionScaleY) } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight,
-            definition.collisionScaleX,definition.collisionScaleY) } ?: emptyList()
+            animationOwner.definition.collisionScaleX,animationOwner.definition.collisionScaleY) } ?: emptyList()
     private fun number(raw: String?, default: Int = 0): Int =
         raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(Fixed::of) } ?: default
     private fun integer(raw: String?, default: Int = 0): Int =
@@ -288,13 +334,25 @@ class FightingCharacter(
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "ctrlset" -> control = integer(args["value"]) != 0
             "changestate", "selfstate" -> {
-                val next = args["value"]?.trim()?.toIntOrNull()
-                if (next == null) errors.add("Non-constant ChangeState: " + args["value"])
-                else { changeState(next); return true }
+                val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
+                val owner = if (c.type.equals("selfstate", true)) this else scriptOwner
+                val ctrl = args["ctrl"]?.let { CoreExpression.number(it, this, errors) }
+                    ?.takeIf { it >= 0 }?.let { it != 0.0 }
+                if (next == null) errors.add("Invalid state transition value: " + args["value"])
+                else if (enterAuthoredState(next, owner, errors, ctrl)) return true
             }
-            "changeanim" -> {
-                val next = args["value"]?.trim()?.toIntOrNull()
-                if (next != null) changeAnimation(next) else errors.add("Non-constant ChangeAnim")
+            "targetstate" -> {
+                if ("ctrl" in args) errors.add("TargetState ctrl is not a MUGEN 1.1 parameter; ignored")
+                val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
+                if (next == null) errors.add("Invalid TargetState value")
+                else for (target in targets(integer(args["id"], -1)))
+                    target.enterAuthoredState(next, scriptOwner, errors)
+            }
+            "changeanim", "changeanim2" -> {
+                val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
+                val owner = if (c.type.equals("changeanim2", true)) stateOwner else this
+                if (next == null || !changeAnimation(next, owner, integer(args["elem"], 1)))
+                    errors.add("Missing/invalid ${c.type} action or element: " + args["value"])
             }
             "statetypeset" -> {
                 args["statetype"]?.uppercase()?.let { stateType = it }
@@ -445,7 +503,11 @@ class FightingCharacter(
                     guardPause = integer((args["guard.pausetime"] ?: args["pausetime"])?.substringBefore(','), integer(pause.getOrNull(0))).coerceIn(0,120),
                     guardVelocityX = number(guardVelocity.getOrNull(0)),
                     guardVelocityY = number(guardVelocity.getOrNull(1)),
-                    hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600)
+                    hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600),
+                    id = integer(args["id"]),
+                    p2State = args["p2stateno"]?.let { integer(it, -1) }?.takeIf { it >= 0 },
+                    p2GetP1State = integer(args["p2getp1state"], 1) != 0,
+                    stateOwner = scriptOwner
                 )
                 // A controller evaluated every tick must not reset a target's struck set.
                 // State entry starts a new contact window; multi-hit/HitOnce need further parity.
@@ -455,8 +517,10 @@ class FightingCharacter(
         }
         return false
     }
-    private fun executeState(n: Int, errors: MutableSet<String>, paused: Boolean): Boolean {
-        val p = definition.states[n] ?: return false
+    private fun executeState(n: Int, errors: MutableSet<String>, paused: Boolean,
+                             owner: FightingCharacter = this): Boolean {
+        val p = owner.definition.states[n] ?: return false
+        scriptOwner = owner
         for ((index, controller) in p.controllers.withIndex()) {
             val opts = controller.params
             if (paused && opts["ignorehitpause"]?.trim() != "1") continue
@@ -474,6 +538,7 @@ class FightingCharacter(
     }
     fun tick(errors: MutableSet<String>) {
         if (destroyed) return
+        capturedTargets.keys.removeAll { it.destroyed || it.life <= 0 || it.moveType != "H" }
         asserted.clear()
         commandCache.clear()
         evaluationIssues = errors
@@ -481,18 +546,18 @@ class FightingCharacter(
         if (paused) hitPauseLeft--
         if (!paused && hitStunLeft > 0) hitStunLeft--
         // Global state controllers participate in the pause only when explicitly opted in.
-        val changed = executeState(-3, errors, paused) ||
+        val changed = (stateOwner === this && executeState(-3, errors, paused)) ||
             executeState(-2, errors, paused) ||
-            executeState(-1, errors, paused) ||
-            executeState(stateNo, errors, paused)
+            (stateOwner === this && executeState(-1, errors, paused)) ||
+            executeState(stateNo, errors, paused, stateOwner)
         if (changed || paused) return
         posX += velX
         posY += velY
         timeInState++
         animation?.advance()
         if (hitStunLeft == 0 && (stateNo == 5000 || stateNo in 150..152) &&
-            stateNo !in definition.states && life > 0)
-            changeState(0)
+            stateNo !in stateOwner.definition.states && life > 0)
+            changeState(0, this)
     }
     fun blocks(hit: HitDefinition): Boolean {
         if (!control && stateNo !in 150..152) return false
@@ -514,17 +579,25 @@ class FightingCharacter(
             else -> flags.any { it == 'H' || it == 'L' || it == 'M' }
         }
     }
-    fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false) {
+    fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
+                   attacker: FightingCharacter? = null) {
         life = (life - if (guarded) hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)).coerceAtLeast(0)
         val resultingState = if (life == 0) 5150 else if (guarded)
             when (stateType) { "A" -> 152; "C" -> 151; else -> 150 }
         else 5000
-        changeState(resultingState)
+        // A normal hit/guard/KO always restores the victim's own state bank.
+        changeState(resultingState, this, false)
         velX = (if (guarded) hit.guardVelocityX else hit.velocityX) *
             if (attackerFacingRight) 1 else -1
         velY = if (guarded) hit.guardVelocityY else hit.velocityY
         hitPauseLeft = if (guarded) hit.guardPause else hit.defenderPause
         hitStunLeft = hit.hitTime
+        if (!guarded && life > 0 && hit.p2State != null) {
+            val owner = if (hit.p2GetP1State) hit.stateOwner ?: attacker else this
+            if (owner != null) enterAuthoredState(hit.p2State, owner,
+                world?.issues ?: evaluationIssues)
+        }
+        if (!guarded) attacker?.captureTarget(this, hit.id)
     }
 }
 
@@ -617,8 +690,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
             p2.hitPauseLeft = if (guardA) bh.guardPause else bh.hitPause
             contacts.add(FightContact(p2.id, p1.id, guardA, if (guardA) bh.guardDamage else bh.damage))
         }
-        if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB)
-        if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA)
+        if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB, p1)
+        if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA, p2)
         if (allowCombat) entities.step(issues)
         val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)

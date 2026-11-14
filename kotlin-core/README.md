@@ -1,5 +1,9 @@
 # Kenjatime Kotlin/Wasm migration (experimental)
 
+For the current Kotlin-owned browser/Android channel and custom-state
+continuation, see [MIGRATION_STATUS.md](MIGRATION_STATUS.md). The incremental
+kernel description below documents the original migration stage.
+
 This is an **incremental replacement kernel** based on the uploaded
 `mugen_kotlin_engine_blueprint.md`, rebased on the existing
 `fix/core-round-intro-outro-sequence-20261110` rewrite. The live JS engine,
