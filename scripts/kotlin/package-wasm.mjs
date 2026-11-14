@@ -29,6 +29,11 @@ mkdirSync(out,{recursive:true});
 for(const name of parts)copyFileSync(join(directory,name),join(out,name));
 const binary=readFileSync(join(out,"kenjatime-kotlin-core.wasm"));
 assert.deepEqual(Array.from(binary.subarray(0,4)),[0,97,115,109],"Invalid Kotlin/WASM magic");
+// Capacitor requires a root index.html even when appStartPath points at
+// /kotlin/index.html. Preserve the same Kotlin-only build for web and APK.
+assert.ok(existsSync("dist-kotlin/kotlin/index.html"),"Kotlin app HTML missing");
+writeFileSync("dist-kotlin/index.html",
+  '<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=./kotlin/index.html"><title>Kenjatime Kotlin</title></head><body><a href="./kotlin/index.html">Open Kotlin/WASM engine</a></body></html>');
 const files=readdirSync(out).map(name=>({name,bytes:statSync(join(out,name)).size}));
 const metadata={
   engine:"Kotlin/WASM",channel:"kotlin-standard",
