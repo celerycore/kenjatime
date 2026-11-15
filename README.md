@@ -10,6 +10,14 @@ do not certify native MUGEN/IKEMEN parity or physical-phone performance. See
 [migration progress and limits](kotlin-core/MIGRATION_STATUS.md) and the
 [compatibility contract](kotlin-core/compatibility.json).
 
+Download tested APKs and browser bundles from
+[public releases](https://github.com/celerycore/kenjatime/releases).
+Each Kotlin release is pinned to its source commit and includes SHA-256
+checksums. These downloads do not require GitHub Actions access or expire with
+CI artifacts. The source branch is
+[`main`](https://github.com/celerycore/kenjatime/tree/main), even while the
+repository's default branch setting still points to `gh-pages`.
+
 Use Node.js 24 and a JDK 21 installation (`JAVA_HOME` must point to the JDK).
 The checked-in Gradle wrapper downloads the Kotlin toolchain on first use.
 
@@ -49,9 +57,10 @@ with older Kenjatime installations. CI checks the APK contains the exact Wasm
 and browser assets tested in the browser job.
 
 The **Kotlin/WASM Main** workflow runs on pushes and pull requests to `main`.
-It produces browser, test-result and APK artifacts. It does not deploy the
-website. GitHub Pages remains on `gh-pages`; promoting the source branch does
-not replace that published site.
+It produces browser, test-result and APK artifacts. Successful `main` builds
+also publish permanent development releases after both browser and Android
+verification pass. Pull requests do not publish releases. The workflow does
+not deploy the website. GitHub Pages remains on `gh-pages`.
 
 Earlier JavaScript and recovery code remains available for reference through
 explicit commands such as `build:core`, `test:core`, `test:core:compiled`,

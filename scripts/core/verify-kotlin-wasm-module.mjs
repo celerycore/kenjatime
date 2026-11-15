@@ -418,3 +418,47 @@ try {
   assert.equal(api.ktCoreIssues(mixed),"");
   console.log("Native Wasm mixed-coordinate HitDef / borrowed state / TargetBind / SelfState / pixel projection: OK (synthetic)");
 } finally { api.ktCoreRelease(mixed); }
+
+const projectileFacingAir=`${air}
+[Begin Action 200]
+Clsn1Default:1
+Clsn1[0]=0,-40,10,0
+200,0,0,0,-1`;
+const projectileFacingCns=`[Statedef 0]
+type=S
+physics=N
+anim=0
+[State 0, fire before turning]
+type=Projectile
+trigger1=Time=0
+projid=171
+projanim=200
+offset=10,0
+velocity=2,0
+projdamage=10
+projground.velocity=3,0
+[State 0, turn creator]
+type=Turn
+trigger1=Time=0`;
+const projectileFacing=api.ktCoreCreate("shooter","victim",projectileFacingAir,air,
+  projectileFacingCns,"[Statedef 0]\nanim=0\nphysics=N");
+try {
+  api.ktCoreSetup(projectileFacing,0,0,35*256,0);
+  api.ktCoreAdvance(projectileFacing,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(projectileFacing,0)).facing,-1);
+  const shot=JSON.parse(api.ktCoreRenderPlan(projectileFacing,0)).draws.find(d=>d.kind==="projectile");
+  assert.equal(shot.facing,1,"Launch controller captures facing before a later Turn controller");
+  assert.equal(shot.x,480+10*1.4);
+  let contacted=false;
+  for(let i=0;i<15;i++) {
+    api.ktCoreAdvance(projectileFacing,0,"",0,"");
+    if(JSON.parse(api.ktCoreContacts(projectileFacing)).length){contacted=true;break;}
+  }
+  assert.ok(contacted,"Projectile must keep its forward hitboxes after the creator turns");
+  const victim=JSON.parse(api.ktCoreSnapshot(projectileFacing,1));
+  assert.equal(victim.life,990);
+  assert.equal(victim.vx256,3*256,"Knockback follows projectile, not creator facing");
+  assert.equal(JSON.parse(api.ktCoreEntities(projectileFacing)).projectiles,0);
+  assert.equal(api.ktCoreIssues(projectileFacing),"");
+  console.log("Native Wasm projectile launch / same-tick creator Turn / forward contact / knockback: OK (synthetic)");
+} finally { api.ktCoreRelease(projectileFacing); }

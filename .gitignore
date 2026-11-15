@@ -27,3 +27,4 @@ kotlin-core/.gradle/
 kotlin-core/.kotlin/
 kotlin-core/build/
 kotlin-core/kotlin-js-store/
+/release-output/

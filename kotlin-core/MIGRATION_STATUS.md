@@ -1,6 +1,38 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current main-branch promotion — November 15, 2026
+## Current public-download and projectile continuation — November 15, 2026
+
+Continues published main source `95b6257`. Public `main` and its CI run return
+HTTP 200, but CI artifact downloads require Actions access and expire after
+retention. The user reported a source/CI-download 404. Successful main builds
+now publish commit-pinned development releases containing the Android APK,
+browser bundle, build metadata and SHA-256 checksums. Downloads do not depend
+on an authenticated Actions session. Release drafts publish only after every
+asset uploads, and pull requests cannot invoke publication. Preparation checks
+the exact source SHA and compares all non-hidden browser assets to their APK
+counterparts before producing downloads. Existing website deployment is
+unchanged. GitHub's default-branch setting remains `gh-pages` because the
+connected integration lacks repository administration permission; source work
+continues on `main`.
+
+Kotlin projectiles now retain their own launch-facing direction. The Projectile
+controller captures it before deferred entity creation, so a later Turn in the
+same controller tick cannot reverse spawn offset, velocity, hitboxes or sprite
+facing. Later creator turns also leave existing shots unchanged. Projectile
+knockback uses this captured direction; independently fired opposite shots and
+helper-owned shots remain independent. This does not add projectile clashes,
+multi-hit behavior or native frame-phase parity.
+
+Local validation: 158 JVM tests and 153 compiled-Wasm tests pass, including
+eight new shared projectile-facing scenarios. Exported Wasm tests execute
+Projectile → same-tick creator Turn → forward collision → directional
+knockback and retirement. The bundled KFM 600-tick replay remains deterministic
+with three contacts and zero unsupported diagnostics on that trace.
+All 16 adapter/import/download checks and packaged-browser checks pass. Release
+preparation also succeeds on the previous green CI's real browser/APK pair;
+negative tests reject wrong-source, missing-engine and changed-engine artifacts.
+
+## Main-branch promotion — November 15, 2026
 
 The user explicitly designated the Kotlin/WASM rewrite as the new `main`.
 This continuation promotes coordinate-space source `0333280` and its preceding

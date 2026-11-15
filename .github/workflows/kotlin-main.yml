@@ -61,6 +61,55 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  public-downloads:
+    needs: [core-and-browser, android]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: kotlin-main-browser
+          path: dist-kotlin/
+      - uses: actions/download-artifact@v4
+        with:
+          name: kotlin-main-android-apk
+          path: android/app/build/outputs/apk/debug/
+      - name: Verify and package permanent public downloads
+        run: >-
+          node scripts/kotlin/package-downloads.mjs dist-kotlin
+          android/app/build/outputs/apk/debug/app-debug.apk release-output
+      - name: Publish complete release after both test jobs pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(node -p "JSON.parse(require('fs').readFileSync('release-output/release-info.json')).tag")"
+          if draft="$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)"; then
+            if [ "$draft" = false ]; then
+              echo "This source commit already has permanent public downloads."
+              exit 0
+            fi
+          else
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --prerelease \
+              --title "Kenjatime Kotlin/WASM ${GITHUB_SHA:0:7}" \
+              --notes-file release-output/RELEASE_NOTES.md
+          fi
+          gh release upload "$tag" --clobber release-output/kenjatime-kotlin.apk \
+            release-output/kenjatime-kotlin-browser.zip release-output/build-info.json \
+            release-output/SHA256SUMS
+          gh release edit "$tag" --draft=false
   android:
     needs: core-and-browser
     runs-on: ubuntu-latest

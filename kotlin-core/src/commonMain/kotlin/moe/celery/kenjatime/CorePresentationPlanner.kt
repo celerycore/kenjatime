@@ -117,7 +117,7 @@ object CorePresentationPlanner {
         for(projectile in fight.entities.projectiles) {
             val side = if(projectile.owner.opponent === fight.p2) 0 else 1
             draw(side,"projectile",projectile.x,projectile.y,
-                projectile.owner.facingRight,projectile.action,
+                projectile.facingRight,projectile.action,
                 projectile.owner.definition,0)
         }
         for(effect in effects)if(effect.drawPriority >= 0)effectDraw(effect)

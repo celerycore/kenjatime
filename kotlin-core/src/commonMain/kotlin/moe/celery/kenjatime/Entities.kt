@@ -10,7 +10,8 @@ sealed class EntityRequest {
     data class Projectile(
         val owner: FightingCharacter, val projectileId: Int, val animation: Int,
         val offsetX: Int, val offsetY: Int, val vx: Int, val vy: Int,
-        val lifeTime: Int, val hit: HitDefinition
+        val lifeTime: Int, val hit: HitDefinition,
+        val facingRight: Boolean = owner.facingRight
     ) : EntityRequest()
 }
 
@@ -31,7 +32,10 @@ class CoreProjectile(
     val hit: HitDefinition,
     var x: Int, var y: Int,
     var vx: Int, var vy: Int,
-    var ticksLeft: Int
+    var ticksLeft: Int,
+    /** Projectile orientation belongs to the projectile, not its creator's
+     * later turns or custom-state facing changes. */
+    val facingRight: Boolean = owner.facingRight
 ) {
     private val targets = mutableSetOf<Int>()
     val alive: Boolean get() = ticksLeft > 0
@@ -43,7 +47,7 @@ class CoreProjectile(
     }
     fun hitBoxes(): List<MugenRect> = action.frame?.boxes?.filter { it.attack }
         ?.map { owner.definition.let { d ->
-            d.coordinates.box(it.rect,x,y,owner.facingRight,d.xScale,d.yScale) } } ?: emptyList()
+            d.coordinates.box(it.rect,x,y,facingRight,d.xScale,d.yScale) } } ?: emptyList()
     fun canHit(id: Int): Boolean = id !in targets
     fun markHit(id: Int) { targets.add(id) }
 }
@@ -96,10 +100,10 @@ class CoreEntities(private val match: DeterministicFight) {
                 val owner = request.owner
                 projectiles.add(CoreProjectile(owner, nextId++, request.projectileId,
                     AirAnimationPlayer(action), request.hit,
-                    owner.posX + request.offsetX * if (owner.facingRight) 1 else -1,
+                    owner.posX + request.offsetX * if (request.facingRight) 1 else -1,
                     owner.posY + request.offsetY,
-                    request.vx * if (owner.facingRight) 1 else -1,
-                    request.vy, request.lifeTime.coerceIn(1,3600)))
+                    request.vx * if (request.facingRight) 1 else -1,
+                    request.vy, request.lifeTime.coerceIn(1,3600),request.facingRight))
             }
         }
     }
@@ -150,7 +154,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 projectile.markHit(enemy.id)
                 match.contacts.add(FightContact(projectile.entityId, enemy.id, guarded,
                     if (guarded) projectile.hit.guardDamage else projectile.hit.damage))
-                enemy.receiveHit(projectile.hit, projectile.owner.facingRight, guarded, projectile.owner)
+                enemy.receiveHit(projectile.hit, projectile.facingRight, guarded, projectile.owner)
                 targetHurt.remove(enemy)
                 projectile.ticksLeft = 0
             }
