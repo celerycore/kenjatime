@@ -1,7 +1,10 @@
 {
   "format": "kenjatime-kotlin-wasm-migration-contract-v1",
   "compiler": "Kotlin Multiplatform Kotlin/Wasm",
+  "defaultSourceBranch": "main",
+  "defaultApplication": "Kotlin/WASM",
   "productionSwitched": false,
+  "productionSwitchedScope": "Published gh-pages website; source promotion does not deploy the website",
   "controllerSubset": [
     "null",
     "velset",

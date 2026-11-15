@@ -1,0 +1,101 @@
+name: Kotlin/WASM Main
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kotlin-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-and-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: Test default Kotlin engine, exported Wasm ABI and KFM replay
+        run: npm test
+      - name: Build default Kotlin browser application
+        run: npm run build
+      - name: Install browser verification tools
+        run: |
+          python -m pip install 'playwright>=1.57,<2'
+          python -m playwright install --with-deps chromium
+      - name: Verify actual sprites, mixed coordinates, imports, CSV and mobile layout
+        run: npm run test:kotlin:browser
+      - name: Save shared browser and Android web assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-main-browser
+          path: dist-kotlin/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Save portable test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-main-test-results
+          path: kotlin-core/build/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  android:
+    needs: core-and-browser
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: kotlin-main-browser
+          path: dist-kotlin/
+      - name: Package the tested Kotlin browser assets for Android
+        run: npm run android:kotlin:copy
+      - name: Compile Kotlin Android APK
+        working-directory: android
+        run: ./gradlew -PkenjatimeKotlinStandard=true :app:assembleDebug --stacktrace
+      - name: Verify browser and APK contain identical Kotlin Wasm
+        run: python scripts/kotlin/verify-android.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-main-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

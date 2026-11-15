@@ -79,7 +79,8 @@ async function load(){
   if(api)return api;
   // The Kotlin .mjs and its .wasm companion are copied into dist-kotlin/wasm
   // by the single-source Kotlin Gradle build. No JS simulation fallback.
-  const wasmDirectory=new URL("../wasm/",import.meta.url);
+  const engineBase=import.meta.env.DEV?"../../dist-kotlin/wasm/":"../wasm/";
+  const wasmDirectory=new URL(/* @vite-ignore */ engineBase,import.meta.url);
   const moduleName="kenjatime-kotlin-core.mjs";
   const imported=await import(/* @vite-ignore */ new URL(moduleName,wasmDirectory).href);
   const produced=typeof imported.default==="function"?

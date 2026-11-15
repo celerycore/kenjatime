@@ -8,7 +8,16 @@ import {independentBuildBoundary} from "./scripts/core/build-isolation.mjs";
 export default defineConfig({
   base:"./",
   publicDir:false,
-  plugins:[independentBuildBoundary()],
+  plugins:[independentBuildBoundary(),{
+    name:"kotlin-development-entry",
+    configureServer(server){
+      server.middlewares.use((request,response,next)=>{
+        if(request.url?.split("?")[0]!=="/")return next();
+        response.writeHead(302,{Location:"/kotlin/index.html"});
+        response.end();
+      });
+    }
+  }],
   worker:{format:"es",plugins:()=>[independentBuildBoundary()]},
   build:{
     outDir:"dist-kotlin",

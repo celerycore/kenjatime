@@ -1,6 +1,38 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current coordinate-space continuation — November 15, 2026
+## Current main-branch promotion — November 15, 2026
+
+The user explicitly designated the Kotlin/WASM rewrite as the new `main`.
+This continuation promotes coordinate-space source `0333280` and its preceding
+AIR timing, custom-state, binding and effect work. The earlier publication hold
+is superseded by that instruction. GitHub's previous default was `gh-pages`;
+that branch and its published website remain separate from source promotion.
+
+Standard `dev`, `build`, `test` and Android commands now select Kotlin/WASM.
+`npm test` executes JVM/Wasm tests, adapter/import checks, exported ABI tests
+and deterministic KFM replay. `npm run build` compiles Wasm before packaging
+the browser app. Explicit `*:core` and `*:reference` commands retain access to
+the earlier JavaScript engine. Package/lockfile metadata and the README now
+identify the Kotlin application; native parity remains explicitly unverified.
+
+The default development server redirects `/` to the Kotlin UI and loads the
+compiled engine from `dist-kotlin/wasm`. The production worker keeps its
+deployment-relative Wasm path, including installation under a subdirectory.
+
+The new **Kotlin/WASM Main** workflow follows the checked-out push/PR commit
+instead of a pinned feature branch. It tests portable Kotlin and the actual
+browser UI, generates required import fixtures, and passes the tested browser
+artifact to an Android job. The APK verifier compares the embedded Wasm and
+browser assets byte-for-byte. Workflow permissions are read-only; CI creates
+downloadable artifacts without publishing the website.
+
+Local checks pass: 150 JVM tests, 145 compiled-Wasm tests, 13 adapter/import
+checks, exported Wasm scenarios and deterministic 600-tick KFM replay. Both
+the packaged browser verifier and a real `npm run dev` match render actual
+sprites with the Kotlin runtime. Native MUGEN/IKEMEN parity and physical-phone
+performance remain open; changing the source default does not certify them.
+
+## Coordinate-space continuation — November 15, 2026
 
 Continues local effects source `6ea3c82`. Supported spatial controllers now
 convert authored character units into the canonical fixed-point stage space.

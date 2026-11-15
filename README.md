@@ -1,37 +1,67 @@
-# Kenjatime Core
+# Kenjatime Kotlin/WASM
 
-Independent engine rewrite for imported fighting-game characters and stages. This branch builds the original Kenjatime combat runtime, a numeric WebAssembly compiler, and a direct Three.js GPU renderer. The browser and Android preview share the same UI and offline assets.
+`main` is the Kotlin/WASM core engine rewrite. Kotlin owns the deterministic
+60 Hz simulation, character states, collision geometry, commands, animation
+clocks and render planning. JavaScript handles browser UI, archives, image
+decoding and Canvas painting. Browser and Android use the same compiled Wasm.
 
-**This is a compatibility preview. Full moveset and stage compatibility is unfinished.** All 16 recorded interaction scenarios and 147 recorded KFM moveset scenarios pass the strict comparison. Broader character and stage verification remains unfinished. See [implementation and evidence](docs/core-rewrite.md).
+Compatibility is incomplete. The passing Kotlin tests and bundled KFM replay
+do not certify native MUGEN/IKEMEN parity or physical-phone performance. See
+[migration progress and limits](kotlin-core/MIGRATION_STATUS.md) and the
+[compatibility contract](kotlin-core/compatibility.json).
+
+Use Node.js 24 and a JDK 21 installation (`JAVA_HOME` must point to the JDK).
+The checked-in Gradle wrapper downloads the Kotlin toolchain on first use.
 
 ```sh
 npm ci
-npm run dev
-npm run build
-npm run compatibility
-npm test
+npm test                         # JVM + Wasm tests, adapter checks, ABI and KFM replay
+npm run build                    # compile Kotlin/Wasm and package dist-kotlin/
+npm run dev                      # Kotlin UI at /kotlin/index.html
 ```
 
-The 0.5.8 preview fixes repeated incoming-damage reads that could kill Rare Akuma after a single hit. It adds bounded Lua match hooks/modules, browser-decoded video backgrounds with quoted archive paths, glTF stages with animation and model shadows, legacy-stage cropping, and additional camera controls. [Measured results and limits](docs/core-stage-health-0.5.8-evidence.json) distinguish implemented features from full parity. Focus loss still leaves simulation running when the browser/OS permits it. Complete Lua API/dialect support, newer ZSS/global-state extensions and advanced moving-camera parity remain unfinished.
+Build Wasm before starting the development server. Rebuild it after changing
+Kotlin source; the Vite development server serves the compiled engine from
+`dist-kotlin/wasm`. The packaged site's root redirects to `/kotlin/index.html`.
 
-The standalone output is `dist-core/`. Open `/core/index.html` with the development server. Worker graphics are preferred; unsupported worker graphics fall back to the main thread before character data is transferred. Fights stay in the current page.
-
-ZIP, RAR4/5, 7z, TAR and compressed TAR imports use content detection. Tested encryption variants and multipart sets are supported; select every volume together. Original downloads are preserved, including multipart bundles that can be imported again. The preview uses a separate library and selection key, and resetting it leaves the recovery library intact.
+To verify the built UI, install Python Playwright and Chromium, then run:
 
 ```sh
-npm run verify:core:interactions   # strict captured interaction comparison
-npm run verify:core:movesets      # strict gate for 147 captured scenarios
-npm run diagnose:core:movesets    # reports all 147, including known differences
-npm run verify:core:browser       # built UI, input, audio and GPU lifecycle
-npm run verify:core:archives      # real picker/worker/store/download checks
-npm run verify:core:stages        # production GPU vs authored native stage captures
-npm run verify:core:media         # Lua/video/models/shadows and native resolution captures; ffmpeg required
-npm run android:core:debug        # requires Android SDK 36 and JDK 21
-npm run benchmark:core:combat     # authored CPU simulation loads; not phone FPS
+python -m pip install 'playwright>=1.57,<2'
+python -m playwright install --with-deps chromium
+npm run test:kotlin:browser
 ```
 
-The Android package is `io.github.celerycore.kenjatime.core.preview`, labeled **Kenjatime Core Preview**, so the recovery app can remain installed. Its local entry is `https://localhost/core/index.html`; it does not require a remote game server. Physical phone performance has not been measured.
+This generates public KFM import fixtures and checks real sprite/effect
+painting, mixed localcoord scaling, RAR companion imports, CSV export and a
+360px Android layout. It does not measure physical-device performance.
 
-The engine implementation is independently authored. Graphics, archive, music and platform libraries retain their own authorship and license notices; these are collected in `dist-core/NOTICES.txt`. Imported characters and stages retain their authors' rights. [Source boundaries](core/ORIGIN.md) distinguish the runtime from retained recovery and verification material.
+```sh
+npm run android:debug            # build Kotlin browser assets and a debug APK
+npm run android:sync             # build and copy Kotlin assets for Android Studio
+npm run android:open
+```
 
-Recovery tags preserve the previous source, website and Android artifacts: `recovery/pre-original-engine-0.4.5`, `recovery/pre-original-engine-web-0.4.5`, and `recovery/pre-original-engine-android-0.4.5`. [Historical build information](docs/recovery-build-0.4.5.md) applies to those tags.
+Android builds also require SDK 36 and Build Tools 36.0.0. The package is
+`io.github.celerycore.kenjatime.kotlin`, labeled **Kenjatime Kotlin**, with an
+offline WebView entry at `https://localhost/kotlin/index.html`. It can coexist
+with older Kenjatime installations. CI checks the APK contains the exact Wasm
+and browser assets tested in the browser job.
+
+The **Kotlin/WASM Main** workflow runs on pushes and pull requests to `main`.
+It produces browser, test-result and APK artifacts. It does not deploy the
+website. GitHub Pages remains on `gh-pages`; promoting the source branch does
+not replace that published site.
+
+Earlier JavaScript and recovery code remains available for reference through
+explicit commands such as `build:core`, `test:core`, `test:core:compiled`,
+`dev:core`, `build:reference` and `dev:reference`. Native capture comparisons
+under `verify:core:*` concern that earlier engine, not Kotlin parity. Historical
+details are in [the original rewrite notes](docs/core-rewrite.md),
+[source boundaries](core/ORIGIN.md), and
+[recovery build information](docs/recovery-build-0.4.5.md).
+
+Imported characters and stages retain their authors' rights. Original Nu-13,
+Tomoka, Dark Donald and Rare Akuma archives are not included. Graphics,
+archive, music and platform libraries retain their own authorship and license
+notices.

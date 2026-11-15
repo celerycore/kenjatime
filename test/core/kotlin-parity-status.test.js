@@ -8,7 +8,9 @@ const rare = read("../fixtures/core/rare-akuma-inventory.json");
 const kfm = read("../fixtures/core/verified-movesets.json");
 const combat = readFileSync(new URL("../../kotlin-core/src/commonMain/kotlin/moe/celery/kenjatime/Combat.kt", import.meta.url),"utf8");
 
-test("Kotlin engine preserves production isolation and labels real asset gaps", () => {
+test("Kotlin main source keeps deployed-site status and native parity evidence separate", () => {
+  assert.equal(manifest.defaultSourceBranch, "main");
+  assert.equal(manifest.defaultApplication, "Kotlin/WASM");
   assert.equal(manifest.productionSwitched, false);
   assert.equal(manifest.characterEvidence.kfm.kotlinNativeParity, false);
   assert.equal(manifest.characterEvidence.rareAkuma.kotlinNativeParity, false);
