@@ -647,13 +647,14 @@ class FightingCharacter(
                 val guardVelocity = (args["guard.velocity"] ?: args["projguard.velocity"] ?: "0,0").split(',')
                 val pauses=CoreHitPauses.parse(args,this,errors,true) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
+                val hitFlags=CoreHitFlags.parse(args["hitflag"] ?: args["projhitflag"],errors) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
                     damage = integer(damage.getOrNull(0)),
                     guardDamage = integer(damage.getOrNull(1)),
                     guardFlag = (args["guardflag"] ?: args["projguardflag"] ?: "HL").uppercase(),
-                    hitFlag = (args["hitflag"] ?: args["projhitflag"] ?: "MAF").uppercase(),
+                    hitFlag = hitFlags,
                     hitPause = pauses.hit.first,
                     defenderPause = pauses.hit.second,
                     guardPause = pauses.guard.first,
@@ -696,6 +697,7 @@ class FightingCharacter(
             "hitdef" -> {
                 val pauses=CoreHitPauses.parse(args,this,errors) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
+                val hitFlags=CoreHitFlags.parse(args["hitflag"],errors) ?: return false
                 val velocity = (args["ground.velocity"] ?: "0,0").split(',')
                 val airVelocity = (args["air.velocity"] ?: "0,0").split(',')
                 val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
@@ -708,7 +710,7 @@ class FightingCharacter(
                     velocityY = number(velocity.getOrNull(1)),
                     guardDamage = integer(args["guard.damage"] ?: args["damage"]?.substringAfter(',',"0")),
                     guardFlag = (args["guardflag"] ?: "").uppercase().replace(" ", ""),
-                    hitFlag = (args["hitflag"] ?: "MAF").uppercase().replace(" ", ""),
+                    hitFlag = hitFlags,
                     priority = integer(priority.getOrNull(0), 4).coerceIn(1, 7),
                     priorityType = priority.getOrNull(1)?.trim() ?: "Hit",
                     defenderPause = pauses.hit.second,
@@ -827,12 +829,7 @@ class FightingCharacter(
             (world?.issues ?: evaluationIssues).add("Invalid incoming hit attribute: ${e.message}")
             return false
         }
-        val flags = hit.hitFlag
-        return when (stateType) {
-            "L" -> 'D' in flags
-            "A" -> 'A' in flags || 'F' in flags
-            else -> flags.any { it == 'H' || it == 'L' || it == 'M' }
-        }
+        return CoreHitFlags.allows(hit.hitFlag,this,world?.issues ?: evaluationIssues)
     }
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
                    attacker: FightingCharacter? = null) {

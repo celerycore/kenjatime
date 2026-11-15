@@ -1,6 +1,51 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current nonlethal hit continuation — November 16, 2026
+## Current hit eligibility continuation — November 16, 2026
+
+Continues published main source `929c1f9`. HitDef, helper and Projectile contacts
+now share posture and gethit eligibility checks. H selects standing victims,
+L selects crouching victims, and M selects both. Airborne victims require A;
+falling airborne victims in MoveType H additionally require F. D selects lying
+victims. Stored fall metadata does not restrict recovered non-gethit actors.
+
+The + modifier requires MoveType H and excludes conventional guard common
+states (120, 130–132, 140 and 150–155). The - modifier rejects MoveType H, so
+throws cannot combo into an existing hit reaction. Arbitrary authored gethit
+state numbers work, including borrowed throw states. Guardability, HitBy,
+NotHitBy and HitOverride checks remain separate eligibility requirements.
+
+Rejected contacts cannot damage, pause, capture or change state, set contact
+flags or consume a fighter/helper's one-hit window. Projectiles retain their
+hit allowance and create no contact history when rejected; their independent
+motion/lifetime still advances. A later eligible contact can use the same live
+attack. Simultaneous root trade candidates retain the existing shared phase.
+
+Case and whitespace are normalized. Unknown characters, masks with no posture
+flags and combined +/- modifiers are diagnosed before installing a HitDef or
+queuing a Projectile. Standard hitflag takes precedence over the existing
+projhitflag alias. Invalid replacement definitions leave the live attack intact.
+
+Validation:
+
+- 461 JVM and 456 compiled-Wasm tests pass, including 18 new cases covering
+  posture, modifiers, guard states, falling data, malformed masks, aliases,
+  throw capture, helpers, projectile allowances/history, immunity and trades.
+- Exported Wasm checks 34 root/projectile posture/modifier combinations and
+  two falling follow-ups, including rejected contact reports, life, damage
+  metadata, projectile history/allowances and read-only presentation snapshots.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+  Two KFM 600-tick structural replays retain nine contacts, seven fallback
+  recoveries, zero unsupported diagnostics and matching checksums.
+
+The flag contract follows the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+Native juggle budgets, customized guard-state detection, fall/common-state
+recovery and contact-phase parity remain unverified. Physical-phone performance
+is not certified. Main CI verifies browser/APK asset identity and anonymous
+permanent downloads before publication.
+
+## Nonlethal hit continuation — November 16, 2026
 
 Continues published main source `d1641da`. HitDef and Projectile now honor
 `kill` for successful hits and `guard.kill` for guarded contacts. Disabling

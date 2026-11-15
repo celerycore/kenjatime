@@ -911,6 +911,110 @@ guard.kill=${lethal ? 1 : 0}`;
 }
 console.log("Native Wasm root/projectile hit and guard lethality flags / one-life floor / KO states / pure snapshots: OK (synthetic)");
 
+const hitFlagStates=`${motionIdle}
+movetype=I
+ctrl=1
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[Statedef 701]
+type=C
+movetype=I
+physics=N
+anim=0
+[Statedef 702]
+type=A
+movetype=I
+physics=N
+anim=0
+[Statedef 703]
+type=A
+movetype=H
+physics=N
+anim=0
+[Statedef 704]
+type=L
+movetype=H
+physics=N
+anim=0
+[Statedef 150]
+type=S
+movetype=H
+physics=N
+anim=0
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0`;
+for(const projectile of [false,true])for(const [flags,state,accepted] of [
+  ["H",0,true],["H",701,false],["L",0,false],["L",701,true],
+  ["M",0,true],["M",701,true],["M+",0,false],["M+",700,true],["M+",150,false],
+  ["M-",0,true],["M-",700,false],["M-",150,false],
+  ["MA",702,true],["MF",702,false],["MA+",703,true],["MD+",704,true],["MAF",704,false]
+]) {
+  const controller=`type=${projectile ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+projid=182
+projhits=2
+damage=10
+hitflag=${flags}`;
+  const script=projectile ? `${hitFlagStates}\n[State 0, shot]\n${controller}` :
+    `${hitFlagStates}\n[Statedef 200]\ntype=S\nphysics=N\nanim=200\n[State 200, hit]\n${controller}`;
+  const eligibility=api.ktCoreCreate("hit flags","target",projectileFacingAir,air,script,hitFlagStates);
+  try {
+    api.ktCoreSetup(eligibility,0,0,5*256,0);api.ktCoreDebugForceState(eligibility,1,state);
+    if(projectile)api.ktCoreAdvance(eligibility,0,"",0,"");
+    else api.ktCoreDebugForceState(eligibility,0,200);
+    api.ktCoreAdvance(eligibility,0,"",0,"");
+    const victim=JSON.parse(api.ktCoreSnapshot(eligibility,1));
+    assert.equal(victim.life,accepted ? 990 : 1000,`${projectile ? "projectile" : "root"}/${flags}/${state}`);
+    assert.equal(JSON.parse(api.ktCoreContacts(eligibility)).length,accepted ? 1 : 0);
+    assert.equal(victim.getHitDamage,accepted ? 10 : 0);
+    if(projectile) {
+      assert.equal(JSON.parse(api.ktCoreProjectiles(eligibility))[0].hitsLeft,accepted ? 1 : 2);
+      assert.equal(JSON.parse(api.ktCoreProjectileHistory(eligibility,0)).length,accepted ? 1 : 0);
+    }
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(eligibility,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(eligibility,1)),victim);
+    assert.equal(api.ktCoreIssues(eligibility),"");
+  } finally { api.ktCoreRelease(eligibility); }
+}
+for(const flags of ["MA","MAF"]) {
+  const script=`${hitFlagStates}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, seed fall]
+type=HitDef
+trigger1=Time=0
+damage=10
+fall=1
+[Statedef 201]
+type=S
+physics=N
+anim=200
+[State 201, follow-up]
+type=HitDef
+trigger1=Time=0
+damage=10
+hitflag=${flags}`;
+  const falling=api.ktCoreCreate("fall eligibility","target",projectileFacingAir,air,script,hitFlagStates);
+  try {
+    api.ktCoreSetup(falling,0,0,5*256,0);api.ktCoreDebugForceState(falling,0,200);
+    api.ktCoreAdvance(falling,0,"",0,"");api.ktCoreDebugForceState(falling,1,703);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(falling,1)).getHitFall,true);
+    api.ktCoreDebugForceState(falling,0,201);api.ktCoreAdvance(falling,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(falling,1)).life,flags==="MAF" ? 980 : 990);
+    assert.equal(api.ktCoreIssues(falling),"");
+  } finally { api.ktCoreRelease(falling); }
+}
+console.log("Native Wasm hitflag posture / combo-only and non-combo restrictions / guard exclusion / falling eligibility / rejected projectile allowance and history: OK (synthetic)");
+
 const targetMotion=api.ktCoreCreateWithDefinitions("target controls","victim",projectileFacingAir,air,
   `${motionIdle}
 [Statedef 200]
