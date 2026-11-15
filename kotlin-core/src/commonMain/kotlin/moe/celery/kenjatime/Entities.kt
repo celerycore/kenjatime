@@ -16,7 +16,8 @@ sealed class EntityRequest {
         val multiplierX: Double = 1.0,val multiplierY: Double = 1.0,
         val stageBound: Int = 40*Fixed.ONE,
         val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
-        val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0
+        val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0,
+        val priority: Int = 1
     ) : EntityRequest()
 }
 
@@ -26,6 +27,10 @@ data class HelperEntity(
     val actor: FightingCharacter,
     val helperId: Int,
     val keyControl: Boolean
+)
+
+data class ProjectileClash(
+    val first: Int,val second: Int,val firstCancelled: Boolean,val secondCancelled: Boolean
 )
 
 /** Authored trajectory and finite hit allowance. Positive life permits that
@@ -46,10 +51,14 @@ class CoreProjectile(
     val multiplierX: Double = 1.0,val multiplierY: Double = 1.0,
     val stageBound: Int = 40*Fixed.ONE,
     val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
-    val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0
+    val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0,priority: Int = 1
 ) {
     init { require(ticksLeft >= -1 && multiplierX.isFinite() && multiplierY.isFinite() &&
-        stageBound >= 0 && heightTop <= heightBottom && hits >= 0 && missTime >= 0) }
+        stageBound >= 0 && heightTop <= heightBottom && hits >= 0 && missTime >= 0 && priority >= 1) }
+    var priority = priority
+        private set
+    var cancelled = false
+        private set
     var hitsLeft = hits
         private set
     var missTimeLeft = 0
@@ -74,10 +83,19 @@ class CoreProjectile(
         if(ticksLeft > 0)ticksLeft--
         return true
     }
-    fun hitBoxes(): List<MugenRect> = action.frame?.boxes?.filter { it.attack }
+    private fun boxes(attack: Boolean): List<MugenRect> = action.frame?.boxes?.filter { it.attack == attack }
         ?.map { owner.definition.let { d ->
             d.coordinates.box(it.rect,x,y,facingRight,d.xScale,d.yScale) } } ?: emptyList()
-    fun canHit(id: Int): Boolean = id != owner.id && hitsLeft > 0 && missTimeLeft == 0 && hitPauseLeft == 0
+    fun hitBoxes(): List<MugenRect> = boxes(true)
+    fun clashBoxes(): List<MugenRect> = boxes(false)
+    fun canHit(id: Int): Boolean = !cancelled && id != owner.id && hitsLeft > 0 && missTimeLeft == 0 && hitPauseLeft == 0
+    internal fun canClash(): Boolean = !cancelled && hitsLeft > 0
+    internal fun clash(otherPriority: Int) {
+        if(priority > otherPriority)priority-- else hitsLeft--
+        if(hitsLeft == 0) {
+            cancelled=true;ticksLeft=0;hitPauseLeft=0
+        } else hitPauseLeft=maxOf(hitPauseLeft,hit.hitPause.coerceAtLeast(0))
+    }
     internal fun onContact(guarded: Boolean) {
         // Delay is measured between active contact phases. Zero and one both
         // permit the next active tick; projectile hitpause freezes this clock.
@@ -101,6 +119,7 @@ class CoreProjectile(
 class CoreEntities(private val match: DeterministicFight) {
     val helpers: MutableList<HelperEntity> = ArrayList()
     val projectiles: MutableList<CoreProjectile> = ArrayList()
+    val clashes: MutableList<ProjectileClash> = ArrayList()
     private var nextId = 3
     var maxHelpers = 56
     var maxProjectiles = 256
@@ -131,8 +150,8 @@ class CoreEntities(private val match: DeterministicFight) {
             }
             is EntityRequest.Projectile -> {
                 if(request.lifeTime < -1 || !request.multiplierX.isFinite() || !request.multiplierY.isFinite() ||
-                    request.stageBound < 0 || request.heightTop > request.heightBottom || request.hits < 0 || request.missTime < 0) {
-                    errors.add("Invalid Projectile motion, lifetime or hit allowance")
+                    request.stageBound < 0 || request.heightTop > request.heightBottom || request.hits < 0 || request.missTime < 0 || request.priority < 1) {
+                    errors.add("Invalid Projectile motion, lifetime, hit allowance or priority")
                     continue
                 }
                 if(request.lifeTime == 0)continue
@@ -155,7 +174,7 @@ class CoreEntities(private val match: DeterministicFight) {
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,
                     facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
                     request.stageBound,request.heightTop,request.heightBottom,
-                    request.removeOnHit,request.hits,request.missTime))
+                    request.removeOnHit,request.hits,request.missTime,request.priority))
             }
         }
     }
@@ -196,6 +215,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 targetHurt.remove(enemy) // Next helper sees the new hit animation.
             }
         }
+        val phases=mutableListOf<ProjectilePhase>()
         for (projectile in projectiles) {
             if (!projectile.alive) continue
             val arena=match.arena
@@ -203,7 +223,12 @@ class CoreEntities(private val match: DeterministicFight) {
                 projectile.ticksLeft=0
                 continue
             }
-            if(!projectile.step())continue
+            phases.add(ProjectilePhase(projectile,projectile.step()))
+        }
+        resolveClashes(phases)
+        for(phase in phases) {
+            val projectile=phase.projectile
+            if(!phase.advanced)continue
             val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue
             if (projectile.hitBoxes().any { box -> hurt(enemy).any { box.intersects(it) } }) {
@@ -219,5 +244,41 @@ class CoreEntities(private val match: DeterministicFight) {
         projectiles.removeAll { !it.alive }
         add(pendingRequests, errors)
         pendingRequests.clear()
+    }
+
+    private data class ProjectilePhase(val projectile: CoreProjectile,val advanced: Boolean)
+    private data class ClashBody(val projectile: CoreProjectile,val boxes: List<MugenRect>,val bounds: MugenRect)
+    private data class ClashPair(val a: ClashBody,val b: ClashBody,val distance: Double)
+
+    private fun resolveClashes(phases: List<ProjectilePhase>) {
+        // No clash geometry or pair allocations for one-sided projectile streams.
+        val eligible=phases.filter { it.projectile.canClash() }
+        fun left(p: CoreProjectile)=p.owner.opponent === match.p2
+        if(eligible.none { left(it.projectile) } || eligible.none { !left(it.projectile) })return
+        val bodies=eligible.mapNotNull { phase ->
+            val p=phase.projectile
+            val boxes=p.clashBoxes()
+            if(boxes.isEmpty())null else ClashBody(p,boxes,MugenRect(
+                boxes.minOf { it.x1 },boxes.minOf { it.y1 },boxes.maxOf { it.x2 },boxes.maxOf { it.y2 }))
+        }.sortedBy { it.projectile.entityId }
+        val pairs=mutableListOf<ClashPair>()
+        for(i in bodies.indices)for(j in i+1 until bodies.size) {
+            val a=bodies[i];val b=bodies[j]
+            if(left(a.projectile) == left(b.projectile) || !a.bounds.intersects(b.bounds))continue
+            if(!a.boxes.any { x -> b.boxes.any(x::intersects) })continue
+            // Double distance avoids Long overflow at opposite fixed-point limits.
+            val dx=a.projectile.x.toDouble()-b.projectile.x
+            val dy=a.projectile.y.toDouble()-b.projectile.y
+            pairs.add(ClashPair(a,b,dx*dx+dy*dy))
+        }
+        pairs.sortWith(compareBy<ClashPair> { it.distance }
+            .thenBy { it.a.projectile.entityId }.thenBy { it.b.projectile.entityId })
+        for(pair in pairs) {
+            val a=pair.a.projectile;val b=pair.b.projectile
+            if(!a.canClash() || !b.canClash())continue
+            val ap=a.priority;val bp=b.priority
+            a.clash(bp);b.clash(ap)
+            clashes.add(ProjectileClash(a.entityId,b.entityId,a.cancelled,b.cancelled))
+        }
     }
 }

@@ -61,6 +61,7 @@ try {
   if (api.ktCoreEntities)
     assert.deepEqual(JSON.parse(api.ktCoreEntities(handle)),{helpers:0,projectiles:0});
   assert.deepEqual(JSON.parse(api.ktCoreProjectiles(handle)),[]);
+  assert.deepEqual(JSON.parse(api.ktCoreProjectileClashes(handle)),[]);
   if (api.ktCoreEvents)
     assert.deepEqual(JSON.parse(api.ktCoreEvents(handle)),[]);
   console.log("Native Wasm import/step/snapshot/release: OK");
@@ -606,6 +607,77 @@ try {
   assert.equal(api.ktCoreIssues(multiRetire),"");
 } finally { api.ktCoreRelease(multiRetire); }
 console.log("Native Wasm Projectile multi-hit / miss delay / own hitpause / finite allowance / optional hit removal: OK (synthetic)");
+
+const clashAir=`${air}
+[Begin Action 220]
+Clsn1Default:1
+Clsn1[0]=-10,-20,10,0
+Clsn2Default:1
+Clsn2[0]=-10,-20,10,0
+220,0,0,0,2
+220,1,0,0,3`;
+function clashController(parameters) {
+  return `[State 0, clash shot]
+type=Projectile
+trigger1=Time=0
+projanim=220
+damage=10
+${parameters}`;
+}
+for(const priority of [1,3]) {
+  const clash=api.ktCoreCreate("left shot","right shot",clashAir,clashAir,
+    `${motionIdle}\n${clashController(`offset=25,0\nprojpriority=${priority}`)}`,
+    `${motionIdle}\n${clashController("offset=25,0")}`);
+  try {
+    api.ktCoreSetup(clash,-30*256,0,30*256,0);
+    api.ktCoreAdvance(clash,0,"",0,"");
+    const birth=JSON.parse(api.ktCoreProjectiles(clash));
+    assert.equal(birth.length,2);assert.equal(birth[0].priority,priority);assert.equal(birth[1].priority,1);
+    assert.deepEqual(JSON.parse(api.ktCoreProjectileClashes(clash)),[],"Birth does not run a clash phase");
+    api.ktCoreAdvance(clash,0,"",0,"");
+    const events=JSON.parse(api.ktCoreProjectileClashes(clash));
+    assert.deepEqual(events,[{first:birth[0].entityId,second:birth[1].entityId,
+      firstCancelled:priority===1,secondCancelled:true}]);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(clash)),[],"Cancelled shot cannot damage a fighter");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(clash,0)).life,1000);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(clash,1)).life,1000);
+    const survivors=JSON.parse(api.ktCoreProjectiles(clash));
+    if(priority===1)assert.deepEqual(survivors,[]);
+    else {
+      assert.equal(survivors.length,1);assert.equal(survivors[0].priority,2);
+      assert.equal(survivors[0].hitsLeft,1);
+    }
+    for(let i=0;i<4;i++) {
+      api.ktCoreRenderPlan(clash,12);api.ktCoreCamera(clash);
+      assert.deepEqual(JSON.parse(api.ktCoreProjectileClashes(clash)),events);
+      assert.deepEqual(JSON.parse(api.ktCoreProjectiles(clash)),survivors);
+    }
+    if(priority===3)api.ktCoreSetup(clash,-30*256,0,-5*256,0);
+    api.ktCoreAdvance(clash,0,"",0,"");
+    assert.deepEqual(JSON.parse(api.ktCoreProjectileClashes(clash)),[],"Clash events last one simulation tick");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(clash,1)).life,priority===3 ? 990 : 1000);
+    assert.deepEqual(JSON.parse(api.ktCoreProjectiles(clash)),[]);
+    assert.equal(api.ktCoreIssues(clash),"");
+  } finally { api.ktCoreRelease(clash); }
+}
+
+const chain=api.ktCoreCreate("strong shot","nearest pair",clashAir,clashAir,
+  `${motionIdle}\n${clashController("offset=30,0\nprojpriority=1+1")}`,
+  `${motionIdle}\n${clashController("offset=15,0")}\n${clashController("offset=29,0")}`);
+try {
+  api.ktCoreSetup(chain,-30*256,0,30*256,0);
+  api.ktCoreAdvance(chain,0,"",0,"");
+  const birth=JSON.parse(api.ktCoreProjectiles(chain));assert.equal(birth.length,3);
+  api.ktCoreAdvance(chain,0,"",0,"");
+  assert.deepEqual(JSON.parse(api.ktCoreProjectileClashes(chain)),[
+    {first:birth[0].entityId,second:birth[2].entityId,firstCancelled:false,secondCancelled:true},
+    {first:birth[0].entityId,second:birth[1].entityId,firstCancelled:true,secondCancelled:true}
+  ]);
+  assert.deepEqual(JSON.parse(api.ktCoreProjectiles(chain)),[]);
+  assert.deepEqual(JSON.parse(api.ktCoreContacts(chain)),[]);
+  assert.equal(api.ktCoreIssues(chain),"");
+} finally { api.ktCoreRelease(chain); }
+console.log("Native Wasm Projectile mutual cancellation / priority spending / nearest-pair chain / fighter contact / pure events: OK (synthetic)");
 
 const filterAttack=`[Statedef 0]
 anim=0

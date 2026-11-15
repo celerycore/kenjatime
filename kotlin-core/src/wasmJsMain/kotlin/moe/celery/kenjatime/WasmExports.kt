@@ -173,8 +173,14 @@ private object Fights {
     ",\"mulX\":"+p.multiplierX+",\"mulY\":"+p.multiplierY+
     ",\"ticksLeft\":"+p.ticksLeft+",\"hitsLeft\":"+p.hitsLeft+
     ",\"missTimeLeft\":"+p.missTimeLeft+",\"hitPause\":"+p.hitPauseLeft+
-    ",\"removeOnHit\":"+p.removeOnHit+",\"facing\":"+(if(p.facingRight)1 else -1)+
+    ",\"removeOnHit\":"+p.removeOnHit+",\"priority\":"+p.priority+",\"facing\":"+(if(p.facingRight)1 else -1)+
     ",\"anim\":"+p.action.action.number+",\"elem\":"+(p.action.index+1)+"}"
+}
+@JsExport fun ktCoreProjectileClashes(handle: Int): String = Fights.get(handle).entities.clashes.joinToString(
+    prefix="[",postfix="]",separator=","
+) { c ->
+    "{\"first\":"+c.first+",\"second\":"+c.second+
+    ",\"firstCancelled\":"+c.firstCancelled+",\"secondCancelled\":"+c.secondCancelled+"}"
 }
 @JsExport fun ktCoreEvents(handle: Int): String = Fights.get(handle).presentation.joinToString(
     prefix = "[", postfix = "]", separator = ","

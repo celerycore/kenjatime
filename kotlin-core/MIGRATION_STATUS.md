@@ -1,6 +1,65 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current multi-hit projectile continuation — November 15, 2026
+## Current projectile clash continuation — November 15, 2026
+
+Continues published main source `289eab1`. Opposing projectiles now clash using
+their AIR Clsn2 boxes, launch-facing and own-resource coordinate scale. Clsn1
+attack boxes alone do not cancel another projectile. Friendly shots, including
+shots from different helpers on one side, do not clash. Zero or exhausted hit
+allowances remain nonattacking and cannot cancel another shot.
+
+`projpriority` is captured as a positive integer, defaults to one, and remains
+independent of HitDef priority and localcoord. A higher-priority shot spends one
+priority; the lower-priority shot spends one hit. Equal priorities each spend
+one hit. Default single-hit shots therefore cancel each other. Multi-hit shots
+can absorb clashes until their hit allowance is exhausted. Cancellation ignores
+`projremove=0` and clears only the cancelled projectile's hitpause.
+
+All existing projectiles finish their movement/AIR phase before clash geometry
+is captured. World-space bounding rectangles reject separated pairs before
+checking individual boxes. Candidates sort by squared world distance, then
+stable creation IDs. Each pair resolves once; cancelled shots cannot enter a
+later pair or damage a fighter in that phase. This global nearest-pair policy
+is deterministic and has synthetic coverage; native cancellation-chain order
+has not been certified. Geometry retains the existing strict-overlap policy.
+
+Own hitpause and contact miss delay do not make a projectile immune to clashes.
+Survivors preserve the greater of their current pause and authored hitpause.
+That pause blocks fighter contact through the last frozen tick; a survivor
+with zero pause can still hit a fighter after clash resolution. Clashes do not
+damage fighters, capture targets or set their MoveHit/MoveContact flags.
+New births wait for the next projectile phase, bound-removed shots cannot
+clash, and a final positive lifetime update remains eligible before retirement.
+
+`ktCoreProjectiles` adds current `priority`. Read-only
+`ktCoreProjectileClashes` reports participating entity IDs and cancellation
+outcomes for the latest simulation tick. These events clear at the next tick,
+including inactive round phases. Snapshot, camera and render queries cannot
+reorder clashes, spend priority/hits or retain stale events.
+
+Local validation:
+
+- 324 JVM and 319 compiled-Wasm tests pass, including 29 new shared scenarios
+  for priorities, allowances, friendly/helper sides, Clsn2 geometry, scaling,
+  shared movement, pause/delay, nearest/tied pairs, expiry, events and replay.
+- Exported Wasm checks execute mutual cancellation, priority spending, a
+  three-shot nearest-pair chain and a surviving shot's later fighter contact.
+  Repeated render/camera/snapshot queries preserve budgets and events.
+- Two public KFM 600-tick structural replays match, retaining nine contacts,
+  seven fallback recoveries and zero unsupported diagnostics on that trace.
+- All 16 adapter/import/download checks and production browser smoke pass,
+  including real sprites/effects, mixed-coordinate imports, CSV and mobile layout.
+
+The basic single-hit priority contract follows the
+[Elecbyte Projectile reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#projectile).
+Native multi-hit cancellation, edge contact, pause and simultaneous-contact
+phases remain unverified. Projectile removal/cancel animations, reflections,
+contacts against helpers/team modes, native helper-to-root ownership,
+screen-edge bounds, scaling and complete Pause/SuperPause remain incomplete.
+Physical-phone performance remains unverified. Main CI checks browser/APK asset
+identity and anonymous permanent public downloads before publication.
+
+## Multi-hit projectile continuation — November 15, 2026
 
 Continues published main source `e260ef5`. Projectile now captures authored
 `projhits`, `projmisstime` and `projremove` expressions at creation. Hit counts

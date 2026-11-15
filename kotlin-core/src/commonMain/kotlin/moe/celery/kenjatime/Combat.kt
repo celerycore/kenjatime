@@ -577,6 +577,8 @@ class FightingCharacter(
                 }
                 val hits=allowance("projhits",1)
                 val missTime=allowance("projmisstime",0)
+                val projectilePriority=allowance("projpriority",1)
+                require(projectilePriority >= 1) { "Projectile projpriority must be positive" }
                 val removeOnHit=(args["projremove"]?.let(::value) ?: 1.0) != 0.0
                 val damage = (args["damage"] ?: args["projdamage"] ?: "0,0").split(',')
                 val groundVelocity = (args["ground.velocity"] ?: args["projground.velocity"] ?: "0,0").split(',')
@@ -620,7 +622,7 @@ class FightingCharacter(
                     accelerationY=coordinates.toWorld(acceleration.second),
                     multiplierX=multiplier.first,multiplierY=multiplier.second,
                     stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
-                    removeOnHit=removeOnHit,hits=hits,missTime=missTime
+                    removeOnHit=removeOnHit,hits=hits,missTime=missTime,priority=projectilePriority
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")
@@ -874,6 +876,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     }
     fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame()) {
         contacts.clear()
+        entities.clashes.clear()
         presentation.clear()
         val sequence = roundFlow
         p1.roundState = sequence?.roundState() ?: 2
