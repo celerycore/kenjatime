@@ -81,6 +81,10 @@ object CoreExpression {
                 ?: throw IllegalArgumentException("Missing argument for "+name)
             fun idx(i:Int)=a(i).toInt()
             val v=when(name) {
+                "gethitvar" -> {
+                    require(args.size == 1 && args[0] is Variable) { "GetHitVar requires one named field" }
+                    f.getHitVar((args[0] as Variable).key)
+                }
                 "var" -> f.vars.getOrNull(idx(0))?.toDouble() ?: 0.0
                 "fvar" -> f.fvars.getOrNull(idx(0)) ?: 0.0
                 "sysvar" -> f.sysVars.getOrNull(idx(0))?.toDouble() ?: 0.0

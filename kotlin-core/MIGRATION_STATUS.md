@@ -1,6 +1,66 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current hit-vulnerability continuation — November 15, 2026
+## Current hit-override and incoming-data continuation — November 15, 2026
+
+Continues published main source `e02cf41`. Kotlin now executes `HitOverride`
+through eight actor-owned reaction slots. The lowest matching slot selects a
+destination in the defender's own state bank, including when a borrowed state
+installs the route. Positive durations count actor ticks including hitpause,
+the default lasts one contact phase, -1 persists, and zero or an empty attr
+clears the selected slot. Invalid slots, attributes, destinations, durations
+or unsupported parameters leave the previous route intact. Helpers do not
+share their parent's mutable routes or incoming-hit data.
+
+Matching overrides reject hits requesting a P1 state transition or a foreign
+P2 state before damage, pause, effects removal or target capture. A bare
+p2getp1state flag without a P2 destination does not trigger this protection.
+Unmatched routes leave existing custom-state behavior intact. Normal guarded
+contacts use guard states. Rejected projectiles remain alive and can connect
+after the matching route is cleared. Override destinations also handle lethal
+hits; complete KO/round-flow phase parity remains open.
+
+`forceair` selects incoming air velocity, hit time and fall metadata. Destination
+StateDef type, animation and velocity still control the reaction itself. Both
+ordinary hits and overrides retain the captured hit data separately from later
+physical motion. `GetHitVar` now supports damage, xvel, yvel, hittime,
+hitshaketime, guarded and fall. Velocity queries use the active state's units;
+the reaction time freezes in hitpause and counts down to -1. Authored armor
+states can restore damage and recover using these expressions. Unknown fields
+and dynamic field-name expressions produce diagnostics.
+
+HitDefs now parse air.velocity, air.hittime, air.fall, fall and guard.hittime.
+Projectiles accept the corresponding standard HitDef parameter names, including
+attr, damage, guard/hit flags, pausetime, ground/air/guard velocity and hit time,
+plus target-state metadata; the earlier proj-prefixed aliases remain supported.
+P1 destination metadata is used for override protection, while actual ordinary
+p1stateno transitions remain explicitly unsupported. Read-only Wasm snapshots
+expose the eight route timers and captured incoming-hit data.
+
+Local validation:
+
+- 200 JVM and 195 compiled-Wasm tests pass, including 24 new common scenarios
+  covering route priority, expiry/renewal, clearing, own-bank transitions,
+  protection, armor, guard/air data, helper/projectile contacts and replay.
+- Actual exported Wasm tests execute own-state armor with forceair and
+  GetHitVar recovery, rejected foreign-state contact followed by explicit
+  route clearing, and standard Projectile parameters driving an override.
+  Repeated presentation snapshots preserve all reaction clocks.
+- Two 600-tick public KFM structural replays match, with three contacts and zero
+  unsupported diagnostics on that trace. This is not native common-state parity.
+- All 16 adapter/import/download checks and the production browser smoke pass,
+  including real sprite/effect painting, mixed-coordinate import, CSV and the
+  360px layout.
+
+The basic contracts follow the
+[Elecbyte controller reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitoverride)
+and [GetHitVar reference](https://network.mugenguild.com/justnopoint/1.1docs/trigger.html#gethitvar).
+The other GetHitVar fields, ground/air reaction types, fall/bounce/recovery
+physics, complete guardstun and native per-tick ordering remain incomplete.
+Attribute-state quirks, native KO/throw interactions and physical-phone
+performance remain unverified. Main CI still verifies browser/APK asset identity
+and anonymous public downloads before releasing a build.
+
+## Hit-vulnerability continuation — November 15, 2026
 
 Continues published main source `9c69e93`. Kotlin now executes `HitBy` and
 `NotHitBy` through two per-actor attribute slots. `value` selects the first

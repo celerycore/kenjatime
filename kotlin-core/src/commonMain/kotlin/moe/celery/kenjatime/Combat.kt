@@ -26,7 +26,11 @@ data class HitDefinition(
     val id: Int = 0,
     val p2State: Int? = null,
     val p2GetP1State: Boolean = true,
-    val stateOwner: FightingCharacter? = null
+    val stateOwner: FightingCharacter? = null,
+    val p1State: Int? = null,
+    val airVelocityX: Int = 0,val airVelocityY: Int = 0,
+    val airHitTime: Int = 20,val guardHitTime: Int = hitTime,
+    val fall: Boolean = false,val airFall: Boolean = fall
 )
 data class StateController(
     val type: String,
@@ -226,6 +230,19 @@ class FightingCharacter(
     internal var hitPauseThisTick = false
         private set
     internal val hitFilters = CoreHitFilters()
+    internal val hitOverrides = CoreHitOverrides()
+    internal var getHitData = CoreGetHitData()
+        private set
+    fun getHitVar(name: String): Double = when(name) {
+        "damage" -> getHitData.damage.toDouble()
+        "xvel" -> coordinates.toLocal(getHitData.velocityX)
+        "yvel" -> coordinates.toLocal(getHitData.velocityY)
+        "hittime" -> getHitData.time.toDouble()
+        "hitshaketime" -> hitPauseLeft.toDouble()
+        "guarded" -> if(getHitData.guarded)1.0 else 0.0
+        "fall" -> if(getHitData.fall)1.0 else 0.0
+        else -> throw IllegalArgumentException("Unsupported GetHitVar field: $name")
+    }
     fun releaseBinding() { binding = null }
     internal fun canBindTo(anchor: FightingCharacter, source: FightingCharacter): Boolean = bindingProblem(anchor,source) == null
     internal fun bindingProblem(anchor: FightingCharacter, source: FightingCharacter): String? {
@@ -376,6 +393,7 @@ class FightingCharacter(
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
+            "hitoverride" -> hitOverrides.execute(this,c,errors)
             "changestate", "selfstate" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
                 val owner = if (c.type.equals("selfstate", true)) this else scriptOwner
@@ -515,20 +533,37 @@ class FightingCharacter(
             "projectile" -> {
                 val position = (args["offset"] ?: "0,0").split(',')
                 val velocity = (args["velocity"] ?: "0,0").split(',')
-                val damage = (args["projdamage"] ?: "0,0").split(',')
-                val groundVelocity = (args["projground.velocity"] ?: "0,0").split(',')
-                val pause = (args["projpausetime"] ?: "0,0").split(',')
+                val damage = (args["damage"] ?: args["projdamage"] ?: "0,0").split(',')
+                val groundVelocity = (args["ground.velocity"] ?: args["projground.velocity"] ?: "0,0").split(',')
+                val airVelocity = (args["air.velocity"] ?: args["projair.velocity"] ?: "0,0").split(',')
+                val guardVelocity = (args["guard.velocity"] ?: args["projguard.velocity"] ?: "0,0").split(',')
+                val pause = (args["pausetime"] ?: args["projpausetime"] ?: "0,0").split(',')
                 val hit = HitDefinition(
-                    attr = args["projattr"] ?: "S, SP",
+                    attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     damage = integer(damage.getOrNull(0)),
                     guardDamage = integer(damage.getOrNull(1)),
-                    guardFlag = (args["projguardflag"] ?: "HL").uppercase(),
-                    hitFlag = (args["projhitflag"] ?: "MAF").uppercase(),
+                    guardFlag = (args["guardflag"] ?: args["projguardflag"] ?: "HL").uppercase(),
+                    hitFlag = (args["hitflag"] ?: args["projhitflag"] ?: "MAF").uppercase(),
                     hitPause = integer(pause.getOrNull(0)),
                     defenderPause = integer(pause.getOrNull(1)),
                     velocityX = number(groundVelocity.getOrNull(0)),
-                    velocityY = number(groundVelocity.getOrNull(1))
+                    velocityY = number(groundVelocity.getOrNull(1)),
+                    airVelocityX = number(airVelocity.getOrNull(0)),
+                    airVelocityY = number(airVelocity.getOrNull(1)),
+                    hitTime = integer(args["ground.hittime"] ?: args["projground.hittime"],12).coerceIn(0,600),
+                    airHitTime = integer(args["air.hittime"] ?: args["projair.hittime"],20).coerceIn(0,600),
+                    guardHitTime = integer(args["guard.hittime"] ?: args["projguard.hittime"],
+                        integer(args["ground.hittime"] ?: args["projground.hittime"],12)).coerceIn(0,600),
+                    guardVelocityX = number(guardVelocity.getOrNull(0)),
+                    guardVelocityY = number(guardVelocity.getOrNull(1)),
+                    fall = integer(args["fall"]) != 0,
+                    airFall = integer(args["air.fall"],integer(args["fall"])) != 0,
+                    p1State = args["p1stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
+                    p2State = args["p2stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
+                    p2GetP1State = integer(args["p2getp1state"],1) != 0,
+                    stateOwner = scriptOwner
                 )
+                if(hit.p1State != null)errors.add("Projectile p1stateno transitions are not implemented")
                 entityRequests.add(EntityRequest.Projectile(
                     this,
                     integer(args["projid"]),
@@ -542,6 +577,7 @@ class FightingCharacter(
             "hitdef" -> {
                 val pause = (args["pausetime"] ?: "0,0").split(',')
                 val velocity = (args["ground.velocity"] ?: "0,0").split(',')
+                val airVelocity = (args["air.velocity"] ?: "0,0").split(',')
                 val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
                 val priority = (args["priority"] ?: "4,Hit").split(',')
                 val next = HitDefinition(
@@ -563,8 +599,16 @@ class FightingCharacter(
                     id = integer(args["id"]),
                     p2State = args["p2stateno"]?.let { integer(it, -1) }?.takeIf { it >= 0 },
                     p2GetP1State = integer(args["p2getp1state"], 1) != 0,
-                    stateOwner = scriptOwner
+                    stateOwner = scriptOwner,
+                    p1State = args["p1stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
+                    airVelocityX = number(airVelocity.getOrNull(0)),
+                    airVelocityY = number(airVelocity.getOrNull(1)),
+                    airHitTime = integer(args["air.hittime"],20).coerceIn(0,600),
+                    guardHitTime = integer(args["guard.hittime"],integer(args["ground.hittime"],12)).coerceIn(0,600),
+                    fall = integer(args["fall"]) != 0,
+                    airFall = integer(args["air.fall"],integer(args["fall"])) != 0
                 )
+                if(next.p1State != null)errors.add("HitDef p1stateno transitions are not implemented")
                 // A controller evaluated every tick must not reset a target's struck set.
                 // State entry starts a new contact window; multi-hit/HitOnce need further parity.
                 if (activeHitDef == null) activeHitDef = next
@@ -601,8 +645,10 @@ class FightingCharacter(
         val paused = hitPauseLeft > 0
         hitPauseThisTick = paused
         hitFilters.beginTick()
+        hitOverrides.beginTick()
         if (paused) hitPauseLeft--
         if (!paused && hitStunLeft > 0) hitStunLeft--
+        if (!paused && getHitData.time >= 0)getHitData.time--
         // Global state controllers participate in the pause only when explicitly opted in.
         val changed = (stateOwner === this && executeState(-3, errors, paused)) ||
             executeState(-2, errors, paused) ||
@@ -631,6 +677,13 @@ class FightingCharacter(
     fun canReceive(hit: HitDefinition): Boolean {
         if (life <= 0) return false
         if (!hitFilters.allows(hit,world?.issues ?: evaluationIssues))return false
+        try {
+            if(hitOverrides.matching(hit) != null &&
+                (hit.p1State != null || hit.p2State != null && hit.p2GetP1State))return false
+        }catch(e: IllegalArgumentException) {
+            (world?.issues ?: evaluationIssues).add("Invalid incoming hit attribute: ${e.message}")
+            return false
+        }
         val flags = hit.hitFlag
         return when (stateType) {
             "L" -> 'D' in flags
@@ -640,19 +693,33 @@ class FightingCharacter(
     }
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
                    attacker: FightingCharacter? = null) {
+        if(!canReceive(hit))return
+        val override=if(guarded)null else hitOverrides.matching(hit)
+        val airborne=!guarded && (stateType == "A" || override?.forceAir == true)
+        val damage=if(guarded)hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)
+        val x=(if(guarded)hit.guardVelocityX else if(airborne)hit.airVelocityX else hit.velocityX)*
+            if(attackerFacingRight)1 else -1
+        val y=if(guarded)hit.guardVelocityY else if(airborne)hit.airVelocityY else hit.velocityY
+        val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
+        getHitData=CoreGetHitData(damage,x,y,guarded,!guarded && (if(airborne)hit.airFall else hit.fall),duration)
         world?.effects?.onHit(this)
-        life = (life - if (guarded) hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)).coerceAtLeast(0)
+        life = (life - damage).coerceAtLeast(0)
         val resultingState = if (life == 0) 5150 else if (guarded)
             when (stateType) { "A" -> 152; "C" -> 151; else -> 150 }
         else 5000
-        // A normal hit/guard/KO always restores the victim's own state bank.
-        changeState(resultingState, this, false)
-        velX = (if (guarded) hit.guardVelocityX else hit.velocityX) *
-            if (attackerFacingRight) 1 else -1
-        velY = if (guarded) hit.guardVelocityY else hit.velocityY
+        if(override != null) {
+            velX=x;velY=y
+            if(override.forceAir)stateType="A"
+            // An override uses the victim's own bank and honors StateDef velset.
+            changeState(override.state,this,false)
+        }else {
+            // Normal hit/guard/KO restores the victim's own state bank.
+            changeState(resultingState,this,false)
+            velX=x;velY=y
+        }
         hitPauseLeft = if (guarded) hit.guardPause else hit.defenderPause
-        hitStunLeft = hit.hitTime
-        if (!guarded && life > 0 && hit.p2State != null) {
+        hitStunLeft = duration
+        if (override == null && !guarded && life > 0 && hit.p2State != null) {
             val owner = if (hit.p2GetP1State) hit.stateOwner ?: attacker else this
             if (owner != null) enterAuthoredState(hit.p2State, owner,
                 world?.issues ?: evaluationIssues)

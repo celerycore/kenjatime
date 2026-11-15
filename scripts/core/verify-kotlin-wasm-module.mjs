@@ -561,3 +561,130 @@ try {
   assert.equal(api.ktCoreIssues(helperPaused),"");
   console.log("Native Wasm helper / ignorehitpause HitDef / final frozen contact tick: OK (synthetic)");
 } finally { api.ktCoreRelease(helperPaused); }
+
+const overrideDefense=`[Statedef 0]
+anim=0
+type=S
+physics=N
+ctrl=1
+[State 0, own reaction]
+type=HitOverride
+trigger1=Time=0
+attr=SCA,AA,AP
+stateno=700
+time=-1
+forceair=1
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+velset=0,0
+[State 700, armor]
+type=LifeAdd
+trigger1=Time=0
+value=GetHitVar(damage)
+[State 700, observe incoming velocity]
+type=VarSet
+trigger1=Time=0
+fv=0
+value=GetHitVar(xvel)
+[State 700, recover]
+type=SelfState
+trigger1=GetHitVar(hittime)<0
+value=0`;
+const overrideAttack=filterAttack+`
+air.velocity=4,-6
+air.hittime=2
+air.fall=1
+pausetime=0,2`;
+const overridden=api.ktCoreCreate("attacker","armor",bindAir,air,overrideAttack,overrideDefense);
+try {
+  api.ktCoreSetup(overridden,0,0,20*256,0);
+  api.ktCoreAdvance(overridden,0,"",0,"");
+  const hit=JSON.parse(api.ktCoreSnapshot(overridden,1));
+  assert.equal(hit.state,700);
+  assert.equal(hit.stateOwner,2);
+  assert.equal(hit.life,990);
+  assert.equal(hit.vx256,0,"Override StateDef velset must take precedence over physical knockback");
+  assert.equal(hit.getHitX256,4*256);
+  assert.equal(hit.getHitY256,-6*256);
+  assert.equal(hit.getHitTime,2);
+  assert.equal(hit.getHitFall,true);
+  assert.deepEqual(hit.hitOverrideTimes,[-1,0,0,0,0,0,0,0]);
+  for(let i=0;i<3;i++)api.ktCoreRenderPlan(overridden,12);
+  assert.deepEqual(JSON.parse(api.ktCoreSnapshot(overridden,1)),hit);
+  for(let i=0;i<2;i++) {
+    api.ktCoreAdvance(overridden,0,"",0,"");
+    const frozen=JSON.parse(api.ktCoreSnapshot(overridden,1));
+    assert.equal(frozen.life,990);
+    assert.equal(frozen.getHitTime,2);
+    assert.equal(frozen.hitPauseThisTick,true);
+  }
+  api.ktCoreAdvance(overridden,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(overridden,1)).life,1000,"Armor reads GetHitVar(damage)");
+  api.ktCoreAdvance(overridden,0,"",0,"");
+  api.ktCoreAdvance(overridden,0,"",0,"");
+  const recovered=JSON.parse(api.ktCoreSnapshot(overridden,1));
+  assert.equal(recovered.state,0);
+  assert.equal(recovered.getHitTime,-1);
+  assert.equal(api.ktCoreIssues(overridden),"");
+  console.log("Native Wasm HitOverride / forceair / own-bank reaction / GetHitVar armor / pause and recovery: OK (synthetic)");
+} finally { api.ktCoreRelease(overridden); }
+
+const transferAttack=filterAttack+`
+p2stateno=900
+[Statedef 900]
+type=S
+movetype=H
+anim=0`;
+const clearOverrideDefense=overrideDefense+`
+[State 0, release route]
+type=HitOverride
+trigger1=Time=2
+time=0`;
+const protectedTransfer=api.ktCoreCreate("attacker","protected",bindAir,air,transferAttack,clearOverrideDefense);
+try {
+  api.ktCoreSetup(protectedTransfer,0,0,20*256,0);
+  for(let i=0;i<2;i++) {
+    api.ktCoreAdvance(protectedTransfer,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(protectedTransfer,1)).life,1000);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(protectedTransfer)),[]);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(protectedTransfer,0)).numTargets,0);
+  }
+  api.ktCoreAdvance(protectedTransfer,0,"",0,"");
+  const transferred=JSON.parse(api.ktCoreSnapshot(protectedTransfer,1));
+  assert.equal(transferred.life,990);
+  assert.equal(transferred.state,900);
+  assert.equal(transferred.stateOwner,1);
+  assert.equal(api.ktCoreIssues(protectedTransfer),"");
+  console.log("Native Wasm matching override / rejected foreign-state hit / explicit clear / deferred capture: OK (synthetic)");
+} finally { api.ktCoreRelease(protectedTransfer); }
+
+const canonicalProjectile=`[Statedef 0]
+anim=0
+[State 0, projectile]
+type=Projectile
+trigger1=Time=0
+projanim=0
+velocity=1,0
+attr=S,SP
+damage=17,3
+air.velocity=4,-6
+air.hittime=7
+air.fall=1`;
+const projectileOverride=api.ktCoreCreate("projectile","armor",bindAir,air,canonicalProjectile,overrideDefense);
+try {
+  api.ktCoreSetup(projectileOverride,0,0,20*256,0);
+  api.ktCoreAdvance(projectileOverride,0,"",0,"");
+  api.ktCoreAdvance(projectileOverride,0,"",0,"");
+  const snapshot=JSON.parse(api.ktCoreSnapshot(projectileOverride,1));
+  assert.equal(snapshot.state,700);
+  assert.equal(snapshot.life,983);
+  assert.equal(snapshot.getHitX256,4*256);
+  assert.equal(snapshot.getHitY256,-6*256);
+  assert.equal(snapshot.getHitTime,7);
+  assert.equal(JSON.parse(api.ktCoreEntities(projectileOverride)).projectiles,0);
+  assert.equal(api.ktCoreIssues(projectileOverride),"");
+  console.log("Native Wasm canonical Projectile HitDef fields / forceair override / incoming data: OK (synthetic)");
+} finally { api.ktCoreRelease(projectileOverride); }

@@ -132,6 +132,13 @@ private object Fights {
         ",\"hitPauseThisTick\":" + p.hitPauseThisTick +
         ",\"hitFilter1Time\":" + p.hitFilters.remaining(0) +
         ",\"hitFilter2Time\":" + p.hitFilters.remaining(1) +
+        ",\"hitOverrideTimes\":[" + (0..7).joinToString(",") { p.hitOverrides.remaining(it).toString() } + "]" +
+        ",\"getHitDamage\":" + p.getHitData.damage +
+        ",\"getHitX256\":" + p.getHitData.velocityX +
+        ",\"getHitY256\":" + p.getHitData.velocityY +
+        ",\"getHitTime\":" + p.getHitData.time +
+        ",\"getHitGuarded\":" + p.getHitData.guarded +
+        ",\"getHitFall\":" + p.getHitData.fall +
         ",\"power\":" + p.power +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +
         ",\"facing\":" + (if (p.facingRight) 1 else -1) +
