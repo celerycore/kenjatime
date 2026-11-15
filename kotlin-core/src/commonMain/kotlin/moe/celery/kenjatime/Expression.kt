@@ -57,6 +57,7 @@ object CoreExpression {
                 "moveguarded" -> if (f.moveGuarded) 1.0 else 0.0
                 "numhelper" -> f.world?.entities?.helpers?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numproj" -> f.world?.entities?.projectiles?.count { it.owner===f }?.toDouble() ?: 0.0
+                "numexplod" -> f.world?.effects?.count(f)?.toDouble() ?: 0.0
                 "inguarddist" -> if (p!=null && abs(p.posX.toLong()-f.posX.toLong()) <= 90L*Fixed.ONE) 1.0 else 0.0
                 "true" -> 1.0
                 "false" -> 0.0
@@ -111,6 +112,10 @@ object CoreExpression {
                     it.owner===f && it.projectileId==idx(0)
                 }?.toDouble() ?: 0.0
                 "numtarget" -> f.targets(if (args.isEmpty()) -1 else idx(0)).size.toDouble()
+                "numexplod" -> {
+                    require(args.size <= 1) { "NumExplod requires zero or one argument" }
+                    f.world?.effects?.count(f,if(args.isEmpty())null else idx(0))?.toDouble() ?: 0.0
+                }
                 else -> throw IllegalArgumentException("Unsupported function: "+name)
             }
             return Value.num(v)

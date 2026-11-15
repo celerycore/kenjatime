@@ -1,6 +1,57 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current actor-binding continuation — November 15, 2026
+## Current Explod continuation — November 15, 2026
+
+Continues local binding source `59f67fe`. Kotlin now owns the basic
+`Explod`, `ModifyExplod`, `RemoveExplod`, `ExplodBindTime` and `NumExplod`
+paths. Effects use the creator's own AIR/SFF resource bank, including helpers;
+their animation, movement, acceleration, lifetime and binding are independent
+of fighter collision geometry. A global budget bounds live effects to 512.
+
+Supported positioning is `p1`, `p2` and stage-relative `none`, with mirrored
+facing, vertical facing, scale, sprite priority and ontop ordering. DEF version
+metadata selects the legacy p1 default or the MUGEN 1.1 none default. Bound
+effects follow final actor axes. Finite bind times expire, zero releases,
+and -1 remains bound. Birth frames and animation resets preserve the first
+AIR element; ModifyExplod preserves total age and the removal deadline.
+Default removetime=-2 retires on animation completion, -1 persists, positive
+values count simulation ticks, and zero retires before presentation.
+
+Creation, modification, count and removal are owner-scoped. Candidate patches
+validate before any selected effect changes. Effects can opt into owner
+hitpause; removeongethit responds to hit/guard contacts. Helper destruction
+detaches surviving effects; DestroySelf removeexplods=1 removes them. Common
+argument splitting is shared with the binding controllers.
+
+Render plans own effect order, frame, coordinates, flips and scale. The Canvas
+adapter paints those commands without applying fighter-size magnification to
+effects. Zero scale stays zero. Repeated rendering and skipped presentation
+do not advance effects. New read-only Wasm `ktCoreExplods` snapshots and
+per-actor `numExplods` expose the effect lifecycle.
+
+Local validation:
+
+- 135 JVM and 130 compiled-Wasm tests pass: 20 new common effects scenarios
+  plus original KFM state 191 wood-effect creation, motion and retirement.
+- Actual exported Wasm tests exercise birth frames, motion, layers, lifetime,
+  ModifyExplod, zero scale, ExplodBindTime, removal and read-only snapshots.
+- Two 600-tick KFM fight replays match, with three contacts and zero unsupported
+  diagnostics on that trace. Forced state 191 still exposes the separate,
+  unimplemented common F5 audio expression; its Explod paths succeed.
+- 13 adapter/import checks and the browser build pass. Chromium imports public
+  KFM art with a synthetic CNS effect and paints actual Explod sprites; its
+  Canvas transform matches Kotlin's authored scale. RAR companion import,
+  CSV export and the 360px Android layout also pass.
+
+This is a bounded effects subset. Creators/source scripts require 320x240
+coordinates, scale is limited to 0..64, and viewport postypes, common F animation
+banks, palettes, blend modes, rotation and advanced pause parameters produce
+explicit diagnostics. Native per-tick phase parity, physical-phone performance
+and a new APK remain unverified. This source is committed locally; GitHub
+publication still awaits explicit approval after automatic review blocked PR
+creation.
+
+## Actor-binding continuation — November 15, 2026
 
 Continues the tested AIR timing source `79b0c96`. Adds `TargetBind`,
 `BindToParent`, `BindToRoot` and `BindToTarget` to Kotlin/commonMain. These

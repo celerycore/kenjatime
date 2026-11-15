@@ -22,7 +22,8 @@ const status=message=>{byId("setup-status").textContent=message};
 const library=new ArchiveLibrary();
 const fighters=new Map();
 const installedTables=new Map();
-let importInProgress=false,paintedSpriteCount=0,placeholderCount=0;
+let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0;
+let lastExplodPaint=null;
 const debugWarning=new Set();
 const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
@@ -199,17 +200,23 @@ function render(){
     if(img){
       // Authored localcoord comes from Kotlin's DEF parser (Nu-13 1008x756,
       // standard MUGEN 320x240). Avoid hard-coding a 1:1 character scale.
-      const sx=(fighter.spriteScaleX||1)*(fighter.scale||1);
-      const sy=(fighter.spriteScaleY||1)*(fighter.scale||1);
-      const visualCap=Math.min(1.8,360/(img.w*sx),340/(img.h*sy));
+      const sx=(fighter.spriteScaleX??1)*(fighter.scale??1);
+      const sy=(fighter.spriteScaleY??1)*(fighter.scale??1);
+      const visualCap=fighter.kind==="explod"?1:Math.min(1.8,360/(img.w*sx),340/(img.h*sy));
       ctx.save();ctx.translate(x,y);
       ctx.scale((fighter.facing<0?-1:1)*(fighter.flipX||1)*sx*visualCap,
         (fighter.flipY||1)*sy*visualCap);
       ctx.imageSmoothingEnabled=false;
       // Sprite X/Y originate in authored SFF axes, not image center.
+      if(fighter.kind==="explod"){
+        const transform=ctx.getTransform();
+        lastExplodPaint=Object.freeze({scaleX:Math.abs(transform.a/scale),
+          scaleY:Math.abs(transform.d/scale),cameraZoom:fighter.scale??1});
+      }
       ctx.drawImage(img.image,-img.x,-img.y);
       ctx.restore();
       paintedSpriteCount++;
+      if(fighter.kind==="explod"&&sx!==0&&sy!==0)paintedExplodCount++;
     }else{
       // When huge SFF sprites cannot be decoded on this phone, show a
       // visible placeholder without inventing artwork or blocking combat.
@@ -417,6 +424,8 @@ worker.onmessage=({data})=>{
 };
 worker.onerror=event=>{running=false;status("Kotlin worker could not start: "+event.message)};
 window.__kenjatimeKotlinQA=Object.freeze({
+  get explodPaints(){return paintedExplodCount},
+  get lastExplodPaint(){return lastExplodPaint},
   get spritePaints(){return paintedSpriteCount},
   get placeholderPaints(){return placeholderCount},
   get importedCount(){return fighters.size-1},

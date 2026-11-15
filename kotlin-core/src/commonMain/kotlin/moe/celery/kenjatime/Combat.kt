@@ -67,7 +67,8 @@ data class FighterDefinition(
     val localCoordWidth: Int = 320,
     val localCoordHeight: Int = 240,
     val headX: Int = 0, val headY: Int = -90*Fixed.ONE,
-    val midX: Int = 0, val midY: Int = -60*Fixed.ONE
+    val midX: Int = 0, val midY: Int = -60*Fixed.ONE,
+    val defaultExplodPostype: String = "p1"
 ) {
     /** AIR collision boxes use the character's local coordinates. Convert
      * them into the common 320x240 stage collision space, using fixed-point
@@ -83,9 +84,8 @@ data class FighterDefinition(
             val constants = MugenCnsParser.constants(cns)
             // Character localcoord is authored in DEF, not the AIR or CNS.
             // Nu-13 uses 1008x756. Never assume every character is 320x240.
-            val local = if(defText.isBlank()) emptyList() else
-                MugenDefParser.parse(defText).section("info")
-                    ?.get("localcoord")?.split(',') ?: emptyList()
+            val info = if(defText.isBlank()) null else MugenDefParser.parse(defText).section("info")
+            val local = info?.get("localcoord")?.split(',') ?: emptyList()
             val localWidth=local.getOrNull(0)?.trim()?.toIntOrNull()
                 ?.takeIf { it in 160..4096 } ?: 320
             val localHeight=local.getOrNull(1)?.trim()?.toIntOrNull()
@@ -93,11 +93,14 @@ data class FighterDefinition(
             // MUGEN CMD embeds StateDef -1 and controllers AFTER [Command] sections.
             // Motion definitions alone cannot activate any authored combat move.
             val allStates = if (cmd.isBlank()) cns else cns + "\n" + cmd
+            val version=info?.get("mugenversion")?.trim()?.trim('"','\'') ?: ""
+            val modern=Regex("^1\\.(\\d+)").find(version)?.groupValues?.get(1)?.toIntOrNull()?.let { it >= 1 } ?: false
             return FighterDefinition(
                 name, MugenAirParser.parse(air), MugenCnsParser.parse(allStates),
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
-                localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY
+                localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
+                if(modern)"none" else "p1"
             )
         }
     }
@@ -389,6 +392,8 @@ class FightingCharacter(
             }
             "targetbind", "bindtoparent", "bindtoroot", "bindtotarget" ->
                 CoreBindingControllers.execute(this,c,scriptOwner,errors)
+            "explod", "modifyexplod", "removeexplod", "explodbindtime" ->
+                world?.effects?.execute(this,c,scriptOwner)
             "changeanim", "changeanim2" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
                 val owner = if (c.type.equals("changeanim2", true)) stateOwner else this
@@ -424,7 +429,10 @@ class FightingCharacter(
             }
             "destroyself" -> {
                 if (parent == null) errors.add("DestroySelf ignored for a root fighter")
-                else { destroyed = true; return true }
+                else {
+                    if(integer(args["removeexplods"]) != 0) world?.effects?.remove(this)
+                    destroyed = true; return true
+                }
             }
             "poweradd" -> { power = (power + integer(args["value"])).coerceIn(0, 3000) }
             "varrandom" -> {
@@ -626,6 +634,7 @@ class FightingCharacter(
     }
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
                    attacker: FightingCharacter? = null) {
+        world?.effects?.onHit(this)
         life = (life - if (guarded) hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)).coerceAtLeast(0)
         val resultingState = if (life == 0) 5150 else if (guarded)
             when (stateType) { "A" -> 152; "C" -> 151; else -> 150 }
@@ -657,6 +666,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val contacts: MutableList<FightContact> = ArrayList()
     val presentation: MutableList<CorePresentationEvent> = ArrayList()
     val entities = CoreEntities(this)
+    val effects = CoreExplods(this)
     var roundFlow: CoreRoundFlow? = null
         private set
     fun enableRoundFlow(rules: CoreRoundRules = CoreRoundRules()) {
@@ -742,6 +752,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         if (allowCombat) entities.resolveContacts(issues)
         val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
+        effects.advance()
         sequence?.step(p1,p2)
         frame++
     }

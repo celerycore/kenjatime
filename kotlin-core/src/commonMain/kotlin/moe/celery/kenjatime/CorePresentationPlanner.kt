@@ -50,35 +50,38 @@ object CorePresentationPlanner {
             .append(",\"cameraZoom\":").append(camera?.zoom ?: 1.0)
             .append(",\"helpers\":").append(fight.entities.helpers.size)
             .append(",\"projectiles\":").append(fight.entities.projectiles.size)
+            .append(",\"explods\":").append(fight.effects.all.size)
             .append(",\"health\":[")
             .append(healthBarWidth(fight.p1.life,fight.p1.definition.maxLife))
             .append(',').append(healthBarWidth(fight.p2.life,fight.p2.definition.maxLife))
             .append("],\"draws\":[")
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
                  facingRight: Boolean, action: AirAnimationPlayer?,
-                 definition: FighterDefinition, life: Int) {
+                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null) {
             val frame = action?.frame
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
+            val effectScaleX=effect?.config?.scaleX ?: 1.0
+            val effectScaleY=effect?.config?.scaleY ?: 1.0
             // AIR frame offsets are authored in the fighter's localcoord and
             // are applied before the SFF pivot. The old JS renderer ignored
             // them, causing specials and helper animation frames to drift.
             val drawX=pixelX(x256,camera)+
                 (frame?.offsetX ?: 0)*320.0/definition.localCoordWidth*
-                HORIZONTAL_SCALE*zoom*face
+                HORIZONTAL_SCALE*zoom*face*effectScaleX
             val drawY=pixelY(y256,camera)+
                 (frame?.offsetY ?: 0)*240.0/definition.localCoordHeight*
-                VERTICAL_SCALE*zoom
+                VERTICAL_SCALE*zoom*effectScaleY*(effect?.config?.verticalFacing ?: 1)
             val flip=frame?.flip?.uppercase() ?: ""
             json.append("{\"side\":").append(side)
                 .append(",\"kind\":\"").append(kind).append("\"")
                 .append(",\"x\":").append(drawX)
                 .append(",\"y\":").append(drawY)
                 .append(",\"flipX\":").append(if('H' in flip) -1 else 1)
-                .append(",\"flipY\":").append(if('V' in flip) -1 else 1)
+                .append(",\"flipY\":").append((if('V' in flip) -1 else 1)*(effect?.config?.verticalFacing ?: 1))
                 .append(",\"scale\":").append(camera?.zoom ?: 1.0)
-                .append(",\"spriteScaleX\":").append(320.0 / definition.localCoordWidth)
-                .append(",\"spriteScaleY\":").append(240.0 / definition.localCoordHeight)
+                .append(",\"spriteScaleX\":").append(320.0 / definition.localCoordWidth*effectScaleX)
+                .append(",\"spriteScaleY\":").append(240.0 / definition.localCoordHeight*effectScaleY)
                 .append(",\"facing\":").append(if(facingRight) 1 else -1)
                 .append(",\"action\":").append(action?.action?.number ?: -1)
                 .append(",\"elem\":").append((action?.index ?: 0)+1)
@@ -87,8 +90,16 @@ object CorePresentationPlanner {
                 .append(",\"group\":").append(frame?.group ?: -1)
                 .append(",\"number\":").append(frame?.sprite ?: -1)
                 .append(",\"life\":").append(life)
+                .append(",\"sprpriority\":").append(effect?.drawPriority ?: 0L)
+            if(effect != null)json.append(",\"effectId\":").append(effect.id)
+                .append(",\"effectSequence\":").append(effect.sequence)
+            json
                 .append("},")
         }
+        val effects=fight.effects.all.sortedWith(compareBy<CoreExplod>{it.drawPriority}.thenBy{it.sequence})
+        fun effectDraw(effect: CoreExplod) = draw(if(effect.owner.opponent === fight.p2)0 else 1,
+            "explod",effect.x,effect.y,effect.facingRight,effect.animation,effect.owner.definition,0,effect)
+        for(effect in effects)if(effect.drawPriority < 0)effectDraw(effect)
         draw(0,"fighter",fight.p1.posX,fight.p1.posY,
             fight.p1.facingRight,fight.p1.animation,fight.p1.animationOwner.definition,fight.p1.life)
         draw(1,"fighter",fight.p2.posX,fight.p2.posY,
@@ -105,6 +116,7 @@ object CorePresentationPlanner {
                 projectile.owner.facingRight,projectile.action,
                 projectile.owner.definition,0)
         }
+        for(effect in effects)if(effect.drawPriority >= 0)effectDraw(effect)
         if(json.last() == ',')json.setLength(json.length-1)
         return json.append("]}").toString()
     }

@@ -270,3 +270,83 @@ try {
 } finally {
   api.ktCoreRelease(helperBind);
 }
+
+const effectAir=`${air}
+[Begin Action 9]
+9,0,0,0,1
+9,1,0,0,2`;
+const effectCns=`[Statedef 0]
+anim=0
+[State 0, move]
+type=VelSet
+trigger1=Time=0
+x=1
+[State 0, effect]
+type=Explod
+trigger1=Time=0
+id=77
+anim=9
+pos=10,-5
+velocity=2,0
+removetime=3
+scale=.5,2
+sprpriority=-1`;
+const effectFight=api.ktCoreCreate("effect","neutral",effectAir,air,effectCns,"[Statedef 0]\nanim=0");
+try {
+  api.ktCoreAdvance(effectFight,0,"",0,"");
+  const birth=JSON.parse(api.ktCoreExplods(effectFight));
+  assert.equal(birth.length,1);
+  assert.equal(birth[0].id,77);
+  assert.equal(birth[0].x256,11*256);
+  assert.equal(birth[0].age,0);
+  assert.equal(birth[0].elem,1);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(effectFight,0)).numExplods,1);
+  const effectPlan=JSON.parse(api.ktCoreRenderPlan(effectFight,0));
+  assert.equal(effectPlan.draws[0].kind,"explod","Negative priority belongs behind fighters");
+  assert.equal(effectPlan.draws[0].side,0);
+  assert.equal(effectPlan.draws[0].spriteScaleX,.5);
+  assert.equal(effectPlan.draws[0].spriteScaleY,2);
+  for(let i=0;i<3;i++)api.ktCoreRenderPlan(effectFight,12);
+  assert.deepEqual(JSON.parse(api.ktCoreExplods(effectFight)),birth);
+  api.ktCoreAdvance(effectFight,0,"",0,"");
+  const moved=JSON.parse(api.ktCoreExplods(effectFight))[0];
+  assert.equal(moved.x256,13*256);
+  assert.equal(moved.elem,2);
+  api.ktCoreAdvance(effectFight,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreExplods(effectFight)).length,1);
+  api.ktCoreAdvance(effectFight,0,"",0,"");
+  assert.deepEqual(JSON.parse(api.ktCoreExplods(effectFight)),[]);
+  assert.equal(api.ktCoreIssues(effectFight),"");
+  console.log("Native Wasm Explod / birth frame / motion / render layer / lifetime / read-only snapshots: OK (synthetic)");
+} finally { api.ktCoreRelease(effectFight); }
+
+const modifyCns=`${effectCns.replace("removetime=3","removetime=-1\nbindtime=-1")}
+[State 0, modify]
+type=ModifyExplod
+trigger1=Time=1
+id=77
+scale=0,2
+velocity=3,0
+[State 0, release]
+type=ExplodBindTime
+trigger1=Time=2
+id=77
+time=0
+[State 0, remove]
+type=RemoveExplod
+trigger1=Time=3
+id=77`;
+const modified=api.ktCoreCreate("modify","neutral",effectAir,air,modifyCns,"[Statedef 0]\nanim=0");
+try {
+  api.ktCoreAdvance(modified,0,"",0,"");
+  api.ktCoreAdvance(modified,0,"",0,"");
+  const draw=JSON.parse(api.ktCoreRenderPlan(modified,0)).draws.find(d=>d.kind==="explod");
+  assert.equal(draw.spriteScaleX,0,"Zero scale must remain zero");
+  assert.equal(JSON.parse(api.ktCoreExplods(modified))[0].age,1,"Modify cannot reset effect age");
+  api.ktCoreAdvance(modified,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreExplods(modified))[0].x256,15*256);
+  api.ktCoreAdvance(modified,0,"",0,"");
+  assert.deepEqual(JSON.parse(api.ktCoreExplods(modified)),[]);
+  assert.equal(api.ktCoreIssues(modified),"");
+  console.log("Native Wasm ModifyExplod / zero scale / ExplodBindTime / RemoveExplod: OK (synthetic)");
+} finally { api.ktCoreRelease(modified); }

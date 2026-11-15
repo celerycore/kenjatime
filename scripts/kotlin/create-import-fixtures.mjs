@@ -19,3 +19,23 @@ for(const[name,entries] of [
  console.log(name,archive.length,"bytes",entries.length,"entries");
 }
 writeFileSync("test-output/kotlin-kfm.zip",zipSync(Object.fromEntries(raw)));
+
+// Public KFM art plus an explicitly synthetic CNS effect. This exercises
+// actual compiled Kotlin -> worker -> Canvas effect painting in the browser.
+const effectFiles=Object.fromEntries(raw);
+effectFiles["kfm/kfm.cns"]=new TextEncoder().encode(
+  new TextDecoder("iso-8859-1").decode(effectFiles["kfm/kfm.cns"])+`
+[Statedef -2]
+[State -2, Kotlin Explod renderer fixture]
+type=Explod
+trigger1=NumExplod(701)=0
+id=701
+anim=0
+postype=p1
+pos=20,-60
+bindtime=-1
+removetime=-1
+scale=.5,.5
+sprpriority=-1
+`);
+writeFileSync("test-output/kotlin-kfm-explod.zip",zipSync(effectFiles));

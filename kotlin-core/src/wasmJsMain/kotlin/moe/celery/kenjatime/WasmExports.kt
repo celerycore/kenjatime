@@ -123,6 +123,7 @@ private object Fights {
         ",\"animationTime\":" + (p.animation?.elapsed ?: 0L) +
         ",\"animTime\":" + (p.animation?.remaining ?: 0L) +
         ",\"numTargets\":" + p.targets().size +
+        ",\"numExplods\":" + fight.effects.count(p) +
         ",\"boundTo\":" + (p.binding?.anchor?.id ?: 0) +
         ",\"bindTime\":" + (p.binding?.ticksLeft ?: 0) +
         ",\"hitPause\":" + p.hitPauseLeft +
@@ -141,6 +142,14 @@ private object Fights {
 @JsExport fun ktCoreEntities(handle: Int): String {
     val e = Fights.get(handle).entities
     return "{\"helpers\":" + e.helpers.size + ",\"projectiles\":" + e.projectiles.size + "}"
+}
+@JsExport fun ktCoreExplods(handle: Int): String = Fights.get(handle).effects.all.joinToString(
+    prefix="[",postfix="]",separator=","
+) { e ->
+    "{\"owner\":"+e.owner.id+",\"id\":"+e.id+",\"sequence\":"+e.sequence+
+    ",\"x256\":"+e.x+",\"y256\":"+e.y+",\"vx256\":"+e.velocityX+
+    ",\"vy256\":"+e.velocityY+",\"age\":"+e.age+",\"bindTime\":"+e.bindLeft+
+    ",\"anim\":"+e.animation.action.number+",\"elem\":"+(e.animation.index+1)+"}"
 }
 @JsExport fun ktCoreEvents(handle: Int): String = Fights.get(handle).presentation.joinToString(
     prefix = "[", postfix = "]", separator = ","

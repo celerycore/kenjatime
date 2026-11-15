@@ -96,6 +96,33 @@ try:
         assert imported_plan["draws"][0]["spriteScaleY"]>0
         result["kotlinRenderPlan"]=True
 
+        # A separate context imports public KFM art with a synthetic Explod
+        # controller, then requires decoded effect sprites to reach Canvas.
+        effects=browser.new_page(viewport={"width":1000,"height":780})
+        effect_errors=[]
+        effects.on("pageerror",lambda error:effect_errors.append(str(error)))
+        effects.goto(base,wait_until="domcontentloaded",timeout=30000)
+        effects.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        effects.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-explod.zip"))
+        effects.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=effects.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        effects.locator("#p1-select").select_option(value=installed)
+        effects.locator("#start").click()
+        effects.wait_for_function("window.__kenjatimeKotlinQA?.explodPaints>5",timeout=30000)
+        effect_plan=effects.evaluate("window.__kenjatimeKotlinQA.renderPlan")
+        effect=next(d for d in effect_plan["draws"] if d["kind"]=="explod")
+        assert effect["effectId"]==701,effect
+        assert effect["side"]==0,effect
+        assert effect["spriteScaleX"]==0.5 and effect["spriteScaleY"]==0.5,effect
+        assert effect["sprpriority"]<0,effect
+        painted=effects.evaluate("window.__kenjatimeKotlinQA.lastExplodPaint")
+        assert abs(painted["scaleX"]-0.5*painted["cameraZoom"])<0.00001,painted
+        assert abs(painted["scaleY"]-0.5*painted["cameraZoom"])<0.00001,painted
+        assert not effect_errors,effect_errors
+        result["realExplodSpritePaints"]=effects.evaluate("window.__kenjatimeKotlinQA.explodPaints")
+        effects.close()
+
         # A real 360-css-pixel Android WebView viewport, with native status-bar
         # insets, may NEVER horizontally scroll or overlap its two selectors.
         mobile=browser.new_page(viewport={"width":360,"height":800},

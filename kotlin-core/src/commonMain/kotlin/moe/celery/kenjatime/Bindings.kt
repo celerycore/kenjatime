@@ -35,25 +35,6 @@ object CoreBindings {
 /** CNS binding parameters are evaluated on the executing actor. Validate
  * the entire request before mutating any selected target or attachment. */
 object CoreBindingControllers {
-    private fun arguments(raw: String): List<String> {
-        require(raw.length <= 4096) { "Binding position is too long" }
-        var depth = 0
-        var quote: Char? = null
-        var start = 0
-        val result = mutableListOf<String>()
-        for ((i,c) in raw.withIndex()) {
-            if (quote != null) { if(c == quote) quote = null; continue }
-            when(c) {
-                '\'', '"' -> quote = c
-                '(', '[' -> depth++
-                ')', ']' -> { depth--; require(depth >= 0) { "Unbalanced binding position" } }
-                ',' -> if(depth == 0) { result.add(raw.substring(start,i).trim()); start = i+1 }
-            }
-        }
-        require(depth == 0 && quote == null) { "Unbalanced binding position" }
-        result.add(raw.substring(start).trim())
-        return result
-    }
     fun execute(actor: FightingCharacter, controller: StateController,
                 source: FightingCharacter, errors: MutableSet<String>) {
         try {
@@ -65,7 +46,7 @@ object CoreBindingControllers {
             val time = integer("time",1)
             require(time >= -1) { "Binding time must be -1, 0 or positive" }
             val wanted = integer("id",-1)
-            val position = arguments(args["pos"] ?: "0,0")
+            val position = CnsArguments.split(args["pos"] ?: "0,0")
             require(position.size <= if(type == "bindtotarget")3 else 2) { "Invalid binding position arity" }
             val x = Fixed.of(number(position[0]))
             val y = Fixed.of(number(position.getOrNull(1) ?: "0"))
