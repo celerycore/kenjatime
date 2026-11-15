@@ -231,6 +231,7 @@ class FightingCharacter(
         private set
     internal val hitFilters = CoreHitFilters()
     internal val hitOverrides = CoreHitOverrides()
+    internal val projectileHistory = CoreProjectileHistory()
     internal var getHitData = CoreGetHitData()
         private set
     fun getHitVar(name: String): Double = when(name) {

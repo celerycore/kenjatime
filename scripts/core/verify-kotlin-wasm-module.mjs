@@ -62,6 +62,8 @@ try {
     assert.deepEqual(JSON.parse(api.ktCoreEntities(handle)),{helpers:0,projectiles:0});
   assert.deepEqual(JSON.parse(api.ktCoreProjectiles(handle)),[]);
   assert.deepEqual(JSON.parse(api.ktCoreProjectileClashes(handle)),[]);
+  assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(handle,0)),[]);
+  assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(handle,1)),[]);
   if (api.ktCoreEvents)
     assert.deepEqual(JSON.parse(api.ktCoreEvents(handle)),[]);
   console.log("Native Wasm import/step/snapshot/release: OK");
@@ -678,6 +680,115 @@ try {
   assert.equal(api.ktCoreIssues(chain),"");
 } finally { api.ktCoreRelease(chain); }
 console.log("Native Wasm Projectile mutual cancellation / priority spending / nearest-pair chain / fighter contact / pure events: OK (synthetic)");
+
+const feedbackCns=`${motionIdle}
+[State 0, fire]
+type=Projectile
+trigger1=Time=0
+projid=174
+projanim=210
+damage=10,2
+[State 0, one contact bonus]
+type=PowerAdd
+trigger1=ProjContact174 = 1
+value=7
+[State 0, follow after retirement]
+type=ChangeState
+triggerall=NumProjID(174)=0
+triggerall=ProjContactTime(-1)=1
+trigger1=ifelse((ProjContact174 = 1),1,0)
+value=ifelse(ProjGuardedTime(174)=1,811,810)
+[Statedef 810]
+type=S
+physics=N
+anim=0
+[Statedef 811]
+type=S
+physics=N
+anim=0`;
+for(const guarded of [false,true]) {
+  const feedback=api.ktCoreCreate("feedback","target",multiHitAir,air,feedbackCns,`${motionIdle}\nctrl=1`);
+  try {
+    api.ktCoreSetup(feedback,0,0,20*256,0);
+    const advance=()=>api.ktCoreAdvance(feedback,0,"",guarded ? 8 : 0,"");
+    advance();assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(feedback,0)),[]);
+    advance();
+    assert.deepEqual(JSON.parse(api.ktCoreProjectiles(feedback)),[]);
+    const history=[{id:174,kind:guarded ? "guarded" : "hit",tick:1,age:1}];
+    assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(feedback,0)),history);
+    assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(feedback,1)),[]);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(feedback,1)).life,guarded ? 998 : 990);
+    for(let i=0;i<4;i++) {
+      api.ktCoreRenderPlan(feedback,12);api.ktCoreCamera(feedback);
+      assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(feedback,0)),history);
+    }
+    advance();
+    const followed=JSON.parse(api.ktCoreSnapshot(feedback,0));
+    assert.equal(followed.state,guarded ? 811 : 810);assert.equal(followed.power,7);
+    assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(feedback,0)),[{...history[0],age:2}]);
+    advance();advance();
+    assert.equal(JSON.parse(api.ktCoreSnapshot(feedback,0)).power,7,"One-tick feedback cannot keep firing");
+    assert.equal(api.ktCoreIssues(feedback),"");
+  } finally { api.ktCoreRelease(feedback); }
+}
+
+const cancelFeedbackCns=`${motionIdle}
+${clashController("offset=25,0\nprojid=175")}
+[State 0, react to cancellation]
+type=ChangeState
+triggerall=ProjContact175 = 0
+trigger1=ProjCancelTime(175)=1
+value=812
+[Statedef 812]
+type=S
+physics=N
+anim=0`;
+const cancelFeedback=api.ktCoreCreate("left feedback","right feedback",clashAir,clashAir,
+  cancelFeedbackCns,cancelFeedbackCns);
+try {
+  api.ktCoreSetup(cancelFeedback,-30*256,0,30*256,0);
+  api.ktCoreAdvance(cancelFeedback,0,"",0,"");api.ktCoreAdvance(cancelFeedback,0,"",0,"");
+  for(const side of [0,1])assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(cancelFeedback,side)),
+    [{id:175,kind:"cancel",tick:1,age:1}]);
+  api.ktCoreAdvance(cancelFeedback,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(cancelFeedback,0)).state,812);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(cancelFeedback,1)).state,812);
+  assert.equal(api.ktCoreIssues(cancelFeedback),"");
+} finally { api.ktCoreRelease(cancelFeedback); }
+
+const latestFeedback=api.ktCoreCreate("latest feedback","target",multiHitAir,air,`${motionIdle}
+[State 0, first hit]
+type=Projectile
+trigger1=Time=0
+projid=176
+projanim=210
+damage=10,2
+[State 0, later guard]
+type=Projectile
+trigger1=Time=2
+projid=177
+projanim=210
+damage=10,2
+[State 0, compare latest contact with remembered hit]
+type=PowerAdd
+triggerall=ProjGuardedTime(177)=1
+triggerall=ProjHitTime(176)=-1
+triggerall=ProjContactTime(176)=-1
+trigger1=ProjHit176 = 1, < 5
+value=11`,`${motionIdle}\nctrl=1`);
+try {
+  api.ktCoreSetup(latestFeedback,0,0,20*256,0);
+  for(let i=0;i<3;i++)api.ktCoreAdvance(latestFeedback,0,"",0,"");
+  api.ktCoreDebugForceState(latestFeedback,1,0);
+  api.ktCoreAdvance(latestFeedback,0,"",8,"");
+  assert.deepEqual(JSON.parse(api.ktCoreProjectileHistory(latestFeedback,0)),[
+    {id:176,kind:"hit",tick:1,age:3},{id:177,kind:"guarded",tick:3,age:1}
+  ]);
+  api.ktCoreAdvance(latestFeedback,0,"",8,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(latestFeedback,0)).power,11);
+  assert.equal(api.ktCoreIssues(latestFeedback),"");
+} finally { api.ktCoreRelease(latestFeedback); }
+console.log("Native Wasm Projectile hit/guard/cancel history / CNS follow-ups after retirement / latest-event times / legacy ID windows: OK (synthetic)");
 
 const filterAttack=`[Statedef 0]
 anim=0

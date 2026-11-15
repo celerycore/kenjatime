@@ -182,6 +182,14 @@ private object Fights {
     "{\"first\":"+c.first+",\"second\":"+c.second+
     ",\"firstCancelled\":"+c.firstCancelled+",\"secondCancelled\":"+c.secondCancelled+"}"
 }
+@JsExport fun ktCoreProjectileHistory(handle: Int,side: Int): String {
+    val fight=Fights.get(handle)
+    val actor=if(side == 0)fight.p1 else fight.p2
+    return actor.projectileHistory.snapshot().joinToString(prefix="[",postfix="]",separator=",") { r ->
+        "{\"id\":"+r.id+",\"kind\":\""+r.kind.label+"\",\"tick\":"+r.tick+
+        ",\"age\":"+(fight.frame-r.tick)+"}"
+    }
+}
 @JsExport fun ktCoreEvents(handle: Int): String = Fights.get(handle).presentation.joinToString(
     prefix = "[", postfix = "]", separator = ","
 ) { e ->

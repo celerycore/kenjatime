@@ -1,6 +1,72 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current projectile clash continuation — November 15, 2026
+## Current projectile feedback continuation — November 15, 2026
+
+Continues published main source `b286547`. CNS can now query projectile hit,
+guard and cancellation feedback after the shot has disappeared.
+`ProjHitTime`, `ProjGuardedTime`, `ProjContactTime` and `ProjCancelTime` take
+one numeric ID expression. Zero and negative query IDs select any projectile;
+positive IDs filter exactly, without coordinate scaling. Missing, extra,
+nonnumeric, nonfinite or overflowing arguments fail closed with diagnostics.
+
+The time functions inspect the latest overall projectile event. A later guard
+makes ProjHitTime return -1, even if an older shot hit; a later cancellation
+makes ProjContactTime return -1. ProjContactTime accepts hits or guards, while
+the other functions require their named event type. A nonmatching type/ID or
+no recorded event returns -1. History survives projectile retirement and
+actor state/bank changes; queries belong to the executing actor.
+
+Legacy `ProjHit[ID]`, `ProjGuarded[ID]` and `ProjContact[ID]` clauses support
+`= value` and `= value, [operator] time`, including dynamic numeric expressions,
+all comparison operators, omitted/wildcard IDs and nested boolean expressions.
+These predicates can find an older matching ID/kind after a newer event.
+Zero inverts the complete time-window result; an absent event never satisfies
+a positive predicate merely because the -1 sentinel is less than a cutoff.
+Parenthesized aliases such as `ProjHit(7)` and `ProjContact()` expose the
+one-tick flag too. Parenthesize a legacy clause when nesting it in a function,
+for example `ifelse((ProjHit7 = 1, < 5), 10, 0)`.
+
+Events use the fight's simulation tick. Their age is one after the completed
+contact tick, so the next controller phase can react once to the default flag.
+World age continues during creator hitpause; `ignorehitpause=1` permits a
+paused controller to observe the flag. Each accepted multi-hit contact
+refreshes it. Misses, rejected filters/overrides, expiry, bounds cleanup and
+surviving clashes do not create feedback. Only terminal clash cancellation
+records a cancel event. Same-tick events retain collision-phase order.
+
+Each actor retains only the latest record per ID/kind, with a 4096-entry bound.
+Repeated hits do not consume new slots. At the bound, the oldest record is
+discarded with a stable resource diagnostic; wildcard caches cannot retain an
+evicted kind. Helper-owned shots currently write their creator's independent
+history, consistent with existing Kotlin ownership. Native helper-to-root
+promotion remains incomplete.
+
+Read-only `ktCoreProjectileHistory(handle, side)` exposes compact records with
+ID, kind, original world tick and derived age. Render/camera/history queries
+cannot age records, refresh flags or change which event is latest.
+
+Local validation:
+
+- 353 JVM and 348 compiled-Wasm tests pass, including 29 new shared scenarios
+  for feedback kinds, latest/remembered events, same-tick ordering, legacy
+  expressions, one-tick/follow-up controllers, protection, pause, ownership,
+  bounded storage, long ages and replay.
+- Exported Wasm checks execute hit/guard → retirement → CNS follow-up, mutual
+  cancellation → follow-up, and latest-event timers versus an older legacy hit
+  window. Repeated presentation/history reads preserve all feedback.
+- Two public KFM 600-tick structural replays match, retaining nine contacts,
+  seven fallback recoveries and zero unsupported diagnostics on that trace.
+- All 16 adapter/import/download checks and production browser smoke pass,
+  including real sprites/effects, mixed-coordinate imports, CSV and mobile layout.
+
+The basic query contracts follow the
+[Elecbyte projectile trigger references](https://network.mugenguild.com/justnopoint/1.1docs/trigger.html#projcontacttime).
+Native pause/contact ordering, helper ownership and complete round-reset
+semantics remain unverified. Native MUGEN character parity and physical-phone
+performance are not certified. Main CI checks browser/APK asset identity and
+anonymous permanent downloads before publication.
+
+## Projectile clash continuation — November 15, 2026
 
 Continues published main source `289eab1`. Opposing projectiles now clash using
 their AIR Clsn2 boxes, launch-facing and own-resource coordinate scale. Clsn1

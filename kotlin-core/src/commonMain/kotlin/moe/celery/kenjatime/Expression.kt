@@ -14,6 +14,37 @@ object CoreExpression {
         companion object { fun num(d: Double) = Value(n=d); fun str(s: String) = Value(s=s) }
     }
     private data class Literal(val v: Value): Node { override fun read(f: FightingCharacter) = v }
+    private fun numeric(node: Node,f: FightingCharacter,label: String): Double {
+        val n=node.read(f).n ?: throw IllegalArgumentException("$label requires a numeric expression")
+        require(n.isFinite()) { "Nonfinite $label" }
+        return n
+    }
+    private fun projectileKind(name: String): ProjectileContactKind? = when(name.removePrefix("proj").removeSuffix("time")) {
+        "hit" -> ProjectileContactKind.HIT
+        "guarded" -> ProjectileContactKind.GUARDED
+        "cancel" -> ProjectileContactKind.CANCEL
+        "contact" -> null
+        else -> throw IllegalArgumentException("Unknown projectile trigger")
+    }
+    private val projectilePredicate = Regex("proj(hit|contact|guarded)(\\d*)")
+    private data class ProjectilePredicate(val kind: ProjectileContactKind?,val id: Int,
+        val expected: Node,val op: String,val limit: Node): Node {
+        override fun read(f: FightingCharacter): Value {
+            val wanted=numeric(expected,f,"Projectile trigger value") != 0.0
+            val cutoff=numeric(limit,f,"Projectile trigger time")
+            val age=f.projectileHistory.latestAge(kind,id,f.world?.frame ?: 0L)
+            val comparison=when(op) {
+                "=","==" -> age.toDouble() == cutoff
+                "!=","<>" -> age.toDouble() != cutoff
+                "<" -> age < cutoff
+                "<=" -> age <= cutoff
+                ">" -> age > cutoff
+                ">=" -> age >= cutoff
+                else -> error("Invalid projectile time comparison")
+            }
+            return Value.num(if((age >= 0 && comparison) == wanted)1.0 else 0.0)
+        }
+    }
     private data class InclusiveRange(val lower: Node, val upper: Node): Node {
         override fun read(f:FightingCharacter) =
             Value(range=Pair(lower.read(f).number(),upper.read(f).number()))
@@ -81,6 +112,18 @@ object CoreExpression {
                 ?: throw IllegalArgumentException("Missing argument for "+name)
             fun idx(i:Int)=a(i).toInt()
             val v=when(name) {
+                "projhittime","projguardedtime","projcontacttime","projcanceltime",
+                "projhit","projguarded","projcontact" -> {
+                    val timed=name.endsWith("time")
+                    require(args.size == 1 || !timed && args.isEmpty()) { "$name requires ${if(timed)"one" else "zero or one"} argument" }
+                    val requested=if(args.isEmpty())0.0 else numeric(args[0],f,name)
+                    require(requested <= Int.MAX_VALUE.toDouble()) { "Projectile ID out of range" }
+                    val id=requested.toInt().coerceAtLeast(0)
+                    val kind=projectileKind(name)
+                    val now=f.world?.frame ?: 0L
+                    val age=if(timed)f.projectileHistory.time(kind,id,now) else f.projectileHistory.latestAge(kind,id,now)
+                    if(timed)age.toDouble() else if(age in 0L..1L)1.0 else 0.0
+                }
                 "gethitvar" -> {
                     require(args.size == 1 && args[0] is Variable) { "GetHitVar requires one named field" }
                     f.getHitVar((args[0] as Variable).key)
@@ -218,6 +261,20 @@ object CoreExpression {
             if(t.type=='s')return Literal(Value.str(t.value))
             if(t.type!='i')throw IllegalArgumentException("Invalid token "+t.value)
             var name=t.value.lowercase()
+            val projectile=projectilePredicate.matchEntire(name)
+            if(projectile != null && (accept("=") || accept("=="))) {
+                val suffix=projectile.groupValues[2]
+                val id=if(suffix.isEmpty())0 else suffix.toIntOrNull()
+                    ?: throw IllegalArgumentException("Projectile ID out of range")
+                val expected=plus()
+                var op="<="
+                var limit: Node=Literal(Value.num(1.0))
+                if(accept(",")) {
+                    op=if(peek() in setOf("=","==","!=","<>","<",">","<=",">="))consume().value else "="
+                    limit=plus()
+                }
+                return ProjectilePredicate(projectileKind("proj"+projectile.groupValues[1]),id,expected,op,limit)
+            }
             // Legacy AnimElem is a time comparison, not a comparison with
             // the currently displayed element number. Parse its comma here;
             // parentheses delimit a legacy trigger nested in a function.

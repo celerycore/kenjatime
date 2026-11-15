@@ -235,6 +235,8 @@ class CoreEntities(private val match: DeterministicFight) {
                 val guarded = enemy.blocks(projectile.hit)
                 match.contacts.add(FightContact(projectile.entityId, enemy.id, guarded,
                     if (guarded) projectile.hit.guardDamage else projectile.hit.damage))
+                projectile.owner.projectileHistory.record(projectile.projectileId,
+                    if(guarded)ProjectileContactKind.GUARDED else ProjectileContactKind.HIT,match.frame,errors)
                 enemy.receiveHit(projectile.hit, projectile.facingRight, guarded, projectile.owner)
                 targetHurt.remove(enemy)
                 projectile.onContact(guarded)
@@ -278,6 +280,8 @@ class CoreEntities(private val match: DeterministicFight) {
             if(!a.canClash() || !b.canClash())continue
             val ap=a.priority;val bp=b.priority
             a.clash(bp);b.clash(ap)
+            if(a.cancelled)a.owner.projectileHistory.record(a.projectileId,ProjectileContactKind.CANCEL,match.frame,match.issues)
+            if(b.cancelled)b.owner.projectileHistory.record(b.projectileId,ProjectileContactKind.CANCEL,match.frame,match.issues)
             clashes.add(ProjectileClash(a.entityId,b.entityId,a.cancelled,b.cancelled))
         }
     }
