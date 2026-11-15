@@ -223,8 +223,9 @@ class FightingCharacter(
     var parent: FightingCharacter? = null
     var binding: ActorBinding? = null
         private set
-    internal var bindingClockPaused = false
+    internal var hitPauseThisTick = false
         private set
+    internal val hitFilters = CoreHitFilters()
     fun releaseBinding() { binding = null }
     internal fun canBindTo(anchor: FightingCharacter, source: FightingCharacter): Boolean = bindingProblem(anchor,source) == null
     internal fun bindingProblem(anchor: FightingCharacter, source: FightingCharacter): String? {
@@ -374,6 +375,7 @@ class FightingCharacter(
             "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "ctrlset" -> control = integer(args["value"]) != 0
+            "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "changestate", "selfstate" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
                 val owner = if (c.type.equals("selfstate", true)) this else scriptOwner
@@ -548,7 +550,7 @@ class FightingCharacter(
                     hitPause = integer(pause.getOrNull(0)).coerceIn(0, 120),
                     velocityX = number(velocity.getOrNull(0)),
                     velocityY = number(velocity.getOrNull(1)),
-                    guardDamage = integer(args["guard.damage"]),
+                    guardDamage = integer(args["guard.damage"] ?: args["damage"]?.substringAfter(',',"0")),
                     guardFlag = (args["guardflag"] ?: "").uppercase().replace(" ", ""),
                     hitFlag = (args["hitflag"] ?: "MAF").uppercase().replace(" ", ""),
                     priority = integer(priority.getOrNull(0), 4).coerceIn(1, 7),
@@ -597,7 +599,8 @@ class FightingCharacter(
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0
-        bindingClockPaused = paused
+        hitPauseThisTick = paused
+        hitFilters.beginTick()
         if (paused) hitPauseLeft--
         if (!paused && hitStunLeft > 0) hitStunLeft--
         // Global state controllers participate in the pause only when explicitly opted in.
@@ -627,6 +630,7 @@ class FightingCharacter(
     }
     fun canReceive(hit: HitDefinition): Boolean {
         if (life <= 0) return false
+        if (!hitFilters.allows(hit,world?.issues ?: evaluationIssues))return false
         val flags = hit.hitFlag
         return when (stateType) {
             "L" -> 'D' in flags

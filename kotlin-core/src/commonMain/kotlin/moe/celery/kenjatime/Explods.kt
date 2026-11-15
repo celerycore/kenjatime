@@ -170,7 +170,7 @@ class CoreExplods(private val fight: DeterministicFight) {
             val e=iterator.next()
             val c=e.config
             if(c.removeTime == 0) { iterator.remove(); continue }
-            val frozen=e.owner.bindingClockPaused && !c.ignoreHitPause && !e.owner.destroyed
+            val frozen=e.owner.hitPauseThisTick && !c.ignoreHitPause && !e.owner.destroyed
             val born=e.bornAt == fight.frame
             var anchor=e.anchor
             if(anchor?.destroyed == true) { e.anchor=null; e.bindLeft=0; e.initialPosition=false; anchor=null }

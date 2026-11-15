@@ -462,3 +462,102 @@ try {
   assert.equal(api.ktCoreIssues(projectileFacing),"");
   console.log("Native Wasm projectile launch / same-tick creator Turn / forward contact / knockback: OK (synthetic)");
 } finally { api.ktCoreRelease(projectileFacing); }
+
+const filterAttack=`[Statedef 0]
+anim=0
+type=S
+physics=N
+[State 0, attack]
+type=HitDef
+trigger1=Time=0
+attr=S,NA
+damage=10,3
+guardflag=HL
+id=71`;
+const filterDefense=`[Statedef 0]
+anim=0
+type=S
+physics=N
+ctrl=1
+[State 0, timed invulnerability]
+type=NotHitBy
+trigger1=Time=0
+value=SCA
+time=3`;
+const filtered=api.ktCoreCreate("attacker","filtered",bindAir,air,filterAttack,filterDefense);
+try {
+  api.ktCoreSetup(filtered,0,0,20*256,0);
+  for(let left=3;left>=1;left--) {
+    api.ktCoreAdvance(filtered,0,"",8,"");
+    const snapshot=JSON.parse(api.ktCoreSnapshot(filtered,1));
+    assert.equal(snapshot.hitFilter1Time,left);
+    assert.equal(snapshot.life,1000);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(filtered)),[]);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(filtered,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(filtered,1)),snapshot);
+  }
+  api.ktCoreAdvance(filtered,0,"",8,"");
+  const recovered=JSON.parse(api.ktCoreSnapshot(filtered,1));
+  assert.equal(recovered.hitFilter1Time,0);
+  assert.equal(recovered.life,997,"Standard HitDef damage pair supplies guard chip");
+  assert.equal(JSON.parse(api.ktCoreContacts(filtered))[0].guarded,true);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(filtered,0)).numTargets,0);
+  assert.equal(api.ktCoreIssues(filtered),"");
+  console.log("Native Wasm NotHitBy / exact lifetime / deferred contact / guard chip / read-only snapshots: OK (synthetic)");
+} finally { api.ktCoreRelease(filtered); }
+
+const clearDefense=filterDefense.replace("time=3","time=-1")+`
+[State 0, clear slot]
+type=HitBy
+trigger1=Time=2
+value=
+time=0`;
+const cleared=api.ktCoreCreate("attacker","clear filter",bindAir,air,filterAttack,clearDefense);
+try {
+  api.ktCoreSetup(cleared,0,0,20*256,0);
+  for(let i=0;i<2;i++) {
+    api.ktCoreAdvance(cleared,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(cleared,1)).hitFilter1Time,-1);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(cleared,1)).life,1000);
+  }
+  api.ktCoreAdvance(cleared,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(cleared,1)).life,990);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(cleared,1)).hitFilter1Time,0);
+  assert.equal(api.ktCoreIssues(cleared),"");
+  console.log("Native Wasm HitBy / indefinite NotHitBy / explicit slot clearing / hit capture: OK (synthetic)");
+} finally { api.ktCoreRelease(cleared); }
+
+const helperPauseCns=`[Statedef 0]
+anim=0
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=300
+[Statedef 300]
+type=S
+anim=0
+[State 300, maintain HitDef during hitpause]
+type=HitDef
+trigger1=1
+ignorehitpause=1
+attr=S,NA
+damage=1
+pausetime=3,0
+[State 300, rearm through state entry on first paused tick]
+type=ChangeState
+trigger1=Time=1
+ignorehitpause=1
+value=300`;
+const helperPaused=api.ktCoreCreate("parent","victim",bindAir,air,helperPauseCns,"[Statedef 0]\nanim=0");
+try {
+  api.ktCoreSetup(helperPaused,0,0,20*256,0);
+  const contactTicks=[];
+  for(let tick=0;tick<10;tick++) {
+    api.ktCoreAdvance(helperPaused,0,"",0,"");
+    if(JSON.parse(api.ktCoreContacts(helperPaused)).length)contactTicks.push(tick);
+  }
+  assert.deepEqual(contactTicks,[1,5,9],"All three paused ticks must block helper contact, including counter=0");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(helperPaused,1)).life,997);
+  assert.equal(api.ktCoreIssues(helperPaused),"");
+  console.log("Native Wasm helper / ignorehitpause HitDef / final frozen contact tick: OK (synthetic)");
+} finally { api.ktCoreRelease(helperPaused); }

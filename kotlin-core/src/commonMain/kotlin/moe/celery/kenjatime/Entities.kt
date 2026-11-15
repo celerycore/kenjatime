@@ -129,7 +129,7 @@ class CoreEntities(private val match: DeterministicFight) {
             if (helper.actor.destroyed) continue
             val enemy = helper.actor.opponent ?: match.p2
             val hit = helper.actor.activeHitDef
-            if (hit != null && helper.actor.hitPauseLeft == 0 && enemy.canReceive(hit) &&
+            if (hit != null && !helper.actor.hitPauseThisTick && helper.actor.hitPauseLeft == 0 && enemy.canReceive(hit) &&
                 helper.actor.canHit(enemy.id) &&
                 helper.actor.attackBoxes().any { a -> hurt(enemy).any { a.intersects(it) } }) {
                 val guarded = enemy.blocks(hit)

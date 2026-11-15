@@ -1,6 +1,60 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current public-download and projectile continuation — November 15, 2026
+## Current hit-vulnerability continuation — November 15, 2026
+
+Continues published main source `9c69e93`. Kotlin now executes `HitBy` and
+`NotHitBy` through two per-actor attribute slots. `value` selects the first
+slot and `value2` the second; a controller must specify exactly one. Active
+slots intersect. State masks and attack-class masks remain separate, including
+NotHitBy's independent complements, empty fields, N/S/H strength classes and
+AA/AP/AT category wildcards. Complete packed legacy pairs are accepted;
+malformed pairs, unknown state letters and unsupported parameters are diagnosed
+before replacing the previous slot.
+
+Default time=1 protects the current contact phase. Positive durations count
+actor ticks, -1 persists, and zero explicitly clears the selected slot. Filter
+timers continue during hitpause; `ignorehitpause=1` lets authored controllers
+renew them while paused. State transitions retain remaining filter time.
+Helpers have independent slots even when they share an immutable definition.
+The basic controller contract follows the
+[Elecbyte 1.1 controller reference](https://arcade.blackrocket.com/apps/2022/38/HQ/1/mugen-1.1b1/docs/sctrls.html#hitby).
+
+Filtering happens in the shared incoming-contact check, before guard chip,
+damage, hitpause or target capture. Rejected root/helper attacks remain
+available; rejected projectile contacts do not retire the projectile or stop
+its movement/lifetime clock. Normal HitDef `damage=hit,guard` now supplies
+guard damage; the earlier explicit `guard.damage` override remains supported.
+
+The per-tick hitpause snapshot is shared by binding/effect clocks and helper
+contact gating. A helper cannot attack on its last frozen tick merely because
+its remaining pause counter was decremented to zero. Read-only Wasm actor
+snapshots expose `hitPauseThisTick`, `hitFilter1Time` and `hitFilter2Time`.
+
+Local validation:
+
+- 176 JVM and 171 compiled-Wasm tests pass, including 18 new common scenarios
+  for mask combinations, exact lifetimes, hitpause renewal/expiry, slot clearing,
+  bad requests, helper/projectile contacts, guards, custom states and replay.
+- Exported Wasm tests execute timed protection → expiry → guarded contact with
+  authored chip damage, indefinite protection → explicit clearing → hit, and
+  helper state re-entry with all frozen contact ticks preserved. Repeated
+  render queries leave filter clocks unchanged.
+- Two 600-tick public KFM structural replays match, with three contacts and zero
+  unsupported diagnostics on that trace. This remains separate from native
+  common-state physics and original-character timing parity.
+- All 16 adapter/import/download checks and the production browser smoke pass,
+  including actual sprite/effect painting, mixed-coordinate import, CSV export
+  and the 360px layout.
+
+Matching currently uses the incoming HitDef's authored attribute fields.
+Native actual-attacker-state quirks and exact per-tick phase parity still need
+capture comparison. Ikemen's extended attr/slot syntax and time values below
+-1 are explicitly unsupported. This does not implement HitOverride, global
+pause/superpause, full guardstun, juggling, native throws or physical-phone FPS.
+The established main CI and public release flow continue to verify browser/APK
+asset identity and anonymous downloads.
+
+## Public-download and projectile continuation — November 15, 2026
 
 Continues published main source `95b6257`. Public `main` and its CI run return
 HTTP 200, but CI artifact downloads require Actions access and expire after

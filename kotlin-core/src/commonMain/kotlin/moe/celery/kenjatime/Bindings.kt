@@ -25,7 +25,7 @@ object CoreBindings {
             actor.posX = bounded(anchor.posX.toLong() + binding.offsetX.toLong() * if(anchor.facingRight)1 else -1)
             actor.posY = bounded(anchor.posY.toLong() + binding.offsetY)
             if (binding.facing != 0) actor.facingRight = if(binding.facing > 0) anchor.facingRight else !anchor.facingRight
-            if (!actor.bindingClockPaused && binding.ticksLeft > 0 && --binding.ticksLeft == 0)
+            if (!actor.hitPauseThisTick && binding.ticksLeft > 0 && --binding.ticksLeft == 0)
                 actor.releaseBinding()
         }
         for (actor in actors) visit(actor)

@@ -129,6 +129,9 @@ private object Fights {
         ",\"boundTo\":" + (p.binding?.anchor?.id ?: 0) +
         ",\"bindTime\":" + (p.binding?.ticksLeft ?: 0) +
         ",\"hitPause\":" + p.hitPauseLeft +
+        ",\"hitPauseThisTick\":" + p.hitPauseThisTick +
+        ",\"hitFilter1Time\":" + p.hitFilters.remaining(0) +
+        ",\"hitFilter2Time\":" + p.hitFilters.remaining(1) +
         ",\"power\":" + p.power +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +
         ",\"facing\":" + (if (p.facingRight) 1 else -1) +
