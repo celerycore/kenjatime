@@ -45,6 +45,7 @@ try {
   let checksum='';
   const stateHistogram=new Map();
   let nonIdleTicks=0, contactCount=0;
+  let previousFallback=false, fallbackRecoveries=0, maxDefenderHeight256=0;
   const ticks=600;
   for(let i=0;i<ticks;i++){
     const mod=i%48;
@@ -56,6 +57,15 @@ try {
     }
     checksum=api.ktCoreStep(handle,dir,keys,0,'');
     const snapshot=JSON.parse(api.ktCoreSnapshot(handle,0));
+    const defender=JSON.parse(api.ktCoreSnapshot(handle,1));
+    maxDefenderHeight256=Math.max(maxDefenderHeight256,-defender.y256);
+    if(previousFallback && !defender.fallbackHitReaction && defender.state===0) {
+      fallbackRecoveries++;
+      assert.equal(defender.y256,0,'KFM missing-state fallback must land before idle');
+      assert.equal(defender.vx256,0,'KFM fallback recovery must stop horizontal knockback');
+      assert.equal(defender.vy256,0,'KFM fallback recovery must stop vertical knockback');
+    }
+    previousFallback=defender.fallbackHitReaction;
     stateHistogram.set(snapshot.state,(stateHistogram.get(snapshot.state)||0)+1);
     if(snapshot.state!==0)nonIdleTicks++;
     if(api.ktCoreContacts) contactCount+=JSON.parse(api.ktCoreContacts(handle)).length;
@@ -95,9 +105,10 @@ try {
     before,after:{p1:a,p2:b},entities,
     issueCount:issues.length,sampleIssues:issues.slice(0,12),
     distinctStates:[...stateHistogram.entries()],
-    nonIdleTicks,contactCount,checksum,deterministicReplay:true
+    nonIdleTicks,contactCount,fallbackRecoveries,maxDefenderHeight256,checksum,deterministicReplay:true
   };
   assert.equal(a.frame,ticks);
   assert.ok(Number.isFinite(a.x256) && Number.isFinite(a.y256));
+  assert.ok(fallbackRecoveries>0,'Real bundled KFM trace must exercise fallback landing and recovery');
   console.log(JSON.stringify(result,null,2));
 }finally{api.ktCoreRelease(handle);}

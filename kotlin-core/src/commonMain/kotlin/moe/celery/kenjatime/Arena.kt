@@ -32,6 +32,7 @@ data class ArenaRules(
     private fun individual(p:FightingCharacter) {
         if(p.binding != null) return
         p.posX=p.posX.coerceIn(left,right)
+        if(p.advanceFallbackReaction(ground))return
         val physics=p.stateProgram?.physics?.uppercase()
         if(physics=="A" && p.stateType=="A")p.velY+=p.definition.coordinates.fixedToWorld(p.definition.airGravity)
         if(p.posY>=ground && p.velY>0) {

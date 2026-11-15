@@ -304,6 +304,10 @@ class FightingCharacter(
     var hitPauseLeft = 0
     var hitStunLeft = 0
         private set
+    /** Only missing own-bank common reactions use the arena fallback. Authored
+     * and borrowed states, including HitOverride destinations, retain control. */
+    internal var fallbackHitReaction = false
+        private set
     var roundState = 2
     var stateType = "S"
         private set
@@ -320,6 +324,7 @@ class FightingCharacter(
     init { changeState(0) }
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
                     controlOverride: Boolean? = null) {
+        fallbackHitReaction = false
         stateOwner = owner
         stateNo = state
         timeInState = 0
@@ -661,7 +666,29 @@ class FightingCharacter(
         animation?.advance()
         if (hitStunLeft == 0 && (stateNo == 5000 || stateNo in 150..152) &&
             stateNo !in stateOwner.definition.states && life > 0)
-            changeState(0, this)
+            if(!fallbackHitReaction || world?.arena == null)changeState(0, this)
+    }
+    /** Called after motion by the configured arena. This deliberately bounded
+     * missing-state policy is not a replacement for native common-state CNS. */
+    internal fun advanceFallbackReaction(ground: Int): Boolean {
+        if(!fallbackHitReaction)return false
+        if(posY > ground)posY=ground
+        if(posY < ground || velY < 0)stateType="A"
+        moveType="H"
+        if(stateType == "A")velY=(velY.toLong()+definition.coordinates.fixedToWorld(definition.airGravity))
+            .coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
+        if(posY >= ground && velY >= 0) {
+            posY=ground;velY=0
+            stateType=if(stateNo == 151)"C" else "S"
+            if(life <= 0) { velX=0;control=false }
+            else if(hitStunLeft == 0) {
+                // Stop inherited knockback before entering idle; an authored
+                // idle StateDef can still supply its own velocity/control.
+                velX=0
+                changeState(0,this,true)
+            }
+        }
+        return true
     }
     fun blocks(hit: HitDefinition): Boolean {
         if (!control && stateNo !in 150..152) return false
@@ -694,6 +721,7 @@ class FightingCharacter(
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
                    attacker: FightingCharacter? = null) {
         if(!canReceive(hit))return
+        val initialType=stateType
         val override=if(guarded)null else hitOverrides.matching(hit)
         val airborne=!guarded && (stateType == "A" || override?.forceAir == true)
         val damage=if(guarded)hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)
@@ -723,6 +751,14 @@ class FightingCharacter(
             val owner = if (hit.p2GetP1State) hit.stateOwner ?: attacker else this
             if (owner != null) enterAuthoredState(hit.p2State, owner,
                 world?.issues ?: evaluationIssues)
+        }
+        fallbackHitReaction=override == null && stateOwner === this && stateProgram == null &&
+            (stateNo == 5000 || stateNo in 150..152 || stateNo == 5150)
+        val arena=world?.arena
+        if(fallbackHitReaction && arena != null) {
+            stateType=if(initialType == "A" || posY < arena.ground || velY < 0)"A"
+                else if(stateNo == 151)"C" else "S"
+            moveType="H"
         }
         if (!guarded) attacker?.captureTarget(this, hit.id)
     }

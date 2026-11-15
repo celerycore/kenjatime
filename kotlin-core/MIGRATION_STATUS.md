@@ -1,6 +1,54 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current hit-override and incoming-data continuation — November 15, 2026
+## Current missing-state arena recovery continuation — November 15, 2026
+
+Continues published main source `c15c7ce`. Fixes indefinite knockback drift when
+a character lacks common hit states. Previously a missing state 5000 recovered
+to standing idle as soon as hitstun expired while keeping its upward velocity;
+without authored air physics it could then drift thousands of stage pixels
+away. The configured arena now supplies a bounded fallback for missing own
+states 5000, 150..152 and 5150.
+
+Launched fallback reactions use the character's own coordinate-scaled gravity.
+They stay in reaction until both landing and hitstun completion. Floor crossings
+clamp to the configured ground, including nonzero ground heights. Recovery
+stops inherited knockback before entering own idle, whose authored velocity and
+control still take precedence. Missing guard states preserve their grounded,
+crouched or airborne type during reaction. Missing KO reactions settle at the
+floor with zero motion and no control, without reviving the fighter.
+
+The fallback is explicitly marked at hit receipt and cleared by state entry.
+Authored common states, foreign custom states and HitOverride destinations do
+not use it. Bindings retain position/gravity authority until release. Hitpause
+freezes fallback movement and gravity through the last frozen tick. Headless
+matches without an arena keep the earlier movement policy. Read-only Wasm
+snapshots expose `fallbackHitReaction`; rendering does not advance the policy.
+
+Local validation:
+
+- 220 JVM and 215 compiled-Wasm tests pass, including 20 new common scenarios
+  for flight, landing, hitstun, hitpause, guard/KO, bindings, authored states,
+  coordinate scaling, late arena configuration and deterministic replay.
+- Exported Wasm tests execute launch → hitpause → landing on a nonzero floor →
+  stable idle, missing KO settling, and projectile-induced fallback recovery.
+- Two public KFM 600-tick structural replays match. The trace now records nine
+  contacts and seven completed fallback recoveries, with zero unsupported
+  diagnostics. Maximum defender height is 17,424 fixed-point units (68.0625
+  stage pixels). Each observed fallback-to-idle transition checks grounded
+  position and zero inherited velocity. Additional defender snapshots are part
+  of this verification loop; its timing is not comparable to earlier samples.
+- All 16 adapter/import/download checks and the production browser smoke pass,
+  including actual sprite/effect painting, mixed-coordinate import, CSV export
+  and the 360px layout.
+
+This is an opt-in arena recovery policy for missing common states.
+It does not implement native air recovery, fall bounces, liedown animations,
+complete guard/KO transitions or native phase parity. Authored gravity still
+applies, including an explicit zero acceleration. Full helper physics and
+physical-phone performance remain open. The existing main CI/public release
+flow continues to verify browser/APK asset identity and anonymous downloads.
+
+## Hit-override and incoming-data continuation — November 15, 2026
 
 Continues published main source `e02cf41`. Kotlin now executes `HitOverride`
 through eight actor-owned reaction slots. The lowest matching slot selects a

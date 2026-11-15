@@ -688,3 +688,91 @@ try {
   assert.equal(api.ktCoreIssues(projectileOverride),"");
   console.log("Native Wasm canonical Projectile HitDef fields / forceair override / incoming data: OK (synthetic)");
 } finally { api.ktCoreRelease(projectileOverride); }
+
+const fallbackAttack=filterAttack+`
+ground.velocity=2,-4
+ground.hittime=1
+pausetime=0,3`;
+const fallbackIdle=`[Statedef 0]
+type=S
+physics=N
+ctrl=1
+anim=0
+[Statedef 52]
+type=S
+ctrl=0
+anim=0`;
+const fallback=api.ktCoreCreate("attacker","missing common states",bindAir,air,fallbackAttack,fallbackIdle);
+try {
+  api.ktCoreConfigureArena(fallback,-250,250,30,false,false);
+  api.ktCoreSetup(fallback,0,30*256,20*256,30*256);
+  api.ktCoreAdvance(fallback,0,"",0,"");
+  const hit=JSON.parse(api.ktCoreSnapshot(fallback,1));
+  assert.equal(hit.state,5000);
+  assert.equal(hit.stateType,"A");
+  assert.equal(hit.fallbackHitReaction,true);
+  for(let i=0;i<3;i++) {
+    api.ktCoreAdvance(fallback,0,"",0,"");
+    const frozen=JSON.parse(api.ktCoreSnapshot(fallback,1));
+    assert.equal(frozen.y256,30*256);
+    assert.equal(frozen.vy256,-4*256);
+    assert.equal(frozen.hitPauseThisTick,true);
+  }
+  api.ktCoreAdvance(fallback,0,"",0,"");
+  const launched=JSON.parse(api.ktCoreSnapshot(fallback,1));
+  assert.equal(launched.state,5000,"Expired stun must not return an airborne fallback to standing idle");
+  assert.ok(launched.y256<30*256);
+  for(let i=0;i<3;i++)api.ktCoreRenderPlan(fallback,12);
+  assert.deepEqual(JSON.parse(api.ktCoreSnapshot(fallback,1)),launched);
+  for(let i=0;i<100;i++)api.ktCoreAdvance(fallback,0,"",0,"");
+  const landed=JSON.parse(api.ktCoreSnapshot(fallback,1));
+  assert.equal(landed.state,0);
+  assert.equal(landed.y256,30*256);
+  assert.equal(landed.vx256,0);
+  assert.equal(landed.vy256,0);
+  assert.equal(landed.ctrl,1);
+  assert.equal(landed.fallbackHitReaction,false);
+  for(let i=0;i<100;i++)api.ktCoreAdvance(fallback,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(fallback,1)).x256,landed.x256);
+  assert.equal(api.ktCoreIssues(fallback),"");
+  console.log("Native Wasm missing common states / hitpause / launch / nonzero floor / stable recovery: OK (synthetic)");
+} finally { api.ktCoreRelease(fallback); }
+
+const fallbackKo=api.ktCoreCreate("attacker","KO fallback",bindAir,air,
+  fallbackAttack.replace("damage=10,3","damage=1000,3"),fallbackIdle);
+try {
+  api.ktCoreConfigureArena(fallbackKo,-250,250,0,false,false);
+  api.ktCoreSetup(fallbackKo,0,0,20*256,0);
+  for(let i=0;i<120;i++)api.ktCoreAdvance(fallbackKo,0,"",0,"");
+  const ko=JSON.parse(api.ktCoreSnapshot(fallbackKo,1));
+  assert.equal(ko.life,0);
+  assert.equal(ko.state,5150);
+  assert.equal(ko.y256,0);
+  assert.equal(ko.vx256,0);
+  assert.equal(ko.vy256,0);
+  assert.equal(ko.ctrl,0);
+  assert.equal(api.ktCoreIssues(fallbackKo),"");
+  console.log("Native Wasm missing KO state / gravity / landing / motion stop: OK (synthetic)");
+} finally { api.ktCoreRelease(fallbackKo); }
+
+const fallbackProjectileCns=canonicalProjectile.replace("air.velocity=4,-6",`ground.velocity=3,-5
+ground.hittime=1
+pausetime=0,1
+air.velocity=4,-6`);
+const fallbackProjectile=api.ktCoreCreate("projectile","fallback target",bindAir,air,fallbackProjectileCns,fallbackIdle);
+try {
+  api.ktCoreConfigureArena(fallbackProjectile,-250,250,0,false,false);
+  api.ktCoreSetup(fallbackProjectile,0,0,20*256,0);
+  api.ktCoreAdvance(fallbackProjectile,0,"",0,"");
+  api.ktCoreAdvance(fallbackProjectile,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(fallbackProjectile,1)).fallbackHitReaction,true);
+  for(let i=0;i<120;i++)api.ktCoreAdvance(fallbackProjectile,0,"",0,"");
+  const recovered=JSON.parse(api.ktCoreSnapshot(fallbackProjectile,1));
+  assert.equal(recovered.life,983);
+  assert.equal(recovered.state,0);
+  assert.equal(recovered.y256,0);
+  assert.equal(recovered.vx256,0);
+  assert.equal(recovered.vy256,0);
+  assert.equal(api.ktCoreIssues(fallbackProjectile),"");
+  console.log("Native Wasm projectile knockback / missing-state fallback / landing and recovery: OK (synthetic)");
+} finally { api.ktCoreRelease(fallbackProjectile); }

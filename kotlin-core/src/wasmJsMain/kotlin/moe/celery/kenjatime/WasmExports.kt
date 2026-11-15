@@ -139,6 +139,7 @@ private object Fights {
         ",\"getHitTime\":" + p.getHitData.time +
         ",\"getHitGuarded\":" + p.getHitData.guarded +
         ",\"getHitFall\":" + p.getHitData.fall +
+        ",\"fallbackHitReaction\":" + p.fallbackHitReaction +
         ",\"power\":" + p.power +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +
         ",\"facing\":" + (if (p.facingRight) 1 else -1) +

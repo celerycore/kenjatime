@@ -56,6 +56,7 @@
     "TargetState/ChangeAnim2/SelfState and HitDef p2stateno have synthetic JVM/Wasm coverage, not native tick-for-tick throw parity",
     "Complex CNS/ZSS expression evaluation and evaluation order",
     "Tick-for-tick MUGEN/IKEMEN common states and separate display/logic animation clocks during pause/reset",
+    "Configured arenas provide bounded recovery for missing own common hit/guard/KO states; this is not native common-state, air-recovery, fall/bounce or liedown parity",
     "Zero-duration AIR elements retain one-tick normalization; nonzero AnimElemNo offsets after jumping past an infinite element are diagnosed",
     "Mixed-localcoord bindings, shared attachment phase and pause lifetimes have synthetic coverage, not native frame parity",
     "Projectile launch-facing snapshots have JVM/Wasm coverage; native contact phases, projectile clashes and multi-hit remain incomplete",
