@@ -31,7 +31,8 @@ data class HitDefinition(
     val airVelocityX: Int = 0,val airVelocityY: Int = 0,
     val airHitTime: Int = 20,val guardHitTime: Int = hitTime,
     val fall: Boolean = false,val airFall: Boolean = fall,
-    val guardDefenderPause: Int = guardPause
+    val guardDefenderPause: Int = guardPause,
+    val kill: Boolean = true,val guardKill: Boolean = true
 )
 data class StateController(
     val type: String,
@@ -645,6 +646,7 @@ class FightingCharacter(
                 val airVelocity = (args["air.velocity"] ?: args["projair.velocity"] ?: "0,0").split(',')
                 val guardVelocity = (args["guard.velocity"] ?: args["projguard.velocity"] ?: "0,0").split(',')
                 val pauses=CoreHitPauses.parse(args,this,errors,true) ?: return false
+                val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -656,6 +658,7 @@ class FightingCharacter(
                     defenderPause = pauses.hit.second,
                     guardPause = pauses.guard.first,
                     guardDefenderPause = pauses.guard.second,
+                    kill = kills.hit,guardKill = kills.guard,
                     velocityX = number(groundVelocity.getOrNull(0)),
                     velocityY = number(groundVelocity.getOrNull(1)),
                     airVelocityX = number(airVelocity.getOrNull(0)),
@@ -692,6 +695,7 @@ class FightingCharacter(
             }
             "hitdef" -> {
                 val pauses=CoreHitPauses.parse(args,this,errors) ?: return false
+                val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val velocity = (args["ground.velocity"] ?: "0,0").split(',')
                 val airVelocity = (args["air.velocity"] ?: "0,0").split(',')
                 val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
@@ -710,6 +714,7 @@ class FightingCharacter(
                     defenderPause = pauses.hit.second,
                     guardPause = pauses.guard.first,
                     guardDefenderPause = pauses.guard.second,
+                    kill = kills.hit,guardKill = kills.guard,
                     guardVelocityX = number(guardVelocity.getOrNull(0)),
                     guardVelocityY = number(guardVelocity.getOrNull(1)),
                     hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600),
@@ -842,7 +847,8 @@ class FightingCharacter(
         val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
         getHitData=CoreGetHitData(damage,x,y,guarded,!guarded && (if(airborne)hit.airFall else hit.fall),duration)
         world?.effects?.onHit(this)
-        life = (life - damage).coerceAtLeast(0)
+        val minimumLife=if(if(guarded)hit.guardKill else hit.kill)0 else 1
+        life = (life - damage).coerceAtLeast(minimumLife)
         val resultingState = if (life == 0) 5150 else if (guarded)
             when (stateType) { "A" -> 152; "C" -> 151; else -> 150 }
         else 5000

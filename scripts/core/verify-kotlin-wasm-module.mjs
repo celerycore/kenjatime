@@ -882,6 +882,35 @@ guard.pausetime=ifelse(1,2,4),max(3,5)`;
 }
 console.log("Native Wasm independent attacker/defender hit and guard pause / nested expressions / projectile clocks: OK (synthetic)");
 
+for(const projectile of [false,true])for(const guarded of [false,true])for(const lethal of [false,true]) {
+  const controller=`type=${projectile ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=50,50
+guardflag=HL
+kill=${lethal ? 1 : 0}
+guard.kill=${lethal ? 1 : 0}`;
+  const script=projectile ? `${motionIdle}\n[State 0, shot]\n${controller}` :
+    `${motionIdle}\n[Statedef 200]\ntype=S\nphysics=N\nanim=200\n[State 200, hit]\n${controller}`;
+  const kills=api.ktCoreCreate("lethality","target",projectileFacingAir,air,script,`${motionIdle}\nctrl=1`);
+  try {
+    api.ktCoreSetup(kills,0,0,5*256,0);api.ktCoreDebugSetStats(kills,1,10,0);
+    if(projectile)api.ktCoreAdvance(kills,0,"",guarded ? 8 : 0,"");
+    else api.ktCoreDebugForceState(kills,0,200);
+    api.ktCoreAdvance(kills,0,"",guarded ? 8 : 0,"");
+    const victim=JSON.parse(api.ktCoreSnapshot(kills,1));
+    assert.equal(victim.life,lethal ? 0 : 1);
+    assert.equal(victim.state,lethal ? 5150 : guarded ? 150 : 5000);
+    assert.equal(victim.getHitDamage,50,"Incoming damage metadata remains independent of the life floor");
+    assert.equal(JSON.parse(api.ktCoreContacts(kills))[0].damage,50);
+    if(projectile)assert.deepEqual(JSON.parse(api.ktCoreProjectiles(kills)),[]);
+    for(let i=0;i<4;i++)api.ktCoreRenderPlan(kills,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(kills,1)),victim);
+    assert.equal(api.ktCoreIssues(kills),"");
+  } finally { api.ktCoreRelease(kills); }
+}
+console.log("Native Wasm root/projectile hit and guard lethality flags / one-life floor / KO states / pure snapshots: OK (synthetic)");
+
 const targetMotion=api.ktCoreCreateWithDefinitions("target controls","victim",projectileFacingAir,air,
   `${motionIdle}
 [Statedef 200]

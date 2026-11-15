@@ -1,6 +1,53 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current target release continuation — November 16, 2026
+## Current nonlethal hit continuation — November 16, 2026
+
+Continues published main source `d1641da`. HitDef and Projectile now honor
+`kill` for successful hits and `guard.kill` for guarded contacts. Disabling
+the applicable flag floors the living defender's life at one instead of
+entering KO. Both flags default to enabled independently, as specified by the
+controller reference; kill=0 does not implicitly disable guard kills.
+
+Nonlethal hits still apply reactions, hitpause, velocity, effects removal,
+target capture and successful-hit follow-ups. Paired throw states can retain
+their one-life victim rather than losing it to an early KO. Matching HitOverride
+routes continue to select their own reaction state. Helper and projectile
+contacts use the same life-floor rule. Repeated nonlethal contacts consume
+projectile hit allowances normally without reducing life below one.
+
+The floor applies only after a living actor accepts a contact. It cannot revive
+dead actors, heal zero-damage contacts, bypass hit filters or suppress ordinary
+round/KO behavior when the applicable kill flag is enabled. Existing incoming
+GetHitVar(damage) and contact reports retain normalized authored damage rather
+than changing into a measure of actual life lost.
+
+Flags use captured numeric CNS expressions, including nested functions and
+actor variables. Nonzero permits KO; zero prevents it. Invalid expressions
+leave an existing HitDef intact or prevent a Projectile from being queued.
+Fall damage/fall.kill and the broader native KO/common-state model remain
+outside this implementation.
+
+Validation:
+
+- 443 JVM and 438 compiled-Wasm tests pass, including 18 new scenarios for
+  defaults, independent flag combinations, expression capture, repeated hits,
+  damage metadata, throw/override paths, helpers, projectiles, invalid input,
+  round flow and read-only rendering.
+- Exported Wasm checks all eight combinations of root/projectile, hit/guard
+  and lethal/nonlethal contact, including reaction states, damage reports and
+  projectile retirement. Presentation reads do not repeat damage.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+  Two KFM 600-tick structural replays retain nine contacts, seven fallback
+  recoveries, zero unsupported diagnostics and matching checksums.
+
+The default/flag contract follows the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+Native fall-damage, guard/KO and simultaneous-contact phase parity remain
+unverified. Physical-phone performance is not certified. Main CI verifies
+browser/APK asset identity and anonymous permanent downloads before publication.
+
+## Target release continuation — November 16, 2026
 
 Continues published main source `18e378f`. CNS now executes TargetDrop against
 the executing actor's captured-target list. Omitted excludeID or -1 drops all
