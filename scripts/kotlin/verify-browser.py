@@ -154,6 +154,35 @@ try:
         result["synthetic1008CoordinateCanvasPaint"]="passed"
         high.close()
 
+        # Actual imported CNS -> Kotlin scaling -> decoded SFF -> Canvas,
+        # including signed mirroring and opt-in body Size inheritance.
+        for do_scale in (0,1):
+            shots=browser.new_page(viewport={"width":1000,"height":780})
+            shot_errors=[]
+            shots.on("pageerror",lambda error:shot_errors.append(str(error)))
+            shots.goto(base,wait_until="domcontentloaded",timeout=30000)
+            shots.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+            shots.locator("#archive").set_input_files(str(ROOT / f"test-output/kotlin-kfm-projectile-{do_scale}.zip"))
+            shots.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+            installed=shots.locator("#p1-select option").evaluate_all(
+                "options=>options.find(o=>o.value.startsWith('installed:')).value")
+            shots.locator("#p1-select").select_option(value=installed)
+            shots.locator("#cpu").uncheck()
+            shots.locator("#start").click()
+            shots.wait_for_function("window.__kenjatimeKotlinQA?.projectilePaints>5",timeout=30000)
+            shot_plan=shots.evaluate("window.__kenjatimeKotlinQA.renderPlan")
+            projectile=next(d for d in shot_plan["draws"] if d["kind"]=="projectile")
+            assert projectile["action"]==703,projectile
+            assert projectile["side"]==0,projectile
+            assert abs(projectile["spriteScaleX"]-(-1.5 if do_scale else -.75))<.000001,projectile
+            assert abs(projectile["spriteScaleY"]-(.125 if do_scale else .25))<.000001,projectile
+            painted=shots.evaluate("window.__kenjatimeKotlinQA.lastProjectilePaint")
+            assert abs(painted["scaleX"]-painted["plannedScaleX"]*painted["facing"]*painted["flipX"])<.000001,painted
+            assert abs(painted["scaleY"]-painted["plannedScaleY"]*painted["flipY"])<.000001,painted
+            assert not shot_errors,shot_errors
+            result[f"realScaledProjectileCanvasPaint{do_scale}"]=shots.evaluate("window.__kenjatimeKotlinQA.projectilePaints")
+            shots.close()
+
         # A real 360-css-pixel Android WebView viewport, with native status-bar
         # insets, may NEVER horizontally scroll or overlap its two selectors.
         mobile=browser.new_page(viewport={"width":360,"height":800},

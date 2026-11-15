@@ -790,6 +790,64 @@ try {
 } finally { api.ktCoreRelease(latestFeedback); }
 console.log("Native Wasm Projectile hit/guard/cancel history / CNS follow-ups after retirement / latest-event times / legacy ID windows: OK (synthetic)");
 
+const scaleAir=`${air}
+[Begin Action 230]
+Clsn1Default:1
+Clsn1[0]=0,-20,10,0
+Clsn2Default:1
+Clsn2[0]=0,-20,10,0
+230,0,8,-4,-1`;
+function scaleCns(doScale,offset=0) {
+  return `[Size]
+xscale=2
+yscale=.5
+proj.doscale=${doScale}
+${motionIdle}
+[State 0, scaled shot]
+type=Projectile
+trigger1=Time=0
+projid=178
+projanim=230
+projscale=ifelse(1,1.5,1),.5
+offset=${offset},0
+damage=10`;
+}
+for(const doScale of [0,1]) {
+  const scaled=api.ktCoreCreateWithDefinitions("scaled shot","target",scaleAir,air,
+    scaleCns(doScale),motionIdle,"","","[Info]\nlocalcoord=640,480","");
+  try {
+    api.ktCoreSetup(scaled,0,0,20*256,0);
+    api.ktCoreAdvance(scaled,0,"",0,"");
+    const [shot]=JSON.parse(api.ktCoreProjectiles(scaled));
+    assert.equal(shot.scaleX,doScale ? 3 : 1.5);assert.equal(shot.scaleY,doScale ? .25 : .5);
+    const draw=JSON.parse(api.ktCoreRenderPlan(scaled,0)).draws.find(d=>d.kind==="projectile");
+    assert.equal(draw.spriteScaleX,doScale ? 1.5 : .75);
+    assert.equal(draw.spriteScaleY,doScale ? .125 : .25);
+    assert.ok(Math.abs(draw.x-(480+8*draw.pixelScaleX))<1e-9);
+    assert.ok(Math.abs(draw.y-(435-4*draw.pixelScaleY))<1e-9);
+    for(let i=0;i<4;i++) {
+      api.ktCoreRenderPlan(scaled,12);api.ktCoreCamera(scaled);
+      assert.deepEqual(JSON.parse(api.ktCoreProjectiles(scaled)),[shot]);
+    }
+    api.ktCoreAdvance(scaled,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(scaled,1)).life,doScale ? 990 : 1000,
+      "Body Size must affect projectile hit reach only when opted in");
+    assert.equal(JSON.parse(api.ktCoreProjectiles(scaled)).length,doScale ? 0 : 1);
+    assert.equal(api.ktCoreIssues(scaled),"");
+  } finally { api.ktCoreRelease(scaled); }
+  const clash=api.ktCoreCreateWithDefinitions("scaled clash","opposing shot",scaleAir,scaleAir,
+    scaleCns(doScale,60),`${motionIdle}\n[State 0, opposing]\ntype=Projectile\ntrigger1=Time=0\nprojanim=230\noffset=10,0`,
+    "","","[Info]\nlocalcoord=640,480","");
+  try {
+    api.ktCoreSetup(clash,-30*256,0,30*256,0);
+    api.ktCoreAdvance(clash,0,"",0,"");api.ktCoreAdvance(clash,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreProjectileClashes(clash)).length,doScale ? 1 : 0);
+    assert.equal(JSON.parse(api.ktCoreProjectiles(clash)).length,doScale ? 0 : 2);
+    assert.equal(api.ktCoreIssues(clash),"");
+  } finally { api.ktCoreRelease(clash); }
+}
+console.log("Native Wasm Projectile scale / opt-in body Size / mixed coordinates / AIR offsets / hit and clash reach: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

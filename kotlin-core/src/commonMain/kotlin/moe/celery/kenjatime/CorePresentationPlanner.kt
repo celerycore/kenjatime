@@ -57,14 +57,16 @@ object CorePresentationPlanner {
             .append("],\"draws\":[")
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
                  facingRight: Boolean, action: AirAnimationPlayer?,
-                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null) {
+                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null) {
             val frame = action?.frame
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
             val effectScaleX=effect?.config?.scaleX ?: 1.0
             val effectScaleY=effect?.config?.scaleY ?: 1.0
-            val spriteScaleX=definition.coordinates.scale*effectScaleX*(if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0)
-            val spriteScaleY=definition.coordinates.scale*effectScaleY*(if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0)
+            val spriteScaleX=definition.coordinates.scale*(projectile?.scaleX ?:
+                (effectScaleX*if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0))
+            val spriteScaleY=definition.coordinates.scale*(projectile?.scaleY ?:
+                (effectScaleY*if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0))
             val pixelScaleX=spriteScaleX*HORIZONTAL_SCALE*zoom
             val pixelScaleY=spriteScaleY*VERTICAL_SCALE*zoom
             // AIR frame offsets are authored in the fighter's localcoord and
@@ -118,7 +120,7 @@ object CorePresentationPlanner {
             val side = if(projectile.owner.opponent === fight.p2) 0 else 1
             draw(side,"projectile",projectile.x,projectile.y,
                 projectile.facingRight,projectile.action,
-                projectile.owner.definition,0)
+                projectile.owner.definition,0,projectile=projectile)
         }
         for(effect in effects)if(effect.drawPriority >= 0)effectDraw(effect)
         if(json.last() == ',')json.setLength(json.length-1)

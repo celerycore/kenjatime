@@ -34,4 +34,20 @@ class MugenCoordinates(val width: Int) {
         val c=vertical(rect.y1);val d=vertical(rect.y2)
         return MugenRect(bounded(minOf(a,b)),bounded(minOf(c,d)),bounded(maxOf(a,b)),bounded(maxOf(c,d)))
     }
+    /** Dimensionless authored projectile scales need not fit the fighter's
+     * 1/256 Size metadata. Truncate each complete offset once before adding
+     * the world axis; saturate before addition to avoid Long overflow. */
+    fun scaledBox(rect: MugenRect,x: Int,y: Int,right: Boolean,scaleX: Double,scaleY: Double): MugenRect {
+        require(scaleX.isFinite() && scaleY.isFinite())
+        fun axis(origin: Int,value: Int,factor: Double,face: Int): Int {
+            val offset=(value.toDouble()*factor*Fixed.ONE*320/width*face).toLong()
+            if(offset > Int.MAX_VALUE.toLong()-origin)return Int.MAX_VALUE
+            if(offset < Int.MIN_VALUE.toLong()-origin)return Int.MIN_VALUE
+            return (origin.toLong()+offset).toInt()
+        }
+        val face=if(right)1 else -1
+        val a=axis(x,rect.x1,scaleX,face);val b=axis(x,rect.x2,scaleX,face)
+        val c=axis(y,rect.y1,scaleY,1);val d=axis(y,rect.y2,scaleY,1)
+        return MugenRect(minOf(a,b),minOf(c,d),maxOf(a,b),maxOf(c,d))
+    }
 }

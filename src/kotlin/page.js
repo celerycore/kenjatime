@@ -22,8 +22,8 @@ const status=message=>{byId("setup-status").textContent=message};
 const library=new ArchiveLibrary();
 const fighters=new Map();
 const installedTables=new Map();
-let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0;
-let lastExplodPaint=null;
+let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0,paintedProjectileCount=0;
+let lastExplodPaint=null,lastProjectilePaint=null;
 const debugWarning=new Set();
 const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
@@ -213,10 +213,17 @@ function render(){
           scaleY:Math.abs(transform.d/scale),cameraZoom:fighter.scale??1,
           plannedScaleX:sx,plannedScaleY:sy});
       }
+      if(fighter.kind==="projectile"){
+        const transform=ctx.getTransform();
+        lastProjectilePaint=Object.freeze({scaleX:transform.a/scale,
+          scaleY:transform.d/scale,plannedScaleX:sx,plannedScaleY:sy,
+          facing:fighter.facing,flipX:fighter.flipX||1,flipY:fighter.flipY||1});
+      }
       ctx.drawImage(img.image,-img.x,-img.y);
       ctx.restore();
       paintedSpriteCount++;
       if(fighter.kind==="explod"&&sx!==0&&sy!==0)paintedExplodCount++;
+      if(fighter.kind==="projectile"&&sx!==0&&sy!==0)paintedProjectileCount++;
     }else{
       // When huge SFF sprites cannot be decoded on this phone, show a
       // visible placeholder without inventing artwork or blocking combat.
@@ -426,6 +433,8 @@ worker.onerror=event=>{running=false;status("Kotlin worker could not start: "+ev
 window.__kenjatimeKotlinQA=Object.freeze({
   get explodPaints(){return paintedExplodCount},
   get lastExplodPaint(){return lastExplodPaint},
+  get projectilePaints(){return paintedProjectileCount},
+  get lastProjectilePaint(){return lastProjectilePaint},
   get spritePaints(){return paintedSpriteCount},
   get placeholderPaints(){return placeholderCount},
   get importedCount(){return fighters.size-1},

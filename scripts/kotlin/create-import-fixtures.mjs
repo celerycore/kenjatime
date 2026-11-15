@@ -63,3 +63,37 @@ scale=1.575,1.575
 sprpriority=-1
 `);
 writeFileSync("test-output/kotlin-kfm-localcoord.zip",zipSync(highFiles));
+
+// Independently authored scaling fixtures use public KFM sprites. Body Size
+// differs deliberately, so the browser catches accidental projectile scaling.
+for(const doScale of [0,1]) {
+ const projectileFiles=Object.fromEntries(raw);
+ projectileFiles["kfm/kfm.def"]=encoder.encode(decoder.decode(projectileFiles["kfm/kfm.def"])
+  .replace(/^localcoord\s*=.*$/mi,"localcoord=640,480"));
+ projectileFiles["kfm/kfm.cns"]=encoder.encode(`[Size]
+xscale=2
+yscale=.5
+proj.doscale=${doScale}
+[Statedef 0]
+type=S
+physics=N
+anim=0
+ctrl=0
+[Statedef -2]
+[State -2, scaled projectile]
+type=Projectile
+trigger1=Time=0
+projid=703
+projanim=703
+projscale=-1.5,.5
+offset=0,-120
+velocity=0,0
+projremovetime=-1
+projhits=0
+`);
+ projectileFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(projectileFiles["kfm/kfm.air"])+`
+[Begin Action 703]
+0,0,8,-4,-1
+`);
+ writeFileSync(`test-output/kotlin-kfm-projectile-${doScale}.zip`,zipSync(projectileFiles));
+}

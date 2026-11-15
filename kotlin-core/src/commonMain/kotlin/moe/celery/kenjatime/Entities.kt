@@ -17,7 +17,7 @@ sealed class EntityRequest {
         val stageBound: Int = 40*Fixed.ONE,
         val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
         val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0,
-        val priority: Int = 1
+        val priority: Int = 1,val scaleX: Double = 1.0,val scaleY: Double = 1.0
     ) : EntityRequest()
 }
 
@@ -51,10 +51,18 @@ class CoreProjectile(
     val multiplierX: Double = 1.0,val multiplierY: Double = 1.0,
     val stageBound: Int = 40*Fixed.ONE,
     val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
-    val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0,priority: Int = 1
+    val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0,priority: Int = 1,
+    /** Captured effective scale: projscale, optionally multiplied by own Size. */
+    val scaleX: Double = 1.0,val scaleY: Double = 1.0
 ) {
+    companion object {
+        const val MAX_SCALE = 64.0
+        // FighterDefinition bounds its fixed-point Size factors to 256.
+        private const val MAX_EFFECTIVE_SCALE = MAX_SCALE*256.0
+    }
     init { require(ticksLeft >= -1 && multiplierX.isFinite() && multiplierY.isFinite() &&
-        stageBound >= 0 && heightTop <= heightBottom && hits >= 0 && missTime >= 0 && priority >= 1) }
+        stageBound >= 0 && heightTop <= heightBottom && hits >= 0 && missTime >= 0 && priority >= 1 &&
+        scaleX in -MAX_EFFECTIVE_SCALE..MAX_EFFECTIVE_SCALE && scaleY in -MAX_EFFECTIVE_SCALE..MAX_EFFECTIVE_SCALE) }
     var priority = priority
         private set
     var cancelled = false
@@ -85,7 +93,8 @@ class CoreProjectile(
     }
     private fun boxes(attack: Boolean): List<MugenRect> = action.frame?.boxes?.filter { it.attack == attack }
         ?.map { owner.definition.let { d ->
-            d.coordinates.box(it.rect,x,y,facingRight,d.xScale,d.yScale) } } ?: emptyList()
+            d.coordinates.scaledBox(it.rect,x,y,facingRight,scaleX,scaleY) } }
+        ?.filter { it.x1 < it.x2 && it.y1 < it.y2 } ?: emptyList()
     fun hitBoxes(): List<MugenRect> = boxes(true)
     fun clashBoxes(): List<MugenRect> = boxes(false)
     fun canHit(id: Int): Boolean = !cancelled && id != owner.id && hitsLeft > 0 && missTimeLeft == 0 && hitPauseLeft == 0
@@ -149,9 +158,14 @@ class CoreEntities(private val match: DeterministicFight) {
                 helpers.add(HelperEntity(owner, actor, request.helperId, request.keyControl))
             }
             is EntityRequest.Projectile -> {
+                val owner = request.owner
+                val scaleX=request.scaleX*if(owner.definition.projectileDoScale)owner.definition.xScale.toDouble()/Fixed.ONE else 1.0
+                val scaleY=request.scaleY*if(owner.definition.projectileDoScale)owner.definition.yScale.toDouble()/Fixed.ONE else 1.0
                 if(request.lifeTime < -1 || !request.multiplierX.isFinite() || !request.multiplierY.isFinite() ||
-                    request.stageBound < 0 || request.heightTop > request.heightBottom || request.hits < 0 || request.missTime < 0 || request.priority < 1) {
-                    errors.add("Invalid Projectile motion, lifetime, hit allowance or priority")
+                    request.stageBound < 0 || request.heightTop > request.heightBottom || request.hits < 0 || request.missTime < 0 || request.priority < 1 ||
+                    request.scaleX !in -CoreProjectile.MAX_SCALE..CoreProjectile.MAX_SCALE ||
+                    request.scaleY !in -CoreProjectile.MAX_SCALE..CoreProjectile.MAX_SCALE || !scaleX.isFinite() || !scaleY.isFinite()) {
+                    errors.add("Invalid Projectile motion, lifetime, hit allowance, priority or scale")
                     continue
                 }
                 if(request.lifeTime == 0)continue
@@ -164,7 +178,6 @@ class CoreEntities(private val match: DeterministicFight) {
                     errors.add("Projectile animation missing: " + request.animation)
                     continue
                 }
-                val owner = request.owner
                 fun bounded(value: Long)=value.coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
                 fun facing(value: Int)=bounded(value.toLong()*if(request.facingRight)1 else -1)
                 projectiles.add(CoreProjectile(owner, nextId++, request.projectileId,
@@ -174,7 +187,7 @@ class CoreEntities(private val match: DeterministicFight) {
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,
                     facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
                     request.stageBound,request.heightTop,request.heightBottom,
-                    request.removeOnHit,request.hits,request.missTime,request.priority))
+                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY))
             }
         }
     }

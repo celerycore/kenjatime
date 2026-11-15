@@ -173,7 +173,8 @@ private object Fights {
     ",\"mulX\":"+p.multiplierX+",\"mulY\":"+p.multiplierY+
     ",\"ticksLeft\":"+p.ticksLeft+",\"hitsLeft\":"+p.hitsLeft+
     ",\"missTimeLeft\":"+p.missTimeLeft+",\"hitPause\":"+p.hitPauseLeft+
-    ",\"removeOnHit\":"+p.removeOnHit+",\"priority\":"+p.priority+",\"facing\":"+(if(p.facingRight)1 else -1)+
+    ",\"removeOnHit\":"+p.removeOnHit+",\"priority\":"+p.priority+
+    ",\"scaleX\":"+p.scaleX+",\"scaleY\":"+p.scaleY+",\"facing\":"+(if(p.facingRight)1 else -1)+
     ",\"anim\":"+p.action.action.number+",\"elem\":"+(p.action.index+1)+"}"
 }
 @JsExport fun ktCoreProjectileClashes(handle: Int): String = Fights.get(handle).entities.clashes.joinToString(

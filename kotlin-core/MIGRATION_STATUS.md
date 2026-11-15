@@ -1,6 +1,70 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current projectile feedback continuation — November 15, 2026
+## Current projectile scaling continuation — November 16, 2026
+
+Continues published main source `dc85f28`. Projectile now captures authored
+`projscale` expressions and honors own-resource `[Size] proj.doscale`. The
+default flag is zero: a projectile no longer inherits body xscale/yscale
+automatically. A nonzero flag multiplies the projectile's authored axis
+factors by the creator resource's Size factors once. A foreign controller
+bank does not replace those resource constants; helper shots share immutable
+definitions while retaining their own captured projectile factors.
+
+Scale factors are dimensionless. Own-resource localcoord converts AIR geometry
+and sprite pixels to stage space once; active-state units still govern offset,
+velocity and acceleration independently. Scale does not change trajectory,
+facing, knockback direction, hit allowance, miss delay or lifetime. Nested CNS
+expressions are captured at birth and are not reevaluated after variable or
+creator-facing changes. Omitted scale defaults to 1,1; a missing second
+component defaults to one.
+
+The same effective factors now drive Clsn1 attacks, Clsn2 clashes, sprite
+pixels, AIR draw offsets and SFF pivots. Negative factors mirror the relevant
+axis independently of launch-facing. Rectangle corners normalize after
+reflection. Zero or subpixel-collapsed collision rectangles have no contact
+area and cannot hit or cancel another shot. Relative AIR offsets truncate to
+fixed point once before adding the world axis. Saturating coordinate
+conversion prevents overflow from wrapping a large box across the stage.
+
+Authored factors are bounded to -64..64 per axis, consistent with the bounded
+effect renderer's scale budget while allowing reflection. Invalid, nonfinite,
+excessive or malformed values are diagnosed before entity creation and do not
+consume projectile slots. Body Size composition remains separately bounded by
+existing fighter metadata. This is a supported subset, not acceptance of every
+native extreme-scale value.
+
+`ktCoreProjectiles` adds captured effective `scaleX`/`scaleY`. Kotlin's render
+plan supplies complete signed pixel factors; the browser paints those factors
+without recomputing character or projectile scaling. Presentation, camera and
+skipped draws cannot alter geometry, scale or combat clocks.
+
+Local validation:
+
+- 380 JVM and 375 compiled-Wasm tests pass, including 27 new shared scenarios
+  for Size opt-in/defaults, fractional/high-coordinate transforms, nested
+  expressions, reflections, zero-area boxes, hit/clash reach, trajectory,
+  resource ownership, validation, saturation and replay.
+- Exported Wasm checks compare default versus opted-in body Size, including
+  exact projected pixels/AIR offsets and different hit/clash outcomes in
+  mixed coordinates. Repeated presentation queries preserve captured scale.
+- Chromium imports independently authored CNS/AIR fixtures with public KFM
+  SFF art at localcoord 640x480. Both proj.doscale modes paint real mirrored
+  sprites, and signed Canvas matrices match Kotlin's supplied transforms.
+- All 16 adapter/import/download checks and existing browser checks pass,
+  including effects, archive companions, CSV, 1008-coordinate transforms and
+  the 360px Android viewport.
+- Two public KFM 600-tick structural replays match, retaining nine contacts,
+  seven fallback recoveries and zero unsupported diagnostics on that trace.
+
+The basic authored scale contract follows the
+[Elecbyte Projectile reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#projectile).
+Native negative/extreme-scale, mixed-coordinate and contact-phase behavior
+remain unverified. Removal/cancel animations, screen-edge bounds, native
+helper ownership and complete Pause/SuperPause remain incomplete. Native
+MUGEN character parity and physical-phone performance are not certified.
+Main CI checks browser/APK asset identity and anonymous permanent downloads.
+
+## Projectile feedback continuation — November 15, 2026
 
 Continues published main source `b286547`. CNS can now query projectile hit,
 guard and cancellation feedback after the shot has disappeared.
