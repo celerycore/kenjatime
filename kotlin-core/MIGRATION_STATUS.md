@@ -1,6 +1,51 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current projectile scaling continuation — November 16, 2026
+## Current independent guard-pause continuation — November 16, 2026
+
+Continues published main source `de13e91`. Guarded contacts now apply the two
+authored `guard.pausetime` components independently. Previously the defender
+used the attacker's guard pause too: `guard.pausetime=2,5` froze both sides for
+two ticks. It now freezes the attacker for two and the defender for five.
+Root and helper attacks pause their actual attacking actor; projectiles pause
+their own clock while leaving the creator's clock independent.
+
+When guard.pausetime is omitted, both components inherit the ordinary pausetime
+pair. Unguarded contacts keep that ordinary pair. Zero on either side does not
+freeze the other. Existing per-tick freeze handling includes each actor's last
+frozen tick, and GetHitVar(hitshaketime) reads the defender's correct clock.
+
+Shared parsing preserves nested expressions and evaluates both pairs before
+installing a HitDef or queuing a Projectile. Malformed, unknown or nonfinite
+expressions fail closed; an invalid replacement leaves the previous HitDef
+intact. Standard Projectile parameter names take precedence over the existing
+proj-prefixed aliases. Scalar shorthand mirrors its first value to the second;
+both components use the supported 0..120 tick normalization. Pause values are
+integers and do not scale with character coordinates.
+
+The portable HitDefinition adds guardDefenderPause. Its default retains the
+existing direct-constructor guardPause behavior for callers; authored CNS
+always fills both guard components explicitly through the shared parser.
+
+Validation:
+
+- 395 JVM and 390 compiled-Wasm tests pass, including 15 new scenarios for
+  asymmetric/zero clocks, exact resume timing, defaults, nested expressions,
+  validation, helper/projectile ownership and read-only rendering.
+- Actual exported Wasm checks exercise root and projectile guarded/unguarded
+  contacts, distinct attacker/defender pauses and pure presentation reads.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, projectile scale modes, imports, CSV and the
+  360px layout. Two KFM 600-tick structural replays retain nine contacts, seven
+  fallback recoveries, zero unsupported diagnostics and matching checksums.
+
+The pair/default contract follows the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+Native guardstun/common-state, global Pause/SuperPause and contact-phase parity
+remain incomplete or unverified. Native character parity and physical-phone
+performance are not certified. Main CI verifies browser/APK asset identity and
+anonymous permanent downloads before publication.
+
+## Projectile scaling continuation — November 16, 2026
 
 Continues published main source `dc85f28`. Projectile now captures authored
 `projscale` expressions and honors own-resource `[Size] proj.doscale`. The

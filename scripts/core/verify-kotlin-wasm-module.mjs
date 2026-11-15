@@ -848,6 +848,40 @@ for(const doScale of [0,1]) {
 }
 console.log("Native Wasm Projectile scale / opt-in body Size / mixed coordinates / AIR offsets / hit and clash reach: OK (synthetic)");
 
+for(const projectile of [false,true])for(const guarded of [false,true]) {
+  const controller=`type=${projectile ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+projhits=2
+projmisstime=20
+damage=10,2
+guardflag=HL
+pausetime=7,9
+guard.pausetime=ifelse(1,2,4),max(3,5)`;
+  const script=projectile ? `${motionIdle}\n[State 0, shot]\n${controller}` :
+    `${motionIdle}\n[Statedef 200]\ntype=S\nphysics=N\nanim=200\n[State 200, hit]\n${controller}`;
+  const pauses=api.ktCoreCreate("independent pauses","target",projectileFacingAir,air,script,`${motionIdle}\nctrl=1`);
+  try {
+    api.ktCoreSetup(pauses,0,0,5*256,0);
+    if(projectile)api.ktCoreAdvance(pauses,0,"",guarded ? 8 : 0,"");
+    else api.ktCoreDebugForceState(pauses,0,200);
+    api.ktCoreAdvance(pauses,0,"",guarded ? 8 : 0,"");
+    const expectedAttacker=guarded ? 2 : 7,expectedDefender=guarded ? 5 : 9;
+    assert.equal(JSON.parse(api.ktCoreSnapshot(pauses,1)).hitPause,expectedDefender);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(pauses,1)).life,guarded ? 998 : 990);
+    if(projectile) {
+      assert.equal(JSON.parse(api.ktCoreProjectiles(pauses))[0].hitPause,expectedAttacker);
+      assert.equal(JSON.parse(api.ktCoreSnapshot(pauses,0)).hitPause,0);
+    } else assert.equal(JSON.parse(api.ktCoreSnapshot(pauses,0)).hitPause,expectedAttacker);
+    for(let i=0;i<4;i++)api.ktCoreRenderPlan(pauses,12);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(pauses,1)).hitPause,expectedDefender);
+    api.ktCoreAdvance(pauses,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(pauses,1)).hitPause,expectedDefender-1);
+    assert.equal(api.ktCoreIssues(pauses),"");
+  } finally { api.ktCoreRelease(pauses); }
+}
+console.log("Native Wasm independent attacker/defender hit and guard pause / nested expressions / projectile clocks: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

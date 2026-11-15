@@ -66,6 +66,7 @@
     "Projectile finite hit allowances, miss delays, projremove and independent hitpause have synthetic coverage in the root-opponent contact model; contacts against helpers/team modes, helper-to-root ownership, final-hit pause visuals, complete guard pause and global Pause/SuperPause remain incomplete",
     "Full helper state inheritance/destruction",
     "Full hitguard/guardstun, juggling, KO, rebounds and throws",
+    "Authored HitDef/Projectile hit and guard pause pairs freeze attacker and defender independently with nested-expression parsing; native guardstun/common-state, global pause and contact-phase parity remain incomplete or unverified",
     "HitBy/NotHitBy support two timed attribute-mask slots; native actual-attacker-state quirks, exact pause/contact phase parity and Ikemen attr/slot extensions remain unverified or unsupported",
     "HitOverride supports eight own-bank reaction slots, forceair data selection and state-transfer rejection; native slot/contact/KO phase parity remains unverified",
     "GetHitVar supports damage, xvel, yvel, hittime, hitshaketime, guarded and fall; remaining fields and full common-state physics remain unsupported",
