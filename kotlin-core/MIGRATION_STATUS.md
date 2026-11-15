@@ -1,6 +1,56 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current missing-state arena recovery continuation — November 15, 2026
+## Current successful-hit follow-up continuation — November 15, 2026
+
+Continues published main source `fd0e2d1`. HitDef `p1stateno` now moves the
+attacker to its authored follow-up after a successful unguarded contact. P2's
+reaction and target capture happen first, so paired throws can enter P1's
+attack state and P2's borrowed get-hit state, then use TargetBind and SelfState
+to attach and release the captured victim. StateDef metadata applies at the
+contact boundary; follow-up controllers start at the next actor phase and
+respect the existing hitpause clock.
+
+Follow-ups use the HitDef's captured script/state owner, including helpers,
+borrowed states and delayed projectile hits after the creator changes banks.
+Projectiles transition their creator. Their standard HitDef `id` is now
+captured independently of ProjID, allowing hit-ID-specific TargetBind from the
+follow-up. Guards, misses, hit filters and matching HitOverride protection do
+not trigger the follow-up. Missing destinations are diagnosed after contact
+without changing the attacker or repeating the damage. Negative destinations
+disable the follow-up; an explicit zero can return to own/source-bank idle.
+
+World contacts queue follow-ups until root, helper and projectile contacts
+finish. Per-actor state revisions preserve incoming reactions, state steals and
+KO on trades. The first valid follow-up wins if multiple hits request different
+destinations for one unchanged actor. Dead or destroyed creators cannot reenter
+a state. Direct hit API calls outside the world contact phase apply immediately
+after victim capture. This deterministic policy has synthetic tests; its exact
+ordering has not been certified against a new native capture.
+
+Local validation:
+
+- 242 JVM and 237 compiled-Wasm tests pass, including 22 new common scenarios
+  for paired states, capture/binding/release, guard/miss/protection, hitpause,
+  priorities, trades/KO, helpers, projectiles, banks, coordinates and replay.
+- Exported Wasm tests execute p1stateno + p2stateno → capture → TargetBind →
+  SelfState release, guarded contacts without follow-up, paired trades, and
+  Projectile hit-ID-specific binding. Repeated render queries preserve state.
+- Two public KFM 600-tick structural replays match, retaining nine contacts,
+  seven fallback recoveries and zero unsupported diagnostics on that trace.
+- All 16 adapter/import/download checks and production browser smoke pass,
+  including real sprite/effect painting, mixed-coordinate imports, CSV and the
+  360px layout.
+
+The basic success/guard contract follows the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+Authors should supply an attack follow-up and a get-hit victim state as that
+reference specifies. Full native throw timing, alternate MoveType behavior,
+reversal/projectile-clash interactions and contact/state-entry ordering remain
+open. This change does not certify native character parity or physical-phone
+performance. Main CI still verifies browser/APK asset identity and anonymous
+release downloads.
+
+## Missing-state arena recovery continuation — November 15, 2026
 
 Continues published main source `c15c7ce`. Fixes indefinite knockback drift when
 a character lacks common hit states. Previously a missing state 5000 recovered

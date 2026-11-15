@@ -776,3 +776,118 @@ try {
   assert.equal(api.ktCoreIssues(fallbackProjectile),"");
   console.log("Native Wasm projectile knockback / missing-state fallback / landing and recovery: OK (synthetic)");
 } finally { api.ktCoreRelease(fallbackProjectile); }
+
+const pairedThrowCns=`[Statedef 0]
+type=S
+movetype=A
+physics=N
+anim=0
+ctrl=1
+[State 0, paired throw]
+type=HitDef
+trigger1=Time=0
+attr=S,NT
+damage=10,3
+guardflag=HL
+id=71
+p1stateno=811
+p2stateno=820
+[Statedef 811]
+type=S
+movetype=A
+physics=N
+anim=0
+ctrl=0
+[State 811, attach captured target]
+type=TargetBind
+trigger1=Time=0
+id=71
+pos=20,-5
+time=2
+[Statedef 820]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 820, recover]
+type=SelfState
+trigger1=Time=2
+value=0`;
+const pairedThrow=api.ktCoreCreate("thrower","victim",bindAir,air,pairedThrowCns,fallbackIdle);
+try {
+  api.ktCoreSetup(pairedThrow,0,0,20*256,0);
+  api.ktCoreAdvance(pairedThrow,0,"",0,"");
+  const attacker=JSON.parse(api.ktCoreSnapshot(pairedThrow,0));
+  const victim=JSON.parse(api.ktCoreSnapshot(pairedThrow,1));
+  assert.equal(attacker.state,811);
+  assert.equal(attacker.moveType,"A");
+  assert.equal(attacker.stateTime,0,"Follow-up controllers start on the next actor phase");
+  assert.equal(attacker.numTargets,1);
+  assert.equal(victim.state,820);
+  assert.equal(victim.stateOwner,1);
+  assert.equal(victim.life,990);
+  for(let i=0;i<3;i++)api.ktCoreRenderPlan(pairedThrow,12);
+  assert.deepEqual(JSON.parse(api.ktCoreSnapshot(pairedThrow,0)),attacker);
+  api.ktCoreAdvance(pairedThrow,0,"",0,"");
+  const bound=JSON.parse(api.ktCoreSnapshot(pairedThrow,1));
+  assert.equal(bound.boundTo,1);
+  assert.equal(bound.x256,20*256);
+  assert.equal(bound.y256,-5*256);
+  api.ktCoreAdvance(pairedThrow,0,"",0,"");
+  api.ktCoreAdvance(pairedThrow,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(pairedThrow,1)).stateOwner,2);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(pairedThrow,0)).numTargets,0);
+  assert.equal(api.ktCoreIssues(pairedThrow),"");
+  console.log("Native Wasm HitDef p1stateno / paired P2 state / capture / bind / SelfState release: OK (synthetic)");
+} finally { api.ktCoreRelease(pairedThrow); }
+
+const guardedFollow=api.ktCoreCreate("attacker","guard",bindAir,air,pairedThrowCns,fallbackIdle);
+try {
+  api.ktCoreSetup(guardedFollow,0,0,20*256,0);
+  api.ktCoreAdvance(guardedFollow,0,"",8,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(guardedFollow,0)).state,0);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(guardedFollow,1)).life,997);
+  assert.equal(JSON.parse(api.ktCoreContacts(guardedFollow))[0].guarded,true);
+  assert.equal(api.ktCoreIssues(guardedFollow),"");
+  console.log("Native Wasm guarded contact leaves p1stateno unapplied: OK (synthetic)");
+} finally { api.ktCoreRelease(guardedFollow); }
+
+const tradedFollow=api.ktCoreCreate("trade A","trade B",bindAir,bindAir,pairedThrowCns,pairedThrowCns);
+try {
+  api.ktCoreSetup(tradedFollow,0,0,20*256,0);
+  api.ktCoreAdvance(tradedFollow,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreContacts(tradedFollow)).length,2);
+  const a=JSON.parse(api.ktCoreSnapshot(tradedFollow,0));
+  const b=JSON.parse(api.ktCoreSnapshot(tradedFollow,1));
+  assert.equal(a.life,990);assert.equal(b.life,990);
+  assert.equal(a.state,820);assert.equal(b.state,820);
+  assert.equal(a.stateOwner,2);assert.equal(b.stateOwner,1);
+  assert.equal(api.ktCoreIssues(tradedFollow),"");
+  console.log("Native Wasm paired throw trade preserves both incoming reactions: OK (synthetic policy)");
+} finally { api.ktCoreRelease(tradedFollow); }
+
+const projectileFollowCns=`[Statedef 0]
+anim=0
+[State 0, projectile]
+type=Projectile
+trigger1=Time=0
+projanim=0
+velocity=1,0
+attr=S,SP
+damage=17
+id=71
+p1stateno=811
+p2stateno=820
+${pairedThrowCns.slice(pairedThrowCns.indexOf('[Statedef 811]'))}`;
+const projectileFollow=api.ktCoreCreate("projectile owner","victim",bindAir,air,projectileFollowCns,fallbackIdle);
+try {
+  api.ktCoreSetup(projectileFollow,0,0,20*256,0);
+  api.ktCoreAdvance(projectileFollow,0,"",0,"");
+  api.ktCoreAdvance(projectileFollow,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(projectileFollow,0)).state,811);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(projectileFollow,1)).life,983);
+  api.ktCoreAdvance(projectileFollow,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(projectileFollow,1)).boundTo,1,"Projectile HitDef id must drive TargetBind");
+  assert.equal(api.ktCoreIssues(projectileFollow),"");
+  console.log("Native Wasm Projectile p1stateno / canonical hit ID / captured-target binding: OK (synthetic)");
+} finally { api.ktCoreRelease(projectileFollow); }

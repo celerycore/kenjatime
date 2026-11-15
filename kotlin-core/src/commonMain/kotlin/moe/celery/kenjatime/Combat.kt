@@ -299,6 +299,16 @@ class FightingCharacter(
     var facingRight = true
     var stateNo = 0
         private set
+    internal var stateRevision = 0L
+        private set
+    internal var contactStateRevision = 0L
+        private set
+    internal fun beginContactPhase() { contactStateRevision=stateRevision }
+    internal fun followSuccessfulHit(hit: HitDefinition,errors: MutableSet<String>) {
+        val next=hit.p1State ?: return
+        if(destroyed || life <= 0)return
+        enterAuthoredState(next,hit.stateOwner ?: stateOwner,errors)
+    }
     var timeInState = 0
         private set
     var hitPauseLeft = 0
@@ -325,6 +335,7 @@ class FightingCharacter(
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
                     controlOverride: Boolean? = null) {
         fallbackHitReaction = false
+        stateRevision++
         stateOwner = owner
         stateNo = state
         timeInState = 0
@@ -545,6 +556,7 @@ class FightingCharacter(
                 val pause = (args["pausetime"] ?: args["projpausetime"] ?: "0,0").split(',')
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
+                    id = integer(args["id"]),
                     damage = integer(damage.getOrNull(0)),
                     guardDamage = integer(damage.getOrNull(1)),
                     guardFlag = (args["guardflag"] ?: args["projguardflag"] ?: "HL").uppercase(),
@@ -568,7 +580,6 @@ class FightingCharacter(
                     p2GetP1State = integer(args["p2getp1state"],1) != 0,
                     stateOwner = scriptOwner
                 )
-                if(hit.p1State != null)errors.add("Projectile p1stateno transitions are not implemented")
                 entityRequests.add(EntityRequest.Projectile(
                     this,
                     integer(args["projid"]),
@@ -613,7 +624,6 @@ class FightingCharacter(
                     fall = integer(args["fall"]) != 0,
                     airFall = integer(args["air.fall"],integer(args["fall"])) != 0
                 )
-                if(next.p1State != null)errors.add("HitDef p1stateno transitions are not implemented")
                 // A controller evaluated every tick must not reset a target's struck set.
                 // State entry starts a new contact window; multi-hit/HitOnce need further parity.
                 if (activeHitDef == null) activeHitDef = next
@@ -761,6 +771,11 @@ class FightingCharacter(
             moveType="H"
         }
         if (!guarded) attacker?.captureTarget(this, hit.id)
+        if(!guarded && attacker != null && hit.p1State != null) {
+            val fight=world
+            if(fight != null)fight.requestHitState(attacker,hit)
+            else attacker.followSuccessfulHit(hit,world?.issues ?: evaluationIssues)
+        }
     }
 }
 
@@ -776,6 +791,25 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     val presentation: MutableList<CorePresentationEvent> = ArrayList()
     val entities = CoreEntities(this)
     val effects = CoreExplods(this)
+    private data class PendingHitState(val actor: FightingCharacter,val hit: HitDefinition,val revision: Long)
+    private val hitStates=mutableListOf<PendingHitState>()
+    private var resolvingContacts=false
+    internal fun requestHitState(actor: FightingCharacter,hit: HitDefinition) {
+        if(actor.world != null && actor.world !== this) {
+            issues.add("HitDef attacker belongs to another fight")
+            return
+        }
+        if(resolvingContacts)hitStates.add(PendingHitState(actor,hit,actor.contactStateRevision))
+        else actor.followSuccessfulHit(hit,issues)
+    }
+    private fun finishContactPhase() {
+        resolvingContacts=false
+        // Preserve incoming reactions and deaths on trades. For multiple
+        // successful shots, the first valid follow-up wins in contact order.
+        for(request in hitStates)if(request.actor.stateRevision == request.revision)
+            request.actor.followSuccessfulHit(request.hit,issues)
+        hitStates.clear()
+    }
     var roundFlow: CoreRoundFlow? = null
         private set
     fun enableRoundFlow(rules: CoreRoundRules = CoreRoundRules()) {
@@ -821,6 +855,10 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         arena?.step(p1,p2,p1Frozen,p2Frozen)
         CoreBindings.resolve(p1,p2,if(allowCombat) entities.helpers else emptyList())
         camera?.update(p1,p2)
+        p1.beginContactPhase();p2.beginContactPhase()
+        for(helper in entities.helpers)helper.actor.beginContactPhase()
+        hitStates.clear()
+        resolvingContacts=true
         // Contact candidates collected before mutating either fighter: genuine trades.
         var ab = allowCombat && !p1Frozen && p1.canHit(p2.id) && p2.canReceive(p1.activeHitDef!!) && connects(p1, p2)
         var ba = allowCombat && !p2Frozen && p2.canHit(p1.id) && p1.canReceive(p2.activeHitDef!!) && connects(p2, p1)
@@ -859,6 +897,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB, p1)
         if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA, p2)
         if (allowCombat) entities.resolveContacts(issues)
+        finishContactPhase()
         val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
         effects.advance()
