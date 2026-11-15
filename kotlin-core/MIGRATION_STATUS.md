@@ -1,6 +1,61 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current power meter continuation — November 16, 2026
+## Current combat power continuation — November 16, 2026
+
+Continues published main source `1bf49f2`. Accepted HitDef and Projectile
+contacts now apply getpower to the actual attacker's root meter and givepower
+to the defender's root meter. Hit and guard amounts are independent. Explicit
+pairs support nested numeric CNS expressions; a single value defaults its
+guard amount to half, truncated toward zero. Zero disables that channel and
+negative values drain it. Existing meter limits and wider addition arithmetic
+prevent overflow or power outside the configured bounds.
+
+Omitted amounts use authored hit damage, independently of guard chip damage or
+actual life lost. The standard default rates are 0.7 for the attacker and 0.6
+for the defender, with single-precision multiplication before integer
+truncation. Guard defaults halve those hit amounts. Each fight can supply
+HitPowerRules, also exposed through ktCoreConfigureHitPower; rates must be
+finite, nonnegative and within the single-precision range. Imported mugen.cfg
+loading and super-specific power rules are not implemented.
+
+Expressions, rates and defaults are captured when CNS installs the attack;
+later variable or configuration changes affect future definitions. Invalid
+power expressions, extra/missing components and out-of-range integers cannot
+install a HitDef or queue a Projectile. Invalid configuration leaves existing
+rules intact. Rejected contacts, terminal projectile cancellation, expiry and
+presentation reads do not award power. A projectile's frozen ticks cannot repeat
+its prior credit. Accepted multi-hit projectile contacts each apply one pair of
+deltas.
+
+Helper and nested-helper meters continue to use their actual roots. Borrowed
+state banks cannot receive the executing attacker's credit. Power applies to
+ordinary, guarded, override, paired-throw, lethal and nonlethal reactions;
+follow-up controllers observe the updated meters. Root trades credit both
+accepted candidates through the existing shared contact phase.
+
+Validation:
+
+- 506 JVM and 501 compiled-Wasm tests pass, including 24 new cases for defaults,
+  explicit pairs, expression/configuration capture, bounds, rejected contacts,
+  helpers, custom states, overrides, throws, lethality, projectiles and trades.
+- Exported Wasm checks 28 combinations of root/projectile, hit/guard and
+  default/explicit/singleton/configured/disabled/drained/capped power. It also
+  checks invalid configuration, captured rules and presentation purity.
+- The KFM 600-tick replay retains nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics and its prior physical checksum. Both meters'
+  progression matches across isolated replays, ending at 485/415 power.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+
+Defaults and controller parameters follow the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+Native extreme-value rounding, same-root/team contact ordering, super-specific
+constants and round-end/carry-over rules remain unverified or incomplete.
+These checks do not certify native frame parity or physical-phone performance.
+Main CI verifies browser/APK asset identity and anonymous permanent downloads
+before publication.
+
+## Power meter continuation — November 16, 2026
 
 Continues published main source `203c271`. CNS now executes PowerSet and
 TargetPowerAdd alongside PowerAdd. Each root fighter's maximum comes from

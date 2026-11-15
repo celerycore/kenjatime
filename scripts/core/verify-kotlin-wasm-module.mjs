@@ -681,6 +681,7 @@ try {
 } finally { api.ktCoreRelease(chain); }
 console.log("Native Wasm Projectile mutual cancellation / priority spending / nearest-pair chain / fighter contact / pure events: OK (synthetic)");
 
+// Keep CNS feedback bonuses observable independently of ordinary contact power.
 const feedbackCns=`${motionIdle}
 [State 0, fire]
 type=Projectile
@@ -688,6 +689,8 @@ trigger1=Time=0
 projid=174
 projanim=210
 damage=10,2
+getpower=0
+givepower=0
 [State 0, one contact bonus]
 type=PowerAdd
 trigger1=ProjContact174 = 1
@@ -763,12 +766,16 @@ trigger1=Time=0
 projid=176
 projanim=210
 damage=10,2
+getpower=0
+givepower=0
 [State 0, later guard]
 type=Projectile
 trigger1=Time=2
 projid=177
 projanim=210
 damage=10,2
+getpower=0
+givepower=0
 [State 0, compare latest contact with remembered hit]
 type=PowerAdd
 triggerall=ProjGuardedTime(177)=1
@@ -1026,6 +1033,8 @@ type=HitDef
 trigger1=Time=0
 id=181
 damage=10
+getpower=0
+givepower=0
 ground.hittime=60
 [State 200, turn victim]
 type=TargetFacing
@@ -1117,6 +1126,8 @@ type=HitDef
 trigger1=Time=0
 id=183
 damage=10
+getpower=0
+givepower=0
 ground.hittime=60
 [State 200, missing ID]
 type=TargetPowerAdd
@@ -1182,6 +1193,66 @@ try {
   assert.equal(api.ktCoreIssues(helperPower),"");
 } finally { api.ktCoreRelease(helperPower); }
 console.log("Native Wasm configured PowerMax / PowerSet and overflow-safe PowerAdd / filtered TargetPowerAdd / root-shared helper meter / pure presentation: OK (synthetic)");
+
+for(const projectile of [false,true])for(const guarded of [false,true])for(const mode of [
+  "defaults","explicit","singleton","configured","disabled","drain","capped"
+]) {
+  const parameters={defaults:"",explicit:"getpower=81,13\ngivepower=57,19",singleton:"getpower=81\ngivepower=57",
+    configured:"",disabled:"getpower=0\ngivepower=0",drain:"getpower=-200,-300\ngivepower=-400,-500",
+    capped:"getpower=2147483647,2147483647\ngivepower=2147483647,2147483647"}[mode];
+  const controller=`type=${projectile ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=90,2
+guardflag=HL
+${parameters}`;
+  const script=projectile ? `${motionIdle}\n[State 0, shot]\n${controller}` :
+    `${motionIdle}\n[Statedef 200]\ntype=S\nphysics=N\nanim=200\n[State 200, hit]\n${controller}`;
+  const contactPower=api.ktCoreCreate("contact power","recipient",projectileFacingAir,air,
+    `[Data]\npower=5000\n${script}`,`[Data]\npower=1500\n${hitFlagStates}`);
+  try {
+    api.ktCoreSetup(contactPower,0,0,5*256,0);
+    if(mode==="configured")api.ktCoreConfigureHitPower(contactPower,.5,.25);
+    const initial=mode==="drain" || mode==="capped" ? 100 : 0;
+    api.ktCoreDebugSetStats(contactPower,0,1000,initial);api.ktCoreDebugSetStats(contactPower,1,1000,initial);
+    if(projectile)api.ktCoreAdvance(contactPower,0,"",guarded ? 8 : 0,"");
+    else api.ktCoreDebugForceState(contactPower,0,200);
+    api.ktCoreAdvance(contactPower,0,"",guarded ? 8 : 0,"");
+    const expected={defaults:guarded ? [31,27] : [63,54],explicit:guarded ? [13,19] : [81,57],
+      singleton:guarded ? [40,28] : [81,57],configured:guarded ? [22,11] : [45,22],disabled:[0,0],
+      drain:[0,0],capped:[5000,1500]}[mode];
+    const snapshots=[0,1].map(side=>JSON.parse(api.ktCoreSnapshot(contactPower,side)));
+    assert.deepEqual(snapshots.map(p=>p.power),expected,`${projectile ? "projectile" : "root"}/${guarded}/${mode}`);
+    assert.equal(snapshots[1].life,guarded ? 998 : 910);
+    for(let i=0;i<4;i++)api.ktCoreRenderPlan(contactPower,12);
+    assert.deepEqual([0,1].map(side=>JSON.parse(api.ktCoreSnapshot(contactPower,side))),snapshots);
+    assert.equal(api.ktCoreIssues(contactPower),"");
+  } finally { api.ktCoreRelease(contactPower); }
+}
+const capturedPower=api.ktCoreCreate("captured rules","recipient",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=90`,hitFlagStates);
+try {
+  api.ktCoreConfigureHitPower(capturedPower,.5,.25);
+  for(const invalid of [-1,NaN,Infinity,Number.MAX_VALUE])
+    assert.throws(()=>api.ktCoreConfigureHitPower(capturedPower,invalid,.6));
+  api.ktCoreSetup(capturedPower,0,0,1000*256,0);api.ktCoreDebugForceState(capturedPower,0,200);
+  api.ktCoreAdvance(capturedPower,0,"",0,"");api.ktCoreConfigureHitPower(capturedPower,0,0);
+  api.ktCoreSetup(capturedPower,0,0,5*256,0);api.ktCoreAdvance(capturedPower,0,"",0,"");
+  assert.deepEqual([0,1].map(side=>JSON.parse(api.ktCoreSnapshot(capturedPower,side)).power),[45,22]);
+  api.ktCoreDebugForceState(capturedPower,0,200);api.ktCoreAdvance(capturedPower,0,"",0,"");
+  assert.deepEqual([0,1].map(side=>JSON.parse(api.ktCoreSnapshot(capturedPower,side)).power),[45,22]);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(capturedPower,1)).life,820);
+  assert.equal(api.ktCoreIssues(capturedPower),"");
+} finally { api.ktCoreRelease(capturedPower); }
+console.log("Native Wasm HitDef/Projectile getpower and givepower / hit and guard pairs / configured and captured defaults / bounds / pure reads: OK (synthetic)");
 
 const filterAttack=`[Statedef 0]
 anim=0

@@ -44,6 +44,11 @@ try {
   const t0=performance.now();
   let checksum='';
   const stateHistogram=new Map();
+  const powerTrace=[];
+  function recordPower(trace,tick,left,right) {
+    const previous=trace.at(-1);
+    if(!previous || previous[1]!==left || previous[2]!==right)trace.push([tick,left,right]);
+  }
   let nonIdleTicks=0, contactCount=0;
   let previousFallback=false, fallbackRecoveries=0, maxDefenderHeight256=0;
   const ticks=600;
@@ -58,6 +63,7 @@ try {
     checksum=api.ktCoreStep(handle,dir,keys,0,'');
     const snapshot=JSON.parse(api.ktCoreSnapshot(handle,0));
     const defender=JSON.parse(api.ktCoreSnapshot(handle,1));
+    recordPower(powerTrace,i,snapshot.power,defender.power);
     maxDefenderHeight256=Math.max(maxDefenderHeight256,-defender.y256);
     if(previousFallback && !defender.fallbackHitReaction && defender.state===0) {
       fallbackRecoveries++;
@@ -82,6 +88,7 @@ try {
   const second=api.ktCoreCreateWithCommands('KFM','KFM',
     air.text,air.text,state.text,state.text,cmd.text,cmd.text);
   let repeatChecksum='';
+  const repeatPowerTrace=[];
   try {
     api.ktCoreSetup(second,-70*256,0,70*256,0);
     if(api.ktCoreConfigureArena)api.ktCoreConfigureArena(second,-150,150,0,true,false);
@@ -94,9 +101,13 @@ try {
         api.ktCoreDebugForceState(second,0,200);
       }
       repeatChecksum=api.ktCoreStep(second,dir,keys,0,'');
+      recordPower(repeatPowerTrace,i,JSON.parse(api.ktCoreSnapshot(second,0)).power,
+        JSON.parse(api.ktCoreSnapshot(second,1)).power);
     }
   }finally{api.ktCoreRelease(second);}
   assert.equal(repeatChecksum,checksum,'Kotlin/Wasm actual KFM replay diverged across separate fights');
+  assert.deepEqual(repeatPowerTrace,powerTrace,'KFM power progression diverged across separate fights');
+  assert.ok(powerTrace.length>1,'Real KFM replay must exercise combat power gains');
   const result={
     context:'Kotlin/Wasm 600-tick structural real-KFM smoke, NOT native or JS parity',
     ticks,elapsedMs:Number(elapsedMs.toFixed(3)),
@@ -105,7 +116,7 @@ try {
     before,after:{p1:a,p2:b},entities,
     issueCount:issues.length,sampleIssues:issues.slice(0,12),
     distinctStates:[...stateHistogram.entries()],
-    nonIdleTicks,contactCount,fallbackRecoveries,maxDefenderHeight256,checksum,deterministicReplay:true
+    nonIdleTicks,contactCount,fallbackRecoveries,maxDefenderHeight256,checksum,powerTrace,deterministicReplay:true
   };
   assert.equal(a.frame,ticks);
   assert.ok(Number.isFinite(a.x256) && Number.isFinite(a.y256));

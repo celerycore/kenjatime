@@ -57,6 +57,9 @@ private object Fights {
     require(newState in actor.definition.states) { "Unknown authored StateDef" }
     actor.changeState(newState, actor)
 }
+@JsExport fun ktCoreConfigureHitPower(handle: Int, attackLifeToPower: Double, getHitLifeToPower: Double) {
+    Fights.get(handle).hitPowerRules=HitPowerRules(attackLifeToPower,getHitLifeToPower)
+}
 @JsExport fun ktCoreDebugSetFacing(handle: Int, side: Int, facingRight: Boolean) {
     val fight = Fights.get(handle)
     val actor = if (side == 0) fight.p1 else fight.p2

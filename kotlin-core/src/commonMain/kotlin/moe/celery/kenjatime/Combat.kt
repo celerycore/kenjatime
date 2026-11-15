@@ -32,7 +32,10 @@ data class HitDefinition(
     val airHitTime: Int = 20,val guardHitTime: Int = hitTime,
     val fall: Boolean = false,val airFall: Boolean = fall,
     val guardDefenderPause: Int = guardPause,
-    val kill: Boolean = true,val guardKill: Boolean = true
+    val kill: Boolean = true,val guardKill: Boolean = true,
+    val getPower: Int = HitPowerRules.DEFAULT.attacker(damage),
+    val givePower: Int = HitPowerRules.DEFAULT.defender(damage),
+    val guardGetPower: Int = getPower/2,val guardGivePower: Int = givePower/2
 )
 data class StateController(
     val type: String,
@@ -675,10 +678,12 @@ class FightingCharacter(
                 val pauses=CoreHitPauses.parse(args,this,errors,true) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hitFlags=CoreHitFlags.parse(args["hitflag"] ?: args["projhitflag"],errors) ?: return false
+                val hitDamage=integer(damage.getOrNull(0))
+                val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
-                    damage = integer(damage.getOrNull(0)),
+                    damage = hitDamage,
                     guardDamage = integer(damage.getOrNull(1)),
                     guardFlag = (args["guardflag"] ?: args["projguardflag"] ?: "HL").uppercase(),
                     hitFlag = hitFlags,
@@ -687,6 +692,8 @@ class FightingCharacter(
                     guardPause = pauses.guard.first,
                     guardDefenderPause = pauses.guard.second,
                     kill = kills.hit,guardKill = kills.guard,
+                    getPower = powers.get.first,guardGetPower = powers.get.second,
+                    givePower = powers.give.first,guardGivePower = powers.give.second,
                     velocityX = number(groundVelocity.getOrNull(0)),
                     velocityY = number(groundVelocity.getOrNull(1)),
                     airVelocityX = number(airVelocity.getOrNull(0)),
@@ -725,13 +732,15 @@ class FightingCharacter(
                 val pauses=CoreHitPauses.parse(args,this,errors) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hitFlags=CoreHitFlags.parse(args["hitflag"],errors) ?: return false
+                val hitDamage=integer(args["damage"]?.substringBefore(','))
+                val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
                 val velocity = (args["ground.velocity"] ?: "0,0").split(',')
                 val airVelocity = (args["air.velocity"] ?: "0,0").split(',')
                 val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
                 val priority = (args["priority"] ?: "4,Hit").split(',')
                 val next = HitDefinition(
                     attr = args["attr"] ?: "S, NA",
-                    damage = integer(args["damage"]?.substringBefore(',')),
+                    damage = hitDamage,
                     hitPause = pauses.hit.first,
                     velocityX = number(velocity.getOrNull(0)),
                     velocityY = number(velocity.getOrNull(1)),
@@ -744,6 +753,8 @@ class FightingCharacter(
                     guardPause = pauses.guard.first,
                     guardDefenderPause = pauses.guard.second,
                     kill = kills.hit,guardKill = kills.guard,
+                    getPower = powers.get.first,guardGetPower = powers.get.second,
+                    givePower = powers.give.first,guardGivePower = powers.give.second,
                     guardVelocityX = number(guardVelocity.getOrNull(0)),
                     guardVelocityY = number(guardVelocity.getOrNull(1)),
                     hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600),
@@ -865,6 +876,8 @@ class FightingCharacter(
         val override=if(guarded)null else hitOverrides.matching(hit)
         val airborne=!guarded && (stateType == "A" || override?.forceAir == true)
         val damage=if(guarded)hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)
+        attacker?.addPower(if(guarded)hit.guardGetPower else hit.getPower)
+        addPower(if(guarded)hit.guardGivePower else hit.givePower)
         val x=(if(guarded)hit.guardVelocityX else if(airborne)hit.airVelocityX else hit.velocityX)*
             if(attackerFacingRight)1 else -1
         val y=if(guarded)hit.guardVelocityY else if(airborne)hit.airVelocityY else hit.velocityY
@@ -917,6 +930,7 @@ data class CorePresentationEvent(
 
 /** Two-actor deterministic subset, not a full MUGEN contact phase. */
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
+    var hitPowerRules=HitPowerRules.DEFAULT
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
     val presentation: MutableList<CorePresentationEvent> = ArrayList()
