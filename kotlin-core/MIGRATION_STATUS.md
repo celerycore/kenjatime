@@ -1,6 +1,59 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current successful-hit follow-up continuation — November 15, 2026
+## Current projectile trajectory/lifetime continuation — November 15, 2026
+
+Continues published main source `ef69133`. Projectile now captures authored
+`accel` and `velmul` at creation, including nested CNS vector expressions.
+Offset, velocity and acceleration convert from the active state owner's units
+to canonical fixed point once; velocity multipliers remain dimensionless.
+Launch-facing mirrors horizontal offset, velocity and acceleration, and later
+creator turns do not change the trajectory or hit direction.
+
+Each update moves by the current velocity, then computes
+`nextVelocity = (velocity + accel) * velmul`, truncating to fixed point once.
+Positions and velocities saturate instead of wrapping on overflow. This update
+convention retains the existing linear path when accel is zero and velmul is
+one; native combined-motion and contact-phase parity remain unverified.
+
+The default `projremovetime` is now -1, rather than an artificial 60-tick cap.
+Explicit -1 persists until contact or bounds cleanup; zero creates no entity
+and consumes no resource slot. Positive values permit that many movement and
+contact updates after birth, including contact on the final update, with no
+3600-tick clamp. Invalid lifetime, trajectory or bounds expressions are
+diagnosed before queuing an entity. The default `projanim` is action zero.
+
+Configured arenas retire outward-moving shots beyond `projstagebound` or
+`projheightbound` before the next movement/contact phase. Defaults are a
+40-stage-pixel horizontal margin and heights -240..1 relative to arena ground;
+explicit bounds convert from active script units. Returning offstage shots
+remain live. Headless matches without an arena have no invented bounds. The
+visual camera cannot influence cleanup, trajectory or lifetime.
+
+`ktCoreProjectiles` exposes read-only identity, position, velocity, captured
+acceleration/multipliers, launch-facing, animation and remaining-life snapshots.
+Skipped or repeated presentation queries do not advance those values.
+
+Local validation:
+
+- 268 JVM and 263 compiled-Wasm tests pass, including 26 new shared scenarios
+  for motion, nested expressions, coordinate scaling, overflow, lifetimes,
+  hitpause, rejected/final-tick contacts, bounds, resource budgets and replay.
+- Exported Wasm checks exercise acceleration/multipliers, a same-tick creator
+  turn, indefinite/zero/finite life, mixed-coordinate bounds and returning
+  shots. Repeated snapshot, render and camera queries preserve projectile state.
+- Two public KFM 600-tick structural replays match, retaining nine contacts,
+  seven fallback recoveries and zero unsupported diagnostics on that trace.
+- All 16 adapter/import/download checks and production browser smoke pass,
+  including real sprite/effect painting, mixed-coordinate imports, CSV and the
+  360px layout.
+
+Screen-edge `projedgebound`, projectile clashes, multi-hit/`projremove=0`,
+removal/hit animations, projectile scaling and complete pause behavior remain
+incomplete. The single-contact retirement model is unchanged. Full native
+projectile/ownership phase parity and physical-phone performance remain open.
+Main CI verifies browser/APK asset identity and anonymous release downloads.
+
+## Successful-hit follow-up continuation — November 15, 2026
 
 Continues published main source `fd0e2d1`. HitDef `p1stateno` now moves the
 attacker to its authored follow-up after a successful unguarded contact. P2's

@@ -164,6 +164,16 @@ private object Fights {
     ",\"vy256\":"+e.velocityY+",\"age\":"+e.age+",\"bindTime\":"+e.bindLeft+
     ",\"anim\":"+e.animation.action.number+",\"elem\":"+(e.animation.index+1)+"}"
 }
+@JsExport fun ktCoreProjectiles(handle: Int): String = Fights.get(handle).entities.projectiles.joinToString(
+    prefix="[",postfix="]",separator=","
+) { p ->
+    "{\"owner\":"+p.owner.id+",\"id\":"+p.projectileId+",\"entityId\":"+p.entityId+
+    ",\"x256\":"+p.x+",\"y256\":"+p.y+",\"vx256\":"+p.vx+",\"vy256\":"+p.vy+
+    ",\"ax256\":"+p.accelerationX+",\"ay256\":"+p.accelerationY+
+    ",\"mulX\":"+p.multiplierX+",\"mulY\":"+p.multiplierY+
+    ",\"ticksLeft\":"+p.ticksLeft+",\"facing\":"+(if(p.facingRight)1 else -1)+
+    ",\"anim\":"+p.action.action.number+",\"elem\":"+(p.action.index+1)+"}"
+}
 @JsExport fun ktCoreEvents(handle: Int): String = Fights.get(handle).presentation.joinToString(
     prefix = "[", postfix = "]", separator = ","
 ) { e ->

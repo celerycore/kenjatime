@@ -60,6 +60,7 @@ try {
     assert.deepEqual(JSON.parse(api.ktCoreContacts(handle)),[]);
   if (api.ktCoreEntities)
     assert.deepEqual(JSON.parse(api.ktCoreEntities(handle)),{helpers:0,projectiles:0});
+  assert.deepEqual(JSON.parse(api.ktCoreProjectiles(handle)),[]);
   if (api.ktCoreEvents)
     assert.deepEqual(JSON.parse(api.ktCoreEvents(handle)),[]);
   console.log("Native Wasm import/step/snapshot/release: OK");
@@ -462,6 +463,86 @@ try {
   assert.equal(api.ktCoreIssues(projectileFacing),"");
   console.log("Native Wasm projectile launch / same-tick creator Turn / forward contact / knockback: OK (synthetic)");
 } finally { api.ktCoreRelease(projectileFacing); }
+
+// Inspect trajectory/lifetime through the actual JS-facing Wasm exports.
+const motionAir=`${air}
+[Begin Action 200]
+200,0,0,0,1
+200,1,0,0,-1`;
+const motionIdle="[Statedef 0]\ntype=S\nphysics=N\nanim=0";
+function projectileScript(parameters,turn=false) {
+  return `${motionIdle}
+[State 0, fire]
+type=Projectile
+trigger1=Time=0
+projid=172
+projanim=200
+${parameters}${turn ? "\n[State 0, turn]\ntype=Turn\ntrigger1=Time=0" : ""}`;
+}
+const motion=api.ktCoreCreate("motion","target",motionAir,air,
+  projectileScript("velocity=ifelse(1,4,8),0\naccel=2,0\nvelmul=.5,1",true),motionIdle);
+try {
+  api.ktCoreSetup(motion,0,0,200*256,0);
+  api.ktCoreAdvance(motion,0,"",0,"");
+  const [birth]=JSON.parse(api.ktCoreProjectiles(motion));
+  assert.equal(birth.owner,1);assert.equal(birth.id,172);
+  assert.equal(birth.x256,0);assert.equal(birth.vx256,4*256);
+  assert.equal(birth.ax256,2*256);assert.equal(birth.mulX,.5);
+  assert.equal(birth.ticksLeft,-1);assert.equal(birth.facing,1);assert.equal(birth.elem,1);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(motion,0)).facing,-1);
+  for(let i=0;i<5;i++) {
+    api.ktCoreRenderPlan(motion,12);api.ktCoreCamera(motion);
+    assert.deepEqual(JSON.parse(api.ktCoreProjectiles(motion)),[birth]);
+  }
+  api.ktCoreAdvance(motion,0,"",0,"");
+  let [shot]=JSON.parse(api.ktCoreProjectiles(motion));
+  assert.equal(shot.x256,4*256);assert.equal(shot.vx256,3*256);assert.equal(shot.elem,2);
+  api.ktCoreAdvance(motion,0,"",0,"");
+  [shot]=JSON.parse(api.ktCoreProjectiles(motion));
+  assert.equal(shot.x256,7*256);assert.equal(shot.vx256,2.5*256);
+  for(let i=0;i<120;i++)api.ktCoreAdvance(motion,0,"",0,"");
+  [shot]=JSON.parse(api.ktCoreProjectiles(motion));
+  assert.equal(shot.ticksLeft,-1);assert.equal(shot.facing,1);
+  assert.equal(api.ktCoreIssues(motion),"");
+  console.log("Native Wasm Projectile acceleration / multiplier / launch-facing / indefinite life / pure snapshots: OK (synthetic)");
+} finally { api.ktCoreRelease(motion); }
+
+for(const lifetime of [0,2]) {
+  const finite=api.ktCoreCreate("finite","target",motionAir,air,
+    projectileScript(`velocity=2,0\nprojremovetime=${lifetime}`),motionIdle);
+  try {
+    api.ktCoreAdvance(finite,0,"",0,"");
+    if(lifetime===0)assert.deepEqual(JSON.parse(api.ktCoreProjectiles(finite)),[]);
+    else {
+      assert.equal(JSON.parse(api.ktCoreProjectiles(finite))[0].ticksLeft,2);
+      api.ktCoreAdvance(finite,0,"",0,"");
+      const [shot]=JSON.parse(api.ktCoreProjectiles(finite));
+      assert.equal(shot.x256,2*256);assert.equal(shot.ticksLeft,1);
+      api.ktCoreAdvance(finite,0,"",0,"");
+      assert.deepEqual(JSON.parse(api.ktCoreProjectiles(finite)),[]);
+    }
+    assert.equal(api.ktCoreIssues(finite),"");
+  } finally { api.ktCoreRelease(finite); }
+}
+
+for(const returning of [false,true]) {
+  const bounded=api.ktCoreCreateWithDefinitions("high-coordinate","target",motionAir,air,
+    projectileScript(`offset=282,0\nvelocity=${returning ? -2 : 2},0\nprojstagebound=80`),
+    motionIdle,"","","[Info]\nlocalcoord=640,480","");
+  try {
+    api.ktCoreSetup(bounded,0,0,50*256,0);
+    api.ktCoreConfigureArena(bounded,-100,100,0,false,false);
+    api.ktCoreAdvance(bounded,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreProjectiles(bounded))[0].x256,141*256);
+    api.ktCoreAdvance(bounded,0,"",0,"");
+    const shots=JSON.parse(api.ktCoreProjectiles(bounded));
+    if(returning) {
+      assert.equal(shots.length,1);assert.equal(shots[0].x256,140*256);
+    } else assert.deepEqual(shots,[]);
+    assert.equal(api.ktCoreIssues(bounded),"");
+  } finally { api.ktCoreRelease(bounded); }
+}
+console.log("Native Wasm Projectile zero / finite lifetime / mixed-coordinate stage bounds / returning shots: OK (synthetic)");
 
 const filterAttack=`[Statedef 0]
 anim=0

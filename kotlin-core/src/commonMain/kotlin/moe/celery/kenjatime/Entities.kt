@@ -11,7 +11,11 @@ sealed class EntityRequest {
         val owner: FightingCharacter, val projectileId: Int, val animation: Int,
         val offsetX: Int, val offsetY: Int, val vx: Int, val vy: Int,
         val lifeTime: Int, val hit: HitDefinition,
-        val facingRight: Boolean = owner.facingRight
+        val facingRight: Boolean = owner.facingRight,
+        val accelerationX: Int = 0,val accelerationY: Int = 0,
+        val multiplierX: Double = 1.0,val multiplierY: Double = 1.0,
+        val stageBound: Int = 40*Fixed.ONE,
+        val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE
     ) : EntityRequest()
 }
 
@@ -23,7 +27,8 @@ data class HelperEntity(
     val keyControl: Boolean
 )
 
-/** A minimal linear projectile and per-target single-contact model. */
+/** Authored trajectory with a per-target single-contact model. Positive life
+ * permits that many updates after birth; -1 persists until contact/removal. */
 class CoreProjectile(
     val owner: FightingCharacter,
     val entityId: Int,
@@ -35,21 +40,37 @@ class CoreProjectile(
     var ticksLeft: Int,
     /** Projectile orientation belongs to the projectile, not its creator's
      * later turns or custom-state facing changes. */
-    val facingRight: Boolean = owner.facingRight
+    val facingRight: Boolean = owner.facingRight,
+    val accelerationX: Int = 0,val accelerationY: Int = 0,
+    val multiplierX: Double = 1.0,val multiplierY: Double = 1.0,
+    val stageBound: Int = 40*Fixed.ONE,
+    val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE
 ) {
+    init { require(ticksLeft >= -1 && multiplierX.isFinite() && multiplierY.isFinite() && stageBound >= 0 && heightTop <= heightBottom) }
     private val targets = mutableSetOf<Int>()
-    val alive: Boolean get() = ticksLeft > 0
+    val alive: Boolean get() = ticksLeft != 0
     fun step() {
-        x += vx
-        y += vy
+        if(!alive)return
+        fun bounded(value: Long)=value.coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
+        x=bounded(x.toLong()+vx)
+        y=bounded(y.toLong()+vy)
+        // Move using this tick's velocity, then accelerate and multiply for
+        // the next tick. Conversion back to fixed point happens once.
+        vx=((vx.toLong()+accelerationX).toDouble()*multiplierX).toInt()
+        vy=((vy.toLong()+accelerationY).toDouble()*multiplierY).toInt()
         action.advance()
-        ticksLeft--
+        if(ticksLeft > 0)ticksLeft--
     }
     fun hitBoxes(): List<MugenRect> = action.frame?.boxes?.filter { it.attack }
         ?.map { owner.definition.let { d ->
             d.coordinates.box(it.rect,x,y,facingRight,d.xScale,d.yScale) } } ?: emptyList()
     fun canHit(id: Int): Boolean = id !in targets
     fun markHit(id: Int) { targets.add(id) }
+    fun outside(arena: ArenaRules): Boolean =
+        x.toLong() < arena.left.toLong()-stageBound && vx < 0 ||
+        x.toLong() > arena.right.toLong()+stageBound && vx > 0 ||
+        y.toLong() < arena.ground.toLong()+heightTop && vy < 0 ||
+        y.toLong() > arena.ground.toLong()+heightBottom && vy > 0
 }
 
 /**
@@ -88,6 +109,12 @@ class CoreEntities(private val match: DeterministicFight) {
                 helpers.add(HelperEntity(owner, actor, request.helperId, request.keyControl))
             }
             is EntityRequest.Projectile -> {
+                if(request.lifeTime < -1 || !request.multiplierX.isFinite() || !request.multiplierY.isFinite() ||
+                    request.stageBound < 0 || request.heightTop > request.heightBottom) {
+                    errors.add("Invalid Projectile motion or lifetime")
+                    continue
+                }
+                if(request.lifeTime == 0)continue
                 if (projectiles.size >= maxProjectiles) {
                     errors.add("Projectile resource limit exceeded")
                     continue
@@ -98,12 +125,15 @@ class CoreEntities(private val match: DeterministicFight) {
                     continue
                 }
                 val owner = request.owner
+                fun bounded(value: Long)=value.coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
+                fun facing(value: Int)=bounded(value.toLong()*if(request.facingRight)1 else -1)
                 projectiles.add(CoreProjectile(owner, nextId++, request.projectileId,
                     AirAnimationPlayer(action), request.hit,
-                    owner.posX + request.offsetX * if (request.facingRight) 1 else -1,
-                    owner.posY + request.offsetY,
-                    request.vx * if (request.facingRight) 1 else -1,
-                    request.vy, request.lifeTime.coerceIn(1,3600),request.facingRight))
+                    bounded(owner.posX.toLong()+facing(request.offsetX)),
+                    bounded(owner.posY.toLong()+request.offsetY),
+                    facing(request.vx),request.vy,request.lifeTime,request.facingRight,
+                    facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
+                    request.stageBound,request.heightTop,request.heightBottom))
             }
         }
     }
@@ -146,6 +176,10 @@ class CoreEntities(private val match: DeterministicFight) {
         }
         for (projectile in projectiles) {
             if (!projectile.alive) continue
+            if(match.arena?.let(projectile::outside) == true) {
+                projectile.ticksLeft=0
+                continue
+            }
             projectile.step()
             val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue

@@ -59,7 +59,7 @@
     "Configured arenas provide bounded recovery for missing own common hit/guard/KO states; this is not native common-state, air-recovery, fall/bounce or liedown parity",
     "Zero-duration AIR elements retain one-tick normalization; nonzero AnimElemNo offsets after jumping past an infinite element are diagnosed",
     "Mixed-localcoord bindings, shared attachment phase and pause lifetimes have synthetic coverage, not native frame parity",
-    "Projectile launch-facing snapshots have JVM/Wasm coverage; native contact phases, projectile clashes and multi-hit remain incomplete",
+    "Projectile accel/velmul, launch-facing, -1/zero/positive lifetimes and configured arena stage/height bounds have JVM/Wasm coverage; screen-edge bounds, clashes, multi-hit, removal animations/scaling, complete pause behavior and native motion/contact phase parity remain incomplete",
     "Full helper state inheritance/destruction",
     "Full hitguard/guardstun, juggling, KO, rebounds and throws",
     "HitBy/NotHitBy support two timed attribute-mask slots; native actual-attacker-state quirks, exact pause/contact phase parity and Ikemen attr/slot extensions remain unverified or unsupported",

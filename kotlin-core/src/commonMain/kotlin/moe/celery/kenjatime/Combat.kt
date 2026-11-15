@@ -546,9 +546,30 @@ class FightingCharacter(
                     integer(args["bindtime"])
                 ))
             }
-            "projectile" -> {
-                val position = (args["offset"] ?: "0,0").split(',')
-                val velocity = (args["velocity"] ?: "0,0").split(',')
+            "projectile" -> try {
+                fun value(raw: String): Double = CoreExpression.number(raw,this,errors)
+                    ?: throw IllegalArgumentException("Invalid Projectile expression: $raw")
+                fun vector(key: String,x: Double=0.0,y: Double=0.0): Pair<Double,Double> {
+                    val raw=args[key] ?: return x to y
+                    val parts=CnsArguments.split(raw)
+                    require(parts.size <= 2) { "Projectile $key requires at most two components" }
+                    return value(parts[0]) to (parts.getOrNull(1)?.let(::value) ?: y)
+                }
+                val position=vector("offset")
+                val velocity=vector("velocity")
+                val acceleration=vector("accel")
+                val multiplier=vector("velmul",1.0,1.0)
+                val lifetime=args["projremovetime"]?.let(::value) ?: -1.0
+                val stageBound=args["projstagebound"]?.let { coordinates.toWorld(value(it)) } ?: 40*Fixed.ONE
+                val height=args["projheightbound"]?.let { raw ->
+                    val parts=CnsArguments.split(raw)
+                    require(parts.size == 2) { "Projectile height bound requires two components" }
+                    coordinates.toWorld(value(parts[0])) to coordinates.toWorld(value(parts[1]))
+                } ?: (-240*Fixed.ONE to Fixed.ONE)
+                require(stageBound >= 0 && height.first <= height.second) { "Invalid Projectile bounds" }
+                require(lifetime >= -1.0 && lifetime <= Int.MAX_VALUE.toDouble()) {
+                    "Projectile removetime must be -1 or nonnegative"
+                }
                 val damage = (args["damage"] ?: args["projdamage"] ?: "0,0").split(',')
                 val groundVelocity = (args["ground.velocity"] ?: args["projground.velocity"] ?: "0,0").split(',')
                 val airVelocity = (args["air.velocity"] ?: args["projair.velocity"] ?: "0,0").split(',')
@@ -583,12 +604,17 @@ class FightingCharacter(
                 entityRequests.add(EntityRequest.Projectile(
                     this,
                     integer(args["projid"]),
-                    integer(args["projanim"], -1),
-                    number(position.getOrNull(0)), number(position.getOrNull(1)),
-                    number(velocity.getOrNull(0)), number(velocity.getOrNull(1)),
-                    integer(args["projremovetime"], 60),
-                    hit
+                    integer(args["projanim"], 0),
+                    coordinates.toWorld(position.first),coordinates.toWorld(position.second),
+                    coordinates.toWorld(velocity.first),coordinates.toWorld(velocity.second),
+                    lifetime.toInt(),hit,
+                    accelerationX=coordinates.toWorld(acceleration.first),
+                    accelerationY=coordinates.toWorld(acceleration.second),
+                    multiplierX=multiplier.first,multiplierY=multiplier.second,
+                    stageBound=stageBound,heightTop=height.first,heightBottom=height.second
                 ))
+            }catch(e: IllegalArgumentException) {
+                errors.add("Invalid Projectile: ${e.message}")
             }
             "hitdef" -> {
                 val pause = (args["pausetime"] ?: "0,0").split(',')
