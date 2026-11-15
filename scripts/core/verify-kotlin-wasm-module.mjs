@@ -910,7 +910,18 @@ type=TargetVelAdd
 trigger1=Time=1
 id=181
 x=2
-y=-2`,motionIdle,"","","[Info]\nlocalcoord=640,480","");
+y=-2
+[State 200, release captured list]
+type=TargetDrop
+trigger1=Time=2
+[State 200, cannot move a dropped target]
+type=TargetVelSet
+trigger1=Time=2
+x=50
+[State 200, observe cleared targets immediately]
+type=PowerAdd
+trigger1=Time=2 && NumTarget=0
+value=7`,motionIdle,"","","[Info]\nlocalcoord=640,480","");
 try {
   api.ktCoreSetup(targetMotion,0,0,5*256,0);
   api.ktCoreDebugForceState(targetMotion,0,200);
@@ -922,9 +933,14 @@ try {
   assert.equal(victim.life,990);
   for(let i=0;i<4;i++)api.ktCoreRenderPlan(targetMotion,12);
   assert.deepEqual(JSON.parse(api.ktCoreSnapshot(targetMotion,1)),victim);
+  api.ktCoreAdvance(targetMotion,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(targetMotion,0)).numTargets,0);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(targetMotion,0)).power,7);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(targetMotion,1)).vx256,3*256);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(targetMotion,1)).state,5000,"Dropping capture must not change victim state");
   assert.equal(api.ktCoreIssues(targetMotion),"");
 } finally { api.ktCoreRelease(targetMotion); }
-console.log("Native Wasm captured target facing / set and add velocity / ID filtering / mixed coordinates: OK (synthetic)");
+console.log("Native Wasm captured target facing / velocity / mixed coordinates / TargetDrop / immediate NumTarget update: OK (synthetic)");
 
 const filterAttack=`[Statedef 0]
 anim=0

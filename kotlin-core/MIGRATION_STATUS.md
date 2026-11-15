@@ -1,6 +1,52 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current captured-target motion continuation — November 16, 2026
+## Current target release continuation — November 16, 2026
+
+Continues published main source `18e378f`. CNS now executes TargetDrop against
+the executing actor's captured-target list. Omitted excludeID or -1 drops all
+captures. Any other excludeID retains only valid targets with that HitDef ID;
+keepone=0 keeps all matches, while the default/nonzero flag keeps at most one.
+Missing matches and empty target lists are harmless.
+
+When multiple matches require a choice, selection uses the actor's existing
+seeded random stream and stable capture order. This preserves reproducible
+JVM/Wasm replay without using host randomness or presentation cadence. The
+exact native random sequence and its interaction with other random controllers
+remain unverified. A sole match, drop-all or keepone=0 does not consume a choice.
+
+Both expressions and parameter names are validated before changing captures.
+Invalid/overflowing IDs, unsupported parameters and failed expressions preserve
+the live target list. Nested numeric expressions, ordinary persistence and
+ignorehitpause rules are supported. Dead, destroyed and recovered actors cannot
+be retained. Each actor/helper owns its list independently.
+
+NumTarget and later target controllers see the change in the same actor phase.
+Dropping does not damage, turn, launch, change state or rearm an attack against
+the victim. A later successful hit can capture it again. Existing bindings
+retain their independent lifetime; authors can release TargetBind with time=0
+before dropping, or use a finite binding. Native binding-release coupling still
+requires capture evidence.
+
+Validation:
+
+- 425 JVM and 420 compiled-Wasm tests pass, including 15 new cases for drop-all,
+  ID retention, keepone, seeded replay, invalid inputs, stale captures, subsequent
+  controllers, reacquisition, binding lifetime, ownership and hitpause.
+- Exported Wasm performs capture → turn/launch → TargetDrop, checks immediate
+  NumTarget visibility, and verifies a later TargetVelSet cannot affect the
+  dropped victim or change its hit state.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, projectile scaling, imports, CSV and mobile
+  layout. Two KFM 600-tick structural replays retain nine contacts, seven
+  fallback recoveries, zero unsupported diagnostics and matching checksums.
+
+The filtering/default contract follows the
+[Elecbyte TargetDrop reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#targetdrop).
+Native throw, random-selection, binding and contact-phase parity remain
+unverified. Physical-phone performance is not certified. Main CI verifies
+browser/APK asset identity and anonymous permanent downloads before publication.
+
+## Captured-target motion continuation — November 16, 2026
 
 Continues published main source `fbca90b`. CNS now executes TargetVelSet,
 TargetVelAdd and TargetFacing against live captured targets. ID filters use

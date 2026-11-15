@@ -436,6 +436,27 @@ class FightingCharacter(
             }
             "targetbind", "bindtoparent", "bindtoroot", "bindtotarget" ->
                 CoreBindingControllers.execute(this,c,scriptOwner,errors)
+            "targetdrop" -> try {
+                require(args.keys.all { it in setOf("type","excludeid","keepone","persistent","ignorehitpause") }) {
+                    "Unsupported TargetDrop parameter"
+                }
+                fun value(raw: String)=CoreExpression.number(raw,this,errors)
+                    ?: throw IllegalArgumentException("Invalid TargetDrop expression")
+                val requested=args["excludeid"]?.let(::value) ?: -1.0
+                require(requested in Int.MIN_VALUE.toDouble()..Int.MAX_VALUE.toDouble()) { "Target ID out of range" }
+                val exclude=requested.toInt()
+                val keepOne=(args["keepone"]?.let(::value) ?: 1.0) != 0.0
+                val candidates=if(exclude == -1)emptyList() else targets(exclude)
+                val retained=if(keepOne && candidates.size > 1) {
+                    // Use the actor's existing seeded random stream, never a
+                    // host RNG or a render-time decision.
+                    randomState=randomState*1664525+1013904223
+                    listOf(candidates[(randomState ushr 1)%candidates.size])
+                }else candidates
+                capturedTargets.keys.retainAll(retained.toSet())
+            }catch(e: IllegalArgumentException) {
+                errors.add("Invalid TargetDrop: ${e.message}")
+            }
             "targetvelset", "targetveladd", "targetfacing" -> try {
                 fun value(raw: String): Double = CoreExpression.number(raw,this,errors)
                     ?: throw IllegalArgumentException("Invalid target-control expression")
