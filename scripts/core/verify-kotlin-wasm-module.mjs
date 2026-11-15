@@ -544,6 +544,69 @@ for(const returning of [false,true]) {
 }
 console.log("Native Wasm Projectile zero / finite lifetime / mixed-coordinate stage bounds / returning shots: OK (synthetic)");
 
+const multiHitAir=`${air}
+[Begin Action 210]
+Clsn1Default:1
+Clsn1[0]=0,-40,80,0
+210,0,0,0,2
+210,1,0,0,3`;
+function multiHitScript(parameters) {
+  return `${motionIdle}
+[State 0, multi-hit shot]
+type=Projectile
+trigger1=Time=0
+projid=173
+projanim=210
+damage=10,2
+${parameters}`;
+}
+const multiHit=api.ktCoreCreate("multi-hit","target",multiHitAir,air,
+  multiHitScript("projhits=3\nprojmisstime=2\nprojremove=0\npausetime=2,0\nprojremovetime=12\nvelocity=1,0"),motionIdle);
+try {
+  api.ktCoreSetup(multiHit,0,0,20*256,0);
+  const advance=()=>api.ktCoreAdvance(multiHit,0,"",0,"");
+  const shots=()=>JSON.parse(api.ktCoreProjectiles(multiHit));
+  const victim=()=>JSON.parse(api.ktCoreSnapshot(multiHit,1));
+  advance();assert.equal(shots()[0].hitsLeft,3);
+  for(let contact=1;contact<=3;contact++) {
+    advance();const shot=shots()[0];
+    assert.equal(victim().life,1000-10*contact);
+    assert.equal(shot.hitsLeft,3-contact);assert.equal(shot.hitPause,2);
+    assert.equal(shot.missTimeLeft,2);assert.equal(shot.removeOnHit,false);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(multiHit,0)).hitPause,0);
+    assert.equal(victim().hitPause,0);
+    for(let left=1;left>=0;left--) {
+      advance();
+      const frozen=shots()[0];
+      assert.deepEqual(frozen,{...shot,hitPause:left});
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(multiHit)),[]);
+      api.ktCoreRenderPlan(multiHit,12);api.ktCoreCamera(multiHit);
+      assert.deepEqual(shots(),[frozen]);
+    }
+    if(contact<3) {
+      advance();assert.equal(shots()[0].missTimeLeft,1);
+      assert.equal(victim().life,1000-10*contact);
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(multiHit)),[]);
+    }
+  }
+  assert.equal(shots().length,1,"Spent projremove=0 shot remains visible");
+  for(let i=0;i<10;i++) {advance();assert.deepEqual(JSON.parse(api.ktCoreContacts(multiHit)),[]);}
+  assert.equal(victim().life,970,"Exhausted shot cannot rearm itself");
+  assert.deepEqual(shots(),[],"Finite lifetime still retires an exhausted shot");
+  assert.equal(api.ktCoreIssues(multiHit),"");
+} finally { api.ktCoreRelease(multiHit); }
+
+const multiRetire=api.ktCoreCreate("two hits","target",multiHitAir,air,
+  multiHitScript("projhits=2\nprojmisstime=3"),motionIdle);
+try {
+  api.ktCoreSetup(multiRetire,0,0,20*256,0);
+  for(let i=0;i<5;i++)api.ktCoreAdvance(multiRetire,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(multiRetire,1)).life,980);
+  assert.deepEqual(JSON.parse(api.ktCoreProjectiles(multiRetire)),[]);
+  assert.equal(api.ktCoreIssues(multiRetire),"");
+} finally { api.ktCoreRelease(multiRetire); }
+console.log("Native Wasm Projectile multi-hit / miss delay / own hitpause / finite allowance / optional hit removal: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

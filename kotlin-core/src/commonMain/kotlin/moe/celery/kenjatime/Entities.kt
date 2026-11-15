@@ -15,7 +15,8 @@ sealed class EntityRequest {
         val accelerationX: Int = 0,val accelerationY: Int = 0,
         val multiplierX: Double = 1.0,val multiplierY: Double = 1.0,
         val stageBound: Int = 40*Fixed.ONE,
-        val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE
+        val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
+        val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0
     ) : EntityRequest()
 }
 
@@ -27,8 +28,8 @@ data class HelperEntity(
     val keyControl: Boolean
 )
 
-/** Authored trajectory with a per-target single-contact model. Positive life
- * permits that many updates after birth; -1 persists until contact/removal. */
+/** Authored trajectory and finite hit allowance. Positive life permits that
+ * many active updates after birth; -1 persists until contact/removal. */
 class CoreProjectile(
     val owner: FightingCharacter,
     val entityId: Int,
@@ -44,13 +45,24 @@ class CoreProjectile(
     val accelerationX: Int = 0,val accelerationY: Int = 0,
     val multiplierX: Double = 1.0,val multiplierY: Double = 1.0,
     val stageBound: Int = 40*Fixed.ONE,
-    val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE
+    val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
+    val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0
 ) {
-    init { require(ticksLeft >= -1 && multiplierX.isFinite() && multiplierY.isFinite() && stageBound >= 0 && heightTop <= heightBottom) }
-    private val targets = mutableSetOf<Int>()
+    init { require(ticksLeft >= -1 && multiplierX.isFinite() && multiplierY.isFinite() &&
+        stageBound >= 0 && heightTop <= heightBottom && hits >= 0 && missTime >= 0) }
+    var hitsLeft = hits
+        private set
+    var missTimeLeft = 0
+        private set
+    var hitPauseLeft = 0
+        private set
     val alive: Boolean get() = ticksLeft != 0
-    fun step() {
-        if(!alive)return
+    /** False for every frozen tick, including the last one. An active final
+     * lifetime update may still contact before the collection retires it. */
+    fun step(): Boolean {
+        if(!alive)return false
+        if(hitPauseLeft > 0) { hitPauseLeft--;return false }
+        if(missTimeLeft > 0)missTimeLeft--
         fun bounded(value: Long)=value.coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
         x=bounded(x.toLong()+vx)
         y=bounded(y.toLong()+vy)
@@ -60,12 +72,21 @@ class CoreProjectile(
         vy=((vy.toLong()+accelerationY).toDouble()*multiplierY).toInt()
         action.advance()
         if(ticksLeft > 0)ticksLeft--
+        return true
     }
     fun hitBoxes(): List<MugenRect> = action.frame?.boxes?.filter { it.attack }
         ?.map { owner.definition.let { d ->
             d.coordinates.box(it.rect,x,y,facingRight,d.xScale,d.yScale) } } ?: emptyList()
-    fun canHit(id: Int): Boolean = id !in targets
-    fun markHit(id: Int) { targets.add(id) }
+    fun canHit(id: Int): Boolean = id != owner.id && hitsLeft > 0 && missTimeLeft == 0 && hitPauseLeft == 0
+    internal fun onContact(guarded: Boolean) {
+        // Delay is measured between active contact phases. Zero and one both
+        // permit the next active tick; projectile hitpause freezes this clock.
+        hitsLeft--
+        missTimeLeft=missTime
+        hitPauseLeft=(if(guarded)hit.guardPause else hit.hitPause).coerceAtLeast(0)
+        if(removeOnHit && hitsLeft == 0)ticksLeft=0
+        if(!alive)hitPauseLeft=0
+    }
     fun outside(arena: ArenaRules): Boolean =
         x.toLong() < arena.left.toLong()-stageBound && vx < 0 ||
         x.toLong() > arena.right.toLong()+stageBound && vx > 0 ||
@@ -110,8 +131,8 @@ class CoreEntities(private val match: DeterministicFight) {
             }
             is EntityRequest.Projectile -> {
                 if(request.lifeTime < -1 || !request.multiplierX.isFinite() || !request.multiplierY.isFinite() ||
-                    request.stageBound < 0 || request.heightTop > request.heightBottom) {
-                    errors.add("Invalid Projectile motion or lifetime")
+                    request.stageBound < 0 || request.heightTop > request.heightBottom || request.hits < 0 || request.missTime < 0) {
+                    errors.add("Invalid Projectile motion, lifetime or hit allowance")
                     continue
                 }
                 if(request.lifeTime == 0)continue
@@ -133,7 +154,8 @@ class CoreEntities(private val match: DeterministicFight) {
                     bounded(owner.posY.toLong()+request.offsetY),
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,
                     facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
-                    request.stageBound,request.heightTop,request.heightBottom))
+                    request.stageBound,request.heightTop,request.heightBottom,
+                    request.removeOnHit,request.hits,request.missTime))
             }
         }
     }
@@ -176,21 +198,21 @@ class CoreEntities(private val match: DeterministicFight) {
         }
         for (projectile in projectiles) {
             if (!projectile.alive) continue
-            if(match.arena?.let(projectile::outside) == true) {
+            val arena=match.arena
+            if(projectile.hitPauseLeft == 0 && arena != null && projectile.outside(arena)) {
                 projectile.ticksLeft=0
                 continue
             }
-            projectile.step()
+            if(!projectile.step())continue
             val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue
             if (projectile.hitBoxes().any { box -> hurt(enemy).any { box.intersects(it) } }) {
                 val guarded = enemy.blocks(projectile.hit)
-                projectile.markHit(enemy.id)
                 match.contacts.add(FightContact(projectile.entityId, enemy.id, guarded,
                     if (guarded) projectile.hit.guardDamage else projectile.hit.damage))
                 enemy.receiveHit(projectile.hit, projectile.facingRight, guarded, projectile.owner)
                 targetHurt.remove(enemy)
-                projectile.ticksLeft = 0
+                projectile.onContact(guarded)
             }
         }
         helpers.removeAll { it.actor.destroyed }

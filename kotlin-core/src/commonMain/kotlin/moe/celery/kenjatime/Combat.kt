@@ -570,6 +570,14 @@ class FightingCharacter(
                 require(lifetime >= -1.0 && lifetime <= Int.MAX_VALUE.toDouble()) {
                     "Projectile removetime must be -1 or nonnegative"
                 }
+                fun allowance(key: String,default: Int): Int {
+                    val n=args[key]?.let(::value) ?: default.toDouble()
+                    require(n >= 0 && n <= Int.MAX_VALUE.toDouble()) { "Projectile $key must be nonnegative" }
+                    return n.toInt()
+                }
+                val hits=allowance("projhits",1)
+                val missTime=allowance("projmisstime",0)
+                val removeOnHit=(args["projremove"]?.let(::value) ?: 1.0) != 0.0
                 val damage = (args["damage"] ?: args["projdamage"] ?: "0,0").split(',')
                 val groundVelocity = (args["ground.velocity"] ?: args["projground.velocity"] ?: "0,0").split(',')
                 val airVelocity = (args["air.velocity"] ?: args["projair.velocity"] ?: "0,0").split(',')
@@ -611,7 +619,8 @@ class FightingCharacter(
                     accelerationX=coordinates.toWorld(acceleration.first),
                     accelerationY=coordinates.toWorld(acceleration.second),
                     multiplierX=multiplier.first,multiplierY=multiplier.second,
-                    stageBound=stageBound,heightTop=height.first,heightBottom=height.second
+                    stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
+                    removeOnHit=removeOnHit,hits=hits,missTime=missTime
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")

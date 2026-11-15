@@ -1,6 +1,64 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current projectile trajectory/lifetime continuation — November 15, 2026
+## Current multi-hit projectile continuation — November 15, 2026
+
+Continues published main source `e260ef5`. Projectile now captures authored
+`projhits`, `projmisstime` and `projremove` expressions at creation. Hit counts
+and delays remain integers independent of character localcoord. Negative,
+nonfinite, unknown or overflowing allowances are diagnosed before queuing an
+entity. The defaults retain one hit, no miss delay and removal on exhaustion.
+
+Each accepted hit or guard consumes one hit from the projectile's allowance.
+Rejected HitBy/NotHitBy or HitOverride contacts, misses and dead opponents do
+not spend hits or start pause/delay clocks. Zero hits produces a nonattacking
+projectile. A multi-hit shot can hit the same opponent again after its delay;
+there is no permanent per-target latch. In the supported root-opponent contact
+model, a delay of three permits contacts at active phases 1, 4 and 7. Zero and
+one both permit contact at the next active phase, with at most one contact per
+projectile per phase.
+
+`projremove=0` retains the shot after exhaustion, with its motion, AIR clock,
+rendering and NumProj/NumProjID presence intact. It cannot regain hits when its
+creator changes variables or state. Lifetime and stage/height cleanup still
+retire it. Any nonzero remove flag retires on the final allowed contact; final
+contact removal remains immediate, as in the previous single-contact model.
+
+Surviving projectiles now use their own HitDef hit/guard pause. This freezes
+movement, acceleration/multipliers, AIR, positive lifetime, miss delay and
+bound checks through the last frozen tick. Creator hitpause neither freezes
+nor extends a projectile's independent clock. Defender pause remains governed
+by the existing hit/guard reaction rules. The final active lifetime update can
+still contact before retirement. Removal-animation and final-hit pause visuals
+remain incomplete.
+
+`ktCoreProjectiles` adds read-only `hitsLeft`, `missTimeLeft`, `hitPause` and
+`removeOnHit` fields. Same-ID shots, helper-owned shots and separate fights
+keep independent allowance and clock state. Presentation queries cannot
+advance clocks or rearm an exhausted shot.
+
+Local validation:
+
+- 295 JVM and 290 compiled-Wasm tests pass, including 27 new common scenarios
+  for repeat hits, delays, guards, protection, independent pause, expiry/bounds,
+  helpers, target capture, coordinates, validation, resources and replay.
+- Exported Wasm tests execute hit → projectile pause → miss delay → repeated
+  contact, finite allowance exhaustion, optional hit removal and eventual
+  lifetime retirement. Repeated render/camera/snapshot queries preserve clocks.
+- Two public KFM 600-tick structural replays match, retaining nine contacts,
+  seven fallback recoveries and zero unsupported diagnostics on that trace.
+- All 16 adapter/import/download checks and production browser smoke pass,
+  including real sprites/effects, mixed-coordinate imports, CSV and mobile layout.
+
+The authored parameters follow the
+[Elecbyte Projectile reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#projectile).
+This is synthetic JVM/Wasm coverage, not native tick-for-tick certification.
+Projectile clashes, contacts against helpers/team modes, native helper-to-root
+ownership, screen-edge bounds, removal animations/scaling, complete guard pause
+and global Pause/SuperPause behavior remain incomplete. Physical-phone
+performance remains unverified. Main CI checks browser/APK asset identity and
+anonymous permanent public downloads before publication.
+
+## Projectile trajectory/lifetime continuation — November 15, 2026
 
 Continues published main source `ef69133`. Projectile now captures authored
 `accel` and `velmul` at creation, including nested CNS vector expressions.
