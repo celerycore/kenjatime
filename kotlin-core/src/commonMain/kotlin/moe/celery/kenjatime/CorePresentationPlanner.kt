@@ -82,6 +82,8 @@ object CorePresentationPlanner {
                 .append(",\"facing\":").append(if(facingRight) 1 else -1)
                 .append(",\"action\":").append(action?.action?.number ?: -1)
                 .append(",\"elem\":").append((action?.index ?: 0)+1)
+                .append(",\"elemTime\":").append(action?.tick ?: 0)
+                .append(",\"animTime\":").append(action?.remaining ?: 0L)
                 .append(",\"group\":").append(frame?.group ?: -1)
                 .append(",\"number\":").append(frame?.sprite ?: -1)
                 .append(",\"life\":").append(life)

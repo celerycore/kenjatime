@@ -1,6 +1,46 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current continuation — November 15, 2026
+## Current AIR timing continuation — November 15, 2026
+
+Continues the custom-state work in draft PR #78. Kotlin now implements
+`AnimElem = n[, operator t]`, `AnimElemTime`, `AnimElemNo`, signed `AnimTime`,
+`AnimExist` and `SelfAnimExist`. The old `AnimElem = n` interpretation tested
+the current sprite number for its whole duration; it now tests the authored
+element start time. KFM's original `AnimElem = 3, -1` restores control one
+tick before element 3. Its original `AnimTime = 0` exits state 1052.
+
+AIR actions share immutable cumulative timing metadata. Each actor keeps an
+independent tick/cycle clock, honors LoopStart (or loops to element 1 when
+omitted), and exposes zero remaining time for one tick at each finite loop
+boundary. Infinite elements hold their sprite while elapsed time advances.
+ChangeAnim/ChangeAnim2 element selection initializes the correct time origin.
+Snapshot/render-plan timing fields are read-only. Invalid elements, absent
+animations and malformed legacy syntax produce diagnostics and fail closed.
+
+The timing contract follows the [MUGEN trigger reference](https://network.mugenguild.com/justnopoint/1.0docs/trigger.html),
+including the exception that an element-start trigger does not re-fire at the
+loop seam; `AnimTime = 0` detects that seam. This is documented-semantics and
+synthetic coverage, not a new native capture or full pause-phase certification.
+
+Validation:
+
+- 97 JVM tests and 93 compiled-Wasm tests pass, including 14 new common timing
+  tests and a test executing KFM's original state 1052 from `public/kfm.zip`.
+- The exported Wasm ABI checks negative element offsets, one-tick PosAdd,
+  signed remaining time, render snapshots, looping and recovery transitions.
+- Two real KFM 600-tick replays are deterministic, with three contacts and
+  zero unsupported diagnostics on this trace (previously one AnimElem error).
+- Focused adapter/import checks, browser build and Chromium smoke pass for
+  real sprites, RAR companion import, CSV and the 360px Android layout.
+
+Remaining timing limits: zero-duration AIR frames retain the existing
+one-tick normalization; full native display/logic clock separation during
+ChangeAnim in hitpause is unimplemented. A nonzero AnimElemNo offset after an
+explicit element jump beyond an earlier infinite frame is diagnosed rather
+than guessed. Mixed-localcoord custom states, native combat parity, a new APK
+and physical-phone performance are outside this source milestone.
+
+## Custom-state continuation — November 15, 2026
 
 Based on the separate Kotlin/Wasm 0.7 channel in draft PR #77. That channel
 owns combat, AI, clock and render planning in Kotlin and shares its Wasm

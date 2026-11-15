@@ -64,6 +64,8 @@ try {
   const a=JSON.parse(api.ktCoreSnapshot(handle,0));
   const b=JSON.parse(api.ktCoreSnapshot(handle,1));
   const issues=api.ktCoreIssues(handle).split('\n').filter(Boolean);
+  assert.ok(!issues.some(issue => /^Unsupported expression:.*\b(?:AnimElem(?:Time|No)?|AnimTime|AnimExist|SelfAnimExist)\b/i.test(issue)),
+    'Bundled KFM animation timing syntax must execute: '+issues.join('\n'));
   const entities=api.ktCoreEntities?JSON.parse(api.ktCoreEntities(handle)):{};
   // Re-import the same real character in a second isolated fight and verify a
   // bit-exact 600-tick replay. Compiler caches and fighter handles must not leak state.

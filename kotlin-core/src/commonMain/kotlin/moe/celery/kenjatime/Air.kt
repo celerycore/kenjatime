@@ -15,7 +15,51 @@ data class AirFrame(
     val group: Int, val sprite: Int, val offsetX: Int, val offsetY: Int,
     val duration: Int, val flip: String = "", val boxes: List<AirBox> = emptyList()
 )
-data class AirAction(val number: Int, val frames: List<AirFrame>, val loopIndex: Int? = null)
+data class AirAction(val number: Int, val frames: List<AirFrame>, val loopIndex: Int? = null) {
+    // Shared by all actors using this immutable action. Trigger reads never
+    // rebuild cumulative frame durations or walk an action from its start.
+    internal val timing = AirTiming(frames, loopIndex)
+}
+
+internal class AirTiming(frames: List<AirFrame>, requestedLoop: Int?) {
+    val starts = LongArray(frames.size + 1)
+    val infiniteIndex = frames.indexOfFirst { it.duration < 0 }
+    val loopIndex = requestedLoop?.takeIf { it in frames.indices } ?: 0
+    val duration: Long?
+    init {
+        for (i in frames.indices) starts[i+1] = starts[i] + frames[i].duration.coerceAtLeast(1)
+        duration = if (infiniteIndex < 0) starts.last() else null
+    }
+    fun elementTime(time: Long, element: Int): Long {
+        require(element in 1 until starts.size) { "Animation element out of range: $element" }
+        return time - starts[element-1]
+    }
+    fun elementAt(cycleTime: Long, index: Int, looped: Boolean, offset: Int): Int {
+        require(starts.size > 1) { "Animation has no elements" }
+        if (offset == 0) return index+1
+        require(infiniteIndex < 0 || index <= infiniteIndex) {
+            "AnimElemNo offset after bypassing an infinite element is unsupported"
+        }
+        var time = cycleTime + offset.toLong()
+        val end = duration
+        if (end != null && (looped || index >= loopIndex || time >= end)) {
+            val intro = starts[loopIndex]
+            val length = end - intro
+            time = intro + ((time-intro) % length + length) % length
+        } else require(time >= 0) { "Animation offset precedes its start" }
+        // An infinite element owns all future time, even if the AIR text
+        // happens to contain additional, normally unreachable elements.
+        if (infiniteIndex >= 0 && time >= starts[infiniteIndex]) return infiniteIndex+1
+        var low = 0
+        var high = starts.lastIndex
+        while (low < high) {
+            val middle = (low+high) ushr 1
+            if (time < starts[middle+1]) high = middle else low = middle+1
+        }
+        return low+1
+    }
+}
+
 class AirAnimationPlayer(val action: AirAction) {
     var index = 0
         private set
@@ -23,27 +67,40 @@ class AirAnimationPlayer(val action: AirAction) {
         private set
     var finished = false
         private set
+    var elapsed = 0L
+        private set
+    private var cycleTime = 0L
+    private var looped = false
     val frame: AirFrame? get() = action.frames.getOrNull(index)
-    fun reset() { index = 0; tick = 0; finished = false }
+    /** Signed time from the end; -1 for an indefinite action. At a loop
+     * boundary, expose zero for one simulation tick before resuming the loop. */
+    val remaining: Long get() = if (frame == null || finished) 0L else
+        action.timing.duration?.let { cycleTime-it } ?: -1L
+    fun elementTime(element: Int): Long = action.timing.elementTime(elapsed, element)
+    fun elementAt(offset: Int): Int = action.timing.elementAt(cycleTime, index, looped, offset)
+    fun reset() { index = 0; tick = 0; finished = false; elapsed = 0L; cycleTime = 0L; looped = false }
     fun selectElement(element: Int) {
         require(element in 1..action.frames.size)
         index = element - 1; tick = 0; finished = false
+        elapsed = action.timing.starts[index]; cycleTime = elapsed; looped = false
     }
     fun advance() {
         val f = frame ?: return
-        if (finished || f.duration < 0) return
+        // Keep the completed cycle's time visible at the boundary. This is
+        // why AnimElem = loopElement does not fire again at the loop seam;
+        // authored code can use AnimTime = 0 to detect that tick instead.
+        if (finished) elapsed = cycleTime
+        finished = false
+        elapsed++; cycleTime++
+        if (f.duration < 0) { if (tick < Int.MAX_VALUE) tick++; return }
         tick++
         if (tick >= f.duration.coerceAtLeast(1)) {
             tick = 0
             if (index + 1 == action.frames.size) {
-                val loop = action.loopIndex
-                if (loop != null && loop in action.frames.indices) {
-                    index = loop
-                } else {
-                    // Non-looping AIR holds its final frame for collision and display.
-                    index = action.frames.lastIndex
-                    finished = true
-                }
+                index = action.timing.loopIndex
+                cycleTime = action.timing.starts[index]
+                finished = true
+                looped = true
             } else index++
         }
     }

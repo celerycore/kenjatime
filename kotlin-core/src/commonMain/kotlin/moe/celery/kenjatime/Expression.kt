@@ -45,7 +45,7 @@ object CoreExpression {
                 "p2life" -> p?.life?.toDouble() ?: 0.0
                 "anim" -> f.animation?.action?.number?.toDouble() ?: -1.0
                 "animelem" -> f.animation?.index?.plus(1)?.toDouble() ?: 0.0
-                "animtime" -> if (f.animation?.finished == true) 0.0 else -1.0
+                "animtime" -> f.animation?.remaining?.toDouble() ?: 0.0
                 "roundstate" -> f.roundState.toDouble()
                 "alive" -> if (f.life>0) 1.0 else 0.0
                 "ishelper" -> if (f.parent!=null) 1.0 else 0.0
@@ -91,6 +91,19 @@ object CoreExpression {
                 "min" -> min(a(0),a(1))
                 "max" -> max(a(0),a(1))
                 "ifelse" -> if(a(0)!=0.0) a(1) else a(2)
+                "animelemtime", "animelemno", "animexist", "selfanimexist" -> {
+                    require(args.size == 1) { "$name requires one argument" }
+                    val argument = idx(0)
+                    when (name) {
+                        "animexist" -> if (argument in f.animationOwner.definition.animations) 1.0 else 0.0
+                        "selfanimexist" -> if (argument in f.definition.animations) 1.0 else 0.0
+                        else -> {
+                            val animation = f.animation ?: throw IllegalArgumentException("Animation has no elements")
+                            if (name == "animelemtime") animation.elementTime(argument).toDouble()
+                            else animation.elementAt(argument).toDouble()
+                        }
+                    }
+                }
                 "numhelper" -> f.world?.entities?.helpers?.count {
                     it.owner===f && (args.isEmpty() || it.helperId==idx(0))
                 }?.toDouble() ?: 0.0
@@ -154,6 +167,15 @@ object CoreExpression {
             return false
         }
         fun expect(s:String){if(!accept(s))throw IllegalArgumentException("Expected "+s)}
+        fun signedInteger(): Node {
+            val sign = if(accept("-")) -1 else { accept("+"); 1 }
+            val token = consume()
+            val integer = token.value.toLongOrNull()
+            require(token.type == 'n' && integer != null && integer * sign in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
+                "AnimElem requires integer constants; use AnimElemTime for expressions"
+            }
+            return Literal(Value.num((integer * sign).toDouble()))
+        }
         fun parse():Node{
             val node=or()
             if(cursor!=tokens.size)throw IllegalArgumentException("Trailing token "+peek())
@@ -186,6 +208,19 @@ object CoreExpression {
             if(t.type=='s')return Literal(Value.str(t.value))
             if(t.type!='i')throw IllegalArgumentException("Invalid token "+t.value)
             var name=t.value.lowercase()
+            // Legacy AnimElem is a time comparison, not a comparison with
+            // the currently displayed element number. Parse its comma here;
+            // parentheses delimit a legacy trigger nested in a function.
+            if (name == "animelem" && accept("=")) {
+                val element = signedInteger()
+                var op = "="
+                var time: Node = Literal(Value.num(0.0))
+                if (accept(",")) {
+                    if (peek() in setOf("=", "==", "!=", "<>", "<", ">", "<=", ">=")) op = consume().value
+                    time = signedInteger()
+                }
+                return Binary(op, FunctionCall("animelemtime", listOf(element)), time)
+            }
             if(name in setOf("pos","vel","p2dist","p2bodydist") &&
                 (peek().equals("x",true)||peek().equals("y",true)))
                 name+=" "+consume().value.lowercase()

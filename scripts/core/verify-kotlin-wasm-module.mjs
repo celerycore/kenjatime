@@ -139,3 +139,48 @@ try {
 } finally {
   api.ktCoreRelease(custom);
 }
+
+const timingAir = `[Begin Action 0]
+0,0,0,0,2
+0,1,0,0,3
+0,2,0,0,4`;
+const timingCns = `[Statedef 0]
+anim=0
+[State 0, move once at element start]
+type=PosAdd
+trigger1=AnimElem = 2
+x=7
+[State 0, sound before element three]
+type=PlaySnd
+trigger1=AnimElem = 3, -1
+value=5,0
+[State 0, exit at action end]
+type=ChangeState
+trigger1=AnimTime = 0
+value=10
+[Statedef 10]`;
+const timing = api.ktCoreCreate("clock","neutral",timingAir,timingAir,timingCns,"[Statedef 0]\nanim=0");
+try {
+  const soundTicks=[];
+  for(let tick=0;tick<9;tick++) {
+    const state=JSON.parse(api.ktCoreSnapshot(timing,0));
+    assert.equal(state.animationTime,tick);
+    assert.equal(state.animTime,tick-9);
+    const draw=JSON.parse(api.ktCoreRenderPlan(timing,0)).draws[0];
+    assert.equal(draw.elemTime,state.animElemTime);
+    assert.equal(draw.animTime,state.animTime);
+    api.ktCoreAdvance(timing,0,"",0,"");
+    if(JSON.parse(api.ktCoreEvents(timing)).some(e=>e.type==="playsnd"&&e.group===5))soundTicks.push(tick);
+  }
+  const seam=JSON.parse(api.ktCoreSnapshot(timing,0));
+  assert.equal(seam.animTime,0);
+  assert.equal(seam.animElem,1,"Finite AIR loops to element one by default");
+  assert.equal(seam.x256,7*256,"AnimElem=2 is a single-tick event");
+  assert.deepEqual(soundTicks,[4],"Negative element offset must fire one tick before element 3");
+  api.ktCoreAdvance(timing,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(timing,0)).state,10);
+  assert.equal(api.ktCoreIssues(timing),"");
+  console.log("Native Wasm AIR timing / negative AnimElem offset / signed AnimTime recovery: OK (synthetic)");
+} finally {
+  api.ktCoreRelease(timing);
+}

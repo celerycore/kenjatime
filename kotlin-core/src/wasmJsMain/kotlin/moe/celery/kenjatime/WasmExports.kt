@@ -117,6 +117,11 @@ private object Fights {
         ",\"state\":" + p.stateNo + ",\"stateTime\":" + p.timeInState +
         ",\"stateOwner\":" + p.stateOwner.id +
         ",\"animationOwner\":" + p.animationOwner.id +
+        ",\"anim\":" + (p.animation?.action?.number ?: -1) +
+        ",\"animElem\":" + (p.animation?.index?.plus(1) ?: 0) +
+        ",\"animElemTime\":" + (p.animation?.tick ?: 0) +
+        ",\"animationTime\":" + (p.animation?.elapsed ?: 0L) +
+        ",\"animTime\":" + (p.animation?.remaining ?: 0L) +
         ",\"numTargets\":" + p.targets().size +
         ",\"hitPause\":" + p.hitPauseLeft +
         ",\"power\":" + p.power +
