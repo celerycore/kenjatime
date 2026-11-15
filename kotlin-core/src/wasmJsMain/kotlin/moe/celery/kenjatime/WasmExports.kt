@@ -66,7 +66,7 @@ private object Fights {
     val fight = Fights.get(handle)
     val actor = if (side == 0) fight.p1 else fight.p2
     actor.life = life.coerceIn(0, actor.definition.maxLife)
-    actor.power = power.coerceIn(0, 3000)
+    actor.power = power
 }
 @JsExport fun ktCoreEnableRoundFlow(
     handle: Int, introFrames: Int, roundFrames: Int, fightFrames: Int,
@@ -141,6 +141,7 @@ private object Fights {
         ",\"getHitFall\":" + p.getHitData.fall +
         ",\"fallbackHitReaction\":" + p.fallbackHitReaction +
         ",\"power\":" + p.power +
+        ",\"powerMax\":" + p.maxPower +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +
         ",\"facing\":" + (if (p.facingRight) 1 else -1) +
         ",\"stateType\":\"" + p.stateType +

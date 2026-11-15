@@ -1075,6 +1075,114 @@ try {
 } finally { api.ktCoreRelease(targetMotion); }
 console.log("Native Wasm captured target facing / velocity / mixed coordinates / TargetDrop / immediate NumTarget update: OK (synthetic)");
 
+for(const cap of [0,5000,2147483647]) {
+  const meter=api.ktCoreCreate("power meter","opponent",air,air,`[Data]
+power=${cap}
+${motionIdle}
+[State 0, fill]
+type=PowerSet
+trigger1=Time=0
+value=PowerMax
+[State 0, add without overflow]
+type=PowerAdd
+trigger1=Time=1
+value=2147483647
+[State 0, drain]
+type=PowerAdd
+trigger1=Time=2
+value=-2147483648`,motionIdle);
+  try {
+    api.ktCoreDebugSetStats(meter,0,1000,2147483647);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(meter,0)).power,cap);
+    for(let tick=0;tick<3;tick++) {
+      api.ktCoreAdvance(meter,0,"",0,"");
+      const snapshot=JSON.parse(api.ktCoreSnapshot(meter,0));
+      assert.equal(snapshot.powerMax,cap);assert.equal(snapshot.power,tick<2 ? cap : 0);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(meter,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(meter,0)),snapshot);
+    }
+    assert.equal(api.ktCoreIssues(meter),"");
+  } finally { api.ktCoreRelease(meter); }
+}
+const targetPower=api.ktCoreCreateWithDefinitions("power capture","victim",projectileFacingAir,air,
+  `[Data]
+power=6000
+${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, capture]
+type=HitDef
+trigger1=Time=0
+id=183
+damage=10
+ground.hittime=60
+[State 200, missing ID]
+type=TargetPowerAdd
+trigger1=Time=1
+id=999
+value=1000
+[State 200, capped credit]
+type=TargetPowerAdd
+trigger1=Time=2
+id=180+3
+value=ifelse(PowerMax=6000,2147483647,0)
+[State 200, drain]
+type=TargetPowerAdd
+trigger1=Time=3
+value=-300
+[State 200, release]
+type=TargetDrop
+trigger1=Time=4
+[State 200, released targets cannot receive power]
+type=TargetPowerAdd
+trigger1=Time=4
+value=-2147483648`,
+  `[Data]\npower=1500\n${hitFlagStates}`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(targetPower,0,0,5*256,0);api.ktCoreDebugSetStats(targetPower,0,1000,700);
+  api.ktCoreDebugSetStats(targetPower,1,1000,200);api.ktCoreDebugForceState(targetPower,0,200);
+  for(const expected of [200,200,1500,1200,1200]) {
+    api.ktCoreAdvance(targetPower,0,"",0,"");
+    const victim=JSON.parse(api.ktCoreSnapshot(targetPower,1));
+    assert.equal(victim.power,expected);assert.equal(victim.powerMax,1500);
+    assert.equal(victim.life,990);assert.equal(victim.state,5000);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(targetPower,0)).power,700);
+  }
+  assert.equal(JSON.parse(api.ktCoreSnapshot(targetPower,0)).numTargets,0);
+  assert.equal(api.ktCoreIssues(targetPower),"");
+} finally { api.ktCoreRelease(targetPower); }
+const helperPower=api.ktCoreCreate("shared helper power","victim",air,air,
+  `[Data]
+power=5000
+${motionIdle}
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=800
+[Statedef 800]
+type=S
+physics=N
+anim=0
+[State 800, root meter]
+type=PowerSet
+trigger1=Time=0
+value=PowerMax-100
+[State 800, add]
+type=PowerAdd
+trigger1=Time=1
+value=50`,motionIdle);
+try {
+  for(const expected of [0,4900,4950]) {
+    api.ktCoreAdvance(helperPower,0,"",0,"");assert.equal(JSON.parse(api.ktCoreSnapshot(helperPower,0)).power,expected);
+  }
+  assert.equal(JSON.parse(api.ktCoreSnapshot(helperPower,1)).power,0);
+  assert.equal(JSON.parse(api.ktCoreEntities(helperPower)).helpers,1);
+  assert.equal(api.ktCoreIssues(helperPower),"");
+} finally { api.ktCoreRelease(helperPower); }
+console.log("Native Wasm configured PowerMax / PowerSet and overflow-safe PowerAdd / filtered TargetPowerAdd / root-shared helper meter / pure presentation: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

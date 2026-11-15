@@ -58,7 +58,7 @@ object CoreExpression {
                 "life" -> f.life.toDouble()
                 "lifemax" -> f.definition.maxLife.toDouble()
                 "power" -> f.power.toDouble()
-                "powermax" -> 3000.0
+                "powermax" -> f.maxPower.toDouble()
                 "ctrl" -> if (f.control) 1.0 else 0.0
                 "facing" -> if (f.facingRight) 1.0 else -1.0
                 "pos x" -> f.coordinates.toLocal(f.posX)

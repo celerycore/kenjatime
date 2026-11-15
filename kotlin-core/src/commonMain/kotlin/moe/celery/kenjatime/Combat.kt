@@ -60,7 +60,8 @@ data class MugenConstants(
     val yScale: Int = Fixed.ONE,
     val headX: Int = 0, val headY: Int = -90*Fixed.ONE,
     val midX: Int = 0, val midY: Int = -60*Fixed.ONE,
-    val projectileDoScale: Boolean = false
+    val projectileDoScale: Boolean = false,
+    val maxPower: Int = 3000
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -76,11 +77,13 @@ data class FighterDefinition(
     val headX: Int = 0, val headY: Int = -90*Fixed.ONE,
     val midX: Int = 0, val midY: Int = -60*Fixed.ONE,
     val defaultExplodPostype: String = "p1",
-    val projectileDoScale: Boolean = false
+    val projectileDoScale: Boolean = false,
+    val maxPower: Int = 3000
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
         require(xScale in 0..65536 && yScale in 0..65536) { "Invalid character sprite scale" }
+        require(maxPower >= 0) { "Invalid character maximum power" }
     }
     val coordinates=MugenCoordinates(localCoordWidth)
     /** Rounded compatibility scale accessors. Collision geometry converts
@@ -111,7 +114,7 @@ data class FighterDefinition(
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
-                if(modern)"none" else "p1",constants.projectileDoScale
+                if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower
             )
         }
     }
@@ -142,7 +145,8 @@ object MugenCnsParser {
             headX = point("head.pos",0,0), headY = point("head.pos",1,-90*Fixed.ONE),
             midX = point("mid.pos",0,0), midY = point("mid.pos",1,-60*Fixed.ONE),
             projectileDoScale = size?.get("proj.doscale")?.toDoubleOrNull()
-                ?.takeIf { it.isFinite() }?.let { it != 0.0 } ?: false
+                ?.takeIf { it.isFinite() }?.let { it != 0.0 } ?: false,
+            maxPower = script.section("Data")?.int("power",3000)?.coerceAtLeast(0) ?: 3000
         )
     }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
@@ -298,7 +302,30 @@ class FightingCharacter(
     private var randomState = 0x6d2b79f5 xor id
     val asserted: MutableSet<String> = linkedSetOf()
     var life = definition.maxLife
-    var power = 0
+    private var powerValue = 0
+    /** Helpers share their root's meter, independent of the active state bank. */
+    internal fun powerOwner(): FightingCharacter {
+        if(parent == null)return this
+        var actor=this
+        val seen=mutableSetOf<FightingCharacter>()
+        while(actor.parent != null) {
+            require(seen.add(actor)) { "Cyclic helper parent chain" }
+            actor=actor.parent!!
+        }
+        return actor
+    }
+    val maxPower: Int get()=powerOwner().definition.maxPower
+    var power: Int
+        get()=powerOwner().powerValue
+        set(value) {
+            val owner=powerOwner()
+            owner.powerValue=value.coerceIn(0,owner.definition.maxPower)
+        }
+    internal fun addPower(value: Int) {
+        val owner=powerOwner()
+        owner.powerValue=(owner.powerValue.toLong()+value)
+            .coerceIn(0L,owner.definition.maxPower.toLong()).toInt()
+    }
     var posX = 0
     var posY = 0
     var velX = 0
@@ -528,7 +555,7 @@ class FightingCharacter(
                     destroyed = true; return true
                 }
             }
-            "poweradd" -> { power = (power + integer(args["value"])).coerceIn(0, 3000) }
+            "poweradd", "powerset", "targetpoweradd" -> CorePowerControllers.execute(this,c,errors)
             "varrandom" -> {
                 val index = integer(args["v"], -1)
                 if (index in vars.indices) {

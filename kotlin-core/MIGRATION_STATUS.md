@@ -1,6 +1,58 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current hit eligibility continuation — November 16, 2026
+## Current power meter continuation — November 16, 2026
+
+Continues published main source `203c271`. CNS now executes PowerSet and
+TargetPowerAdd alongside PowerAdd. Each root fighter's maximum comes from
+[Data] power, with the existing 3000-point default. PowerMax, exported snapshot
+powerMax and debug stat setup use that same limit. Positive and negative changes
+clamp to the meter bounds; addition uses wider arithmetic so even Int-limit
+inputs cannot wrap a full meter to zero.
+
+Helpers and nested helpers read and change their root fighter's meter. Active
+or borrowed state banks do not change meter ownership, capacity or numeric units.
+TargetPowerAdd uses captured HitDef IDs, with omitted ID/-1 selecting all valid
+captures. Each selected target applies one delta, including multiple captured
+helpers sharing the same root meter. Draining a target does not credit the
+executing player. Dead, destroyed, recovered, dropped and missing targets are
+excluded through the existing target tracker.
+
+All expressions and IDs are validated before any meter changes. Nested numeric
+expressions evaluate once in the executing actor; fractional integer parameters
+truncate toward zero. Missing values, invalid expressions, out-of-range integers,
+unsupported parameters or invalid helper ancestry leave meters intact. Ordinary
+persistence and ignorehitpause rules apply, and later controllers observe the
+new meter within the same actor phase. Power changes do not repeat damage,
+capture targets or alter their hit reactions.
+
+The constants parser accepts nonnegative 32-bit integer capacities, normalizes
+negative constants to zero, and uses 3000 for missing/malformed/out-of-range
+constants. Fresh fights start with empty meters. Round carry-over, native
+round-end restrictions, team sharing and automatic HitDef/Projectile
+getpower/givepower remain outside this increment.
+
+Validation:
+
+- 482 JVM and 477 compiled-Wasm tests pass, including 21 new cases for constants,
+  meter bounds/overflow, invalid input, IDs, target lifetime, borrowed banks,
+  nested helper ownership, per-target deltas, pause, persistence and pure reads.
+- Exported Wasm checks zero/5000/Int-max capacities, PowerMax expressions,
+  PowerSet/PowerAdd, capped debug setup, mixed-coordinate target credit/drain,
+  ID filtering, TargetDrop, helper/root sharing and read-only presentation.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+  Two KFM 600-tick structural replays retain nine contacts, seven fallback
+  recoveries, zero unsupported diagnostics and matching checksums.
+
+Controller contracts follow the
+[Elecbyte reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#targetpoweradd).
+Root meter sharing also follows the
+[IKEMEN powerOwner/getPower implementation](https://github.com/ikemen-engine/Ikemen-GO/blob/develop/src/char.go).
+These synthetic checks do not certify native frame parity or physical-phone
+performance. Main CI verifies browser/APK asset identity and anonymous permanent
+downloads before publication.
+
+## Hit eligibility continuation — November 16, 2026
 
 Continues published main source `929c1f9`. HitDef, helper and Projectile contacts
 now share posture and gethit eligibility checks. H selects standing victims,
