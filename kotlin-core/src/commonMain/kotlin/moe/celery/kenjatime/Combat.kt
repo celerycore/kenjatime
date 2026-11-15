@@ -42,8 +42,8 @@ data class StateProgram(
     val moveType: String? = null,
     val physics: String? = null,
     val control: Boolean? = null,
-    val velocityX: Int? = null,
-    val velocityY: Int? = null
+    val velocityX: Double? = null,
+    val velocityY: Double? = null
 )
 data class MugenConstants(
     val maxLife: Int = 1000,
@@ -70,14 +70,17 @@ data class FighterDefinition(
     val midX: Int = 0, val midY: Int = -60*Fixed.ONE,
     val defaultExplodPostype: String = "p1"
 ) {
-    /** AIR collision boxes use the character's local coordinates. Convert
-     * them into the common 320x240 stage collision space, using fixed-point
-     * integer scales. This is required for mixed 1008x756/320x240 matches.
-     */
+    init {
+        require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
+        require(xScale in 0..65536 && yScale in 0..65536) { "Invalid character sprite scale" }
+    }
+    val coordinates=MugenCoordinates(localCoordWidth)
+    /** Rounded compatibility scale accessors. Collision geometry converts
+     * whole coordinates through coordinates.box to retain rational precision. */
     val collisionScaleX: Int
-        get() = ((xScale.toLong()*320)/localCoordWidth).coerceIn(1,65536).toInt()
+        get() = coordinates.fixedToWorld(xScale)
     val collisionScaleY: Int
-        get() = ((yScale.toLong()*240)/localCoordHeight).coerceIn(1,65536).toInt()
+        get() = coordinates.fixedToWorld(yScale)
     companion object {
         fun fromScript(name: String, air: String, cns: String, cmd: String = "",
                        defText: String = ""): FighterDefinition {
@@ -170,8 +173,8 @@ object MugenCnsParser {
             StateProgram(n, m?.get("anim")?.toIntOrNull(), c.toList(),
                 m?.get("type")?.uppercase(), m?.get("movetype")?.uppercase(),
                 m?.get("physics")?.uppercase(), m?.get("ctrl")?.toIntOrNull()?.let { it != 0 },
-                velocity.getOrNull(0)?.trim()?.toDoubleOrNull()?.let(Fixed::of),
-                velocity.getOrNull(1)?.trim()?.toDoubleOrNull()?.let(Fixed::of))
+                velocity.getOrNull(0)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() },
+                velocity.getOrNull(1)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() })
         }
     }
 }
@@ -227,11 +230,7 @@ class FightingCharacter(
     internal fun bindingProblem(anchor: FightingCharacter, source: FightingCharacter): String? {
         if (world == null || world !== anchor.world) return "Binding actors must belong to the same fight"
         if (destroyed || anchor.destroyed) return "Binding actor or anchor is destroyed"
-        // Spatial expression conversion in nonstandard localcoord remains a
-        // separate port. Never apply an attachment with guessed units.
-        if (listOf(this,anchor,source).any {
-            it.definition.localCoordWidth != 320 || it.definition.localCoordHeight != 240
-        }) return "Unsupported binding coordinates: 320x240 localcoord is required"
+        if(source.world != null && source.world !== world) return "Binding source must belong to the same fight"
         val seen = mutableSetOf<FightingCharacter>()
         var current: FightingCharacter? = anchor
         while(current != null) {
@@ -249,6 +248,11 @@ class FightingCharacter(
      * immutable character definition, variables, life and SFF resources. */
     var stateOwner: FightingCharacter = this
         private set
+    /** Expressions and spatial controllers use the active state owner's
+     * coordinates, including own -2 code executed while in a foreign state. */
+    val coordinates: MugenCoordinates get() = stateOwner.definition.coordinates
+    fun bodyWidthWorld(direction: Int): Int = definition.coordinates.toWorld(
+        (if(facingRight == (direction > 0))definition.groundFront else definition.groundBack).toDouble())
     var animationOwner: FightingCharacter = this
         private set
     private var scriptOwner: FightingCharacter = this
@@ -312,8 +316,8 @@ class FightingCharacter(
         stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
         moveType = program?.moveType ?: (if (state >= 5000) "H" else "I")
         control = program?.control ?: controlOverride ?: if (neutralFallback) true else control
-        program?.velocityX?.let { velX = it }
-        program?.velocityY?.let { velY = it }
+        program?.velocityX?.let { velX = coordinates.toWorld(it) }
+        program?.velocityY?.let { velY = coordinates.toWorld(it) }
         // Missing StateDef anim preserves the current AIR, including a
         // borrowed ChangeAnim2 action. Initial synthetic actors may use 0.
         val newAnim = program?.animation ?: if (neutralFallback || animation == null && state == 0) 0 else null
@@ -326,18 +330,16 @@ class FightingCharacter(
         animationOwner = owner
         return true
     }
-    /** Refuse unsupported transfers before changing victim state or control.
-     * World positions stay in the shared fixed-point space. Full mixed-localcoord
-     * expression/velocity conversion remains a separate compatibility gate. */
+    /** State ownership changes the script unit system. Existing physical
+     * positions/velocities are already canonical and must never be rescaled. */
     fun enterAuthoredState(state: Int, owner: FightingCharacter,
                            errors: MutableSet<String>, controlOverride: Boolean? = null): Boolean {
         if (state !in owner.definition.states && !(owner === this && state == 0)) {
             errors.add("Missing custom/transition state: $state (owner ${owner.id})")
             return false
         }
-        if (owner !== this && (owner.definition.localCoordWidth != definition.localCoordWidth ||
-                owner.definition.localCoordHeight != definition.localCoordHeight)) {
-            errors.add("Unsupported mixed-localcoord custom state: $state")
+        if(owner.world != null && world != null && owner.world !== world) {
+            errors.add("State owner belongs to another fight")
             return false
         }
         changeState(state, owner, controlOverride)
@@ -346,13 +348,13 @@ class FightingCharacter(
     fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
     fun markHit(target: Int) { struck.add(target) }
     fun attackBoxes(): List<MugenRect> = animation?.frame?.boxes
-        ?.filter { it.attack }?.map { it.rect.world(posX, posY, facingRight,
-            animationOwner.definition.collisionScaleX,animationOwner.definition.collisionScaleY) } ?: emptyList()
+        ?.filter { it.attack }?.map { animationOwner.definition.let { d ->
+            d.coordinates.box(it.rect,posX,posY,facingRight,d.xScale,d.yScale) } } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
-        ?.filterNot { it.attack }?.map { it.rect.world(posX, posY, facingRight,
-            animationOwner.definition.collisionScaleX,animationOwner.definition.collisionScaleY) } ?: emptyList()
+        ?.filterNot { it.attack }?.map { animationOwner.definition.let { d ->
+            d.coordinates.box(it.rect,posX,posY,facingRight,d.xScale,d.yScale) } } ?: emptyList()
     private fun number(raw: String?, default: Int = 0): Int =
-        raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(Fixed::of) } ?: default
+        raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(coordinates::toWorld) } ?: default
     private fun integer(raw: String?, default: Int = 0): Int =
         raw?.let { CoreExpression.number(it, this, evaluationIssues)?.toInt() } ?: default
     private fun runController(c: StateController, errors: MutableSet<String>): Boolean {
@@ -367,7 +369,7 @@ class FightingCharacter(
                 velX = (velX * x).toInt()
                 velY = (velY * y).toInt()
             }
-            "gravity" -> { velY += Fixed.of(0.7) }
+            "gravity" -> { velY += definition.coordinates.fixedToWorld(definition.airGravity) }
             "turn" -> { facingRight = !facingRight }
             "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }

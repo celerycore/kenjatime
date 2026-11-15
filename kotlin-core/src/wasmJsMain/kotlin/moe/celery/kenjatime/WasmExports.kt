@@ -116,6 +116,8 @@ private object Fights {
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
         ",\"state\":" + p.stateNo + ",\"stateTime\":" + p.timeInState +
         ",\"stateOwner\":" + p.stateOwner.id +
+        ",\"localCoordWidth\":" + p.coordinates.width +
+        ",\"ownLocalCoordWidth\":" + p.definition.localCoordWidth +
         ",\"animationOwner\":" + p.animationOwner.id +
         ",\"anim\":" + (p.animation?.action?.number ?: -1) +
         ",\"animElem\":" + (p.animation?.index?.plus(1) ?: 0) +

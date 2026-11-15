@@ -269,7 +269,7 @@ class BindingTest {
         }
     }
 
-    @Test fun cyclesCrossFightAnchorsAndUnsupportedCoordinatesFailBeforeMutation() {
+    @Test fun cyclesAndCrossFightAnchorsFailButMixedCoordinateBindingsAreAllowed() {
         val w=fight()
         w.p1.bindTo(w.p2,0,0,-1)
         assertFailsWith<IllegalArgumentException>{w.p2.bindTo(w.p1,0,0,-1)}
@@ -278,20 +278,20 @@ class BindingTest {
         assertFailsWith<IllegalArgumentException>{w.p1.bindTo(fight().p2,0,0,-1)}
         val high=FightingCharacter(definition().copy(localCoordWidth=1008,localCoordHeight=756),3)
         high.world=w
-        assertFailsWith<IllegalArgumentException>{high.bindTo(w.p2,0,0,-1)}
-        assertNull(high.binding)
+        high.bindTo(w.p2,0,0,-1)
+        assertSame(w.p2,high.binding?.anchor)
     }
 
-    @Test fun allTargetRequestIsAtomicWhenOneTargetHasUnsupportedCoordinates() {
+    @Test fun allTargetRequestIsAtomicWhenOneTargetBelongsToAnotherFight() {
         val w=fight(state("TargetBind","time=-1\npos=5,0"))
         val high=FightingCharacter(definition().copy(localCoordWidth=1008,localCoordHeight=756),3)
-        high.world=w
+        high.world=fight()
         capture(w.p1,w.p2);capture(w.p1,high)
         w.p1.changeState(200)
         w.step()
         assertNull(w.p2.binding)
         assertNull(high.binding)
-        assertTrue(w.issues.any{it.contains("320x240")})
+        assertTrue(w.issues.any{it.contains("same fight")})
     }
 
     @Test fun missingTargetsAndCyclicHelperParentChainsProduceDiagnostics() {

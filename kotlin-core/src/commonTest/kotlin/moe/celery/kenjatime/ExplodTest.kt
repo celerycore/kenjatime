@@ -293,7 +293,7 @@ class ExplodTest {
         assertTrue(w.issues.any{it.contains("resource limit")})
     }
 
-    @Test fun missingArtworkUnsupportedParamsAndCoordinatesFailWithoutSpawning() {
+    @Test fun missingArtworkAndUnsupportedParamsFailButHighResolutionOffsetsConvert() {
         val bad=listOf("anim=999","anim=F72","anim=200\npostype=front","anim=200\nspace=screen",
             "anim=200\ntrans=add","anim=200\nbindtime=-2","anim=200\nremovetime=-3",
             "anim=200\nscale=-1,1","anim=200\nfacing=0","anim=200\npos=1,2,3",
@@ -305,9 +305,11 @@ class ExplodTest {
             assertTrue(w.issues.isNotEmpty(),parameters)
         }
         val high=fight(def="[Info]\nlocalcoord=1008,756")
-        execute(high)
-        assertTrue(high.effects.all.isEmpty())
-        assertTrue(high.issues.any{it.contains("320x240")})
+        execute(high,parameters="anim=200\npos=1008,756\nremovetime=-1")
+        high.step()
+        assertEquals(320*Fixed.ONE,only(high).x)
+        assertEquals(240*Fixed.ONE,only(high).y)
+        assertTrue(high.issues.isEmpty(),high.issues.joinToString())
     }
 
     @Test fun priorityAndOnTopOrderingAreStableAndDoNotReorderSimulationStorage() {

@@ -30,17 +30,18 @@ object CoreExpression {
                 "powermax" -> 3000.0
                 "ctrl" -> if (f.control) 1.0 else 0.0
                 "facing" -> if (f.facingRight) 1.0 else -1.0
-                "pos x" -> Fixed.pixels(f.posX)
-                "pos y" -> Fixed.pixels(f.posY)
-                "vel x" -> Fixed.pixels(f.velX)
-                "vel y" -> Fixed.pixels(f.velY)
-                "p2dist x" -> p?.let { Fixed.pixels(it.posX-f.posX) * if(f.facingRight)1 else -1 } ?: 0.0
-                "p2dist y" -> p?.let { Fixed.pixels(it.posY-f.posY) } ?: 0.0
+                "pos x" -> f.coordinates.toLocal(f.posX)
+                "pos y" -> f.coordinates.toLocal(f.posY)
+                "vel x" -> f.coordinates.toLocal(f.velX)
+                "vel y" -> f.coordinates.toLocal(f.velY)
+                "p2dist x" -> p?.let { f.coordinates.toLocal(it.posX.toLong()-f.posX) * if(f.facingRight)1 else -1 } ?: 0.0
+                "p2dist y" -> p?.let { f.coordinates.toLocal(it.posY.toLong()-f.posY) } ?: 0.0
                 "p2bodydist x" -> p?.let {
-                    val ahead=Fixed.pixels(it.posX-f.posX)*(if(f.facingRight)1 else -1)
-                    ahead - (f.definition.groundFront+it.definition.groundBack)
+                    val direction=if(f.facingRight)1 else -1
+                    val ahead=(it.posX.toLong()-f.posX)*direction
+                    f.coordinates.toLocal(ahead-f.bodyWidthWorld(direction)-it.bodyWidthWorld(-direction))
                 } ?: 0.0
-                "p2bodydist y" -> p?.let { Fixed.pixels(it.posY-f.posY) } ?: 0.0
+                "p2bodydist y" -> p?.let { f.coordinates.toLocal(it.posY.toLong()-f.posY) } ?: 0.0
                 "p2stateno" -> p?.stateNo?.toDouble() ?: 0.0
                 "p2life" -> p?.life?.toDouble() ?: 0.0
                 "anim" -> f.animation?.action?.number?.toDouble() ?: -1.0

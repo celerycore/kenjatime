@@ -350,3 +350,71 @@ try {
   assert.equal(api.ktCoreIssues(modified),"");
   console.log("Native Wasm ModifyExplod / zero scale / ExplodBindTime / RemoveExplod: OK (synthetic)");
 } finally { api.ktCoreRelease(modified); }
+
+// Different script units must not rescale stored physical vectors when a
+// victim borrows a state. Exercise the exported ABI, not a JavaScript model.
+const highAir=`[Begin Action 0]
+Clsn1Default:1
+Clsn1[0]=0,-189,126,0
+0,0,0,0,-1`;
+const highCns=`[Statedef 0]
+type=S
+movetype=A
+physics=N
+anim=0
+[State 0, hit]
+type=HitDef
+trigger1=Time=0
+id=7
+damage=10
+ground.velocity=6.3,-3.15
+p2stateno=910
+[State 0, attach]
+type=TargetBind
+trigger1=Time=1
+id=7
+time=2
+pos=31.5,-15.75
+[Statedef 910]
+type=S
+movetype=H
+physics=N
+[State 910, return]
+type=SelfState
+trigger1=Time=1
+value=0`;
+const mixed=api.ktCoreCreateWithDefinitions("1008 owner","320 victim",highAir,air,
+  highCns,"[Statedef 0]\ntype=S\nphysics=N\nanim=0","","",
+  "[Info]\nlocalcoord=1008,756","[Info]\nlocalcoord=320,240");
+try {
+  api.ktCoreSetup(mixed,0,0,20*256,0);
+  api.ktCoreAdvance(mixed,0,"",0,"");
+  const borrowed=JSON.parse(api.ktCoreSnapshot(mixed,1));
+  assert.equal(borrowed.life,990);
+  assert.equal(borrowed.stateOwner,1);
+  assert.equal(borrowed.localCoordWidth,1008);
+  assert.equal(borrowed.ownLocalCoordWidth,320);
+  assert.equal(borrowed.x256,20*256);
+  assert.equal(borrowed.vx256,2*256);
+  assert.equal(borrowed.vy256,-256);
+  api.ktCoreAdvance(mixed,0,"",0,"");
+  const attached=JSON.parse(api.ktCoreSnapshot(mixed,1));
+  assert.equal(attached.x256,10*256);
+  assert.equal(attached.y256,-5*256);
+  assert.equal(attached.bindTime,1);
+  const plan=JSON.parse(api.ktCoreRenderPlan(mixed,0));
+  const draw=plan.draws.find(d=>d.kind==="fighter"&&d.side===0);
+  assert.ok(Math.abs(draw.pixelScaleX-1.4*320/1008)<1e-9);
+  assert.ok(Math.abs(draw.pixelScaleY-1.1*320/1008)<1e-9);
+  for(let i=0;i<3;i++)api.ktCoreRenderPlan(mixed,12);
+  assert.deepEqual(JSON.parse(api.ktCoreSnapshot(mixed,1)),attached);
+  api.ktCoreAdvance(mixed,0,"",0,"");
+  const recovered=JSON.parse(api.ktCoreSnapshot(mixed,1));
+  assert.equal(recovered.stateOwner,2);
+  assert.equal(recovered.localCoordWidth,320);
+  assert.equal(recovered.boundTo,0);
+  api.ktCoreAdvance(mixed,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(mixed,1)).x256,12*256);
+  assert.equal(api.ktCoreIssues(mixed),"");
+  console.log("Native Wasm mixed-coordinate HitDef / borrowed state / TargetBind / SelfState / pixel projection: OK (synthetic)");
+} finally { api.ktCoreRelease(mixed); }

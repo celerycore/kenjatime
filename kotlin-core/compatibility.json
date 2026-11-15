@@ -46,15 +46,15 @@
     "stopsnd"
   ],
   "knownIncomplete": [
-    "Custom-state transfers across different DEF localcoord values are diagnosed and rejected; full coordinate conversion remains unimplemented",
+    "Supported spatial paths convert active state-owner units through canonical stage coordinates; complete localcoord-dependent triggers/controllers and native mixed-coordinate parity remain unverified",
     "TargetState/ChangeAnim2/SelfState and HitDef p2stateno have synthetic JVM/Wasm coverage, not native tick-for-tick throw parity",
     "Complex CNS/ZSS expression evaluation and evaluation order",
     "Tick-for-tick MUGEN/IKEMEN common states and separate display/logic animation clocks during pause/reset",
     "Zero-duration AIR elements retain one-tick normalization; nonzero AnimElemNo offsets after jumping past an infinite element are diagnosed",
-    "Bindings currently require 320x240 localcoord; shared attachment phase and pause lifetimes have synthetic coverage, not native frame parity",
+    "Mixed-localcoord bindings, shared attachment phase and pause lifetimes have synthetic coverage, not native frame parity",
     "Full helper state inheritance/destruction, projectile clashes, projectiles multi-hit",
     "Full hitguard/guardstun, juggling, KO, rebounds and throws",
-    "Explod requires 320x240 creator/source coordinates; common F animations, viewport postypes, palette/blend/rotation and advanced pause parameters are diagnosed as unsupported",
+    "Explod supports active-state coordinate conversion; common F animations, viewport postypes, palette/blend/rotation and advanced pause parameters are diagnosed as unsupported",
     "Pause/superpause, complete effects, sound/video, AI decisions",
     "Original character timing parity and performance on physical mobile hardware",
     "Playback of queued PlaySnd/StopSnd events remains browser-adapter responsibility",

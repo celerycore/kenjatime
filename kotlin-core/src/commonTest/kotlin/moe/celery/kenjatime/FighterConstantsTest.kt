@@ -51,7 +51,7 @@ class FighterConstantsTest {
         a.facingRight=false
         val issues=linkedSetOf<String>()
         assertTrue(CoreExpression.test("p2dist x = 60",a,issues))
-        assertTrue(CoreExpression.test("p2bodydist x = 30",a,issues))
+        assertTrue(CoreExpression.test("p2bodydist x = 24",a,issues))
         assertTrue(issues.isEmpty())
     }
 }

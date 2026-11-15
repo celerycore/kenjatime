@@ -241,7 +241,7 @@ class CustomStateTest {
         assertEquals(73,b.vars[42])
     }
 
-    @Test fun missingOrMixedLocalcoordTransfersDoNotMutateVictim() {
+    @Test fun missingStatesAreRejectedAndMixedLocalcoordEntryPreservesPhysicalVectors() {
         val a=thrower()
         val b=victim()
         val errors=linkedSetOf<String>()
@@ -249,11 +249,14 @@ class CustomStateTest {
         assertEquals(0,b.stateNo)
         assertSame(b,b.stateOwner)
         val hi=FightingCharacter(a.definition.copy(localCoordWidth=1008,localCoordHeight=756),3)
-        assertFalse(b.enterAuthoredState(910,hi,errors))
-        assertEquals(0,b.stateNo)
-        assertSame(b,b.stateOwner)
+        b.posX=10*Fixed.ONE;b.velX=3*Fixed.ONE
+        assertTrue(b.enterAuthoredState(910,hi,errors))
+        assertEquals(910,b.stateNo)
+        assertSame(hi,b.stateOwner)
+        assertEquals(10*Fixed.ONE,b.posX)
+        assertEquals(3*Fixed.ONE,b.velX)
         assertTrue(errors.any { it.contains("Missing custom/transition state") })
-        assertTrue(errors.any { it.contains("mixed-localcoord custom state") })
+        assertTrue(errors.none { it.contains("mixed-localcoord custom state") })
     }
 
     @Test fun helperHitOwnsItsVictimStateAndTargetsStayOnHelper() {

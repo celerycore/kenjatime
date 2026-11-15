@@ -117,11 +117,42 @@ try:
         assert effect["spriteScaleX"]==0.5 and effect["spriteScaleY"]==0.5,effect
         assert effect["sprpriority"]<0,effect
         painted=effects.evaluate("window.__kenjatimeKotlinQA.lastExplodPaint")
-        assert abs(painted["scaleX"]-0.5*painted["cameraZoom"])<0.00001,painted
-        assert abs(painted["scaleY"]-0.5*painted["cameraZoom"])<0.00001,painted
+        assert abs(painted["scaleX"]-painted["plannedScaleX"])<0.00001,painted
+        assert abs(painted["scaleY"]-painted["plannedScaleY"])<0.00001,painted
         assert not effect_errors,effect_errors
         result["realExplodSpritePaints"]=effects.evaluate("window.__kenjatimeKotlinQA.explodPaints")
         effects.close()
+
+        high=browser.new_page(viewport={"width":1000,"height":780})
+        high_errors=[]
+        high.on("pageerror",lambda error:high_errors.append(str(error)))
+        high.goto(base,wait_until="domcontentloaded",timeout=30000)
+        high.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        high.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-localcoord.zip"))
+        high.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=high.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        high.locator("#p1-select").select_option(value=installed)
+        high.locator("#start").click()
+        high.wait_for_function("window.__kenjatimeKotlinQA?.explodPaints>5",timeout=30000)
+        high_plan=high.evaluate("window.__kenjatimeKotlinQA.renderPlan")
+        effect=next(d for d in high_plan["draws"] if d["kind"]=="explod")
+        fighter=next(d for d in high_plan["draws"] if d["kind"]=="fighter" and d["side"]==0)
+        assert effect["effectId"]==702,effect
+        assert abs(effect["spriteScaleX"]-0.5)<0.00001,effect
+        assert abs(effect["spriteScaleY"]-0.5)<0.00001,effect
+        assert abs(effect["pixelScaleX"]-0.7*effect["scale"])<0.00001,effect
+        assert abs(effect["pixelScaleY"]-0.55*effect["scale"])<0.00001,effect
+        # Size is fixed-point authored metadata; effect scale is independent.
+        expected_size=(int(3.15*256)/256)*(320/1008)
+        assert abs(fighter["spriteScaleX"]-expected_size)<0.00001,fighter
+        assert abs(fighter["spriteScaleY"]-expected_size)<0.00001,fighter
+        painted=high.evaluate("window.__kenjatimeKotlinQA.lastExplodPaint")
+        assert abs(painted["scaleX"]-painted["plannedScaleX"])<0.00001,painted
+        assert abs(painted["scaleY"]-painted["plannedScaleY"])<0.00001,painted
+        assert not high_errors,high_errors
+        result["synthetic1008CoordinateCanvasPaint"]="passed"
+        high.close()
 
         # A real 360-css-pixel Android WebView viewport, with native status-bar
         # insets, may NEVER horizontally scroll or overlap its two selectors.

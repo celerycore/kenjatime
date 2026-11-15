@@ -63,15 +63,17 @@ object CorePresentationPlanner {
             val zoom=camera?.zoom ?: 1.0
             val effectScaleX=effect?.config?.scaleX ?: 1.0
             val effectScaleY=effect?.config?.scaleY ?: 1.0
+            val spriteScaleX=definition.coordinates.scale*effectScaleX*(if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0)
+            val spriteScaleY=definition.coordinates.scale*effectScaleY*(if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0)
+            val pixelScaleX=spriteScaleX*HORIZONTAL_SCALE*zoom
+            val pixelScaleY=spriteScaleY*VERTICAL_SCALE*zoom
             // AIR frame offsets are authored in the fighter's localcoord and
             // are applied before the SFF pivot. The old JS renderer ignored
             // them, causing specials and helper animation frames to drift.
             val drawX=pixelX(x256,camera)+
-                (frame?.offsetX ?: 0)*320.0/definition.localCoordWidth*
-                HORIZONTAL_SCALE*zoom*face*effectScaleX
+                (frame?.offsetX ?: 0)*pixelScaleX*face
             val drawY=pixelY(y256,camera)+
-                (frame?.offsetY ?: 0)*240.0/definition.localCoordHeight*
-                VERTICAL_SCALE*zoom*effectScaleY*(effect?.config?.verticalFacing ?: 1)
+                (frame?.offsetY ?: 0)*pixelScaleY*(effect?.config?.verticalFacing ?: 1)
             val flip=frame?.flip?.uppercase() ?: ""
             json.append("{\"side\":").append(side)
                 .append(",\"kind\":\"").append(kind).append("\"")
@@ -80,8 +82,10 @@ object CorePresentationPlanner {
                 .append(",\"flipX\":").append(if('H' in flip) -1 else 1)
                 .append(",\"flipY\":").append((if('V' in flip) -1 else 1)*(effect?.config?.verticalFacing ?: 1))
                 .append(",\"scale\":").append(camera?.zoom ?: 1.0)
-                .append(",\"spriteScaleX\":").append(320.0 / definition.localCoordWidth*effectScaleX)
-                .append(",\"spriteScaleY\":").append(240.0 / definition.localCoordHeight*effectScaleY)
+                .append(",\"spriteScaleX\":").append(spriteScaleX)
+                .append(",\"spriteScaleY\":").append(spriteScaleY)
+                .append(",\"pixelScaleX\":").append(pixelScaleX)
+                .append(",\"pixelScaleY\":").append(pixelScaleY)
                 .append(",\"facing\":").append(if(facingRight) 1 else -1)
                 .append(",\"action\":").append(action?.action?.number ?: -1)
                 .append(",\"elem\":").append((action?.index ?: 0)+1)

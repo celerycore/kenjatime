@@ -39,3 +39,27 @@ scale=.5,.5
 sprpriority=-1
 `);
 writeFileSync("test-output/kotlin-kfm-explod.zip",zipSync(effectFiles));
+
+// Synthetic coordinate metadata, not a rescaled native character. Public KFM
+// art lets Chromium verify that complete pixel transforms come from Kotlin.
+const highFiles=Object.fromEntries(raw);
+const decoder=new TextDecoder("iso-8859-1"), encoder=new TextEncoder();
+highFiles["kfm/kfm.def"]=encoder.encode(decoder.decode(highFiles["kfm/kfm.def"])
+  .replace(/^localcoord\s*=.*$/mi,"localcoord=1008,756"));
+highFiles["kfm/kfm.cns"]=encoder.encode(decoder.decode(highFiles["kfm/kfm.cns"])
+  .replace(/^xscale\s*=.*$/mi,"xscale=3.15")
+  .replace(/^yscale\s*=.*$/mi,"yscale=3.15")+`
+[Statedef -2]
+[State -2, Kotlin high-coordinate renderer fixture]
+type=Explod
+trigger1=NumExplod(702)=0
+id=702
+anim=0
+postype=p1
+pos=31.5,-189
+bindtime=-1
+removetime=-1
+scale=1.575,1.575
+sprpriority=-1
+`);
+writeFileSync("test-output/kotlin-kfm-localcoord.zip",zipSync(highFiles));

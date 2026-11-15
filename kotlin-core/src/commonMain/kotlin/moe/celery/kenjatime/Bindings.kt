@@ -48,8 +48,8 @@ object CoreBindingControllers {
             val wanted = integer("id",-1)
             val position = CnsArguments.split(args["pos"] ?: "0,0")
             require(position.size <= if(type == "bindtotarget")3 else 2) { "Invalid binding position arity" }
-            val x = Fixed.of(number(position[0]))
-            val y = Fixed.of(number(position.getOrNull(1) ?: "0"))
+            val x = actor.coordinates.toWorld(number(position[0]))
+            val y = actor.coordinates.toWorld(number(position.getOrNull(1) ?: "0"))
             val point = (position.getOrNull(2) ?: "foot").trim('"','\'').lowercase()
             require(point in setOf("foot","head","mid")) { "Binding anchor must be Foot, Head or Mid" }
             val facing = integer("facing",0)
@@ -83,8 +83,8 @@ object CoreBindingControllers {
             }
             if (time == 0) { actor.releaseBinding(); return }
             actor.bindingProblem(anchor,source)?.let { throw IllegalArgumentException(it) }
-            val offsetX = when(point) { "head" -> anchor.definition.headX; "mid" -> anchor.definition.midX; else -> 0 }
-            val offsetY = when(point) { "head" -> anchor.definition.headY; "mid" -> anchor.definition.midY; else -> 0 }
+            val offsetX = anchor.definition.coordinates.fixedToWorld(when(point) { "head" -> anchor.definition.headX; "mid" -> anchor.definition.midX; else -> 0 })
+            val offsetY = anchor.definition.coordinates.fixedToWorld(when(point) { "head" -> anchor.definition.headY; "mid" -> anchor.definition.midY; else -> 0 })
             val sumX = x.toLong()+offsetX
             val sumY = y.toLong()+offsetY
             require(sumX in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() &&

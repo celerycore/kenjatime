@@ -68,6 +68,11 @@ class CoreExplods(private val fight: DeterministicFight) {
             require(components.size <= 2) { "Explod $key requires at most two components" }
             return number(components[0]) to number(components.getOrNull(1) ?: if(key == "scale")"1" else "0")
         }
+        fun spatial(key: String, x: Int, y: Int): Pair<Int,Int> {
+            if(key !in args)return x to y
+            val local=vector(key,0.0 to 0.0)
+            return actor.coordinates.toWorld(local.first) to actor.coordinates.toWorld(local.second)
+        }
         args["anim"]?.let {
             require(!Regex("(?i)^f(?=\\s|[\\d(+.-])").containsMatchIn(it.trim())) {
                 "Common F animation sources are not implemented for Explod"
@@ -80,11 +85,11 @@ class CoreExplods(private val fight: DeterministicFight) {
         val postype=args["postype"]?.trim()?.trim('"','\'')?.lowercase() ?: base.postype
         require(postype in setOf("p1","p2","none")) { "Unsupported Explod postype: $postype" }
         require(postype != "p2" || actor.opponent?.destroyed == false) { "Explod P2 is unavailable" }
-        val pos=vector("pos",Fixed.pixels(base.offsetX) to Fixed.pixels(base.offsetY))
+        val pos=spatial("pos",base.offsetX,base.offsetY)
         val velocityKey=if("vel" in args) "vel" else "velocity"
         require(!("vel" in args && "velocity" in args)) { "Explod has both vel and velocity" }
-        val velocity=vector(velocityKey,Fixed.pixels(base.velocityX) to Fixed.pixels(base.velocityY))
-        val accel=vector("accel",Fixed.pixels(base.accelerationX) to Fixed.pixels(base.accelerationY))
+        val velocity=spatial(velocityKey,base.velocityX,base.velocityY)
+        val accel=spatial("accel",base.accelerationX,base.accelerationY)
         val scale=vector("scale",base.scaleX to base.scaleY)
         require(scale.first in 0.0..64.0 && scale.second in 0.0..64.0) { "Explod scale is outside 0..64" }
         val bind=integer("bindtime",base.bindTime)
@@ -93,9 +98,9 @@ class CoreExplods(private val fight: DeterministicFight) {
         val facing=integer("facing",base.facing)
         val vertical=integer("vfacing",base.verticalFacing)
         require(facing in listOf(-1,1) && vertical in listOf(-1,1)) { "Explod facing/vfacing must be -1 or 1" }
-        return base.copy(animation=anim,postype=postype,offsetX=Fixed.of(pos.first),offsetY=Fixed.of(pos.second),
-            velocityX=Fixed.of(velocity.first),velocityY=Fixed.of(velocity.second),
-            accelerationX=Fixed.of(accel.first),accelerationY=Fixed.of(accel.second),
+        return base.copy(animation=anim,postype=postype,offsetX=pos.first,offsetY=pos.second,
+            velocityX=velocity.first,velocityY=velocity.second,
+            accelerationX=accel.first,accelerationY=accel.second,
             bindTime=bind,removeTime=remove,facing=facing,verticalFacing=vertical,
             scaleX=scale.first,scaleY=scale.second,priority=integer("sprpriority",base.priority),
             onTop=integer("ontop",if(base.onTop)1 else 0) != 0,
@@ -104,6 +109,9 @@ class CoreExplods(private val fight: DeterministicFight) {
     }
     fun execute(actor: FightingCharacter, controller: StateController, source: FightingCharacter) {
         try {
+            require(actor.world === fight && (source.world == null || source.world === fight)) {
+                "Explod owner/source belongs to another fight"
+            }
             val type=controller.type.lowercase()
             val args=controller.params
             val common=setOf("type","persistent","ignorehitpause","id")
@@ -125,9 +133,6 @@ class CoreExplods(private val fight: DeterministicFight) {
                 require(time >= -1) { "Invalid ExplodBindTime duration" }
                 for(e in matches) e.bindLeft=if(e.anchor == null)0 else time
                 return
-            }
-            require(listOf(actor,source).all { it.definition.localCoordWidth == 320 && it.definition.localCoordHeight == 240 }) {
-                "Explod spatial expressions currently require 320x240 localcoord"
             }
             if(type == "modifyexplod") {
                 // No selected effect changes until every candidate validates.

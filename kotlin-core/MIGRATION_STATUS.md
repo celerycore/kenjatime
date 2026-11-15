@@ -1,6 +1,58 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current Explod continuation — November 15, 2026
+## Current coordinate-space continuation — November 15, 2026
+
+Continues local effects source `6ea3c82`. Supported spatial controllers now
+convert authored character units into the canonical fixed-point stage space.
+The active state owner's localcoord width determines Pos/Vel/P2Dist expression
+units, StateDef velocity, position/velocity controllers, HitDef velocities,
+helper/projectile offsets, binding offsets and Explod motion. Transfers between
+320-wide and 1008-wide states preserve existing physical positions and
+velocities; SelfState restores the actor's own script units. Own -2 controllers
+retain the active state's units while using their own state/resource namespace.
+
+Character scaling is uniform `320/localcoord.width` on both axes. Localcoord
+height remains viewport metadata. Body widths, gravity and Head/Mid anchor
+constants use the actor's own definition. AIR boxes use their animation owner's
+coordinates and Size scales, with one rational conversion per coordinate;
+1008-wide geometry no longer truncates an intermediate 81/256 scale. Push
+separation and P2BodyDist select each actor's facing-dependent body width.
+
+Render plans expose complete `pixelScaleX`/`pixelScaleY`, combining authored
+coordinate/Size or effect scales, stage projection and camera zoom. Canvas uses
+these transforms directly. AIR offsets and sprite pixels now share a transform;
+the adapter's arbitrary sprite magnification/cap is removed. Effect scale is
+independent of fighter Size. Read-only Wasm snapshots expose active and own
+localcoord widths. Scale-only ModifyExplod patches preserve stored spatial
+values even after the creator changes state coordinate systems.
+
+Local validation:
+
+- 150 JVM and 145 compiled-Wasm tests pass, including 15 new common coordinate
+  scenarios covering inverse conversion without drift, equivalent replays,
+  mixed-resolution custom states, HitDef/TargetState, bindings, helpers,
+  projectiles, effects, collision precision, gravity, landing and rendering.
+- Exported ESM/Wasm tests exercise a 1008-wide attacker capturing a 320-wide
+  victim, foreign-state entry, TargetBind, SelfState and complete pixel scales.
+  Repeated render snapshots preserve the simulation state.
+- Two 600-tick public KFM structural replays match, with three contacts and zero
+  unsupported diagnostics on that trace. This does not establish native physics
+  or common-state recovery parity.
+- 13 adapter/import checks, production Wasm/browser builds and Chromium smoke
+  pass. Public KFM art with synthetic 1008x756 metadata reaches actual Canvas
+  effect painting with Kotlin's planned transforms. Standard effects, RAR
+  companion import, CSV export and the 360px Android layout also pass.
+
+The earlier 320x240 guards on state transfers, bindings and effects are removed
+for this supported subset. Existing horizontal movement/facing conventions and
+partial common-state physics still need native capture comparison. Original
+Nu-13/Tomoka fights, complete localcoord-dependent triggers/controllers, native
+phase parity, physical-phone performance and a new APK remain unverified.
+Advanced Explod resource/viewport/palette/pause limitations still apply.
+Source remains local; PR publication awaits explicit authorization following
+the earlier automatic approval rejection.
+
+## Explod continuation — November 15, 2026
 
 Continues local binding source `59f67fe`. Kotlin now owns the basic
 `Explod`, `ModifyExplod`, `RemoveExplod`, `ExplodBindTime` and `NumExplod`

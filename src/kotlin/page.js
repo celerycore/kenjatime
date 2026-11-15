@@ -200,18 +200,18 @@ function render(){
     if(img){
       // Authored localcoord comes from Kotlin's DEF parser (Nu-13 1008x756,
       // standard MUGEN 320x240). Avoid hard-coding a 1:1 character scale.
-      const sx=(fighter.spriteScaleX??1)*(fighter.scale??1);
-      const sy=(fighter.spriteScaleY??1)*(fighter.scale??1);
-      const visualCap=fighter.kind==="explod"?1:Math.min(1.8,360/(img.w*sx),340/(img.h*sy));
+      const sx=fighter.pixelScaleX??((fighter.spriteScaleX??1)*(fighter.scale??1));
+      const sy=fighter.pixelScaleY??((fighter.spriteScaleY??1)*(fighter.scale??1));
       ctx.save();ctx.translate(x,y);
-      ctx.scale((fighter.facing<0?-1:1)*(fighter.flipX||1)*sx*visualCap,
-        (fighter.flipY||1)*sy*visualCap);
+      ctx.scale((fighter.facing<0?-1:1)*(fighter.flipX||1)*sx,
+        (fighter.flipY||1)*sy);
       ctx.imageSmoothingEnabled=false;
       // Sprite X/Y originate in authored SFF axes, not image center.
       if(fighter.kind==="explod"){
         const transform=ctx.getTransform();
         lastExplodPaint=Object.freeze({scaleX:Math.abs(transform.a/scale),
-          scaleY:Math.abs(transform.d/scale),cameraZoom:fighter.scale??1});
+          scaleY:Math.abs(transform.d/scale),cameraZoom:fighter.scale??1,
+          plannedScaleX:sx,plannedScaleY:sy});
       }
       ctx.drawImage(img.image,-img.x,-img.y);
       ctx.restore();
