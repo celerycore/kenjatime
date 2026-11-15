@@ -184,3 +184,89 @@ try {
 } finally {
   api.ktCoreRelease(timing);
 }
+
+const bindAir=`[Begin Action 0]
+Clsn1Default:1
+Clsn1[0]=0,-60,40,0
+Clsn2Default:1
+Clsn2[0]=-10,-60,10,0
+0,0,0,0,-1`;
+const bindCns=`[Statedef 0]
+anim=0
+[State 0, movement]
+type=VelSet
+trigger1=Time=0
+x=1
+[State 0, capture]
+type=HitDef
+trigger1=Time=0
+damage=1
+id=7
+[State 0, attach target]
+type=TargetBind
+trigger1=Time=1 && NumTarget(7)>0
+id=7
+time=2
+pos=20,-5`;
+const bound=api.ktCoreCreate("anchor","victim",bindAir,air,bindCns,"[Statedef 0]\nanim=0");
+try {
+  api.ktCoreSetup(bound,0,0,20*256,0);
+  api.ktCoreAdvance(bound,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(bound,0)).numTargets,1);
+  api.ktCoreAdvance(bound,0,"",0,"");
+  const attached=JSON.parse(api.ktCoreSnapshot(bound,1));
+  assert.equal(attached.boundTo,1);
+  assert.equal(attached.bindTime,1);
+  assert.equal(attached.x256,22*256);
+  assert.equal(attached.y256,-5*256);
+  for(let i=0;i<3;i++)api.ktCoreRenderPlan(bound,12);
+  assert.deepEqual(JSON.parse(api.ktCoreSnapshot(bound,1)),attached,"Presentation cannot consume binding time");
+  api.ktCoreAdvance(bound,0,"",0,"");
+  const expired=JSON.parse(api.ktCoreSnapshot(bound,1));
+  assert.equal(expired.boundTo,0);
+  assert.equal(expired.bindTime,0);
+  assert.equal(expired.x256,23*256);
+  api.ktCoreAdvance(bound,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(bound,1)).x256,23*256);
+  assert.equal(api.ktCoreIssues(bound),"");
+  console.log("Native Wasm HitDef capture / TargetBind / finite release / read-only snapshots: OK (synthetic)");
+} finally {
+  api.ktCoreRelease(bound);
+}
+
+const helperCns=`[Statedef 0]
+anim=0
+[State 0, movement]
+type=VelSet
+trigger1=Time=0
+x=1
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=200
+pos=12,-4
+[Statedef 200]
+anim=0
+[State 200, follow parent]
+type=BindToParent
+trigger1=Time=0
+time=2
+pos=20,-6`;
+const helperBind=api.ktCoreCreate("parent","neutral",air,air,helperCns,"[Statedef 0]\nanim=0");
+try {
+  api.ktCoreAdvance(helperBind,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreEntities(helperBind)).helpers,1);
+  api.ktCoreAdvance(helperBind,0,"",0,"");
+  const helper=JSON.parse(api.ktCoreRenderPlan(helperBind,0)).draws.find(d=>d.kind==="helper");
+  assert.equal(helper.side,0);
+  assert.equal(helper.x,480+22*1.4);
+  assert.equal(helper.y,435-6*1.1);
+  api.ktCoreAdvance(helperBind,0,"",0,"");
+  api.ktCoreAdvance(helperBind,0,"",0,"");
+  const released=JSON.parse(api.ktCoreRenderPlan(helperBind,0)).draws.find(d=>d.kind==="helper");
+  assert.equal(released.x,480+23*1.4);
+  assert.equal(api.ktCoreIssues(helperBind),"");
+  console.log("Native Wasm helper / BindToParent / projected sprite / finite release: OK (synthetic)");
+} finally {
+  api.ktCoreRelease(helperBind);
+}

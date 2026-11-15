@@ -1,6 +1,51 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current AIR timing continuation — November 15, 2026
+## Current actor-binding continuation — November 15, 2026
+
+Continues the tested AIR timing source `79b0c96`. Adds `TargetBind`,
+`BindToParent`, `BindToRoot` and `BindToTarget` to Kotlin/commonMain. These
+controllers support hit-ID selection, mirrored offsets, Foot/Head/Mid target
+anchors, parent/root facing, finite durations, indefinite `time=-1`, and
+explicit release with `time=0`. Head and mid points come from authored CNS
+`[Size] head.pos` / `mid.pos`; their defaults are (0,-90) / (0,-60).
+
+Helpers now advance after root controllers and before the shared binding
+and contact phase. Attachments resolve recursively from anchors to children
+after movement/arena policy and before root/helper collisions. This phase
+change ensures collision geometry and render plans use the same attached
+positions. Bound actors keep their stored velocity, state and animation
+clocks; attachments override arena push, clamp, gravity and landing while
+active. The duration clock freezes in the bound actor's hitpause. Anchors
+can still move while that actor is paused. Deleted anchors release followers.
+
+Validation precedes target mutation: missing anchors, malformed expressions,
+cycles, cross-fight references and unsupported coordinates are diagnosed.
+All-target requests preflight their full selection. The existing initial
+helper-binding extension now preserves spawn offsets instead of snapping to
+zero. Nested P1-owned helpers/projectiles use the P1 sprite resource side.
+Wasm snapshots expose read-only `boundTo` and `bindTime` fields.
+
+Local validation:
+
+- 114 JVM and 110 compiled-Wasm tests pass, including 17 new common binding
+  scenarios for lifetime, release, facing, nesting, hitpause, contacts, invalid
+  requests and deterministic replay under skipped presentation.
+- Exported ESM/Wasm tests execute HitDef capture → TargetBind → release, plus
+  actual Helper → BindToParent → projected sprite → release. Repeated render
+  snapshots do not consume binding time.
+- Two 600-tick real bundled KFM replays match, with three contacts and zero
+  unsupported diagnostics on this trace.
+- 13 adapter/import checks, browser build and Chromium smoke pass for actual
+  sprites, RAR companion extraction, CSV and the 360px Android layout.
+
+Bindings currently require 320x240 coordinates for executor/source/anchor;
+nonstandard or mixed-localcoord binding requests fail with a diagnostic.
+The shared actor phase and pause-lifetime policy have synthetic coverage,
+not a new native capture. Full helper destruction/inheritance, native throw
+parity and physical-device measurements remain open. This continuation is
+committed locally; external PR publication still awaits explicit approval.
+
+## AIR timing continuation — November 15, 2026
 
 Continues the custom-state work in draft PR #78. Kotlin now implements
 `AnimElem = n[, operator t]`, `AnimElemTime`, `AnimElemNo`, signed `AnimTime`,

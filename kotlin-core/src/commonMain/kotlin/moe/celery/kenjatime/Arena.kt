@@ -23,13 +23,14 @@ data class ArenaRules(
     fun step(p1: FightingCharacter,p2: FightingCharacter,frozen1:Boolean,frozen2:Boolean) {
         if(!frozen1) individual(p1)
         if(!frozen2) individual(p2)
-        if(pushPlayers && p1.life>0 && p2.life>0) separate(p1,p2)
+        if(pushPlayers && p1.life>0 && p2.life>0 && p1.binding == null && p2.binding == null) separate(p1,p2)
         if(autoFaceIdle) {
-            if(p1.control && p1.stateType=="S")p1.facingRight=p1.posX<=p2.posX
-            if(p2.control && p2.stateType=="S")p2.facingRight=p2.posX<=p1.posX
+            if(p1.binding == null && p1.control && p1.stateType=="S")p1.facingRight=p1.posX<=p2.posX
+            if(p2.binding == null && p2.control && p2.stateType=="S")p2.facingRight=p2.posX<=p1.posX
         }
     }
     private fun individual(p:FightingCharacter) {
+        if(p.binding != null) return
         p.posX=p.posX.coerceIn(left,right)
         val physics=p.stateProgram?.physics?.uppercase()
         if(physics=="A" && p.stateType=="A")p.velY+=p.definition.airGravity

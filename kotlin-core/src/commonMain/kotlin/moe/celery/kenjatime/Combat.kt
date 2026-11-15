@@ -51,7 +51,9 @@ data class MugenConstants(
     val back: Int = 15,
     val gravity: Int = Fixed.of(0.7),
     val xScale: Int = Fixed.ONE,
-    val yScale: Int = Fixed.ONE
+    val yScale: Int = Fixed.ONE,
+    val headX: Int = 0, val headY: Int = -90*Fixed.ONE,
+    val midX: Int = 0, val midY: Int = -60*Fixed.ONE
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -63,7 +65,9 @@ data class FighterDefinition(
     val xScale: Int = Fixed.ONE,
     val yScale: Int = Fixed.ONE,
     val localCoordWidth: Int = 320,
-    val localCoordHeight: Int = 240
+    val localCoordHeight: Int = 240,
+    val headX: Int = 0, val headY: Int = -90*Fixed.ONE,
+    val midX: Int = 0, val midY: Int = -60*Fixed.ONE
 ) {
     /** AIR collision boxes use the character's local coordinates. Convert
      * them into the common 320x240 stage collision space, using fixed-point
@@ -93,7 +97,7 @@ data class FighterDefinition(
                 name, MugenAirParser.parse(air), MugenCnsParser.parse(allStates),
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
-                localWidth,localHeight
+                localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY
             )
         }
     }
@@ -105,6 +109,9 @@ object MugenCnsParser {
         val script = MugenDefParser.parse(source)
         val size = script.section("Size")
         val movement = script.section("Movement")
+        fun point(key: String, component: Int, fallback: Int): Int = size?.get(key)
+            ?.split(',')?.getOrNull(component)?.trim()?.toDoubleOrNull()
+            ?.takeIf { it.isFinite() && it in -100000.0..100000.0 }?.let(Fixed::of) ?: fallback
         fun fixed(raw: String?, fallback: Int): Int =
             raw?.toDoubleOrNull()?.takeIf { it.isFinite() }?.let {
                 Fixed.of(it.coerceIn(0.1,4.0))
@@ -117,7 +124,9 @@ object MugenCnsParser {
                 Fixed.of(it.coerceIn(0.0,4.0))
             } ?: Fixed.of(0.7),
             xScale = fixed(size?.get("xscale"),Fixed.ONE),
-            yScale = fixed(size?.get("yscale"),Fixed.ONE)
+            yScale = fixed(size?.get("yscale"),Fixed.ONE),
+            headX = point("head.pos",0,0), headY = point("head.pos",1,-90*Fixed.ONE),
+            midX = point("mid.pos",0,0), midY = point("mid.pos",1,-60*Fixed.ONE)
         )
     }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
@@ -206,6 +215,33 @@ class FightingCharacter(
     var moveHit = false
     var moveGuarded = false
     var parent: FightingCharacter? = null
+    var binding: ActorBinding? = null
+        private set
+    internal var bindingClockPaused = false
+        private set
+    fun releaseBinding() { binding = null }
+    internal fun canBindTo(anchor: FightingCharacter, source: FightingCharacter): Boolean = bindingProblem(anchor,source) == null
+    internal fun bindingProblem(anchor: FightingCharacter, source: FightingCharacter): String? {
+        if (world == null || world !== anchor.world) return "Binding actors must belong to the same fight"
+        if (destroyed || anchor.destroyed) return "Binding actor or anchor is destroyed"
+        // Spatial expression conversion in nonstandard localcoord remains a
+        // separate port. Never apply an attachment with guessed units.
+        if (listOf(this,anchor,source).any {
+            it.definition.localCoordWidth != 320 || it.definition.localCoordHeight != 240
+        }) return "Unsupported binding coordinates: 320x240 localcoord is required"
+        val seen = mutableSetOf<FightingCharacter>()
+        var current: FightingCharacter? = anchor
+        while(current != null) {
+            if(current === this || !seen.add(current)) return "Cyclic actor binding"
+            current = current.binding?.anchor
+        }
+        return null
+    }
+    internal fun bindTo(anchor: FightingCharacter, x: Int, y: Int, time: Int, facing: Int = 0) {
+        require(time == -1 || time > 0)
+        require(canBindTo(anchor,this)) { "Invalid binding anchor" }
+        binding = ActorBinding(anchor,x,y,time,facing)
+    }
     /** Script ownership and AIR ownership are independent of the victim's
      * immutable character definition, variables, life and SFF resources. */
     var stateOwner: FightingCharacter = this
@@ -351,6 +387,8 @@ class FightingCharacter(
                 else for (target in targets(wanted))
                     target.enterAuthoredState(next, scriptOwner, errors)
             }
+            "targetbind", "bindtoparent", "bindtoroot", "bindtotarget" ->
+                CoreBindingControllers.execute(this,c,scriptOwner,errors)
             "changeanim", "changeanim2" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
                 val owner = if (c.type.equals("changeanim2", true)) stateOwner else this
@@ -549,6 +587,7 @@ class FightingCharacter(
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0
+        bindingClockPaused = paused
         if (paused) hitPauseLeft--
         if (!paused && hitStunLeft > 0) hitStunLeft--
         // Global state controllers participate in the pause only when explicitly opted in.
@@ -659,7 +698,9 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         val p2Frozen = p2.hitPauseLeft > 0
         p1.tick(issues)
         p2.tick(issues)
+        if (allowCombat) entities.advanceHelpers(issues)
         arena?.step(p1,p2,p1Frozen,p2Frozen)
+        CoreBindings.resolve(p1,p2,if(allowCombat) entities.helpers else emptyList())
         camera?.update(p1,p2)
         // Contact candidates collected before mutating either fighter: genuine trades.
         var ab = allowCombat && !p1Frozen && p1.canHit(p2.id) && p2.canReceive(p1.activeHitDef!!) && connects(p1, p2)
@@ -698,7 +739,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         }
         if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB, p1)
         if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA, p2)
-        if (allowCombat) entities.step(issues)
+        if (allowCombat) entities.resolveContacts(issues)
         val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
         sequence?.step(p1,p2)

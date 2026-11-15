@@ -123,6 +123,8 @@ private object Fights {
         ",\"animationTime\":" + (p.animation?.elapsed ?: 0L) +
         ",\"animTime\":" + (p.animation?.remaining ?: 0L) +
         ",\"numTargets\":" + p.targets().size +
+        ",\"boundTo\":" + (p.binding?.anchor?.id ?: 0) +
+        ",\"bindTime\":" + (p.binding?.ticksLeft ?: 0) +
         ",\"hitPause\":" + p.hitPauseLeft +
         ",\"power\":" + p.power +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +

@@ -19,8 +19,7 @@ data class HelperEntity(
     val owner: FightingCharacter,
     val actor: FightingCharacter,
     val helperId: Int,
-    val keyControl: Boolean,
-    var bindTicks: Int
+    val keyControl: Boolean
 )
 
 /** A minimal linear projectile and per-target single-contact model. */
@@ -59,6 +58,7 @@ class CoreEntities(private val match: DeterministicFight) {
     private var nextId = 3
     var maxHelpers = 56
     var maxProjectiles = 256
+    private val pendingRequests = mutableListOf<EntityRequest>()
 
     fun add(requests: List<EntityRequest>, errors: MutableSet<String>) {
         for (request in requests) when (request) {
@@ -76,7 +76,12 @@ class CoreEntities(private val match: DeterministicFight) {
                 actor.facingRight = if (request.face >= 0) owner.facingRight else !owner.facingRight
                 actor.changeState(request.state)
                 actor.opponent = if (owner.id == match.p1.id || owner.opponent === match.p2) match.p2 else match.p1
-                helpers.add(HelperEntity(owner, actor, request.helperId, request.keyControl, request.bindTime))
+                if (request.bindTime != 0) {
+                    if(request.bindTime >= -1 && actor.canBindTo(owner,owner))
+                        actor.bindTo(owner,request.offsetX,request.offsetY,request.bindTime)
+                    else errors.add("Unsupported initial helper binding")
+                }
+                helpers.add(HelperEntity(owner, actor, request.helperId, request.keyControl))
             }
             is EntityRequest.Projectile -> {
                 if (projectiles.size >= maxProjectiles) {
@@ -98,9 +103,16 @@ class CoreEntities(private val match: DeterministicFight) {
             }
         }
     }
-    fun step(errors: MutableSet<String>) {
+    fun advanceHelpers(errors: MutableSet<String>) {
+        pendingRequests.clear()
+        for (helper in helpers.toList()) {
+            if (helper.actor.destroyed) continue
+            helper.actor.tick(errors)
+            if (!helper.actor.destroyed) pendingRequests.addAll(helper.actor.flushEntityRequests())
+        }
+    }
+    fun resolveContacts(errors: MutableSet<String>) {
         if (helpers.isEmpty() && projectiles.isEmpty()) return
-        val newRequests = mutableListOf<EntityRequest>()
         // Special moves can have dozens of helpers/projectiles against the
         // same victim. Reuse its immutable world-space hurtboxes *within this
         // one tick* and invalidate immediately when a hit changes its state.
@@ -111,14 +123,6 @@ class CoreEntities(private val match: DeterministicFight) {
         val current = helpers.toList()
         for (helper in current) {
             if (helper.actor.destroyed) continue
-            if (helper.bindTicks != 0) {
-                helper.actor.posX = helper.owner.posX
-                helper.actor.posY = helper.owner.posY
-                if (helper.bindTicks > 0) helper.bindTicks--
-            }
-            helper.actor.tick(errors)
-            if (helper.actor.destroyed) continue
-            newRequests.addAll(helper.actor.flushEntityRequests())
             val enemy = helper.actor.opponent ?: match.p2
             val hit = helper.actor.activeHitDef
             if (hit != null && helper.actor.hitPauseLeft == 0 && enemy.canReceive(hit) &&
@@ -153,6 +157,7 @@ class CoreEntities(private val match: DeterministicFight) {
         }
         helpers.removeAll { it.actor.destroyed }
         projectiles.removeAll { !it.alive }
-        add(newRequests, errors)
+        add(pendingRequests, errors)
+        pendingRequests.clear()
     }
 }
