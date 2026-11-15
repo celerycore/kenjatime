@@ -1,6 +1,51 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current independent guard-pause continuation — November 16, 2026
+## Current captured-target motion continuation — November 16, 2026
+
+Continues published main source `fbca90b`. CNS now executes TargetVelSet,
+TargetVelAdd and TargetFacing against live captured targets. ID filters use
+HitDef target IDs; omission or -1 selects all currently valid targets. Dead,
+destroyed or recovered actors are excluded through the existing target tracker.
+No matching target is harmless, and omitted velocity axes remain unchanged.
+
+TargetVelSet orients horizontal velocity using the executing player's facing;
+TargetVelAdd orients its delta using each target's own facing. Positive Y is
+downward. TargetFacing turns victims in the same direction as the player for
+a positive value, or the opposite direction for a negative value. A following
+TargetVelAdd therefore observes the new target orientation. Facing zero and
+missing/invalid values are diagnosed before changing any selected actor.
+
+Velocity expressions evaluate once in the executing actor's active state-owner
+units, including borrowed states. Canonical fixed-point values apply directly
+to each victim without a second conversion through its localcoord. Nested
+expressions and dynamic ID filters are supported. Invalid components leave
+all selected targets unchanged; mirrored values and additions saturate instead
+of wrapping on overflow. Existing actor hitpause/ignorehitpause and controller
+persistence rules govern execution. These controllers do not release bindings
+or change the victim's state bank.
+
+Validation:
+
+- 410 JVM and 405 compiled-Wasm tests pass, including 15 new scenarios for
+  distinct facing conventions, omitted axes, multiple targets/IDs, borrowed and
+  high-coordinate states, nested expressions, invalid values, stale targets,
+  saturation, hitpause and read-only rendering.
+- Exported Wasm executes HitDef capture → TargetFacing → TargetVelSet →
+  TargetVelAdd, verifies mixed-coordinate velocity and checks render purity.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, projectile scaling, archive imports, CSV and
+  mobile layout. Two KFM 600-tick structural replays retain nine contacts,
+  seven fallback recoveries, zero unsupported diagnostics and matching checksums.
+
+The direction contracts follow the
+[Elecbyte target controller references](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#targetvelset).
+Changes take effect in the existing sequential actor phase; a victim's later
+authored controllers/physics can overwrite them. Native mixed-coordinate,
+binding/release and controller/contact ordering remain unverified. Full throw
+parity and physical-phone performance are not certified. Main CI verifies
+browser/APK asset identity and anonymous permanent downloads before publication.
+
+## Independent guard-pause continuation — November 16, 2026
 
 Continues published main source `de13e91`. Guarded contacts now apply the two
 authored `guard.pausetime` components independently. Previously the defender

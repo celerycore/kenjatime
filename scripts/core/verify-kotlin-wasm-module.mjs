@@ -882,6 +882,50 @@ guard.pausetime=ifelse(1,2,4),max(3,5)`;
 }
 console.log("Native Wasm independent attacker/defender hit and guard pause / nested expressions / projectile clocks: OK (synthetic)");
 
+const targetMotion=api.ktCoreCreateWithDefinitions("target controls","victim",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, capture]
+type=HitDef
+trigger1=Time=0
+id=181
+damage=10
+ground.hittime=60
+[State 200, turn victim]
+type=TargetFacing
+trigger1=Time=1
+id=181
+value=-1
+[State 200, set velocity in captor direction]
+type=TargetVelSet
+trigger1=Time=1
+id=181
+x=8
+y=-4
+[State 200, add in target direction]
+type=TargetVelAdd
+trigger1=Time=1
+id=181
+x=2
+y=-2`,motionIdle,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(targetMotion,0,0,5*256,0);
+  api.ktCoreDebugForceState(targetMotion,0,200);
+  api.ktCoreAdvance(targetMotion,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(targetMotion,0)).numTargets,1);
+  api.ktCoreAdvance(targetMotion,0,"",0,"");
+  const victim=JSON.parse(api.ktCoreSnapshot(targetMotion,1));
+  assert.equal(victim.facing,-1);assert.equal(victim.vx256,3*256);assert.equal(victim.vy256,-3*256);
+  assert.equal(victim.life,990);
+  for(let i=0;i<4;i++)api.ktCoreRenderPlan(targetMotion,12);
+  assert.deepEqual(JSON.parse(api.ktCoreSnapshot(targetMotion,1)),victim);
+  assert.equal(api.ktCoreIssues(targetMotion),"");
+} finally { api.ktCoreRelease(targetMotion); }
+console.log("Native Wasm captured target facing / set and add velocity / ID filtering / mixed coordinates: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

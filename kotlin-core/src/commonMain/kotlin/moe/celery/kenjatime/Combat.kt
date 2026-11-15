@@ -436,6 +436,34 @@ class FightingCharacter(
             }
             "targetbind", "bindtoparent", "bindtoroot", "bindtotarget" ->
                 CoreBindingControllers.execute(this,c,scriptOwner,errors)
+            "targetvelset", "targetveladd", "targetfacing" -> try {
+                fun value(raw: String): Double = CoreExpression.number(raw,this,errors)
+                    ?: throw IllegalArgumentException("Invalid target-control expression")
+                val requestedId=args["id"]?.let(::value) ?: -1.0
+                require(requestedId in Int.MIN_VALUE.toDouble()..Int.MAX_VALUE.toDouble()) { "Target ID out of range" }
+                val id=requestedId.toInt()
+                val selected=targets(id)
+                if(c.type.equals("targetfacing",true)) {
+                    val direction=args["value"]?.let(::value)
+                        ?: throw IllegalArgumentException("TargetFacing requires value")
+                    require(direction != 0.0) { "TargetFacing requires a nonzero direction" }
+                    for(target in selected)target.facingRight=if(direction > 0)facingRight else !facingRight
+                }else {
+                    // Convert active actor units once. Set follows the player;
+                    // Add follows each target, as the controller reference specifies.
+                    val x=args["x"]?.let { coordinates.toWorld(value(it)) }
+                    val y=args["y"]?.let { coordinates.toWorld(value(it)) }
+                    val add=c.type.equals("targetveladd",true)
+                    fun bounded(n: Long)=n.coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
+                    for(target in selected) {
+                        x?.let { target.velX=bounded((if(add)target.velX.toLong() else 0L)+
+                            it.toLong()*(if(if(add)target.facingRight else facingRight)1 else -1)) }
+                        y?.let { target.velY=bounded((if(add)target.velY.toLong() else 0L)+it) }
+                    }
+                }
+            }catch(e: IllegalArgumentException) {
+                errors.add("Invalid ${c.type}: ${e.message}")
+            }
             "explod", "modifyexplod", "removeexplod", "explodbindtime" ->
                 world?.effects?.execute(this,c,scriptOwner)
             "changeanim", "changeanim2" -> {
