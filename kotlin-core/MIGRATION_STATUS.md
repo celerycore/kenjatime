@@ -10,8 +10,9 @@ browser bundle, build metadata and SHA-256 checksums. Downloads do not depend
 on an authenticated Actions session. Release drafts publish only after every
 asset uploads, and pull requests cannot invoke publication. Preparation checks
 the exact source SHA and compares all non-hidden browser assets to their APK
-counterparts before producing downloads. Existing website deployment is
-unchanged. GitHub's default-branch setting remains `gh-pages` because the
+counterparts before producing downloads. CI also downloads every published
+asset without authentication and verifies its checksum. Existing website
+deployment is unchanged. GitHub's default-branch setting remains `gh-pages` because the
 connected integration lacks repository administration permission; source work
 continues on `main`.
 

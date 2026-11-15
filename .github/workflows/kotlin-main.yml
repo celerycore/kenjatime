@@ -110,6 +110,20 @@ jobs:
             release-output/kenjatime-kotlin-browser.zip release-output/build-info.json \
             release-output/SHA256SUMS
           gh release edit "$tag" --draft=false
+      - name: Verify anonymous public downloads and checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(node -p "JSON.parse(require('fs').readFileSync('release-output/release-info.json')).tag")"
+          base="https://github.com/$GITHUB_REPOSITORY/releases/download/$tag"
+          mkdir -p public-download-check
+          for name in kenjatime-kotlin.apk kenjatime-kotlin-browser.zip build-info.json SHA256SUMS; do
+            curl --fail --location --retry 4 --retry-all-errors --retry-delay 3 \
+              --max-time 60 "$base/$name" --output "public-download-check/$name"
+          done
+          cmp release-output/SHA256SUMS public-download-check/SHA256SUMS
+          cd public-download-check
+          sha256sum --check SHA256SUMS
   android:
     needs: core-and-browser
     runs-on: ubuntu-latest
