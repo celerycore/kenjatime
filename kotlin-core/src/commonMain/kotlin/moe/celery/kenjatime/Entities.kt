@@ -221,9 +221,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 helper.actor.attackBoxes().any { a -> hurt(enemy).any { a.intersects(it) } }) {
                 val guarded = enemy.blocks(hit)
                 helper.actor.markHit(enemy.id)
-                helper.actor.moveContact = true
-                helper.actor.moveHit = !guarded
-                helper.actor.moveGuarded = guarded
+                helper.actor.recordMoveContact(guarded)
                 helper.actor.hitPauseLeft = if (guarded) hit.guardPause else hit.hitPause
                 match.contacts.add(FightContact(helper.actor.id, enemy.id, guarded,
                     CoreDamage.contact(hit,helper.actor,enemy,guarded)))

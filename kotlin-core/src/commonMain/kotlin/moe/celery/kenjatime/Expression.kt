@@ -88,9 +88,9 @@ object CoreExpression {
                 "hitover" -> if(f.hitOver)1.0 else 0.0
                 "hitshakeover" -> if(f.hitShakeOver)1.0 else 0.0
                 "canrecover" -> if(f.canRecover)1.0 else 0.0
-                "movecontact" -> if (f.moveContact) 1.0 else 0.0
-                "movehit" -> if (f.moveHit) 1.0 else 0.0
-                "moveguarded" -> if (f.moveGuarded) 1.0 else 0.0
+                "movecontact" -> f.moveContactTime.toDouble()
+                "movehit" -> f.moveHitTime.toDouble()
+                "moveguarded" -> f.moveGuardedTime.toDouble()
                 "numhelper" -> f.world?.entities?.helpers?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numproj" -> f.world?.entities?.projectiles?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numexplod" -> f.world?.effects?.count(f)?.toDouble() ?: 0.0

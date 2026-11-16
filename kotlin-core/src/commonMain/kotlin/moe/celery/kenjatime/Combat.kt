@@ -267,6 +267,19 @@ class FightingCharacter(
     var moveContact = false
     var moveHit = false
     var moveGuarded = false
+    internal var moveContactTicks = 0
+    val moveContactTime: Int get() = if(moveContact)moveContactTicks.coerceAtLeast(1) else 0
+    val moveHitTime: Int get() = if(moveHit)moveContactTicks.coerceAtLeast(1) else 0
+    val moveGuardedTime: Int get() = if(moveGuarded)moveContactTicks.coerceAtLeast(1) else 0
+    internal fun recordMoveContact(guarded: Boolean) {
+        moveContact=true;moveHit=!guarded;moveGuarded=guarded;moveContactTicks=1
+    }
+    internal fun clearMoveContact() {
+        moveContact=false;moveHit=false;moveGuarded=false;moveContactTicks=0
+    }
+    private fun advanceMoveContact() {
+        if(moveContact && moveContactTicks < Int.MAX_VALUE)moveContactTicks=moveContactTicks.coerceAtLeast(1)+1
+    }
     var parent: FightingCharacter? = null
     var binding: ActorBinding? = null
         private set
@@ -435,9 +448,7 @@ class FightingCharacter(
             struck.clear()
         }
         carriedHitDef=persistence.hitDef && activeHitDef != null
-        if(!persistence.moveHit) {
-            moveContact=false;moveHit=false;moveGuarded=false
-        }
+        if(!persistence.moveHit)clearMoveContact()
         if(!persistence.hitCount)hitCount=0
         val neutralFallback = owner === this && state == 0 && program == null
         stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
@@ -503,6 +514,7 @@ class FightingCharacter(
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
+            "movehitreset" -> CoreMoveContacts.reset(this,c,errors)
             "hitvelset", "hitfallset", "hitfallvel", "hitfalldamage" -> CoreGetHitControllers.execute(this,c,errors)
             "changestate", "selfstate" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
@@ -904,6 +916,9 @@ class FightingCharacter(
             executeState(-2, errors, paused) ||
             (stateOwner === this && executeState(-1, errors, paused)) ||
             executeState(stateNo, errors, paused, stateOwner)
+        // CNS observes 1 through hitpause and the first active controller phase.
+        // Advance afterward, independently of State Time and state transitions.
+        if(!paused)advanceMoveContact()
         if (changed || paused) return
         posX += velX
         posY += velY
@@ -1128,17 +1143,13 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         val guardA = bh != null && p1.blocks(bh)
         if (ah != null) {
             p1.markHit(p2.id)
-            p1.moveContact = true
-            p1.moveHit = !guardB
-            p1.moveGuarded = guardB
+            p1.recordMoveContact(guardB)
             p1.hitPauseLeft = if (guardB) ah.guardPause else ah.hitPause
             contacts.add(FightContact(p1.id, p2.id, guardB, CoreDamage.contact(ah,p1,p2,guardB)))
         }
         if (bh != null) {
             p2.markHit(p1.id)
-            p2.moveContact = true
-            p2.moveHit = !guardA
-            p2.moveGuarded = guardA
+            p2.recordMoveContact(guardA)
             p2.hitPauseLeft = if (guardA) bh.guardPause else bh.hitPause
             contacts.add(FightContact(p2.id, p1.id, guardA, CoreDamage.contact(bh,p2,p1,guardA)))
         }

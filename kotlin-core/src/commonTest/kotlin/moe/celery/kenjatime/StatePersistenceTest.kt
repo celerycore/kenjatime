@@ -2,7 +2,7 @@ package moe.celery.kenjatime
 
 import kotlin.test.*
 
-/** State-entry contracts for the current boolean contact/manual-counter subset. */
+/** State-entry contracts for contact flags and the manual HitCount subset. */
 class StatePersistenceTest {
     private val air="[Begin Action 0]\nClsn2Default:1\nClsn2[0]=-10,-40,10,0\n0,0,0,0,-1\n"+
         "[Begin Action 200]\nClsn1Default:1\nClsn1[0]=0,-40,40,0\nClsn2Default:1\nClsn2[0]=-10,-40,10,0\n200,0,0,0,-1"

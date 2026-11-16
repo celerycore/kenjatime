@@ -1,6 +1,72 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current fall-continuation rewrite — November 16, 2026
+## Current move-contact timing continuation — November 16, 2026
+
+Continues published main source `e930f68`. CNS now executes MoveHitReset,
+clearing the current actor's MoveContact, MoveHit and MoveGuarded flags and
+elapsed values. It accepts no controller-specific parameters; invalid fields
+preserve the result. Standard trigger, persistence and ignorehitpause rules
+apply. Resetting a move result does not clear the active HitDef, its struck-target
+set, captured targets, manual HitCount, power, life, state Time or hitpause.
+It cannot rearm an already spent attack. A fresh valid attack can contact again.
+
+MoveContact, MoveHit and MoveGuarded now return elapsed tick values instead of
+permanent boolean ones. A body/helper contact starts the shared age at one;
+the selected hit/guard result receives that age and the other result is zero.
+A newer contact replaces the previous result and restarts its age. Existing
+boolean actor/snapshot fields remain available for client compatibility.
+
+CNS observes the contact age before its active-tick increment. Hitpause freezes
+it through the final frozen tick, so opted-in controllers see one during pause
+and ordinary controllers see one on the first active controller phase. The age
+then advances once after controllers, including preserved state transitions,
+and saturates at Int.MAX_VALUE. This clock is independent of State Time.
+MoveHitReset stops further increments until a new accepted body/helper contact.
+
+StateDef movehitpersist now preserves the elapsed result with its flags; normal
+state entry clears both. Borrowed state banks operate on the executing actor's
+result without coordinate scaling. Helpers keep independent clocks and resets.
+Projectile hit/guard history remains independent and does not set parent body
+move-contact flags; MoveHitReset cannot erase that history. Read-only queries,
+snapshots and presentation cannot age, clear or repeat a contact.
+
+Wasm snapshots expose moveContactTime, moveHitTime and moveGuardedTime alongside
+the existing boolean fields. Authored logic can now distinguish MoveHit=1 from
+later ticks and explicitly clear a carried result without changing HitCount
+or reopening collision eligibility.
+
+Validation:
+
+- 801 JVM and 796 compiled-Wasm tests pass, including 20 new cases for hit/guard
+  clocks, controller observation order, pause, reset, spent attack preservation,
+  fresh contacts, invalid requests, persistence, helpers, projectile history,
+  borrowed banks, saturation and pure reads.
+- Exported Wasm checks 24 root/helper, hit/guard, pause and reset-mode sequences;
+  two state-persistence sequences; and independent projectile history. Authored
+  PowerSet observations verify CNS values before increment/reset while snapshots
+  verify resulting clocks, flags, preserved manual counts and absence of repeats.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Measured controller-name coverage is now 58 of 97 in the live legacy JavaScript
+registry (59.8%), up from 57 of 97 (58.8%); 39 names remain outside the Kotlin
+contract. Against the Elecbyte 1.1 reference the overlap is 57 of 89 (64.0%).
+These name counts do not measure parameter completeness, expressions, physics,
+effects, AI, team modes or native parity. Overall completion is not quantified;
+reaching every controller name alone would not mean the rewrite was complete.
+
+Reset behavior and elapsed triggers follow the
+[Elecbyte references](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#movehitreset).
+Native contact/state-entry ordering, MoveReversed/ReversalDef, global Pause and
+SuperPause, automatic hit/unique/combo counts and complete common-state physics
+remain incomplete or unverified. These checks do not certify native frame parity
+or physical-phone performance. Main CI verifies shared browser/APK Wasm identity
+and anonymous permanent downloads before publication.
+
+## Fall-continuation rewrite — November 16, 2026
 
 Continues published main source `f6128b4`. HitDef and Projectile now capture
 forcenofall alongside validated boolean fall and air.fall expressions. Omitted

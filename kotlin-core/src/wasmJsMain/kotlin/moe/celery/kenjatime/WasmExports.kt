@@ -165,6 +165,9 @@ private object Fights {
         ",\"moveContact\":" + p.moveContact +
         ",\"moveHit\":" + p.moveHit +
         ",\"moveGuarded\":" + p.moveGuarded +
+        ",\"moveContactTime\":" + p.moveContactTime +
+        ",\"moveHitTime\":" + p.moveHitTime +
+        ",\"moveGuardedTime\":" + p.moveGuardedTime +
         ",\"hitCount\":" + p.hitCount +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +
         ",\"facing\":" + (if (p.facingRight) 1 else -1) +

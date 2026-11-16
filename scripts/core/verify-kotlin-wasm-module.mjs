@@ -2651,6 +2651,122 @@ ctrl=1`;
 }
 console.log("Native Wasm active fall carry / forcenofall priority / air.fall overrides / root-helper-projectile follow-ups / guard and recovery gates / new metadata and animation / pure reads: OK (synthetic)");
 
+for(const kind of ["root","helper"])for(const guarded of [false,true])for(const pause of [0,2])for(const mode of ["keep","normal-reset","pause-reset"]) {
+  const reset=mode==="keep" ? "" : `\n[State 200, reset move result]\ntype=MoveHitReset\ntrigger1=${mode==="normal-reset" ? "MoveContact>=3" : "MoveContact"}\nignorehitpause=${mode==="pause-reset" ? 1 : 0}`;
+  const attack=`[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, manual count]
+type=HitAdd
+trigger1=Time=0
+value=7
+[State 200, observe elapsed result before increment]
+type=PowerSet
+trigger1=1
+ignorehitpause=1
+value=MoveContact*100+MoveHit*10+MoveGuarded+HitCount
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=10,2
+guardflag=HL
+getpower=0,0
+givepower=0,0
+pausetime=${pause},0
+guard.pausetime=${pause},0
+${reset}`;
+  const source=`${motionIdle}`+(kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "")+`\n${attack}`;
+  const contact=api.ktCoreCreate("elapsed contact","victim",projectileFacingAir,air,source,hitFlagStates);
+  try {
+    api.ktCoreSetup(contact,0,0,5*256,0);
+    if(kind==="root")api.ktCoreDebugForceState(contact,0,200);else api.ktCoreAdvance(contact,0,"",guarded ? 8 : 0,"");
+    api.ktCoreAdvance(contact,0,"",guarded ? 8 : 0,"");
+    let age=1;
+    assert.equal(JSON.parse(api.ktCoreSnapshot(contact,0)).moveContactTime,kind==="root" ? 1 : 0);
+    for(let tick=1;tick<=pause+5;tick++) {
+      const observed=age,frozen=tick<=pause;
+      if(mode==="pause-reset" && age>0 || mode==="normal-reset" && !frozen && age>=3)age=0;
+      else if(!frozen && age>0)age++;
+      api.ktCoreAdvance(contact,0,"",0,"");const actor=JSON.parse(api.ktCoreSnapshot(contact,0));
+      assert.equal(actor.power,observed*(guarded ? 101 : 110)+7);
+      assert.equal(actor.hitCount,kind==="root" ? 7 : 0);
+      assert.equal(actor.moveContactTime,kind==="root" ? age : 0);
+      assert.equal(actor.moveHitTime,kind==="root" && !guarded ? age : 0);
+      assert.equal(actor.moveGuardedTime,kind==="root" && guarded ? age : 0);
+      assert.equal(actor.moveContact,kind==="root" && age>0);assert.equal(actor.moveHit,kind==="root" && !guarded && age>0);
+      assert.equal(JSON.parse(api.ktCoreSnapshot(contact,1)).life,guarded ? 998 : 990);
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(contact)),[]);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(contact,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(contact,0)),actor);
+    }
+    assert.equal(api.ktCoreIssues(contact),"");
+  } finally { api.ktCoreRelease(contact); }
+}
+for(const persist of [0,1]) {
+  const carriedClock=api.ktCoreCreate("persisted clock","victim",projectileFacingAir,air,
+    `${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+[Statedef 300]
+type=S
+movetype=A
+physics=N
+anim=0
+movehitpersist=${persist}
+[State 300, observe carried elapsed time]
+type=PowerSet
+trigger1=Time=0
+value=MoveContact
+[State 300, explicit clear]
+type=MoveHitReset
+trigger1=Time=1`,motionIdle);
+  try {
+    api.ktCoreSetup(carriedClock,0,0,5*256,0);api.ktCoreDebugForceState(carriedClock,0,200);
+    for(let i=0;i<3;i++)api.ktCoreAdvance(carriedClock,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(carriedClock,0)).moveHitTime,3);
+    api.ktCoreDebugForceState(carriedClock,0,300);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(carriedClock,0)).moveHitTime,persist ? 3 : 0);
+    api.ktCoreAdvance(carriedClock,0,"",0,"");const state=JSON.parse(api.ktCoreSnapshot(carriedClock,0));
+    assert.equal(state.power,persist ? 3 : 0);assert.equal(state.moveHitTime,persist ? 4 : 0);
+    api.ktCoreAdvance(carriedClock,0,"",0,"");assert.equal(JSON.parse(api.ktCoreSnapshot(carriedClock,0)).moveHitTime,0);
+    assert.equal(api.ktCoreIssues(carriedClock),"");
+  } finally { api.ktCoreRelease(carriedClock); }
+}
+const resetShotHistory=api.ktCoreCreate("independent projectile history","victim",projectileFacingAir,air,
+  `${motionIdle}
+[State 0, projectile]
+type=Projectile
+trigger1=Time=0
+projanim=200
+projid=7
+damage=10
+getpower=0,0
+givepower=0,0
+[State 0, observe shot history]
+type=PowerSet
+trigger1=Time=2
+value=ProjHitTime(7)
+[State 0, clear body result]
+type=MoveHitReset
+trigger1=Time>=1`,motionIdle);
+try {
+  api.ktCoreSetup(resetShotHistory,0,0,5*256,0);
+  for(let i=0;i<3;i++)api.ktCoreAdvance(resetShotHistory,0,"",0,"");
+  const actor=JSON.parse(api.ktCoreSnapshot(resetShotHistory,0));
+  assert.equal(actor.moveContactTime,0);assert.equal(actor.power,1);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(resetShotHistory,1)).life,990);assert.equal(api.ktCoreIssues(resetShotHistory),"");
+} finally { api.ktCoreRelease(resetShotHistory); }
+console.log("Native Wasm elapsed MoveContact/MoveHit/MoveGuarded / MoveHitReset / root-helper clocks / hitpause / StateDef persistence / spent HitDef and manual count preservation / independent projectile history / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S
