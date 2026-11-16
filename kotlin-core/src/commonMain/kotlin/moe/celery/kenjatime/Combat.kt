@@ -73,7 +73,8 @@ data class StateProgram(
     val velocityY: Double? = null,
     val hitDefPersist: String? = null,
     val moveHitPersist: String? = null,
-    val hitCountPersist: String? = null
+    val hitCountPersist: String? = null,
+    val spritePriority: String? = null
 )
 data class MugenConstants(
     val maxLife: Int = 1000,
@@ -221,7 +222,7 @@ object MugenCnsParser {
                 m?.get("physics")?.uppercase(), m?.get("ctrl")?.toIntOrNull()?.let { it != 0 },
                 velocity.getOrNull(0)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() },
                 velocity.getOrNull(1)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() },
-                m?.get("hitdefpersist"),m?.get("movehitpersist"),m?.get("hitcountpersist"))
+                m?.get("hitdefpersist"),m?.get("movehitpersist"),m?.get("hitcountpersist"),m?.get("sprpriority"))
         }
     }
 }
@@ -281,6 +282,7 @@ class FightingCharacter(
         if(moveContact && moveContactTicks < Int.MAX_VALUE)moveContactTicks=moveContactTicks.coerceAtLeast(1)+1
     }
     var parent: FightingCharacter? = null
+    internal var spritePriority = 0
     internal var positionFrozen = false
     var binding: ActorBinding? = null
         private set
@@ -444,6 +446,7 @@ class FightingCharacter(
         controllerActivation.clear()
         val program = stateProgram
         val persistence=CoreStatePersistence.read(program,this,errors)
+        CoreSpritePriority.enter(this,program?.spritePriority,errors)
         if(!persistence.hitDef) {
             activeHitDef=null
             struck.clear()
@@ -513,6 +516,7 @@ class FightingCharacter(
             "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "posfreeze" -> CorePositionFreeze.execute(this,c,errors)
+            "sprpriority" -> CoreSpritePriority.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -756,6 +760,7 @@ class FightingCharacter(
                 val hitTime=integer(args["ground.hittime"] ?: args["projground.hittime"],12).coerceIn(0,600)
                 val guardHitTime=integer(args["guard.hittime"] ?: args["projguard.hittime"],hitTime).coerceIn(0,600)
                 val controlTimings=CoreHitControlTimings.parse(args,this,guardHitTime,errors,true) ?: return false
+                val projectileSpritePriority=CoreSpritePriority.projectile(this,args["projsprpriority"],errors) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -806,7 +811,7 @@ class FightingCharacter(
                     multiplierX=multiplier.first,multiplierY=multiplier.second,
                     stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
                     removeOnHit=removeOnHit,hits=hits,missTime=missTime,priority=projectilePriority,
-                    scaleX=scale.first,scaleY=scale.second
+                    scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")

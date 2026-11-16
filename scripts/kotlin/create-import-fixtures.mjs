@@ -97,3 +97,52 @@ projhits=0
 `);
  writeFileSync(`test-output/kotlin-kfm-projectile-${doScale}.zip`,zipSync(projectileFiles));
 }
+
+// Synthetic layering fixture with public KFM sprites. Actor priority crosses
+// a helper, projectile and effect while Chromium records actual Canvas paints.
+const priorityFiles=Object.fromEntries(raw);
+priorityFiles["kfm/kfm.cns"]=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=0
+ctrl=0
+sprpriority=2
+[Statedef -2]
+[State -2, actor priority]
+type=SprPriority
+triggerall=IsHelper=0
+trigger1=1
+value=ifelse(Time%60<30,-4,5)
+[State -2, helper]
+type=Helper
+triggerall=IsHelper=0
+trigger1=NumHelper=0
+stateno=7100
+[State -2, projectile]
+type=Projectile
+triggerall=IsHelper=0
+trigger1=Time=0
+projanim=0
+projhits=0
+projremovetime=-1
+projsprpriority=0
+offset=20,-40
+[State -2, effect]
+type=Explod
+triggerall=IsHelper=0
+trigger1=NumExplod(704)=0
+id=704
+anim=0
+postype=p1
+pos=0,-60
+bindtime=-1
+removetime=-1
+sprpriority=2
+[Statedef 7100]
+type=S
+physics=N
+anim=0
+ctrl=0
+sprpriority=-3
+`);
+writeFileSync("test-output/kotlin-kfm-priority.zip",zipSync(priorityFiles));

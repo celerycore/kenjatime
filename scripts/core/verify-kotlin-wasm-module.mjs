@@ -2876,6 +2876,121 @@ trigger1=Time<2`,motionIdle,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"")
 }
 console.log("Native Wasm PosFreeze / active tick lifetime / signed and expression flags / velocity and animation clocks / incoming hitpause / mixed units / arena push anchoring / helper motion / pure reads: OK (synthetic)");
 
+const prioritySignature=draws=>draws.map(d=>`${d.kind}:${d.side}:${d.sprpriority}`);
+for(const width of [320,640])for(const actorPriority of [-5,0,5])for(const helperPriority of [-3,3])for(const shotPriority of [-4,4])for(const effectPriority of [-2,2]) {
+  const layering=api.ktCoreCreateWithDefinitions("actor layering","other actor",air,air,
+    `${motionIdle}
+[State 0, actor priority]
+type=SprPriority
+trigger1=1
+value=ifelse(Time=0,${actorPriority},${-actorPriority})
+[State 0, read priority]
+type=PowerSet
+trigger1=1
+value=SprPriority+5
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=7100
+[State 0, projectile]
+type=Projectile
+trigger1=Time=0
+projanim=0
+projhits=0
+projremovetime=-1
+projsprpriority=${shotPriority}
+[State 0, effect]
+type=Explod
+trigger1=Time=0
+anim=0
+id=7
+removetime=-1
+sprpriority=${effectPriority}
+[Statedef 7100]
+type=S
+physics=N
+anim=0
+sprpriority=${helperPriority}`,`${motionIdle}\nsprpriority=0`,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(layering,0,0,100*256,0);
+    for(const selected of [actorPriority,-actorPriority || 0]) {
+      api.ktCoreAdvance(layering,0,"",0,"");const actor=JSON.parse(api.ktCoreSnapshot(layering,0));
+      assert.equal(actor.spritePriority,selected);assert.equal(actor.power,selected+5);
+      const expected=[{kind:"fighter",side:0,sprpriority:selected},{kind:"fighter",side:1,sprpriority:0},
+        {kind:"helper",side:0,sprpriority:helperPriority},{kind:"projectile",side:0,sprpriority:shotPriority},
+        {kind:"explod",side:0,sprpriority:effectPriority}].sort((a,b)=>a.sprpriority-b.sprpriority);
+      const before=api.ktCoreChecksum(layering);
+      for(const debt of [0,12,0]) {
+        const plan=JSON.parse(api.ktCoreRenderPlan(layering,debt));
+        assert.deepEqual(prioritySignature(plan.draws),prioritySignature(expected));
+        assert.equal(api.ktCoreChecksum(layering),before);
+      }
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(layering)),[]);
+    }
+    assert.equal(api.ktCoreIssues(layering),"");
+  } finally { api.ktCoreRelease(layering); }
+}
+for(const value of [-2147483648,2147483647]) {
+  const extremeLayer=api.ktCoreCreate("extreme draw order","victim",air,air,
+    `${motionIdle}
+[State 0, projectile]
+type=Projectile
+trigger1=Time=0
+projanim=0
+projhits=0
+projsprpriority=${value}
+[State 0, top effect]
+type=Explod
+trigger1=Time=0
+anim=0
+id=9
+removetime=-1
+ontop=1`,motionIdle);
+  try {
+    api.ktCoreAdvance(extremeLayer,0,"",0,"");const plan=JSON.parse(api.ktCoreRenderPlan(extremeLayer,0));
+    assert.equal(plan.draws.find(d=>d.kind==="projectile").sprpriority,value);
+    assert.equal(plan.draws.at(-1).effectId,9);assert.equal(plan.draws.at(-1).sprpriority,2147483648);
+    assert.equal(api.ktCoreIssues(extremeLayer),"");
+  } finally { api.ktCoreRelease(extremeLayer); }
+}
+const borrowedPriority=api.ktCoreCreateWithDefinitions("priority bank","own actor",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+sprpriority=-2
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+sprpriority=4
+[State 700, actor-owned controller]
+type=SprPriority
+trigger1=Time=0
+value=-3
+[State 700, return]
+type=SelfState
+trigger1=Time=1
+value=0`,motionIdle,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedPriority,0,0,5*256,0);api.ktCoreDebugForceState(borrowedPriority,0,200);
+  api.ktCoreAdvance(borrowedPriority,0,"",0,"");assert.equal(JSON.parse(api.ktCoreSnapshot(borrowedPriority,1)).spritePriority,4);
+  api.ktCoreAdvance(borrowedPriority,0,"",0,"");const borrowed=JSON.parse(api.ktCoreSnapshot(borrowedPriority,1));
+  assert.equal(borrowed.stateOwner,1);assert.equal(borrowed.spritePriority,-3);assert.equal(borrowed.localCoordWidth,640);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(borrowedPriority,0)).spritePriority,-2);
+  api.ktCoreAdvance(borrowedPriority,0,"",0,"");const own=JSON.parse(api.ktCoreSnapshot(borrowedPriority,1));
+  assert.equal(own.stateOwner,2);assert.equal(own.spritePriority,-3);assert.equal(own.localCoordWidth,320);
+  assert.equal(api.ktCoreIssues(borrowedPriority),"");
+} finally { api.ktCoreRelease(borrowedPriority); }
+console.log("Native Wasm SprPriority and StateDef persistence / actor-owned borrowed banks / mixed helper-projectile-Explod painter order / projectile draw priority bounds / onTop / stable ties / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

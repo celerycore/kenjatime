@@ -57,7 +57,7 @@ object CorePresentationPlanner {
             .append("],\"draws\":[")
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
                  facingRight: Boolean, action: AirAnimationPlayer?,
-                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null) {
+                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0) {
             val frame = action?.frame
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
@@ -96,33 +96,33 @@ object CorePresentationPlanner {
                 .append(",\"group\":").append(frame?.group ?: -1)
                 .append(",\"number\":").append(frame?.sprite ?: -1)
                 .append(",\"life\":").append(life)
-                .append(",\"sprpriority\":").append(effect?.drawPriority ?: 0L)
+                .append(",\"sprpriority\":").append(priority)
             if(effect != null)json.append(",\"effectId\":").append(effect.id)
                 .append(",\"effectSequence\":").append(effect.sequence)
             json
                 .append("},")
         }
-        val effects=fight.effects.all.sortedWith(compareBy<CoreExplod>{it.drawPriority}.thenBy{it.sequence})
-        fun effectDraw(effect: CoreExplod) = draw(if(effect.owner.opponent === fight.p2)0 else 1,
-            "explod",effect.x,effect.y,effect.facingRight,effect.animation,effect.owner.definition,0,effect)
-        for(effect in effects)if(effect.drawPriority < 0)effectDraw(effect)
-        draw(0,"fighter",fight.p1.posX,fight.p1.posY,
-            fight.p1.facingRight,fight.p1.animation,fight.p1.animationOwner.definition,fight.p1.life)
-        draw(1,"fighter",fight.p2.posX,fight.p2.posY,
-            fight.p2.facingRight,fight.p2.animation,fight.p2.animationOwner.definition,fight.p2.life)
-        for(helper in fight.entities.helpers) {
-            val side = if (helper.actor.opponent === fight.p2) 0 else 1
-            draw(side,"helper",helper.actor.posX,helper.actor.posY,
-                helper.actor.facingRight,helper.actor.animation,
-                helper.actor.animationOwner.definition,helper.actor.life)
+        data class PlannedDraw(val priority: Long,val order: Int,val append: () -> Unit)
+        val planned=ArrayList<PlannedDraw>()
+        fun enqueue(priority: Long,append: () -> Unit) { planned.add(PlannedDraw(priority,planned.size,append)) }
+        fun actorDraw(side: Int,kind: String,actor: FightingCharacter) {
+            val priority=actor.spritePriority.toLong()
+            enqueue(priority) { draw(side,kind,actor.posX,actor.posY,actor.facingRight,actor.animation,
+                actor.animationOwner.definition,actor.life,priority=priority) }
         }
-        for(projectile in fight.entities.projectiles) {
-            val side = if(projectile.owner.opponent === fight.p2) 0 else 1
-            draw(side,"projectile",projectile.x,projectile.y,
-                projectile.facingRight,projectile.action,
-                projectile.owner.definition,0,projectile=projectile)
+        actorDraw(0,"fighter",fight.p1)
+        actorDraw(1,"fighter",fight.p2)
+        for(helper in fight.entities.helpers)actorDraw(if(helper.actor.opponent === fight.p2)0 else 1,"helper",helper.actor)
+        for(projectile in fight.entities.projectiles)enqueue(projectile.spritePriority.toLong()) {
+            draw(if(projectile.owner.opponent === fight.p2)0 else 1,"projectile",projectile.x,projectile.y,
+                projectile.facingRight,projectile.action,projectile.owner.definition,0,projectile=projectile,priority=projectile.spritePriority.toLong())
         }
-        for(effect in effects)if(effect.drawPriority >= 0)effectDraw(effect)
+        for(effect in fight.effects.all)enqueue(effect.drawPriority) {
+            draw(if(effect.owner.opponent === fight.p2)0 else 1,"explod",effect.x,effect.y,
+                effect.facingRight,effect.animation,effect.owner.definition,0,effect,priority=effect.drawPriority)
+        }
+        planned.sortWith(compareBy<PlannedDraw>{it.priority}.thenBy{it.order})
+        for(item in planned)item.append()
         if(json.last() == ',')json.setLength(json.length-1)
         return json.append("]}").toString()
     }

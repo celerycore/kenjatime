@@ -84,6 +84,7 @@ object CoreExpression {
                 "incustomstate" -> if (f.stateOwner !== f) 1.0 else 0.0
                 "numtarget" -> f.targets().size.toDouble()
                 "hitcount" -> f.hitCount.toDouble()
+                "sprpriority" -> f.spritePriority.toDouble()
                 "hitfall" -> if(f.getHitData.fall)1.0 else 0.0
                 "hitover" -> if(f.hitOver)1.0 else 0.0
                 "hitshakeover" -> if(f.hitShakeOver)1.0 else 0.0

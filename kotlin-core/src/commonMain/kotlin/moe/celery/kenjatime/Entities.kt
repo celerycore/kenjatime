@@ -18,7 +18,8 @@ sealed class EntityRequest {
         val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
         val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0,
         val priority: Int = 1,val scaleX: Double = 1.0,val scaleY: Double = 1.0,
-        val attackMultiplier: Double = hit.capturedAttackMultiplier ?: owner.attackMultiplier
+        val attackMultiplier: Double = hit.capturedAttackMultiplier ?: owner.attackMultiplier,
+        val spritePriority: Int = 3
     ) : EntityRequest()
 }
 
@@ -54,7 +55,7 @@ class CoreProjectile(
     val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
     val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0,priority: Int = 1,
     /** Captured effective scale: projscale, optionally multiplied by own Size. */
-    val scaleX: Double = 1.0,val scaleY: Double = 1.0
+    val scaleX: Double = 1.0,val scaleY: Double = 1.0,val spritePriority: Int = 3
 ) {
     val hit=hit.copy(capturedAttackMultiplier=hit.capturedAttackMultiplier ?: owner.attackMultiplier)
     companion object {
@@ -190,7 +191,7 @@ class CoreEntities(private val match: DeterministicFight) {
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,
                     facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
                     request.stageBound,request.heightTop,request.heightBottom,
-                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY))
+                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY,request.spritePriority))
             }
         }
     }

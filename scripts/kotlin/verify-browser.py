@@ -123,6 +123,36 @@ try:
         result["realExplodSpritePaints"]=effects.evaluate("window.__kenjatimeKotlinQA.explodPaints")
         effects.close()
 
+        priority_page=browser.new_page(viewport={"width":1000,"height":780})
+        priority_errors=[]
+        priority_page.on("pageerror",lambda error:priority_errors.append(str(error)))
+        priority_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        priority_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        priority_page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-priority.zip"))
+        priority_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=priority_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        priority_page.locator("#p1-select").select_option(value=installed)
+        priority_page.locator("#cpu").uncheck()
+        priority_page.locator("#start").click()
+        for actor_priority in [-4,5]:
+            priority_page.wait_for_function("""priority => {
+              const draws=window.__kenjatimeKotlinQA?.lastSpritePaintOrder?.draws||[];
+              return draws.some(d=>d.kind==='fighter'&&d.side===0&&d.priority===priority)&&
+                draws.some(d=>d.kind==='helper'&&d.priority===-3)&&
+                draws.some(d=>d.kind==='projectile'&&d.priority===0)&&
+                draws.some(d=>d.kind==='explod'&&d.priority===2);
+            }""",arg=actor_priority,timeout=30000)
+            painted=priority_page.evaluate("window.__kenjatimeKotlinQA.lastSpritePaintOrder")
+            values=[d["priority"] for d in painted["draws"]]
+            assert values==sorted(values),painted
+            actor_index=next(i for i,d in enumerate(painted["draws"]) if d["kind"]=="fighter" and d["side"]==0)
+            effect_index=next(i for i,d in enumerate(painted["draws"]) if d["kind"]=="explod")
+            assert (actor_index<effect_index) if actor_priority<2 else (actor_index>effect_index),painted
+        assert not priority_errors,priority_errors
+        result["spritePriorityCanvasOrder"]="passed"
+        priority_page.close()
+
         high=browser.new_page(viewport={"width":1000,"height":780})
         high_errors=[]
         high.on("pageerror",lambda error:high_errors.append(str(error)))

@@ -1,6 +1,75 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current position-freeze continuation — November 16, 2026
+## Current sprite-priority continuation — November 17, 2026
+
+Continues published main source `f92fdff`. CNS now executes SprPriority with a
+required numeric value in the documented -5..5 range. Nested expressions and
+actor variables are supported. The value persists until another controller or
+an explicit StateDef sprpriority replaces it; omitted state metadata leaves it
+unchanged. StateDef expressions evaluate on entry with the executing actor and
+destination Time=0, including borrowed banks. Invalid controller requests or
+state metadata preserve the previous value and diagnose the error. Invalid state
+metadata does not cancel the transition. Initial diagnostics survive attachment.
+
+The legacy SprPriority expression exposes the current actor value. It is a
+scalar render value, independent of localcoord and collision/attack priority.
+Helpers own their priority. Standard controller persistence and ignorehitpause
+rules apply, and hitpause does not clear the stored value. Actor snapshots
+expose spritePriority for inspection.
+
+Projectile now captures projsprpriority, defaulting to the documented value of
+three. It accepts signed Int-range expressions and retains them after creator
+variables or actor priority change. Invalid values prevent queuing the shot.
+This is separate from projpriority, which still controls projectile clashes.
+HitDef p1sprpriority/p2sprpriority changes remain separate work.
+
+Kotlin now constructs one stable painter order across roots, helpers,
+projectiles and Explods, sorting ascending by visual priority. Higher values
+are therefore painted later. Equal values retain deterministic roster/entity/
+effect creation order. Explods can sit between actors instead of always being
+partitioned around all fighters. OnTop effects retain their wide priority above
+Int.MAX_VALUE, including extreme projectile priorities. Sorting never reorders
+simulation entity/effect storage. Position, resource ownership, hitboxes,
+contacts, clocks, health and power remain independent of this visual metadata.
+
+The Canvas host consumes Kotlin's ordered draw commands directly. Its existing
+QA interface now records actual decoded-sprite paint order for verification.
+A synthetic public-KFM-art fixture changes root priority across a helper,
+projectile and effect; Chromium verifies both resulting paint orders, including
+actual drawImage calls rather than only checking planned JSON.
+
+Validation:
+
+- 845 JVM and 840 compiled-Wasm tests pass, including 22 new cases for values,
+  expressions, StateDef entry/persistence, invalid requests, controller lifetime,
+  pause, dynamic ordering, stable ties, mixed effects, helpers, borrowed banks,
+  projectile draw/clash separation, bounds and pure reads.
+- Exported Wasm checks 48 mixed actor/helper/projectile/effect and localcoord
+  combinations with live actor-priority changes, two projectile-bound/OnTop
+  sequences and an actor-owned borrowed-bank/SelfState sequence.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including the new real Canvas sprite-priority ordering test, sprites/effects,
+  scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Measured controller-name coverage is now 60 of 97 in the live legacy JavaScript
+registry (61.9%), up from 59 of 97 (60.8%); 37 names remain outside the Kotlin
+contract. Against the Elecbyte 1.1 reference the overlap is 59 of 89 (66.3%).
+Name counts do not measure parameter completeness, expressions, physics, effects,
+AI, team modes or native parity. Overall completion remains unquantified;
+covering every controller name alone would not complete the rewrite.
+
+Priority defaults and state persistence follow the
+[Elecbyte SprPriority reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#sprpriority)
+and [StateDef reference](https://network.mugenguild.com/justnopoint/1.1docs/cns.html#sprpriority).
+Native exact tie ordering, HitDef p1/p2 priority changes, full visual effects,
+common-state defaults and physical-phone performance remain incomplete or
+unverified. These checks do not certify native frame parity. Main CI verifies
+shared browser/APK Wasm identity and anonymous permanent downloads before publication.
+
+## Position-freeze continuation — November 16, 2026
 
 Continues published main source `06eb4c6`. CNS now executes PosFreeze to hold
 both velocity-driven position axes for the current simulation tick. Omitted

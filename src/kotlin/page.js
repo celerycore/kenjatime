@@ -24,6 +24,7 @@ const fighters=new Map();
 const installedTables=new Map();
 let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0,paintedProjectileCount=0;
 let lastExplodPaint=null,lastProjectilePaint=null;
+let lastSpritePaintOrder=null;
 const debugWarning=new Set();
 const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
@@ -192,6 +193,7 @@ function render(){
   for(let x=0;x<960;x+=64){ctx.beginPath();ctx.moveTo(x,405);ctx.lineTo(x+60,540);ctx.stroke();}
   ctx.fillStyle="#537b75";ctx.fillRect(0,437,960,3);
   const draws=latest.draws||[];
+  const paintedDraws=[];
   for(const fighter of draws){
     const item=images[fighter.side]||images[0];
     const x=fighter.x;
@@ -220,6 +222,7 @@ function render(){
           facing:fighter.facing,flipX:fighter.flipX||1,flipY:fighter.flipY||1});
       }
       ctx.drawImage(img.image,-img.x,-img.y);
+      paintedDraws.push(Object.freeze({side:fighter.side,kind:fighter.kind,priority:fighter.sprpriority??0}));
       ctx.restore();
       paintedSpriteCount++;
       if(fighter.kind==="explod"&&sx!==0&&sy!==0)paintedExplodCount++;
@@ -233,6 +236,7 @@ function render(){
       placeholderCount++;
     }
   }
+  lastSpritePaintOrder=Object.freeze({frame:latest.frame,draws:Object.freeze(paintedDraws)});
   const life=latest.health||[0,0]; // correct authored maxLife from Kotlin
   ctx.fillStyle="#0b1521";ctx.fillRect(22,20,382,31);ctx.fillRect(556,20,382,31);
   ctx.fillStyle="#95d78f";ctx.fillRect(25,23,life[0],25);
@@ -435,6 +439,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get lastExplodPaint(){return lastExplodPaint},
   get projectilePaints(){return paintedProjectileCount},
   get lastProjectilePaint(){return lastProjectilePaint},
+  get lastSpritePaintOrder(){return lastSpritePaintOrder},
   get spritePaints(){return paintedSpriteCount},
   get placeholderPaints(){return placeholderCount},
   get importedCount(){return fighters.size-1},
