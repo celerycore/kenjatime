@@ -145,6 +145,8 @@ private object Fights {
         ",\"fallbackHitReaction\":" + p.fallbackHitReaction +
         ",\"power\":" + p.power +
         ",\"powerMax\":" + p.maxPower +
+        ",\"attackMultiplier\":" + p.attackMultiplier +
+        ",\"defenceMultiplier\":" + p.defenceMultiplier +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +
         ",\"facing\":" + (if (p.facingRight) 1 else -1) +
         ",\"stateType\":\"" + p.stateType +
@@ -179,6 +181,7 @@ private object Fights {
     ",\"missTimeLeft\":"+p.missTimeLeft+",\"hitPause\":"+p.hitPauseLeft+
     ",\"removeOnHit\":"+p.removeOnHit+",\"priority\":"+p.priority+
     ",\"scaleX\":"+p.scaleX+",\"scaleY\":"+p.scaleY+",\"facing\":"+(if(p.facingRight)1 else -1)+
+    ",\"attackMultiplier\":"+p.hit.capturedAttackMultiplier+
     ",\"anim\":"+p.action.action.number+",\"elem\":"+(p.action.index+1)+"}"
 }
 @JsExport fun ktCoreProjectileClashes(handle: Int): String = Fights.get(handle).entities.clashes.joinToString(

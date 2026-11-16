@@ -1,6 +1,68 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current base damage continuation — November 16, 2026
+## Current runtime damage continuation — November 16, 2026
+
+Continues published main source `f8181bf`. CNS now executes AttackMulSet and
+DefenceMulSet. They replace the executing actor's runtime damage factors;
+ordinary hit and guard damage combines these factors with the existing base
+attack/defence ratio before integer rounding. Factors default to one, persist
+across state-bank changes and remain independent between actors and helpers.
+Fresh actors/fights start with unit factors.
+
+Body hits use the attacker's live factor at contact, including changes after
+HitDef installation. Projectiles retain the creator's attack factor captured
+when the request is queued. Later controllers in the same actor phase, delayed
+entity creation or later state changes cannot alter that projectile's factor.
+Direct projectile construction also captures the current creator factor.
+Each projectile contact reads the victim's live defence factor. HitDef authored
+damage and power defaults remain unchanged; repeated hits cannot compound
+scaling into the stored definition.
+
+Zero factors yield zero damage without suppressing accepted reactions,
+contacts, hit allowances or authored combat power. Tiny positive damage retains
+one point; extreme products saturate before life clamping. Contact reports and
+GetHitVar(damage) retain the same scaled nominal amount before life caps and
+nonlethal floors. Actor/projectile snapshots expose their factors for inspection,
+and presentation reads cannot run controllers or repeat damage.
+
+TargetLifeAdd uses the victim's runtime defence for damage and healing, while
+ignoring the executing actor's attack factor. Absolute mode bypasses both base
+and runtime defence. LifeAdd retains base-defence scaling and the documented
+exception that excludes it from DefenceMulSet. Zero runtime defence cannot
+become a one-point scripted hit. Scripted health deltas are bounded before
+addition, preventing large healing/damage factors from overflowing Long.
+
+Nested expressions evaluate in the actual actor even in a borrowed bank.
+Missing/invalid values, negative/nonfinite factors, values above Float.MAX_VALUE
+and unsupported parameters preserve the previous factor. Existing persistence
+and ignorehitpause rules apply. Complete native helper inheritance, round reset,
+pause/contact ordering, fall/super defence and native metadata accumulation
+remain unverified or incomplete.
+
+Validation:
+
+- 572 JVM and 567 compiled-Wasm tests pass, including 21 new cases for factors,
+  bounds, rounding, zero/tiny/extreme values, actor ownership, live body attacks,
+  projectile capture, helper isolation, scripted health, pause and pure reads.
+- Exported Wasm checks 36 root/helper/projectile hit/guard combinations, plus
+  a delayed body factor change and projectile request capture followed by two
+  different victim defence values. Eight scripted-health cases cover runtime
+  defence, absolute mode, zero factors and extreme arithmetic.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Controller parameters and the LifeAdd exception follow the
+[Elecbyte reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#defencemulset).
+Projectile factor capture follows the
+[IKEMEN projectile creation/contact implementation](https://github.com/ikemen-engine/Ikemen-GO/blob/develop/src/char.go).
+These synthetic checks do not certify native frame parity or physical-phone
+performance. Main CI verifies browser/APK asset identity and anonymous permanent
+downloads before publication.
+
+## Base damage continuation — November 16, 2026
 
 Continues published main source `f3688e8`. Ordinary fighter, helper and
 Projectile contacts now scale hit and guard damage by the actual attacker's

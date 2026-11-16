@@ -35,8 +35,14 @@ data class HitDefinition(
     val kill: Boolean = true,val guardKill: Boolean = true,
     val getPower: Int = HitPowerRules.DEFAULT.attacker(damage),
     val givePower: Int = HitPowerRules.DEFAULT.defender(damage),
-    val guardGetPower: Int = getPower/2,val guardGivePower: Int = givePower/2
-)
+    val guardGetPower: Int = getPower/2,val guardGivePower: Int = givePower/2,
+    /** Projectiles retain the creator's factor; body hits use the live actor. */
+    val capturedAttackMultiplier: Double? = null
+) {
+    init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
+        "Invalid captured attack multiplier"
+    } }
+}
 data class StateController(
     val type: String,
     val params: Map<String, String>,
@@ -313,6 +319,10 @@ class FightingCharacter(
     private var randomState = 0x6d2b79f5 xor id
     val asserted: MutableSet<String> = linkedSetOf()
     var life = definition.maxLife
+    var attackMultiplier=1.0
+        internal set
+    var defenceMultiplier=1.0
+        internal set
     private var powerValue = 0
     /** Helpers share their root's meter, independent of the active state bank. */
     internal fun powerOwner(): FightingCharacter {
@@ -540,6 +550,7 @@ class FightingCharacter(
                 args["movetype"]?.uppercase()?.let { moveType = it }
             }
             "lifeadd", "lifeset", "targetlifeadd" -> CoreLifeControllers.execute(this,c,errors)
+            "attackmulset", "defencemulset" -> CoreDamage.execute(this,c,errors)
             "hitadd" -> { hitCount = (hitCount + integer(args["value"])).coerceAtLeast(0) }
             "assertspecial" -> {
                 args["flag"]?.lowercase()?.let { asserted.add(it) }

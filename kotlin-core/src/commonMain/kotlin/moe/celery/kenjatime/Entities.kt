@@ -17,7 +17,8 @@ sealed class EntityRequest {
         val stageBound: Int = 40*Fixed.ONE,
         val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
         val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0,
-        val priority: Int = 1,val scaleX: Double = 1.0,val scaleY: Double = 1.0
+        val priority: Int = 1,val scaleX: Double = 1.0,val scaleY: Double = 1.0,
+        val attackMultiplier: Double = hit.capturedAttackMultiplier ?: owner.attackMultiplier
     ) : EntityRequest()
 }
 
@@ -40,7 +41,7 @@ class CoreProjectile(
     val entityId: Int,
     val projectileId: Int,
     val action: AirAnimationPlayer,
-    val hit: HitDefinition,
+    hit: HitDefinition,
     var x: Int, var y: Int,
     var vx: Int, var vy: Int,
     var ticksLeft: Int,
@@ -55,6 +56,7 @@ class CoreProjectile(
     /** Captured effective scale: projscale, optionally multiplied by own Size. */
     val scaleX: Double = 1.0,val scaleY: Double = 1.0
 ) {
+    val hit=hit.copy(capturedAttackMultiplier=hit.capturedAttackMultiplier ?: owner.attackMultiplier)
     companion object {
         const val MAX_SCALE = 64.0
         // FighterDefinition bounds its fixed-point Size factors to 256.
@@ -164,8 +166,9 @@ class CoreEntities(private val match: DeterministicFight) {
                 if(request.lifeTime < -1 || !request.multiplierX.isFinite() || !request.multiplierY.isFinite() ||
                     request.stageBound < 0 || request.heightTop > request.heightBottom || request.hits < 0 || request.missTime < 0 || request.priority < 1 ||
                     request.scaleX !in -CoreProjectile.MAX_SCALE..CoreProjectile.MAX_SCALE ||
-                    request.scaleY !in -CoreProjectile.MAX_SCALE..CoreProjectile.MAX_SCALE || !scaleX.isFinite() || !scaleY.isFinite()) {
-                    errors.add("Invalid Projectile motion, lifetime, hit allowance, priority or scale")
+                    request.scaleY !in -CoreProjectile.MAX_SCALE..CoreProjectile.MAX_SCALE || !scaleX.isFinite() || !scaleY.isFinite() ||
+                    request.attackMultiplier !in 0.0..Float.MAX_VALUE.toDouble()) {
+                    errors.add("Invalid Projectile motion, lifetime, hit allowance, priority, scale or attack multiplier")
                     continue
                 }
                 if(request.lifeTime == 0)continue
@@ -181,7 +184,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 fun bounded(value: Long)=value.coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
                 fun facing(value: Int)=bounded(value.toLong()*if(request.facingRight)1 else -1)
                 projectiles.add(CoreProjectile(owner, nextId++, request.projectileId,
-                    AirAnimationPlayer(action), request.hit,
+                    AirAnimationPlayer(action), request.hit.copy(capturedAttackMultiplier=request.attackMultiplier),
                     bounded(owner.posX.toLong()+facing(request.offsetX)),
                     bounded(owner.posY.toLong()+request.offsetY),
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,

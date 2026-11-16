@@ -1426,6 +1426,158 @@ try {
 } finally { api.ktCoreRelease(borrowedDamage); }
 console.log("Native Wasm base attack/defence scaling / root-helper-projectile hits and guards / zero and tiny damage / overflow / authored power / borrowed attacker banks / pure reads: OK (synthetic)");
 
+for(const kind of ["root","helper","projectile"])for(const guarded of [false,true])for(const config of [
+  {attack:"1",defence:"1",hit:68,guard:15},
+  {attack:"2",defence:".25",hit:34,guard:8},
+  {attack:"0",defence:"1",hit:0,guard:0},
+  {attack:"1",defence:"0",hit:0,guard:0},
+  {attack:".0000001",defence:"1",hit:1,guard:1},
+  {attack:"2147483647",defence:"2147483647",hit:2147483647,guard:2147483647}
+]) {
+  const controller=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=90,20
+guardflag=HL`;
+  const attackSetter=`type=AttackMulSet\ntrigger1=Time=0\nvalue=${config.attack}`;
+  const script=kind==="projectile" ? `${motionIdle}\n[State 0, attack factor]\n${attackSetter}\n[State 0, shot]\n${controller}` :
+    `${motionIdle}\n[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nanim=200\n[State 200, hit]\n${controller}\n[State 200, attack factor]\n${attackSetter}`+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "");
+  const multipliers=api.ktCoreCreateWithDefinitions("runtime attack","runtime defence",projectileFacingAir,air,
+    `[Data]\nattack=150\n${script}`,`[Data]\ndefence=200\n${hitFlagStates}\n[State 0, defence factor]\ntype=DefenceMulSet\ntrigger1=Time=0\nvalue=${config.defence}`,
+    "","","[Info]\nlocalcoord=640,480","");
+  try {
+    api.ktCoreSetup(multipliers,0,0,5*256,0);
+    if(kind==="root")api.ktCoreDebugForceState(multipliers,0,200);
+    else api.ktCoreAdvance(multipliers,0,"",guarded ? 8 : 0,"");
+    if(kind==="projectile")assert.equal(JSON.parse(api.ktCoreProjectiles(multipliers))[0].attackMultiplier,Number(config.attack));
+    api.ktCoreAdvance(multipliers,0,"",guarded ? 8 : 0,"");
+    const expected=guarded ? config.guard : config.hit;
+    const source=JSON.parse(api.ktCoreSnapshot(multipliers,0)),victim=JSON.parse(api.ktCoreSnapshot(multipliers,1));
+    const label=`${kind}/${guarded}/${config.attack}/${config.defence}`;
+    assert.equal(victim.life,Math.max(0,1000-expected),label);assert.equal(victim.getHitDamage,expected,label);
+    assert.equal(JSON.parse(api.ktCoreContacts(multipliers))[0].damage,expected,label);
+    assert.equal(source.attackMultiplier,kind==="helper" ? 1 : Number(config.attack));
+    assert.equal(victim.defenceMultiplier,Number(config.defence));
+    assert.equal(source.power,guarded ? 31 : 63);assert.equal(victim.power,guarded ? 27 : 54);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(multipliers,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(multipliers,1)),victim);
+    assert.equal(api.ktCoreIssues(multipliers),"");
+  } finally { api.ktCoreRelease(multipliers); }
+}
+const capturedMultiplier=api.ktCoreCreate("captured projectile factor","live victim factor",projectileFacingAir,air,
+  `[Data]\nattack=150\n${motionIdle}
+[State 0, capture two]
+type=AttackMulSet
+trigger1=Time=0
+value=2
+[State 0, shot]
+type=Projectile
+trigger1=Time=0
+projanim=200
+projhits=2
+damage=90
+[State 0, change to seven after queuing]
+type=AttackMulSet
+trigger1=Time=0
+value=7`,
+  `[Data]\ndefence=200\n${motionIdle}
+[State 0, defend first contact]
+type=DefenceMulSet
+trigger1=Time=1
+value=.5
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, defend second contact differently]
+type=DefenceMulSet
+trigger1=Time=0
+value=2`);
+try {
+  api.ktCoreSetup(capturedMultiplier,0,0,5*256,0);api.ktCoreAdvance(capturedMultiplier,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(capturedMultiplier,0)).attackMultiplier,7);
+  assert.equal(JSON.parse(api.ktCoreProjectiles(capturedMultiplier))[0].attackMultiplier,2);
+  for(const [amount,life] of [[68,932],[270,662]]) {
+    api.ktCoreAdvance(capturedMultiplier,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreContacts(capturedMultiplier))[0].damage,amount);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(capturedMultiplier,1)).life,life);
+  }
+  assert.deepEqual(JSON.parse(api.ktCoreProjectiles(capturedMultiplier)),[]);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(capturedMultiplier,0)).power,126);
+  assert.equal(api.ktCoreIssues(capturedMultiplier),"");
+} finally { api.ktCoreRelease(capturedMultiplier); }
+const liveMultiplier=api.ktCoreCreate("live body factor","victim",projectileFacingAir,air,
+  `[Data]\nattack=150\n${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, install first]
+type=HitDef
+trigger1=Time=0
+damage=90
+[State 200, change before contact]
+type=AttackMulSet
+trigger1=Time=1
+value=2`,`[Data]\ndefence=200\n${hitFlagStates}`);
+try {
+  api.ktCoreSetup(liveMultiplier,0,0,1000*256,0);api.ktCoreDebugForceState(liveMultiplier,0,200);
+  api.ktCoreAdvance(liveMultiplier,0,"",0,"");api.ktCoreSetup(liveMultiplier,0,0,5*256,0);
+  api.ktCoreAdvance(liveMultiplier,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(liveMultiplier,1)).getHitDamage,135);
+  assert.equal(JSON.parse(api.ktCoreContacts(liveMultiplier))[0].damage,135);
+  assert.equal(api.ktCoreIssues(liveMultiplier),"");
+} finally { api.ktCoreRelease(liveMultiplier); }
+for(const [factor,value,absolute,expected] of [
+  [".5",-60,0,485],[".5",60,0,515],["0",-60,0,500],["0",60,0,500],
+  ["2147483647*2147483647",2147483647,0,1000],["2147483647*2147483647",-2147483648,0,0],
+  [".5",-60,1,440],[".5",60,1,560]
+]) {
+  const targetFactor=api.ktCoreCreate("scripted runtime defence","victim",projectileFacingAir,air,
+    `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, attack factor does not affect scripted damage]
+type=AttackMulSet
+trigger1=Time=0
+value=7
+[State 200, capture]
+type=HitDef
+trigger1=Time=0
+damage=0
+p1stateno=211
+p2stateno=700
+[Statedef 211]
+type=S
+physics=N
+anim=0
+[State 211, life]
+type=TargetLifeAdd
+trigger1=Time=0
+value=${value}
+absolute=${absolute}
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0`,
+    `[Data]\ndefence=200\n${hitFlagStates}\n[State 0, defence]\ntype=DefenceMulSet\ntrigger1=Time=0\nvalue=${factor}`);
+  try {
+    api.ktCoreSetup(targetFactor,0,0,5*256,0);api.ktCoreDebugSetStats(targetFactor,1,500,0);
+    api.ktCoreDebugForceState(targetFactor,0,200);
+    api.ktCoreAdvance(targetFactor,0,"",0,"");api.ktCoreAdvance(targetFactor,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(targetFactor,1)).life,expected,`${factor}/${value}/${absolute}`);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(targetFactor)),[]);
+    assert.equal(api.ktCoreIssues(targetFactor),"");
+  } finally { api.ktCoreRelease(targetFactor); }
+}
+console.log("Native Wasm runtime attack/defence factors / body and helper contacts / projectile request capture / live target defence / bounded scripted health / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S
