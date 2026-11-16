@@ -1,6 +1,66 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current fall-recovery continuation — November 16, 2026
+## Current authored recoil continuation — November 16, 2026
+
+Continues published main source `bb7e935`. HitDef and Projectile now capture
+yaccel as a per-hit vertical acceleration. Authored values convert once from
+the executing actor's active coordinate bank to canonical 1/256 stage units.
+Omission defaults to canonical .35 stage pixels per tick squared, independently
+of source localcoord and Movement.yaccel; the existing fixed-point policy stores
+that default as 89/256. Explicit zero and signed negative acceleration remain
+distinct from omission. Extreme finite values saturate canonical storage.
+
+GetHitVar(yaccel) converts the captured acceleration into the victim's current
+active-bank units. Later facing, source-variable changes and borrowed-bank
+transitions cannot mirror or rescale the stored value. Guard, air and helper
+reactions capture it too. A fresh accepted contact replaces it. Projectile
+accel controls the shot's own motion independently of yaccel on its hit packet.
+Invalid yaccel expressions preserve an existing HitDef or leave the projectile
+queue alone; nested numeric expressions evaluate at attack installation.
+
+CNS can now use HitOver and HitShakeOver. They expose the existing reaction
+clock boundaries: HitOver is true when GetHitVar(hittime) is below zero;
+HitShakeOver is true when the shared hitpause counter has reached zero. A zero
+hittime is still unexpired; its next active tick reaches -1. Hitpause freezes
+hittime. The counters update before controllers as before, so an opted-in
+ignorehitpause observer sees HitShakeOver on the final frozen tick; normal
+controllers wait until the following active tick. These predicates are intended
+for authored get-hit states. Outside that scope they expose the same stored
+clocks, including initially expired values, rather than a certified native reset.
+
+Authored VelAdd y=GetHitVar(yaccel) can integrate recoil after HitShakeOver;
+SelfState guarded by HitOver can select the victim's own recovery state.
+There is no automatic acceleration, transition, damage, power or extra contact
+from reading a predicate or acceleration. Existing arena fallback gravity still
+uses the fighter's Movement.yaccel. Snapshots expose getHitAccelerationY256,
+hitOver and hitShakeOver for inspection.
+
+Validation:
+
+- 689 JVM and 684 compiled-Wasm tests pass, including 24 new cases for canonical
+  defaults, scalar clocks, signed acceleration, expressions, facing, guard/air
+  selection, hitpause, authored motion/recovery, bank changes, helpers,
+  invalid requests, projectile motion separation, saturation and pure reads.
+- Exported Wasm checks 48 root/helper/projectile, source localcoord 320/640,
+  acceleration and hitpause combinations; eight ground/air and hit/guard clock
+  sequences; and an authored recoil/SelfState sequence in a borrowed bank.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Defaults follow the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef);
+[HitOver](https://network.mugenguild.com/justnopoint/1.1docs/trigger.html#hitover)
+and [HitShakeOver](https://network.mugenguild.com/justnopoint/1.1docs/trigger.html#hitshakeover)
+are exposed over the current engine clocks. Native subpixel accumulation,
+separate hitshake/hitpause clocks, exact controller/reset phases and complete
+common-state physics remain unverified. This does not certify native frame parity
+or physical-phone performance. Main CI verifies shared browser/APK Wasm identity
+and anonymous permanent downloads before publication.
+
+## Fall-recovery continuation — November 16, 2026
 
 Continues published main source `fc27815`. HitDef and Projectile now capture
 fall.recover and fall.recovertime, defaulting to enabled and four ticks.

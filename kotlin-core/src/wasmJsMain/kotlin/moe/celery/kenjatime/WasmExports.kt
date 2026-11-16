@@ -139,6 +139,9 @@ private object Fights {
         ",\"getHitDamage\":" + p.getHitData.damage +
         ",\"getHitX256\":" + p.getHitData.velocityX +
         ",\"getHitY256\":" + p.getHitData.velocityY +
+        ",\"getHitAccelerationY256\":" + p.getHitData.accelerationY +
+        ",\"hitOver\":" + p.hitOver +
+        ",\"hitShakeOver\":" + p.hitShakeOver +
         ",\"getHitTime\":" + p.getHitData.time +
         ",\"getHitGuarded\":" + p.getHitData.guarded +
         ",\"getHitFall\":" + p.getHitData.fall +

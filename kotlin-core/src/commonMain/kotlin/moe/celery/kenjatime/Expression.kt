@@ -85,6 +85,8 @@ object CoreExpression {
                 "numtarget" -> f.targets().size.toDouble()
                 "hitcount" -> f.hitCount.toDouble()
                 "hitfall" -> if(f.getHitData.fall)1.0 else 0.0
+                "hitover" -> if(f.hitOver)1.0 else 0.0
+                "hitshakeover" -> if(f.hitShakeOver)1.0 else 0.0
                 "canrecover" -> if(f.canRecover)1.0 else 0.0
                 "movecontact" -> if (f.moveContact) 1.0 else 0.0
                 "movehit" -> if (f.moveHit) 1.0 else 0.0

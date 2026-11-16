@@ -2158,6 +2158,155 @@ try {
 } finally { api.ktCoreRelease(guardRecovery); }
 console.log("Native Wasm fall recovery permission / thresholds / hitpause clocks / root-helper-projectile capture / CanRecover and HitFall / borrowed SelfState recovery / deferred guard / pure reads: OK (synthetic)");
 
+// CNS owns recoil integration; the incoming acceleration stays canonical across banks.
+for(const kind of ["root","helper","projectile"])for(const width of [320,640])for(const mode of ["default","zero","positive","negative"])for(const pause of [0,2]) {
+  const params=mode==="default" ? "" : `yaccel=${(mode==="zero" ? 0 : mode==="positive" ? .5 : -.5)*width/320}`;
+  const controller=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=0
+pausetime=0,${pause}
+ground.hittime=2
+${params}`;
+  const source=motionIdle+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "")+
+    (kind==="projectile" ? "" : "\n[Statedef 200]\ntype=S\nphysics=N\nanim=200")+
+    `\n[State ${kind==="projectile" ? 0 : 200}, hit]\n${controller}`;
+  const recoil=api.ktCoreCreateWithDefinitions("captured acceleration","authored recoil",projectileFacingAir,air,source,
+    `${motionIdle}
+[Statedef 5000]
+type=A
+movetype=H
+physics=N
+anim=0
+[State 5000, observe capture and clock boundaries]
+type=PowerSet
+trigger1=1
+ignorehitpause=1
+value=1024+GetHitVar(yaccel)*256+HitShakeOver*10+HitOver*100
+[State 5000, authored gravity]
+type=VelAdd
+trigger1=HitShakeOver
+y=GetHitVar(yaccel)`,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"[Info]\nlocalcoord=640,480");
+  try {
+    api.ktCoreSetup(recoil,0,0,5*256,0);
+    if(kind==="root")api.ktCoreDebugForceState(recoil,0,200);else api.ktCoreAdvance(recoil,0,"",0,"");
+    api.ktCoreAdvance(recoil,0,"",0,"");
+    const amount=mode==="default" ? 89 : mode==="zero" ? 0 : mode==="positive" ? 128 : -128;
+    const captured=JSON.parse(api.ktCoreSnapshot(recoil,1));
+    assert.equal(captured.getHitAccelerationY256,amount);assert.equal(captured.hitOver,false);assert.equal(captured.hitShakeOver,pause===0);
+    for(let tick=1;tick<=pause+4;tick++) {
+      api.ktCoreAdvance(recoil,0,"",0,"");
+      const victim=JSON.parse(api.ktCoreSnapshot(recoil,1)),active=Math.max(0,tick-pause),shake=tick>=pause,over=active>2;
+      assert.equal(victim.getHitAccelerationY256,amount);assert.equal(victim.vy256,active*amount || 0);
+      assert.equal(victim.y256,active*(active+1)/2*amount || 0);assert.equal(victim.hitShakeOver,shake);assert.equal(victim.hitOver,over);
+      assert.equal(victim.getHitTime,Math.max(-1,2-active));assert.equal(victim.power,1024+amount*2+Number(shake)*10+Number(over)*100);
+      assert.equal(victim.life,1000);assert.equal(victim.state,5000);assert.deepEqual(JSON.parse(api.ktCoreContacts(recoil)),[]);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(recoil,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(recoil,1)),victim);
+    }
+    assert.equal(api.ktCoreIssues(recoil),"");
+  } finally { api.ktCoreRelease(recoil); }
+}
+for(const kind of ["root","projectile"])for(const airborne of [false,true])for(const guarded of [false,true]) {
+  const controller=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=0
+guardflag=HLA
+yaccel=.5
+pausetime=0,2
+ground.hittime=2
+air.hittime=4
+guard.hittime=3`;
+  const source=kind==="projectile" ? `${motionIdle}
+[State 0, shot]
+${controller}` :
+    `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+${controller}`;
+  const reactions=[5000,150,152].map(state=>`[Statedef ${state}]
+type=${airborne ? "A" : "S"}
+movetype=H
+physics=N
+anim=0`).join("\n");
+  const clocks=api.ktCoreCreate("hit clocks","selected duration",projectileFacingAir,air,source,
+    `${motionIdle}
+ctrl=1
+[Statedef 400]
+type=A
+physics=N
+anim=0
+ctrl=1
+${reactions}`);
+  try {
+    api.ktCoreSetup(clocks,0,0,5*256,0);if(airborne)api.ktCoreDebugForceState(clocks,1,400);
+    if(kind==="root")api.ktCoreDebugForceState(clocks,0,200);else api.ktCoreAdvance(clocks,0,"",guarded ? 8 : 0,"");
+    api.ktCoreAdvance(clocks,0,"",guarded ? 8 : 0,"");
+    const duration=guarded ? 3 : airborne ? 4 : 2;
+    for(let tick=0;tick<=duration+3;tick++) {
+      const victim=JSON.parse(api.ktCoreSnapshot(clocks,1)),elapsed=Math.max(0,tick-2);
+      assert.equal(victim.getHitGuarded,guarded);assert.equal(victim.getHitTime,Math.max(-1,duration-elapsed));
+      assert.equal(victim.hitOver,elapsed>duration);assert.equal(victim.hitShakeOver,tick>=2);
+      assert.equal(victim.getHitAccelerationY256,128);
+      if(tick<duration+3)api.ktCoreAdvance(clocks,0,"",0,"");
+    }
+    assert.equal(api.ktCoreIssues(clocks),"");
+  } finally { api.ktCoreRelease(clocks); }
+}
+const borrowedRecoil=api.ktCoreCreateWithDefinitions("recoil bank","own recovery bank",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+yaccel=1
+ground.hittime=2
+p2stateno=700
+[Statedef 700]
+type=A
+movetype=H
+physics=N
+anim=0
+[State 700, authored gravity]
+type=VelAdd
+trigger1=HitShakeOver
+y=GetHitVar(yaccel)
+[State 700, own recovery]
+type=SelfState
+trigger1=HitOver
+value=5200`,
+  `${motionIdle}
+[Statedef 5200]
+type=A
+movetype=I
+physics=N
+anim=0
+velset=0,0`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedRecoil,0,0,5*256,0);api.ktCoreDebugForceState(borrowedRecoil,0,200);
+  api.ktCoreAdvance(borrowedRecoil,0,"",0,"");
+  for(let tick=1;tick<=2;tick++) {
+    api.ktCoreAdvance(borrowedRecoil,0,"",0,"");const victim=JSON.parse(api.ktCoreSnapshot(borrowedRecoil,1));
+    assert.equal(victim.state,700);assert.equal(victim.stateOwner,1);assert.equal(victim.getHitAccelerationY256,128);
+    assert.equal(victim.vy256,tick*128);assert.equal(victim.y256,tick*(tick+1)/2*128);assert.equal(victim.hitOver,false);
+  }
+  api.ktCoreAdvance(borrowedRecoil,0,"",0,"");const recovered=JSON.parse(api.ktCoreSnapshot(borrowedRecoil,1));
+  assert.equal(recovered.state,5200);assert.equal(recovered.stateOwner,2);assert.equal(recovered.vy256,0);
+  assert.equal(recovered.localCoordWidth,320);assert.equal(recovered.getHitAccelerationY256,128);assert.equal(recovered.hitOver,true);
+  assert.equal(api.ktCoreIssues(borrowedRecoil),"");
+} finally { api.ktCoreRelease(borrowedRecoil); }
+console.log("Native Wasm captured HitDef yaccel / authored recoil / HitOver and HitShakeOver / root-helper-projectile / selected hit-guard-air clocks / pause boundaries / borrowed SelfState recovery / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S
