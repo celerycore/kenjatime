@@ -1,6 +1,61 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current get-hit velocity continuation — November 16, 2026
+## Current fall-damage continuation — November 16, 2026
+
+Continues published main source `a3e4d92`. HitDef and Projectile now capture
+fall.damage and an independent fall.kill flag. Omitted amounts default to zero;
+omitted fall.kill defaults to true regardless of kill or guard.kill. Numeric
+expressions evaluate in the executing actor at attack installation. Invalid
+amounts/flags preserve an existing HitDef or leave the projectile queue alone.
+
+CNS HitFallDamage applies the pending amount only when the actor has accepted
+hit data, MoveType H and its fall flag enabled. It clears the amount after one
+application, including zero-defence and capped-health results. Guard contacts
+initially disable falling, so they retain the amount until HitFallSet enables
+it. A new accepted contact replaces pending damage and its fall.kill permission;
+repeated controllers or presentation reads cannot spend the same value twice.
+
+Fall damage uses the victim's own base defence and current DefenceMulSet factor.
+Attacker attack values/factors and borrowed-bank defence do not participate.
+The amount remains a health scalar across mixed or borrowed local coordinates.
+Nonlethal fall damage floors living victims at one life without reviving a
+victim already at zero. Signed negative amounts explicitly heal up to LifeMax;
+wide negation and bounded rounding handle Int.MIN_VALUE and extreme defence
+factors without wrapping. Tiny damage retains the existing one-point minimum.
+
+GetHitVar(fall.damage) exposes the pending amount and becomes zero after spending.
+Wasm actor snapshots expose getHitFallDamage and getHitFallKill. HitFallDamage
+preserves the original GetHitVar(damage), velocities, state/bank, hit timers,
+power and contact history. Existing persistence and ignorehitpause rules apply.
+Round flow observes a resulting zero life, but this controller does not select
+another state or create another hit. Helpers retain their own pending data;
+each accepted multi-hit projectile contact provides a fresh amount.
+
+Validation:
+
+- 640 JVM and 635 compiled-Wasm tests pass, including 25 new cases for defaults,
+  independent kill flags, live defence, one-shot consumption, signed bounds,
+  gating, guard data, helpers, borrowed banks, invalid requests, new contacts,
+  multi-hit projectiles, pause, persistence, round KO and pure reads.
+- Exported Wasm checks 48 root/helper/projectile, localcoord 320/640, defence
+  factor and fall.kill combinations, plus signed bounds, deferred guard damage
+  and a borrowed-bank scalar/defence sequence.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+The controller follows the authored consumption described in the
+[Elecbyte reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitfalldamage),
+with pending-amount clearing also present in IKEMEN's hitFallDamage implementation.
+Automatic landing damage, ground collision, bounce/recovery, native gating and
+rounding details, defence-up behavior and common-state ordering remain incomplete
+or unverified. This does not certify native frame parity or physical-phone
+performance. Main CI verifies identical browser/APK Wasm assets and anonymous
+permanent downloads before publication.
+
+## Get-hit velocity continuation — November 16, 2026
 
 Continues published main source `2d24c44`. CNS now executes HitVelSet,
 HitFallSet and HitFallVel. They act only on MoveType H actors with captured

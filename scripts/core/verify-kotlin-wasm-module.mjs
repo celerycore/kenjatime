@@ -1844,6 +1844,191 @@ value=abs(GetHitVar(fall.xvel))*100+abs(GetHitVar(fall.yvel))`,motionIdle,
 }
 console.log("Native Wasm HitVelSet sparse axes / hit-guard-projectile capture / HitFallSet and HitFallVel / omitted X and canonical bounce / mixed and borrowed units / pure reads: OK (synthetic)");
 
+// Fall damage is a health scalar captured per contact and spent by an authored controller.
+for(const kind of ["root","helper","projectile"])for(const width of [320,640])for(const kill of [0,1])for(const factor of ["1","0.5","0","2147483647*2147483647"]) {
+  const attack=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=0
+kill=0
+guard.kill=0
+fall=1
+fall.damage=100
+fall.kill=${kill}`;
+  const source=`[Data]
+attack=800
+defence=400
+${motionIdle}`+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "")+
+    (kind==="projectile" ? "" : "\n[Statedef 200]\ntype=S\nphysics=N\nanim=200")+
+    `\n[State ${kind==="projectile" ? 0 : 200}, attacker factor]
+type=AttackMulSet
+trigger1=Time=0
+value=7
+[State ${kind==="projectile" ? 0 : 200}, contact]
+${attack}`;
+  const victim=`[Data]
+defence=200
+${motionIdle}
+[State 0, live defence]
+type=DefenceMulSet
+trigger1=Time=0
+value=${factor}
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, observe pending scalar]
+type=PowerAdd
+trigger1=Time=0 && GetHitVar(fall.damage)=100
+value=1
+[State 5000, spend]
+type=HitFallDamage
+trigger1=1
+[State 5000, observe consumed scalar]
+type=PowerAdd
+trigger1=Time=0 && GetHitVar(fall.damage)=0
+value=2`;
+  const fallDamage=api.ktCoreCreateWithDefinitions("fall scalar source","fall recipient",projectileFacingAir,air,source,victim,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(fallDamage,0,0,5*256,0);api.ktCoreDebugSetStats(fallDamage,1,80,0);
+    if(kind==="root")api.ktCoreDebugForceState(fallDamage,0,200);else api.ktCoreAdvance(fallDamage,0,"",0,"");
+    api.ktCoreAdvance(fallDamage,0,"",0,"");
+    const pending=JSON.parse(api.ktCoreSnapshot(fallDamage,1));
+    assert.equal(pending.getHitFallDamage,100);assert.equal(pending.getHitFallKill,!!kill);assert.equal(pending.life,80);
+    api.ktCoreAdvance(fallDamage,0,"",0,"");
+    const spent=JSON.parse(api.ktCoreSnapshot(fallDamage,1));
+    assert.equal(spent.life,factor==="1" ? 30 : factor==="0.5" ? 55 : factor==="0" ? 80 : kill ? 0 : 1);
+    assert.equal(spent.getHitFallDamage,0);assert.equal(spent.getHitDamage,0);assert.equal(spent.power,3);
+    assert.equal(spent.state,5000);assert.equal(JSON.parse(api.ktCoreSnapshot(fallDamage,0)).power,0);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(fallDamage)),[]);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(fallDamage,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(fallDamage,1)),spent);
+    api.ktCoreAdvance(fallDamage,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(fallDamage,1)).life,spent.life);
+    assert.equal(api.ktCoreIssues(fallDamage),"");
+  } finally { api.ktCoreRelease(fallDamage); }
+}
+for(const [amount,defence,factor,kill,expected] of [[-100,200,"0.5",1,525],[-2147483648,1,"2147483647*2147483647",1,1000],
+  [2147483647,1,"2147483647*2147483647",0,1],[1,100000,"1",1,499]]) {
+  const signedFall=api.ktCoreCreate("signed fall source","signed fall victim",projectileFacingAir,air,
+    `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+fall=1
+fall.damage=${amount}
+fall.kill=${kill}`,
+    `[Data]
+defence=${defence}
+${motionIdle}
+[State 0, factor]
+type=DefenceMulSet
+trigger1=Time=0
+value=${factor}
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, spend]
+type=HitFallDamage
+trigger1=1`);
+  try {
+    api.ktCoreSetup(signedFall,0,0,5*256,0);api.ktCoreDebugSetStats(signedFall,1,500,0);api.ktCoreDebugForceState(signedFall,0,200);
+    api.ktCoreAdvance(signedFall,0,"",0,"");api.ktCoreAdvance(signedFall,0,"",0,"");
+    const victim=JSON.parse(api.ktCoreSnapshot(signedFall,1));
+    assert.equal(victim.life,expected);assert.equal(victim.getHitFallDamage,0);assert.equal(api.ktCoreIssues(signedFall),"");
+  } finally { api.ktCoreRelease(signedFall); }
+}
+const guardedFall=api.ktCoreCreate("guarded fall source","guarded fall victim",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+guardflag=HL
+kill=0
+guard.kill=0
+fall=1
+fall.damage=100`,
+  `[Data]
+defence=200
+${motionIdle}
+ctrl=1
+[Statedef 150]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 150, enable deferred fall]
+type=HitFallSet
+trigger1=Time=1
+value=1
+[State 150, spend when falling]
+type=HitFallDamage
+trigger1=1`);
+try {
+  api.ktCoreSetup(guardedFall,0,0,5*256,0);api.ktCoreDebugSetStats(guardedFall,1,20,0);api.ktCoreDebugForceState(guardedFall,0,200);
+  api.ktCoreAdvance(guardedFall,0,"",8,"");api.ktCoreAdvance(guardedFall,0,"",0,"");
+  const deferred=JSON.parse(api.ktCoreSnapshot(guardedFall,1));
+  assert.equal(deferred.life,20);assert.equal(deferred.getHitFall,false);assert.equal(deferred.getHitFallDamage,100);
+  assert.equal(deferred.getHitFallKill,true);assert.equal(deferred.getHitGuarded,true);
+  api.ktCoreAdvance(guardedFall,0,"",0,"");
+  const spent=JSON.parse(api.ktCoreSnapshot(guardedFall,1));
+  assert.equal(spent.life,0);assert.equal(spent.getHitFallDamage,0);assert.equal(spent.getHitFall,true);
+  assert.deepEqual(JSON.parse(api.ktCoreContacts(guardedFall)),[]);assert.equal(api.ktCoreIssues(guardedFall),"");
+} finally { api.ktCoreRelease(guardedFall); }
+const borrowedFall=api.ktCoreCreateWithDefinitions("fall bank","own defence",projectileFacingAir,air,
+  `[Data]
+defence=400
+${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+fall=1
+fall.damage=100
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, observe scalar]
+type=PowerSet
+trigger1=Time=0
+value=GetHitVar(fall.damage)
+[State 700, spend]
+type=HitFallDamage
+trigger1=1`, `[Data]
+defence=200
+${motionIdle}`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedFall,0,0,5*256,0);api.ktCoreDebugForceState(borrowedFall,0,200);
+  api.ktCoreAdvance(borrowedFall,0,"",0,"");api.ktCoreAdvance(borrowedFall,0,"",0,"");
+  const victim=JSON.parse(api.ktCoreSnapshot(borrowedFall,1));
+  assert.equal(victim.life,950);assert.equal(victim.getHitFallDamage,0);assert.equal(victim.power,100);
+  assert.equal(victim.stateOwner,1);assert.equal(victim.localCoordWidth,640);assert.equal(victim.ownLocalCoordWidth,320);
+  assert.equal(api.ktCoreIssues(borrowedFall),"");
+} finally { api.ktCoreRelease(borrowedFall); }
+console.log("Native Wasm HitFallDamage / independent fall.kill / root-helper-projectile scalar capture / live defence / consume once / signed bounds / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

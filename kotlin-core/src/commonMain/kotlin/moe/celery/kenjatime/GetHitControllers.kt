@@ -51,6 +51,7 @@ internal object CoreGetHitControllers {
                     data.fallVelocityX?.let { actor.velX=it }
                     actor.velY=data.fallVelocityY
                 }
+                "hitfalldamage" -> if(data.fall)CoreFallDamage.apply(actor)
             }
         }catch(e: IllegalArgumentException) {
             errors.add("Invalid ${controller.type}: ${e.message}")

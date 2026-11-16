@@ -5,15 +5,21 @@ import kotlin.math.floor
 
 /** Health controllers do not create a new hit or alter the victim's state bank. */
 internal object CoreLifeControllers {
-    private fun delta(value: Int,target: FightingCharacter,absolute: Boolean,targetControl: Boolean): Long {
-        if(value == 0)return 0
-        val scaled=if(absolute)value.toDouble() else value.toDouble()*100/target.definition.defence*
+    private fun delta(value: Double,target: FightingCharacter,absolute: Boolean,targetControl: Boolean): Long {
+        if(value == 0.0)return 0
+        val scaled=if(absolute)value else value*100/target.definition.defence*
             (if(targetControl)target.defenceMultiplier else 1.0)
         if(scaled == 0.0)return 0
         // Symmetric half-away rounding. Tiny damage retains a one-point minimum;
         // tiny healing can round to zero. Keep the wide result until life clamping.
         val magnitude=floor(abs(scaled)+0.5).coerceAtMost(Int.MAX_VALUE.toDouble()).toLong()
         return if(value < 0)-magnitude.coerceAtLeast(1) else magnitude
+    }
+    internal fun applyFall(actor: FightingCharacter,amount: Int,kill: Boolean) {
+        val minimum=if(!kill && actor.life > 0)1L else 0L
+        // Negate in Double so Int.MIN_VALUE remains a positive healing amount.
+        actor.life=(actor.life.toLong()+delta(-amount.toDouble(),actor,false,true))
+            .coerceIn(minimum,actor.definition.maxLife.toLong()).toInt()
     }
     fun execute(actor: FightingCharacter,controller: StateController,errors: MutableSet<String>) {
         try {
@@ -42,7 +48,7 @@ internal object CoreLifeControllers {
                 if(type == "lifeset")target.life=value.coerceIn(0,target.definition.maxLife)
                 else {
                     val minimum=if(!kill && target.life > 0)1L else 0L
-                    target.life=(target.life.toLong()+delta(value,target,absolute,type == "targetlifeadd"))
+                    target.life=(target.life.toLong()+delta(value.toDouble(),target,absolute,type == "targetlifeadd"))
                         .coerceIn(minimum,target.definition.maxLife.toLong()).toInt()
                 }
             }
