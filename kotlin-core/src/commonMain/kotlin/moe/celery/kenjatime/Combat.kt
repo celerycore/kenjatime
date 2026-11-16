@@ -281,6 +281,7 @@ class FightingCharacter(
         if(moveContact && moveContactTicks < Int.MAX_VALUE)moveContactTicks=moveContactTicks.coerceAtLeast(1)+1
     }
     var parent: FightingCharacter? = null
+    internal var positionFrozen = false
     var binding: ActorBinding? = null
         private set
     internal var hitPauseThisTick = false
@@ -511,6 +512,7 @@ class FightingCharacter(
             "turn" -> { facingRight = !facingRight }
             "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
+            "posfreeze" -> CorePositionFreeze.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -901,6 +903,7 @@ class FightingCharacter(
         if (destroyed) return
         capturedTargets.keys.removeAll { it.destroyed || it.life <= 0 || it.moveType != "H" }
         asserted.clear()
+        positionFrozen=false
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0
@@ -920,8 +923,7 @@ class FightingCharacter(
         // Advance afterward, independently of State Time and state transitions.
         if(!paused)advanceMoveContact()
         if (changed || paused) return
-        posX += velX
-        posY += velY
+        if(!positionFrozen) { posX += velX;posY += velY }
         timeInState++
         animation?.advance()
         if (hitStunLeft == 0 && (stateNo == 5000 || stateNo in 150..152) &&

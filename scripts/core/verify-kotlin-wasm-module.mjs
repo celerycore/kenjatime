@@ -2767,6 +2767,115 @@ try {
 } finally { api.ktCoreRelease(resetShotHistory); }
 console.log("Native Wasm elapsed MoveContact/MoveHit/MoveGuarded / MoveHitReset / root-helper clocks / hitpause / StateDef persistence / spent HitDef and manual count preservation / independent projectile history / pure reads: OK (synthetic)");
 
+const positionFreezeCases=[
+  {name:"default",params:"",trigger:"1"},
+  {name:"zero",params:"value=0",trigger:"1"},
+  {name:"negative",params:"value=-.5",trigger:"1"},
+  {name:"first-tick",params:"",trigger:"Time=0"},
+  {name:"persistent-zero",params:"persistent=0",trigger:"1"},
+  {name:"expression",params:"value=ifelse(Time<2,max(0,.5),0)",trigger:"1"}
+];
+for(const width of [320,640])for(const pause of [0,2])for(const test of positionFreezeCases) {
+  const held=api.ktCoreCreateWithDefinitions("position hold","incoming hit",air,projectileFacingAir,
+    `${motionIdle}
+[Statedef 5000]
+type=A
+movetype=H
+physics=N
+anim=0
+[State 5000, accelerate while held]
+type=VelAdd
+trigger1=1
+y=${.5*width/320}
+[State 5000, position freeze]
+type=PosFreeze
+trigger1=${test.trigger}
+${test.params}`,
+    `${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, create incoming motion and pause]
+type=HitDef
+trigger1=Time=0
+damage=0
+getpower=0,0
+givepower=0,0
+ground.velocity=4,-2
+ground.hittime=20
+pausetime=0,${pause}`,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(held,0,0,-5*256,0);api.ktCoreDebugSetFacing(held,1,true);api.ktCoreDebugForceState(held,1,200);
+    api.ktCoreAdvance(held,0,"",0,"");
+    let x=0,y=0;
+    for(let tick=1;tick<=pause+5;tick++) {
+      const active=Math.max(0,tick-pause),running=active>0;
+      const freeze=running && (test.name==="default" || test.name==="negative" ||
+        (test.name==="first-tick" || test.name==="persistent-zero") && active===1 || test.name==="expression" && active<=2);
+      if(running && !freeze){x+=4*256;y+=-2*256+active*128;}
+      api.ktCoreAdvance(held,0,"",0,"");const actor=JSON.parse(api.ktCoreSnapshot(held,0));
+      assert.equal(actor.positionFrozen,freeze);assert.equal(actor.x256,x);assert.equal(actor.y256,y);
+      assert.equal(actor.vx256,4*256);assert.equal(actor.vy256,-2*256+active*128);
+      assert.equal(actor.stateTime,active);assert.equal(actor.animationTime,active);
+      assert.equal(actor.life,1000);assert.equal(actor.power,0);assert.deepEqual(JSON.parse(api.ktCoreContacts(held)),[]);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(held,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(held,0)),actor);
+    }
+    assert.equal(api.ktCoreIssues(held),"");
+  } finally { api.ktCoreRelease(held); }
+}
+for(const frozen of [0,1,2,3]) {
+  const pushFreeze=api.ktCoreCreate("push left","push right",air,air,
+    motionIdle+(frozen&1 ? "\n[State 0, hold]\ntype=PosFreeze\ntrigger1=1" : ""),
+    motionIdle+(frozen&2 ? "\n[State 0, hold]\ntype=PosFreeze\ntrigger1=1" : ""));
+  try {
+    api.ktCoreSetup(pushFreeze,-5*256,0,5*256,0);api.ktCoreConfigureArena(pushFreeze,-100,100,0,true,false);
+    api.ktCoreAdvance(pushFreeze,0,"",0,"");
+    const left=JSON.parse(api.ktCoreSnapshot(pushFreeze,0)),right=JSON.parse(api.ktCoreSnapshot(pushFreeze,1));
+    assert.equal(left.x256,(frozen===0 ? -15 : frozen===2 ? -25 : -5)*256);
+    assert.equal(right.x256,(frozen===0 ? 15 : frozen===1 ? 25 : 5)*256);
+    assert.equal(left.positionFrozen,!!(frozen&1));assert.equal(right.positionFrozen,!!(frozen&2));
+    assert.equal(api.ktCoreIssues(pushFreeze),"");
+  } finally { api.ktCoreRelease(pushFreeze); }
+}
+for(const width of [320,640]) {
+  const helperFreeze=api.ktCoreCreateWithDefinitions("moving root","victim",air,air,
+    `${motionIdle}
+[State 0, root motion]
+type=VelSet
+trigger1=Time=0
+x=${width/320}
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=200
+[Statedef 200]
+type=S
+physics=N
+anim=0
+[State 200, helper motion]
+type=VelSet
+trigger1=Time=0
+x=${2*width/320}
+[State 200, temporary hold]
+type=PosFreeze
+trigger1=Time<2`,motionIdle,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(helperFreeze,0,0,100*256,0);api.ktCoreAdvance(helperFreeze,0,"",0,"");
+    for(let tick=1;tick<=4;tick++) {
+      api.ktCoreAdvance(helperFreeze,0,"",0,"");const actor=JSON.parse(api.ktCoreSnapshot(helperFreeze,0));
+      assert.equal(actor.positionFrozen,false);assert.equal(actor.x256,(tick+1)*256);
+      const helper=JSON.parse(api.ktCoreRenderPlan(helperFreeze,12)).draws.find(draw=>draw.kind==="helper");
+      assert.ok(Math.abs(helper.x-(480+(1+Math.max(0,tick-2)*2)*1.4))<1e-9);
+      assert.equal(helper.elemTime,tick);
+    }
+    assert.equal(api.ktCoreIssues(helperFreeze),"");
+  } finally { api.ktCoreRelease(helperFreeze); }
+}
+console.log("Native Wasm PosFreeze / active tick lifetime / signed and expression flags / velocity and animation clocks / incoming hitpause / mixed units / arena push anchoring / helper motion / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

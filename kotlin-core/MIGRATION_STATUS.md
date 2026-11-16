@@ -1,6 +1,73 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current move-contact timing continuation — November 16, 2026
+## Current position-freeze continuation — November 16, 2026
+
+Continues published main source `06eb4c6`. CNS now executes PosFreeze to hold
+both velocity-driven position axes for the current simulation tick. Omitted
+value defaults to true, zero releases the hold and other numeric values enable
+it. Nested expressions evaluate on the executing actor each time the controller
+runs. A later PosFreeze in the same tick can override an earlier valid value.
+Invalid values or unsupported parameters diagnose the request without replacing
+an earlier valid flag.
+
+The flag resets at the start of every actor tick, including hitpause. Normal
+controllers are skipped in hitpause; ignorehitpause=1 can reassert the flag
+there. Hitpause still independently freezes ordinary motion/clocks. Persistent
+controllers retain their existing execution rules, so persistent=0 holds only
+on its first eligible activation and rearms on state entry. State transitions
+do not turn a one-tick flag into a permanent hold.
+
+PosFreeze preserves velocity, State Time, animation progression, move-contact
+clocks, authored velocity changes and arena gravity on active ticks. Releasing
+the flag resumes integration using current velocity. Explicit PosSet/PosAdd
+and resolved bindings remain authoritative placement operations; screen/arena
+bounds still apply. The hold is not an invulnerability or animation-freeze flag:
+frozen attackers execute HitDefs, frozen victims remain hittable and contacts
+retain their normal damage/power/clock behavior.
+
+In the configured two-root arena push policy, a frozen actor stays anchored
+while an overlapping movable opponent receives the displacement within stage
+bounds. Two frozen actors retain their positions. If the movable opponent is
+pinned at an edge, overlap can remain rather than moving the frozen actor or
+crossing the bound. Existing bound-actor push exclusions remain unchanged.
+Helper body pushing and complete native corner-push behavior remain separate work.
+
+Helpers maintain their own flag and motion. Borrowed banks read the executing
+actor's variables, and neither localcoord nor facing rescales a boolean hold or
+the already canonical retained velocity. Read-only snapshots and presentation
+cannot assert or clear the flag. Wasm actor snapshots expose positionFrozen.
+
+Validation:
+
+- 823 JVM and 818 compiled-Wasm tests pass, including 22 new cases for defaults,
+  flags, expiration, clocks, velocity, explicit placement, cancellation,
+  expressions, invalid requests, persistence, pause, state transitions, arena
+  pushing/bounds/gravity, collision eligibility, helpers, bindings, banks and
+  pure presentation.
+- Exported Wasm checks 24 localcoord 320/640, hitpause and freeze-mode sequences,
+  four arena push-anchor combinations and two helper hold/resume sequences.
+  Each verifies active clocks, retained/current velocity and immutable reads.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Measured controller-name coverage is now 59 of 97 in the live legacy JavaScript
+registry (60.8%), up from 58 of 97 (59.8%); 38 names remain outside the Kotlin
+contract. Against the Elecbyte 1.1 reference the overlap is 58 of 89 (65.2%).
+Name counts do not measure parameter completeness, expressions, physics, effects,
+AI, team modes or native parity. Overall completion remains unquantified;
+covering every controller name alone would not complete the rewrite.
+
+Controller behavior follows the
+[Elecbyte PosFreeze reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#posfreeze).
+Exact native binding/push/pause ordering, helper body pushing, corner push,
+complete common-state physics and physical-phone performance remain incomplete
+or unverified. These checks do not certify native frame parity. Main CI verifies
+shared browser/APK Wasm identity and anonymous permanent downloads before publication.
+
+## Move-contact timing continuation — November 16, 2026
 
 Continues published main source `e930f68`. CNS now executes MoveHitReset,
 clearing the current actor's MoveContact, MoveHit and MoveGuarded flags and

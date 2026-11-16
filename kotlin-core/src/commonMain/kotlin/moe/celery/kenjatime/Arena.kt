@@ -51,6 +51,14 @@ data class ArenaRules(
         val minDistance=(p1.bodyWidthWorld(forward).toLong()+p2.bodyWidthWorld(-forward)).coerceAtLeast(2L*Fixed.ONE)
         if(abs(diff)>=minDistance)return
         val penetration=(minDistance-abs(diff)).toInt()
+        if(p1.positionFrozen || p2.positionFrozen) {
+            if(p1.positionFrozen && p2.positionFrozen)return
+            if(p1.positionFrozen)p2.posX=(p2.posX.toLong()+forward.toLong()*penetration)
+                .coerceIn(left.toLong(),right.toLong()).toInt()
+            else p1.posX=(p1.posX.toLong()-forward.toLong()*penetration)
+                .coerceIn(left.toLong(),right.toLong()).toInt()
+            return
+        }
         val half=penetration/2
         val before1=p1.posX
         val before2=p2.posX

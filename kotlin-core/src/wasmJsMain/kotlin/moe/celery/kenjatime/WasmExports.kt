@@ -117,6 +117,7 @@ private object Fights {
     return "{\"frame\":" + fight.frame + ",\"life\":" + p.life +
         ",\"x256\":" + p.posX + ",\"y256\":" + p.posY +
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
+        ",\"positionFrozen\":" + p.positionFrozen +
         ",\"state\":" + p.stateNo + ",\"stateTime\":" + p.timeInState +
         ",\"stateOwner\":" + p.stateOwner.id +
         ",\"localCoordWidth\":" + p.coordinates.width +
