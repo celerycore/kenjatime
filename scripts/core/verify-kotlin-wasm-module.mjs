@@ -2991,6 +2991,187 @@ try {
 } finally { api.ktCoreRelease(borrowedPriority); }
 console.log("Native Wasm SprPriority and StateDef persistence / actor-owned borrowed banks / mixed helper-projectile-Explod painter order / projectile draw priority bounds / onTop / stable ties / pure reads: OK (synthetic)");
 
+// Full affine transforms must come from compiled Kotlin, including AIR flips
+// and offsets. Size and localcoord are intentionally independent of draw scale.
+const angleScaleCases=[{x:1,y:1,flip:""},{x:2,y:.5,flip:"H"},
+  {x:-1,y:1,flip:"V"},{x:0,y:-2,flip:"HV"}];
+for(const width of [320,640])for(const facing of [false,true])
+for(const initialAngle of [15,75])for(const scale of angleScaleCases) {
+  const angleAir=`${air}\n[Begin Action 100]\n0,0,8,-4,-1,${scale.flip}`;
+  const drawing=api.ktCoreCreateWithDefinitions("angle transforms","target",angleAir,air,
+    `[Size]
+xscale=2
+yscale=.5
+${motionIdle.replace("anim=0","anim=100")}
+[State 0, set angle]
+type=AngleSet
+trigger1=Time=0
+value=${initialAngle}
+[State 0, add angle]
+type=AngleAdd
+trigger1=Time=0
+value=max(30,15)
+[State 0, multiply angle]
+type=AngleMul
+trigger1=Time=0
+value=2
+[State 0, draw angle]
+type=AngleDraw
+trigger1=Time<2
+scale=ifelse(1,${scale.x},1),min(${scale.y},2)`,motionIdle,"","",
+    `[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(drawing,0,0,100*256,0);api.ktCoreDebugSetFacing(drawing,0,facing);
+    for(let tick=0;tick<3;tick++) {
+      api.ktCoreAdvance(drawing,0,"",0,"");
+      const actor=JSON.parse(api.ktCoreSnapshot(drawing,0));
+      const angle=(initialAngle+30)*2,enabled=tick<2,face=facing?1:-1;
+      assert.equal(actor.drawAngleDegrees,angle);assert.equal(actor.angleDraw,enabled);
+      assert.equal(actor.drawScaleX,enabled?scale.x:1);assert.equal(actor.drawScaleY,enabled?scale.y:1);
+      assert.equal(actor.x256,0);assert.equal(actor.y256,0);assert.equal(actor.life,1000);assert.equal(actor.power,0);
+      const before=api.ktCoreChecksum(drawing),plan=JSON.parse(api.ktCoreRenderPlan(drawing,0));
+      const draw=plan.draws.find(d=>d.kind==="fighter"&&d.side===0);
+      const rotation=enabled?angle*face:0,radians=rotation*Math.PI/180,c=Math.cos(radians),s=Math.sin(radians);
+      const sx=320/width*2*(enabled?scale.x:1),sy=320/width*.5*(enabled?scale.y:1);
+      const hx=scale.flip.includes("H")?-1:1,vy=scale.flip.includes("V")?-1:1;
+      const expected={transformA:c*sx*1.4*face*hx,transformB:-s*sx*1.1*face*hx,
+        transformC:s*sy*1.4*vy,transformD:c*sy*1.1*vy,
+        x:480+(c*8*sx*face+s*(-4)*sy)*1.4,
+        y:435+(-s*8*sx*face+c*(-4)*sy)*1.1};
+      assert.equal(draw.rotationDegrees,rotation||0);assert.equal(draw.angleDraw,enabled);
+      for(const [field,value]of Object.entries(expected))
+        assert.ok(Math.abs(draw[field]-value)<1e-8,`${field}: ${draw[field]} != ${value}`);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(drawing,12);
+      assert.equal(api.ktCoreChecksum(drawing),before);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(drawing,0)),actor);
+    }
+    assert.equal(api.ktCoreIssues(drawing),"");
+  } finally { api.ktCoreRelease(drawing); }
+}
+for(const ignore of [0,1]) {
+  const pausedAngle=api.ktCoreCreate("paused drawing","attacker",air,projectileFacingAir,
+    `${motionIdle}
+[State 0, initial draw]
+type=AngleDraw
+trigger1=1
+value=30
+scale=2,.5
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, add during pause]
+type=AngleAdd
+trigger1=1
+ignorehitpause=${ignore}
+value=15
+[State 5000, draw during pause]
+type=AngleDraw
+trigger1=1
+ignorehitpause=${ignore}`,`${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, pause defender]
+type=HitDef
+trigger1=Time=0
+damage=0
+getpower=0,0
+givepower=0,0
+ground.velocity=0,0
+pausetime=0,2`);
+  try {
+    api.ktCoreSetup(pausedAngle,0,0,-5*256,0);api.ktCoreDebugSetFacing(pausedAngle,1,true);
+    api.ktCoreDebugForceState(pausedAngle,1,200);api.ktCoreAdvance(pausedAngle,0,"",0,"");
+    for(let tick=1;tick<=3;tick++) {
+      api.ktCoreAdvance(pausedAngle,0,"",0,"");const actor=JSON.parse(api.ktCoreSnapshot(pausedAngle,0));
+      assert.equal(actor.drawAngleDegrees,30+15*(ignore?tick:Math.max(0,tick-2)));
+      assert.equal(actor.angleDraw,ignore===1||tick===3);
+      assert.equal(actor.drawScaleX,1);assert.equal(actor.drawScaleY,1);
+      assert.equal(actor.stateTime,Math.max(0,tick-2));assert.equal(actor.hitPauseThisTick,tick<=2);
+    }
+    assert.equal(api.ktCoreIssues(pausedAngle),"");
+  } finally { api.ktCoreRelease(pausedAngle); }
+}
+const helperAngle=api.ktCoreCreate("independent helper angle","target",air,air,`${motionIdle}
+[State 0, root draw]
+type=AngleDraw
+trigger1=1
+value=30
+scale=2,2
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, helper draw]
+type=AngleDraw
+trigger1=1
+value=-45
+scale=.5,1`,motionIdle);
+try {
+  for(let i=0;i<2;i++)api.ktCoreAdvance(helperAngle,0,"",0,"");
+  const draws=JSON.parse(api.ktCoreRenderPlan(helperAngle,0)).draws;
+  const root=draws.find(d=>d.kind==="fighter"&&d.side===0),helper=draws.find(d=>d.kind==="helper");
+  assert.equal(root.rotationDegrees,30);assert.equal(root.spriteScaleX,2);
+  assert.equal(helper.rotationDegrees,-45);assert.equal(helper.spriteScaleX,.5);
+  assert.equal(api.ktCoreIssues(helperAngle),"");
+} finally { api.ktCoreRelease(helperAngle); }
+const borrowedAngle=api.ktCoreCreateWithDefinitions("angle bank","executing actor",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, bank variable]
+type=VarSet
+trigger1=1
+v=0
+value=60
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, actor angle]
+type=AngleDraw
+trigger1=Time=0
+value=var(0)+10
+scale=2,.5
+[State 700, release]
+type=SelfState
+trigger1=Time=1
+value=0`,`${motionIdle}
+[State 0, own variable]
+type=VarSet
+trigger1=1
+v=0
+value=35`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedAngle,0,0,5*256,0);api.ktCoreDebugForceState(borrowedAngle,0,200);
+  api.ktCoreAdvance(borrowedAngle,0,"",0,"");api.ktCoreAdvance(borrowedAngle,0,"",0,"");
+  const borrowed=JSON.parse(api.ktCoreSnapshot(borrowedAngle,1));
+  assert.equal(borrowed.stateOwner,1);assert.equal(borrowed.localCoordWidth,640);
+  assert.equal(borrowed.drawAngleDegrees,45);assert.equal(borrowed.angleDraw,true);assert.equal(borrowed.drawScaleX,2);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(borrowedAngle,0)).drawAngleDegrees,0);
+  api.ktCoreAdvance(borrowedAngle,0,"",0,"");const own=JSON.parse(api.ktCoreSnapshot(borrowedAngle,1));
+  assert.equal(own.stateOwner,2);assert.equal(own.localCoordWidth,320);
+  assert.equal(own.drawAngleDegrees,45);assert.equal(own.angleDraw,false);assert.equal(own.drawScaleX,1);
+  assert.equal(api.ktCoreIssues(borrowedAngle),"");
+} finally { api.ktCoreRelease(borrowedAngle); }
+console.log("Native Wasm AngleSet/Add/Mul/Draw / 64 localcoord-facing-scale-flip-offset transforms / per-tick expiry / hitpause / independent helpers / actor-owned borrowed banks / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

@@ -282,6 +282,10 @@ class FightingCharacter(
         if(moveContact && moveContactTicks < Int.MAX_VALUE)moveContactTicks=moveContactTicks.coerceAtLeast(1)+1
     }
     var parent: FightingCharacter? = null
+    internal var drawAngleDegrees = 0.0
+    internal var angleDrawEnabled = false
+    internal var drawScaleX = 1.0
+    internal var drawScaleY = 1.0
     internal var spritePriority = 0
     internal var positionFrozen = false
     var binding: ActorBinding? = null
@@ -517,6 +521,7 @@ class FightingCharacter(
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "posfreeze" -> CorePositionFreeze.execute(this,c,errors)
             "sprpriority" -> CoreSpritePriority.execute(this,c,errors)
+            "angleset", "angleadd", "anglemul", "angledraw" -> CoreAngleDrawing.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -909,6 +914,7 @@ class FightingCharacter(
         capturedTargets.keys.removeAll { it.destroyed || it.life <= 0 || it.moveType != "H" }
         asserted.clear()
         positionFrozen=false
+        angleDrawEnabled=false;drawScaleX=1.0;drawScaleY=1.0
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0

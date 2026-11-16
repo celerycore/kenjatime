@@ -1,5 +1,9 @@
 package moe.celery.kenjatime
 
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+
 /** Kotlin/Wasm owns visual planning and frame-skip policy. The host only
  * paints immutable commands on Canvas/WebGL and decodes user-owned SFF art.
  *
@@ -57,32 +61,48 @@ object CorePresentationPlanner {
             .append("],\"draws\":[")
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
                  facingRight: Boolean, action: AirAnimationPlayer?,
-                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0) {
+                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null) {
             val frame = action?.frame
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
             val effectScaleX=effect?.config?.scaleX ?: 1.0
             val effectScaleY=effect?.config?.scaleY ?: 1.0
             val spriteScaleX=definition.coordinates.scale*(projectile?.scaleX ?:
-                (effectScaleX*if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0))
+                (effectScaleX*if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0))*(actor?.drawScaleX ?: 1.0)
             val spriteScaleY=definition.coordinates.scale*(projectile?.scaleY ?:
-                (effectScaleY*if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0))
+                (effectScaleY*if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0))*(actor?.drawScaleY ?: 1.0)
             val pixelScaleX=spriteScaleX*HORIZONTAL_SCALE*zoom
             val pixelScaleY=spriteScaleY*VERTICAL_SCALE*zoom
-            // AIR frame offsets are authored in the fighter's localcoord and
-            // are applied before the SFF pivot. The old JS renderer ignored
-            // them, causing specials and helper animation frames to drift.
-            val drawX=pixelX(x256,camera)+
-                (frame?.offsetX ?: 0)*pixelScaleX*face
-            val drawY=pixelY(y256,camera)+
-                (frame?.offsetY ?: 0)*pixelScaleY*(effect?.config?.verticalFacing ?: 1)
+            // Rotate in canonical stage space, then project each pixel axis. This preserves
+            // a rigid stage rotation despite the viewport's unequal X/Y pixel scales.
+            val rotation=if(actor?.angleDrawEnabled == true)(actor.drawAngleDegrees%360)*face else 0.0
+            val radians=rotation*PI/180
+            val c=cos(radians);val s=sin(radians)
+            val vf=effect?.config?.verticalFacing ?: 1
+            val offsetX=(frame?.offsetX ?: 0)*spriteScaleX*face
+            val offsetY=(frame?.offsetY ?: 0)*spriteScaleY*vf
+            val drawX=pixelX(x256,camera)+(c*offsetX+s*offsetY)*HORIZONTAL_SCALE*zoom
+            val drawY=pixelY(y256,camera)+(-s*offsetX+c*offsetY)*VERTICAL_SCALE*zoom
             val flip=frame?.flip?.uppercase() ?: ""
+            val flipX=if('H' in flip)-1 else 1
+            val flipY=(if('V' in flip)-1 else 1)*vf
+            fun cleanZero(value: Double)=if(value == 0.0)0.0 else value
+            val matrixA=cleanZero(c*pixelScaleX*face*flipX)
+            val matrixB=cleanZero(-s*spriteScaleX*VERTICAL_SCALE*zoom*face*flipX)
+            val matrixC=cleanZero(s*spriteScaleY*HORIZONTAL_SCALE*zoom*flipY)
+            val matrixD=cleanZero(c*pixelScaleY*flipY)
             json.append("{\"side\":").append(side)
                 .append(",\"kind\":\"").append(kind).append("\"")
                 .append(",\"x\":").append(drawX)
                 .append(",\"y\":").append(drawY)
-                .append(",\"flipX\":").append(if('H' in flip) -1 else 1)
-                .append(",\"flipY\":").append((if('V' in flip) -1 else 1)*(effect?.config?.verticalFacing ?: 1))
+                .append(",\"transformA\":").append(matrixA)
+                .append(",\"transformB\":").append(matrixB)
+                .append(",\"transformC\":").append(matrixC)
+                .append(",\"transformD\":").append(matrixD)
+                .append(",\"rotationDegrees\":").append(cleanZero(rotation))
+                .append(",\"angleDraw\":").append(actor?.angleDrawEnabled == true)
+                .append(",\"flipX\":").append(flipX)
+                .append(",\"flipY\":").append(flipY)
                 .append(",\"scale\":").append(camera?.zoom ?: 1.0)
                 .append(",\"spriteScaleX\":").append(spriteScaleX)
                 .append(",\"spriteScaleY\":").append(spriteScaleY)
@@ -108,7 +128,7 @@ object CorePresentationPlanner {
         fun actorDraw(side: Int,kind: String,actor: FightingCharacter) {
             val priority=actor.spritePriority.toLong()
             enqueue(priority) { draw(side,kind,actor.posX,actor.posY,actor.facingRight,actor.animation,
-                actor.animationOwner.definition,actor.life,priority=priority) }
+                actor.animationOwner.definition,actor.life,priority=priority,actor=actor) }
         }
         actorDraw(0,"fighter",fight.p1)
         actorDraw(1,"fighter",fight.p2)

@@ -146,3 +146,43 @@ ctrl=0
 sprpriority=-3
 `);
 writeFileSync("test-output/kotlin-kfm-priority.zip",zipSync(priorityFiles));
+
+// Exercise angle arithmetic, mirrored facing, signed scale and AIR offsets
+// through imported CNS and real SFF drawImage calls.
+const angleFiles=Object.fromEntries(raw);
+angleFiles["kfm/kfm.cns"]=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=705
+ctrl=0
+[Statedef -2]
+[State -2, angle set]
+type=AngleSet
+triggerall=IsHelper=0
+trigger1=1
+value=ifelse(Time%60<30,30,90)
+[State -2, angle add]
+type=AngleAdd
+triggerall=IsHelper=0
+trigger1=1
+value=15
+[State -2, angle multiply]
+type=AngleMul
+triggerall=IsHelper=0
+trigger1=1
+value=2
+[State -2, alternate facing]
+type=Turn
+triggerall=IsHelper=0
+trigger1=(Time%60<30 && Facing<0)||(Time%60>=30 && Facing>0)
+[State -2, draw angle]
+type=AngleDraw
+triggerall=IsHelper=0
+trigger1=1
+scale=2,-.5
+`);
+angleFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(angleFiles["kfm/kfm.air"])+`
+[Begin Action 705]
+0,0,8,-4,-1
+`);
+writeFileSync("test-output/kotlin-kfm-angle.zip",zipSync(angleFiles));

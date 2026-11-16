@@ -1,7 +1,7 @@
 """Verify actual Kotlin/Wasm-combat browser UI, not a JavaScript fallback."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import csv, io, functools, http.server, shutil, threading, json
+import csv, io, functools, http.server, shutil, threading, json, math
 
 ROOT=Path(__file__).resolve().parents[2]
 class Quiet(http.server.SimpleHTTPRequestHandler):
@@ -152,6 +152,37 @@ try:
         assert not priority_errors,priority_errors
         result["spritePriorityCanvasOrder"]="passed"
         priority_page.close()
+
+        angles=browser.new_page(viewport={"width":1000,"height":780})
+        angle_errors=[]
+        angles.on("pageerror",lambda error:angle_errors.append(str(error)))
+        angles.goto(base,wait_until="domcontentloaded",timeout=30000)
+        angles.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        angles.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-angle.zip"))
+        angles.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=angles.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        angles.locator("#p1-select").select_option(value=installed)
+        angles.locator("#cpu").uncheck()
+        angles.locator("#start").click()
+        for facing,rotation in [(1,90),(-1,-210)]:
+            painted=angles.wait_for_function("""expected => {
+              const paint=window.__kenjatimeKotlinQA?.lastActorTransformPaint;
+              return paint?.angleDraw&&paint.facing===expected.facing&&
+                paint.rotationDegrees===expected.rotation ? paint : false;
+            }""",arg={"facing":facing,"rotation":rotation},timeout=30000).json_value()
+            c,s=math.cos(math.radians(rotation)),math.sin(math.radians(rotation))
+            zoom=painted["cameraZoom"]
+            expected={"a":c*2*1.4*facing*zoom,"b":-s*2*1.1*facing*zoom,
+                      "c":s*(-.5)*1.4*zoom,"d":c*(-.5)*1.1*zoom}
+            for axis,value in expected.items():
+                assert abs(painted[axis]-value)<1e-5,painted
+                assert abs(painted[axis]-painted["planned"+axis.upper()])<1e-5,painted
+            for axis in ["x","y"]:
+                assert abs(painted[axis]-painted["planned"+axis.upper()])<1e-4,painted
+        assert not angle_errors,angle_errors
+        result["angleDrawCanvasTransform"]="passed"
+        angles.close()
 
         high=browser.new_page(viewport={"width":1000,"height":780})
         high_errors=[]

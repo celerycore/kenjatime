@@ -13,6 +13,10 @@
     "posset",
     "posfreeze",
     "sprpriority",
+    "angleset",
+    "angleadd",
+    "anglemul",
+    "angledraw",
     "ctrlset",
     "changestate",
     "selfstate",
@@ -68,6 +72,7 @@
     "stopsnd"
   ],
   "knownIncomplete": [
+    "AngleSet/AngleAdd/AngleMul retain finite actor-owned degrees; per-tick AngleDraw supports signed scale (-64..64) and Kotlin affine sprite transforms with facing, Size, localcoord and AIR offsets/flips; native exact pivots, extreme scale, WinMUGEN hitpause and full visual parity remain unverified",
     "Supported spatial paths convert active state-owner units through canonical stage coordinates; complete localcoord-dependent triggers/controllers and native mixed-coordinate parity remain unverified",
     "TargetState/ChangeAnim2/SelfState and HitDef p2stateno have synthetic JVM/Wasm coverage, not native tick-for-tick throw parity",
     "TargetVelSet/TargetVelAdd/TargetFacing support captured IDs, active-state coordinates and separate player/target facing conventions; native mixed-coordinate, binding and sequential actor-phase ordering remain unverified",

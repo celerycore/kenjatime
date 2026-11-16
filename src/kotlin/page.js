@@ -24,7 +24,7 @@ const fighters=new Map();
 const installedTables=new Map();
 let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0,paintedProjectileCount=0;
 let lastExplodPaint=null,lastProjectilePaint=null;
-let lastSpritePaintOrder=null;
+let lastSpritePaintOrder=null,lastActorTransformPaint=null;
 const debugWarning=new Set();
 const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
@@ -205,8 +205,21 @@ function render(){
       const sx=fighter.pixelScaleX??((fighter.spriteScaleX??1)*(fighter.scale??1));
       const sy=fighter.pixelScaleY??((fighter.spriteScaleY??1)*(fighter.scale??1));
       ctx.save();ctx.translate(x,y);
-      ctx.scale((fighter.facing<0?-1:1)*(fighter.flipX||1)*sx,
-        (fighter.flipY||1)*sy);
+      if([fighter.transformA,fighter.transformB,fighter.transformC,fighter.transformD].every(Number.isFinite)){
+        ctx.transform(fighter.transformA,fighter.transformB,fighter.transformC,fighter.transformD,0,0);
+      }else{
+        ctx.scale((fighter.facing<0?-1:1)*(fighter.flipX||1)*sx,(fighter.flipY||1)*sy);
+      }
+      if(fighter.kind==="fighter"&&fighter.side===0){
+        const transform=ctx.getTransform();
+        lastActorTransformPaint=Object.freeze({frame:latest.frame,facing:fighter.facing,
+          rotationDegrees:fighter.rotationDegrees??0,angleDraw:!!fighter.angleDraw,
+          cameraZoom:fighter.scale??1,
+          a:transform.a/scale,b:transform.b/scale,c:transform.c/scale,d:transform.d/scale,
+          x:transform.e/scale,y:transform.f/scale,
+          plannedA:fighter.transformA,plannedB:fighter.transformB,
+          plannedC:fighter.transformC,plannedD:fighter.transformD,plannedX:x,plannedY:y});
+      }
       ctx.imageSmoothingEnabled=false;
       // Sprite X/Y originate in authored SFF axes, not image center.
       if(fighter.kind==="explod"){
@@ -440,6 +453,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get projectilePaints(){return paintedProjectileCount},
   get lastProjectilePaint(){return lastProjectilePaint},
   get lastSpritePaintOrder(){return lastSpritePaintOrder},
+  get lastActorTransformPaint(){return lastActorTransformPaint},
   get spritePaints(){return paintedSpriteCount},
   get placeholderPaints(){return placeholderCount},
   get importedCount(){return fighters.size-1},

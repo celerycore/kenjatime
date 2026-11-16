@@ -119,6 +119,10 @@ private object Fights {
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
         ",\"positionFrozen\":" + p.positionFrozen +
         ",\"spritePriority\":" + p.spritePriority +
+        ",\"drawAngleDegrees\":" + p.drawAngleDegrees +
+        ",\"angleDraw\":" + p.angleDrawEnabled +
+        ",\"drawScaleX\":" + p.drawScaleX +
+        ",\"drawScaleY\":" + p.drawScaleY +
         ",\"state\":" + p.stateNo + ",\"stateTime\":" + p.timeInState +
         ",\"stateOwner\":" + p.stateOwner.id +
         ",\"localCoordWidth\":" + p.coordinates.width +

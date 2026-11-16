@@ -1,6 +1,73 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current sprite-priority continuation — November 17, 2026
+## Current angle-drawing continuation — November 17, 2026
+
+Continues published main source `8c9e795`. CNS now executes AngleSet, AngleAdd,
+AngleMul and AngleDraw. Set/Add/Mul require a value and compose in controller
+order. Their finite, unwrapped degree value belongs to the executing actor and
+persists across ticks and state entry. They do not assert drawing by themselves.
+AngleDraw optionally replaces that value and asserts rotation for the current
+tick. Omitted scale defaults to 1,1; an explicit scale requires two components,
+supports nested expressions and accepts signed or zero values within -64..64.
+Malformed requests and arithmetic overflow diagnose without replacing an earlier
+valid angle or either scale axis.
+
+The draw assertion and both scale axes reset every actor tick, including
+hitpause; the stored angle does not reset. Normal controllers follow hitpause
+gating, while ignorehitpause=1 can update the angle and reassert drawing there.
+Standard controller persistence applies, including persistent=0 rearming on
+state entry. Helpers retain independent angles/scales. Borrowed banks evaluate
+the executing actor's variables; degrees and dimensionless draw scales are not
+converted through the bank's localcoord.
+
+Kotlin now emits the complete 2x2 sprite transform. Positive angles rotate
+counterclockwise facing right, with mirrored rotation facing left. Rotation
+operates in canonical stage coordinates before unequal viewport X/Y projection.
+Transforms include the animation resource's localcoord and Size, signed drawing
+scale, AIR flips and rotated frame offsets about the actor axis. The Canvas
+host applies the matrix and SFF sprite pivot directly. Only the display angle
+is reduced modulo 360; stored arithmetic remains unwrapped. Actor snapshots
+expose drawAngleDegrees, angleDraw, drawScaleX and drawScaleY. Render plans also
+expose transformA/B/C/D and rotationDegrees.
+
+Rotation and drawing scale do not change actor positions, velocities, hitboxes,
+damage, contacts or clocks. Projectiles and Explods retain their own transforms
+without inheriting the creator's actor draw assertion. Presentation reads do
+not accumulate angle arithmetic or alter simulation. Stable priority ordering
+from the preceding continuation remains in Kotlin.
+
+Validation:
+
+- 866 JVM and 861 compiled-Wasm tests pass, including 21 new cases for arithmetic,
+  defaults, expressions, invalid requests, overflow, signed/zero scales, facing,
+  coordinate projection, AIR offsets, persistence, hitpause, helpers, borrowed
+  banks, unchanged collision/damage and pure reads.
+- The exported Wasm ABI checks 64 coordinate/facing/angle/scale/AIR-flip transform
+  combinations through active and expired drawing ticks, plus independent
+  helpers, hitpause gating and borrowed-bank/SelfState sequences.
+- All 16 adapter/import/download checks and production browser checks pass.
+  A synthetic public-KFM-art import verifies actual Canvas matrices for both
+  facings, oblique rotation and signed scales alongside existing sprite/effect,
+  priority-ordering, coordinate, import, CSV and mobile-layout checks.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Measured controller-name coverage is now 64 of 97 in the live legacy JavaScript
+registry (66.0%), up from 60 of 97 (61.9%); 33 names remain outside the Kotlin
+contract. Against the Elecbyte 1.1 reference the overlap is 63 of 89 (70.8%).
+These counts measure controller names, not complete parameters, expressions,
+physics, effects, AI, team modes or native parity. Overall rewrite completion
+remains unquantified; reaching every controller name would not complete it.
+
+Semantics follow the [Elecbyte angle controller reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#angledraw).
+Exact native pivot/flip/negative-scale behavior, WinMUGEN-specific hitpause,
+extreme scale support, native frame parity and physical-phone performance remain
+unverified. The existing 147-case native KFM parity target is not certified.
+Main CI verifies shared browser/APK Wasm identity and anonymous permanent
+downloads before publication.
+
+## Sprite-priority continuation — November 17, 2026
 
 Continues published main source `f92fdff`. CNS now executes SprPriority with a
 required numeric value in the documented -5..5 range. Nested expressions and
