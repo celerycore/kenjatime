@@ -1578,6 +1578,130 @@ anim=0`,
 }
 console.log("Native Wasm runtime attack/defence factors / body and helper contacts / projectile request capture / live target defence / bounded scripted health / pure reads: OK (synthetic)");
 
+function persistenceScript(hit,move,count,replacement="") {
+  return `${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, manual counter]
+type=HitAdd
+trigger1=Time=0
+value=7
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=90,20
+guardflag=HL
+[State 200, handoff]
+type=ChangeState
+trigger1=Time=1
+value=300
+[Statedef 300]
+type=S
+movetype=A
+physics=N
+anim=200
+hitdefpersist=${hit}
+movehitpersist=${move}
+hitcountpersist=${count}
+[State 300, observe preserved data]
+type=PowerAdd
+trigger1=Time=0 && MoveContact && HitCount=7
+value=1
+${replacement}`;
+}
+for(const hit of [0,1])for(const move of [0,1])for(const count of [0,1])for(const guarded of [false,true]) {
+  const preserved=api.ktCoreCreate("state persistence","victim",projectileFacingAir,air,
+    persistenceScript(hit,move,count),hitFlagStates);
+  try {
+    api.ktCoreSetup(preserved,0,0,5*256,0);api.ktCoreDebugForceState(preserved,0,200);
+    api.ktCoreAdvance(preserved,0,"",guarded ? 8 : 0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(preserved,0)).hitCount,7);
+    api.ktCoreAdvance(preserved,0,"",guarded ? 8 : 0,"");
+    const entered=JSON.parse(api.ktCoreSnapshot(preserved,0));
+    assert.equal(entered.state,300);assert.equal(entered.stateTime,0);
+    assert.equal(entered.hitCount,count ? 7 : 0);assert.equal(entered.moveContact,!!move);
+    assert.equal(entered.moveHit,!!move && !guarded);assert.equal(entered.moveGuarded,!!move && guarded);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(preserved)),[]);
+    api.ktCoreAdvance(preserved,0,"",guarded ? 8 : 0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(preserved,1)).life,guarded ? 980 : 910);
+    const snapshot=JSON.parse(api.ktCoreSnapshot(preserved,0));
+    assert.equal(snapshot.power,(guarded ? 31 : 63)+(move && count ? 1 : 0));
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(preserved)),[],"A preserved spent attack cannot hit again");
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(preserved,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(preserved,0)),snapshot);
+    assert.equal(api.ktCoreIssues(preserved),"");
+  } finally { api.ktCoreRelease(preserved); }
+}
+for(const keep of [0,1]) {
+  const unspent=api.ktCoreCreate("unspent carry","victim",projectileFacingAir,air,persistenceScript(keep,0,0),hitFlagStates);
+  try {
+    api.ktCoreSetup(unspent,0,0,1000*256,0);api.ktCoreDebugForceState(unspent,0,200);
+    api.ktCoreAdvance(unspent,0,"",0,"");api.ktCoreAdvance(unspent,0,"",0,"");
+    api.ktCoreSetup(unspent,0,0,5*256,0);api.ktCoreAdvance(unspent,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(unspent,1)).life,keep ? 910 : 1000);
+    assert.equal(JSON.parse(api.ktCoreContacts(unspent)).length,keep ? 1 : 0);
+    assert.equal(api.ktCoreIssues(unspent),"");
+  } finally { api.ktCoreRelease(unspent); }
+}
+const replacement=api.ktCoreCreate("replace carried attack","victim",projectileFacingAir,air,
+  persistenceScript(1,1,1,"[State 300, replacement]\ntype=HitDef\ntrigger1=1\ndamage=5"),hitFlagStates);
+try {
+  api.ktCoreSetup(replacement,0,0,5*256,0);api.ktCoreDebugForceState(replacement,0,200);
+  for(let i=0;i<3;i++)api.ktCoreAdvance(replacement,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(replacement,1)).life,905);
+  assert.equal(JSON.parse(api.ktCoreContacts(replacement))[0].damage,5);
+  api.ktCoreAdvance(replacement,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(replacement,1)).life,905);
+  assert.deepEqual(JSON.parse(api.ktCoreContacts(replacement)),[]);
+  assert.equal(api.ktCoreIssues(replacement),"");
+} finally { api.ktCoreRelease(replacement); }
+const boundedCount=api.ktCoreCreate("bounded manual count","victim",air,air,
+  `${motionIdle}
+[State 0, add maximum]
+type=HitAdd
+trigger1=Time=0
+value=2147483647
+[State 0, saturate]
+type=HitAdd
+trigger1=Time=0
+value=2147483647
+[State 0, invalid value preserves count]
+type=HitAdd
+trigger1=Time=0
+value=2147483648
+[State 0, handoff]
+type=ChangeState
+trigger1=Time=1
+value=300
+[Statedef 300]
+type=S
+physics=N
+anim=0
+hitcountpersist=1
+[State 300, drain]
+type=HitAdd
+trigger1=Time=0
+value=-2147483648`,motionIdle);
+try {
+  api.ktCoreAdvance(boundedCount,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(boundedCount,0)).hitCount,2147483647);
+  api.ktCoreAdvance(boundedCount,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(boundedCount,0)).hitCount,2147483647);
+  api.ktCoreAdvance(boundedCount,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(boundedCount,0)).hitCount,0);
+  assert.match(api.ktCoreIssues(boundedCount),/Invalid HitAdd:/);
+} finally { api.ktCoreRelease(boundedCount); }
+const invalidInitialPersistence=api.ktCoreCreate("invalid initial flag","victim",air,air,
+  `${motionIdle}\nhitdefpersist=unknown`,motionIdle);
+try {
+  assert.match(api.ktCoreIssues(invalidInitialPersistence),/Invalid StateDef persistence:/);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(invalidInitialPersistence,0)).hitCount,0);
+} finally { api.ktCoreRelease(invalidInitialPersistence); }
+console.log("Native Wasm StateDef hit/contact/manual-count persistence / spent windows / first valid replacement / entry diagnostics / bounded HitAdd / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

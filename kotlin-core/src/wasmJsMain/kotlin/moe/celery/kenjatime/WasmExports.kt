@@ -147,6 +147,10 @@ private object Fights {
         ",\"powerMax\":" + p.maxPower +
         ",\"attackMultiplier\":" + p.attackMultiplier +
         ",\"defenceMultiplier\":" + p.defenceMultiplier +
+        ",\"moveContact\":" + p.moveContact +
+        ",\"moveHit\":" + p.moveHit +
+        ",\"moveGuarded\":" + p.moveGuarded +
+        ",\"hitCount\":" + p.hitCount +
         ",\"ctrl\":" + (if (p.control) 1 else 0) +
         ",\"facing\":" + (if (p.facingRight) 1 else -1) +
         ",\"stateType\":\"" + p.stateType +

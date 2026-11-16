@@ -1,6 +1,64 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current runtime damage continuation — November 16, 2026
+## Current state persistence continuation — November 16, 2026
+
+Continues published main source `c52cb2b`. StateDef now honors hitdefpersist,
+movehitpersist and hitcountpersist independently. Omitted/zero values reset the
+body HitDef, boolean move-contact information and existing manual HitCount on
+entry. Nonzero values preserve the corresponding data. This also fixes the
+previous behavior where HitCount could survive every transition unconditionally.
+
+Preserving a body HitDef retains its original captured parameters, state bank
+and struck-target set. A spent attack cannot hit the same victim again merely
+because the player entered another state. An unspent attack can connect using
+the new state's current collision animation. Preservation never creates attack
+boxes or converts canonical knockback again when the state bank uses different
+local coordinates.
+
+The first valid authored HitDef executed after carrying an attack may replace
+it and open a fresh contact window. Repeated execution of that same current
+state's controller retains the existing one-window rule. Invalid replacement
+definitions leave the carried attack and its spent targets intact. Independent
+projectiles keep their own lifetime and captured attack factors.
+
+Persistence expressions evaluate on entry with the destination bank/state and
+Time=0 visible, while previous attack/contact/count data is still available.
+All three flags are evaluated before any of that data is cleared. Actor
+variables belong to the executing actor, including in a borrowed bank. Failed
+expressions diagnose the problem and disable all three carries for that entry;
+the transition itself still completes. Initial-state diagnostics are retained
+when actors are attached to a fight.
+
+HitAdd now validates its value and parameters and uses wider addition before
+clamping the existing manual HitCount to 0–Int.MAX_VALUE. Rendering cannot
+increment or reset the count. Actor snapshots expose moveContact, moveHit,
+moveGuarded and hitCount so clients can inspect the supported state data.
+Automatic HitCount/UniqHitCount contact accounting, numhits/combo display and
+elapsed Move* trigger semantics remain separate work; hitcountpersist currently
+controls the HitAdd-backed manual counter, not a complete native combo model.
+
+Validation:
+
+- 594 JVM and 589 compiled-Wasm tests pass, including 22 new cases for flag
+  combinations, attack windows/replacement, expressions, ownership, units,
+  invalid entry, manual counters, helpers, projectiles, pause and pure reads.
+- Exported Wasm checks all 16 flag/hit/guard combinations, two unspent carries,
+  one replacement window, bounded manual counting and initial diagnostics.
+  Destination controllers observe preserved flags/counts in their next phase.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Persistence flag contracts follow the
+[Elecbyte StateDef reference](https://network.mugenguild.com/justnopoint/1.1docs/cns.html#hitdefpersist).
+Native expression-entry timing, repeated HitDef replacement, move timers and
+automatic counter parity remain incomplete or unverified. These checks do not
+certify native frame parity or physical-phone performance. Main CI verifies
+browser/APK asset identity and anonymous permanent downloads before publication.
+
+## Runtime damage continuation — November 16, 2026
 
 Continues published main source `f8181bf`. CNS now executes AttackMulSet and
 DefenceMulSet. They replace the executing actor's runtime damage factors;

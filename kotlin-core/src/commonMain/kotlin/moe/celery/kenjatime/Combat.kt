@@ -58,7 +58,10 @@ data class StateProgram(
     val physics: String? = null,
     val control: Boolean? = null,
     val velocityX: Double? = null,
-    val velocityY: Double? = null
+    val velocityY: Double? = null,
+    val hitDefPersist: String? = null,
+    val moveHitPersist: String? = null,
+    val hitCountPersist: String? = null
 )
 data class MugenConstants(
     val maxLife: Int = 1000,
@@ -205,7 +208,8 @@ object MugenCnsParser {
                 m?.get("type")?.uppercase(), m?.get("movetype")?.uppercase(),
                 m?.get("physics")?.uppercase(), m?.get("ctrl")?.toIntOrNull()?.let { it != 0 },
                 velocity.getOrNull(0)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() },
-                velocity.getOrNull(1)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() })
+                velocity.getOrNull(1)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() },
+                m?.get("hitdefpersist"),m?.get("movehitpersist"),m?.get("hitcountpersist"))
         }
     }
 }
@@ -382,25 +386,33 @@ class FightingCharacter(
     var activeHitDef: HitDefinition? = null
         private set
     private val struck = mutableSetOf<Int>()
+    private var carriedHitDef=false
     private val controllerActivation = mutableMapOf<Pair<Int,Int>,Int>()
-    private var evaluationIssues: MutableSet<String> = linkedSetOf()
+    internal val initializationIssues: MutableSet<String> = linkedSetOf()
+    private var evaluationIssues: MutableSet<String> = initializationIssues
     var animation: AirAnimationPlayer? = null
         private set
     init { changeState(0) }
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
-                    controlOverride: Boolean? = null) {
+                    controlOverride: Boolean? = null,
+                    errors: MutableSet<String> = world?.issues ?: evaluationIssues) {
         fallbackHitReaction = false
         stateRevision++
         stateOwner = owner
         stateNo = state
         timeInState = 0
-        activeHitDef = null
-        struck.clear()
         controllerActivation.clear()
-        moveContact = false
-        moveHit = false
-        moveGuarded = false
         val program = stateProgram
+        val persistence=CoreStatePersistence.read(program,this,errors)
+        if(!persistence.hitDef) {
+            activeHitDef=null
+            struck.clear()
+        }
+        carriedHitDef=persistence.hitDef && activeHitDef != null
+        if(!persistence.moveHit) {
+            moveContact=false;moveHit=false;moveGuarded=false
+        }
+        if(!persistence.hitCount)hitCount=0
         val neutralFallback = owner === this && state == 0 && program == null
         stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
         moveType = program?.moveType ?: (if (state >= 5000) "H" else "I")
@@ -431,7 +443,7 @@ class FightingCharacter(
             errors.add("State owner belongs to another fight")
             return false
         }
-        changeState(state, owner, controlOverride)
+        changeState(state, owner, controlOverride,errors)
         return true
     }
     fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
@@ -551,7 +563,7 @@ class FightingCharacter(
             }
             "lifeadd", "lifeset", "targetlifeadd" -> CoreLifeControllers.execute(this,c,errors)
             "attackmulset", "defencemulset" -> CoreDamage.execute(this,c,errors)
-            "hitadd" -> { hitCount = (hitCount + integer(args["value"])).coerceAtLeast(0) }
+            "hitadd" -> CoreHitCounts.add(this,c,errors)
             "assertspecial" -> {
                 args["flag"]?.lowercase()?.let { asserted.add(it) }
             }
@@ -786,9 +798,13 @@ class FightingCharacter(
                     fall = integer(args["fall"]) != 0,
                     airFall = integer(args["air.fall"],integer(args["fall"])) != 0
                 )
-                // A controller evaluated every tick must not reset a target's struck set.
-                // State entry starts a new contact window; multi-hit/HitOnce need further parity.
-                if (activeHitDef == null) activeHitDef = next
+                // A valid definition may replace a carried attack once. Repeated
+                // evaluation within a state must not reset its struck-target set.
+                if (activeHitDef == null || carriedHitDef) {
+                    if(carriedHitDef)struck.clear()
+                    activeHitDef=next
+                    carriedHitDef=false
+                }
             }
             else -> errors.add("Unsupported controller: " + c.type)
         }
@@ -993,6 +1009,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         private set
     init {
         require(p1.id != p2.id)
+        issues.addAll(p1.initializationIssues);issues.addAll(p2.initializationIssues)
         p1.opponent = p2
         p2.opponent = p1
         p1.world = this
