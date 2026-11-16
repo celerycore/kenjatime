@@ -64,7 +64,8 @@ data class MugenConstants(
     val headX: Int = 0, val headY: Int = -90*Fixed.ONE,
     val midX: Int = 0, val midY: Int = -60*Fixed.ONE,
     val projectileDoScale: Boolean = false,
-    val maxPower: Int = 3000
+    val maxPower: Int = 3000,
+    val defence: Int = 100
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -81,12 +82,14 @@ data class FighterDefinition(
     val midX: Int = 0, val midY: Int = -60*Fixed.ONE,
     val defaultExplodPostype: String = "p1",
     val projectileDoScale: Boolean = false,
-    val maxPower: Int = 3000
+    val maxPower: Int = 3000,
+    val defence: Int = 100
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
         require(xScale in 0..65536 && yScale in 0..65536) { "Invalid character sprite scale" }
         require(maxPower >= 0) { "Invalid character maximum power" }
+        require(defence in 1..100000) { "Invalid character base defence" }
     }
     val coordinates=MugenCoordinates(localCoordWidth)
     /** Rounded compatibility scale accessors. Collision geometry converts
@@ -117,7 +120,7 @@ data class FighterDefinition(
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
-                if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower
+                if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence
             )
         }
     }
@@ -149,7 +152,8 @@ object MugenCnsParser {
             midX = point("mid.pos",0,0), midY = point("mid.pos",1,-60*Fixed.ONE),
             projectileDoScale = size?.get("proj.doscale")?.toDoubleOrNull()
                 ?.takeIf { it.isFinite() }?.let { it != 0.0 } ?: false,
-            maxPower = script.section("Data")?.int("power",3000)?.coerceAtLeast(0) ?: 3000
+            maxPower = script.section("Data")?.int("power",3000)?.coerceAtLeast(0) ?: 3000,
+            defence = script.section("Data")?.int("defence",100)?.coerceIn(1,100000) ?: 100
         )
     }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
@@ -531,10 +535,7 @@ class FightingCharacter(
                 args["statetype"]?.uppercase()?.let { stateType = it }
                 args["movetype"]?.uppercase()?.let { moveType = it }
             }
-            "lifeadd" -> {
-                life = (life + integer(args["value"])).coerceIn(0, definition.maxLife)
-            }
-            "lifeset" -> { life = integer(args["value"],life).coerceIn(0, definition.maxLife) }
+            "lifeadd", "lifeset", "targetlifeadd" -> CoreLifeControllers.execute(this,c,errors)
             "hitadd" -> { hitCount = (hitCount + integer(args["value"])).coerceAtLeast(0) }
             "assertspecial" -> {
                 args["flag"]?.lowercase()?.let { asserted.add(it) }

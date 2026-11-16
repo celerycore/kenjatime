@@ -1254,6 +1254,95 @@ try {
 } finally { api.ktCoreRelease(capturedPower); }
 console.log("Native Wasm HitDef/Projectile getpower and givepower / hit and guard pairs / configured and captured defaults / bounds / pure reads: OK (synthetic)");
 
+for(const width of [320,640])for(const defence of [100,200])for(const absolute of [0,1])for(const kill of [0,1]) {
+  const scriptedThrow=api.ktCoreCreateWithDefinitions("scripted throw","victim",projectileFacingAir,air,
+    `${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, capture]
+type=HitDef
+trigger1=Time=0
+attr=S,NT
+hitflag=M-
+damage=0
+id=184
+p1stateno=211
+p2stateno=700
+[Statedef 211]
+type=S
+movetype=A
+physics=N
+anim=0
+velset=2,0
+[State 211, bind]
+type=TargetBind
+trigger1=Time<6
+time=1
+pos=20,0
+[State 211, missing ID]
+type=TargetLifeAdd
+trigger1=Time=1
+id=999
+value=-1000
+[State 211, timed damage]
+type=TargetLifeAdd
+trigger1=Time=3
+id=184
+value=-60
+kill=${kill}
+absolute=${absolute}
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0`,
+    `[Data]\ndefence=${defence}\n${hitFlagStates}`,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(scriptedThrow,0,0,5*256,0);api.ktCoreDebugSetStats(scriptedThrow,1,50,0);
+    api.ktCoreDebugForceState(scriptedThrow,0,200);api.ktCoreAdvance(scriptedThrow,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(scriptedThrow,0)).state,211);
+    const expected=Math.max(kill ? 0 : 1,50-(absolute ? 60 : 60*100/defence));
+    for(let tick=0;tick<4;tick++) {
+      api.ktCoreAdvance(scriptedThrow,0,"",0,"");
+      const captor=JSON.parse(api.ktCoreSnapshot(scriptedThrow,0));
+      const victim=JSON.parse(api.ktCoreSnapshot(scriptedThrow,1));
+      assert.equal(victim.life,tick<3 ? 50 : expected);
+      assert.equal(victim.x256,captor.x256+20*320/width*256,"Finite binding must still apply on the damage tick");
+      assert.equal(victim.state,700);assert.equal(victim.stateOwner,1);
+      assert.equal(victim.getHitDamage,0,"Scripted health changes do not create a new incoming hit");
+      assert.equal(victim.power,0);assert.equal(captor.power,0);
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(scriptedThrow)),[]);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(scriptedThrow,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(scriptedThrow,1)),victim);
+    }
+    api.ktCoreAdvance(scriptedThrow,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(scriptedThrow,1)).life,expected,"Time=3 damage must execute only once");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(scriptedThrow,0)).numTargets,expected>0 ? 1 : 0);
+    assert.equal(api.ktCoreIssues(scriptedThrow),"");
+  } finally { api.ktCoreRelease(scriptedThrow); }
+}
+for(const [type,params,expected,invalid] of [
+  ["LifeAdd","value=-60",470,false],["LifeAdd","value=60",530,false],
+  ["LifeAdd","value=-60\nabsolute=1",440,false],["LifeAdd","value=-2147483648\nkill=0",1,false],
+  ["LifeAdd","value=2147483647",1000,false],["LifeAdd","value=unknown",500,true],
+  ["LifeSet","value=123.9",123,false],["LifeSet","value=2147483647",1000,false],
+  ["LifeSet","value=-1",0,false],["LifeSet","value=unknown",500,true]
+]) {
+  const health=api.ktCoreCreate("health controller","opponent",air,air,
+    `[Data]\ndefence=200\n${motionIdle}\n[State 0, health]\ntype=${type}\ntrigger1=Time=0\n${params}`,motionIdle);
+  try {
+    api.ktCoreDebugSetStats(health,0,500,0);api.ktCoreAdvance(health,0,"",0,"");
+    const snapshot=JSON.parse(api.ktCoreSnapshot(health,0));assert.equal(snapshot.life,expected,`${type}/${params}`);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(health,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(health,0)),snapshot);
+    assert.equal(api.ktCoreIssues(health).includes(`Invalid ${type}:`),invalid);
+  } finally { api.ktCoreRelease(health); }
+}
+console.log("Native Wasm TargetLifeAdd timed throw / captured IDs / base defence and absolute mode / kill flags / mixed coordinates / LifeAdd and LifeSet bounds / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

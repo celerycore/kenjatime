@@ -1,6 +1,65 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current combat power continuation — November 16, 2026
+## Current scripted health continuation — November 16, 2026
+
+Continues published main source `2aa1b21`. CNS now executes TargetLifeAdd, so
+captured throw victims receive their timed scripted damage. HitDef IDs select
+targets; omitted ID/-1 selects all valid captures. Dead, destroyed, recovered,
+dropped and missing targets remain excluded. Nonlethal damage preserves a living
+victim at one life and retains its capture for later throw controllers.
+
+LifeAdd and TargetLifeAdd now honor kill and absolute, defaulting to lethal
+and defence-scaled changes. Each recipient uses its own immutable [Data] defence
+percentage, even in a borrowed state bank. Absolute changes bypass that scaling.
+Health values remain integers, independent of localcoord. Half values round
+away from zero; tiny damage retains a one-point minimum, while tiny healing may
+round to zero. Healing clamps to the recipient's own maximum life. Wider delta
+and addition arithmetic prevent extreme inputs from wrapping or causing a KO
+through integer overflow. LifeSet remains unscaled and now validates its value.
+
+Base defence defaults to 100. The constants parser bounds integer values to
+1–100000 and defaults malformed or non-32-bit input to 100. This base defence
+currently feeds health controllers only: full ordinary HitDef/Projectile damage
+scaling, runtime AttackMulSet/DefenceMulSet and fall/super defence remain outside
+this increment. TargetLifeAdd applies the recipient's base defence without
+applying the executing actor's attack multiplier.
+
+Complete values, flags, IDs and parameter names are checked before changing
+life. Invalid requests preserve all selected lives. Nested expressions evaluate
+in the executing actor; persistence and ignorehitpause use the existing actor
+phase. A living one-life floor does not revive dead actors, while explicit
+positive self-healing remains possible. Target death is visible to subsequent
+target controllers immediately. Ordinary round flow observes zero life.
+
+Scripted health changes do not create hit contacts, award power, replace
+GetHitVar data, add hitpause, select a reaction state or release a binding.
+Borrowed throw states and finite bindings continue their normal lifecycle;
+presentation reads do not repeat damage. Complete native KO/state transitions
+and overflow quirks remain unverified.
+
+Validation:
+
+- 528 JVM and 523 compiled-Wasm tests pass, including 22 new cases for constants,
+  healing/damage, flags, IDs, target lifetime, mixed units, borrowed banks,
+  helpers, input errors, rounding, overflow, pause, throws and round flow.
+- Exported Wasm checks 16 timed-throw combinations across localcoord 320/640,
+  defence 100/200, absolute mode and lethal/nonlethal damage. Ten additional
+  self-health cases verify LifeAdd/LifeSet scaling, bounds and invalid input.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Controller parameters follow the
+[Elecbyte reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#targetlifeadd).
+The defence-only TargetLifeAdd path and symmetric rounding follow the
+[IKEMEN life/target-life implementation](https://github.com/ikemen-engine/Ikemen-GO/blob/develop/src/char.go).
+These checks do not certify native frame parity or physical-phone performance.
+Main CI verifies browser/APK asset identity and anonymous permanent downloads
+before publication.
+
+## Combat power continuation — November 16, 2026
 
 Continues published main source `1bf49f2`. Accepted HitDef and Projectile
 contacts now apply getpower to the actual attacker's root meter and givepower
