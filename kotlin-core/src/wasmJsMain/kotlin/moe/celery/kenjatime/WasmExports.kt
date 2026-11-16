@@ -144,6 +144,8 @@ private object Fights {
         ",\"hitOver\":" + p.hitOver +
         ",\"hitShakeOver\":" + p.hitShakeOver +
         ",\"getHitTime\":" + p.getHitData.time +
+        ",\"getHitSlideTime\":" + p.getHitData.slideTime +
+        ",\"getHitControlTime\":" + p.getHitData.controlTime +
         ",\"getHitGuarded\":" + p.getHitData.guarded +
         ",\"getHitFall\":" + p.getHitData.fall +
         ",\"getHitReceived\":" + p.getHitData.received +

@@ -2466,6 +2466,109 @@ y=1`).join("\n");
 }
 console.log("Native Wasm ground and aerial guard vectors / pre-quantization defaults / root-helper-projectile capture / mixed units / impact facing / HitVelSet restore / pause / chip and power / pure reads: OK (synthetic)");
 
+const guardTimingCases=[
+  {params:"",slide:4,ground:4,air:4},
+  {params:"guard.slidetime=3",slide:3,ground:3,air:3},
+  {params:"guard.slidetime=2\nguard.ctrltime=3\nairguard.ctrltime=1",slide:2,ground:3,air:1},
+  {params:"guard.slidetime=0\nguard.ctrltime=-1\nairguard.ctrltime=0",slide:0,ground:-1,air:0},
+  {params:"guard.slidetime=2147483647\nguard.ctrltime=2147483647",slide:2147483647,ground:2147483647,air:2147483647}
+];
+for(const kind of ["root","helper","projectile"])for(const width of [320,640])for(const airborne of [false,true])for(const test of guardTimingCases)for(const pause of [0,2]) {
+  const hit=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=0
+guardflag=HLA
+guard.velocity=${width/320}
+airguard.velocity=${width/320},0
+ground.hittime=2
+guard.hittime=4
+guard.pausetime=0,${pause}
+${test.params}`;
+  const source=motionIdle+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "")+
+    (kind==="projectile" ? "" : "\n[Statedef 200]\ntype=S\nphysics=N\nanim=200")+
+    `\n[State ${kind==="projectile" ? 0 : 200}, hit]\n${hit}`;
+  const reaction=[150,152].map(state=>`[Statedef ${state}]
+type=S
+movetype=H
+physics=N
+anim=0
+ctrl=0
+[State ${state}, stop sliding]
+type=VelSet
+trigger1=Time>=GetHitVar(slidetime)
+x=0
+[State ${state}, restore control]
+type=CtrlSet
+trigger1=Time>=GetHitVar(ctrltime)
+value=1`).join("\n");
+  const timing=api.ktCoreCreateWithDefinitions("guard thresholds","authored guard decisions",projectileFacingAir,air,source,
+    `${motionIdle}\nctrl=1\n[Statedef 400]\ntype=A\nphysics=N\nanim=0\nctrl=1\n${reaction}`,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"[Info]\nlocalcoord=640,480");
+  try {
+    api.ktCoreSetup(timing,0,0,5*256,0);if(airborne)api.ktCoreDebugForceState(timing,1,400);
+    if(kind==="root")api.ktCoreDebugForceState(timing,0,200);else api.ktCoreAdvance(timing,0,"",8,"");
+    api.ktCoreAdvance(timing,0,"",8,"");
+    const control=airborne ? test.air : test.ground,captured=JSON.parse(api.ktCoreSnapshot(timing,1));
+    assert.equal(captured.getHitSlideTime,test.slide);assert.equal(captured.getHitControlTime,control);assert.equal(captured.ctrl,0);
+    for(let tick=1;tick<=pause+6;tick++) {
+      api.ktCoreAdvance(timing,0,"",0,"");const victim=JSON.parse(api.ktCoreSnapshot(timing,1));
+      const active=Math.max(0,tick-pause),stopped=active>0 && active-1>=test.slide,ready=active>0 && active-1>=control;
+      assert.equal(victim.getHitSlideTime,test.slide);assert.equal(victim.getHitControlTime,control);
+      assert.equal(victim.getHitTime,Math.max(-1,4-active));assert.equal(victim.ctrl,Number(ready));
+      assert.equal(victim.vx256,stopped ? 0 : 256);assert.equal(victim.x256,(5+Math.min(active,Math.max(0,test.slide)))*256);
+      assert.equal(victim.state,airborne ? 152 : 150);assert.equal(victim.life,1000);assert.equal(victim.power,0);
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(timing)),[]);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(timing,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(timing,1)),victim);
+    }
+    assert.equal(api.ktCoreIssues(timing),"");
+  } finally { api.ktCoreRelease(timing); }
+}
+const borrowedSlide=api.ktCoreCreateWithDefinitions("slide timing bank","own actor",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+ground.velocity=2,0
+ground.slidetime=2
+guard.slidetime=9
+guard.ctrltime=6
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, stop slide]
+type=VelSet
+trigger1=Time>=GetHitVar(slidetime)
+x=0
+[State 700, own state]
+type=SelfState
+trigger1=Time=3
+value=0`,motionIdle,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedSlide,0,0,5*256,0);api.ktCoreDebugForceState(borrowedSlide,0,200);
+  api.ktCoreAdvance(borrowedSlide,0,"",0,"");
+  for(let tick=1;tick<=3;tick++) {
+    api.ktCoreAdvance(borrowedSlide,0,"",0,"");const victim=JSON.parse(api.ktCoreSnapshot(borrowedSlide,1));
+    assert.equal(victim.stateOwner,1);assert.equal(victim.localCoordWidth,640);
+    assert.equal(victim.getHitSlideTime,2);assert.equal(victim.getHitControlTime,0);
+    assert.equal(victim.x256,(5+Math.min(tick,2))*256);assert.equal(victim.vx256,tick<=2 ? 256 : 0);
+  }
+  api.ktCoreAdvance(borrowedSlide,0,"",0,"");const own=JSON.parse(api.ktCoreSnapshot(borrowedSlide,1));
+  assert.equal(own.stateOwner,2);assert.equal(own.localCoordWidth,320);assert.equal(own.getHitSlideTime,2);
+  assert.equal(own.x256,7*256);assert.equal(own.vx256,0);assert.equal(api.ktCoreIssues(borrowedSlide),"");
+} finally { api.ktCoreRelease(borrowedSlide); }
+console.log("Native Wasm slide and guard control thresholds / inherited defaults / ground-air selection / authored VelSet and CtrlSet / root-helper-projectile / signed bounds / pause / borrowed state units / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

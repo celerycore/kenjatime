@@ -46,7 +46,9 @@ data class HitDefinition(
     val airAnimationType: HitAnimationType = animationType,
     val fallAnimationType: HitAnimationType = if(airAnimationType == HitAnimationType.UP)HitAnimationType.UP else HitAnimationType.BACK,
     val airGuardVelocityX: Int = (airVelocityX.toLong()*3/2).coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt(),
-    val airGuardVelocityY: Int = airVelocityY/2
+    val airGuardVelocityY: Int = airVelocityY/2,
+    val groundSlideTime: Int = 0,val guardSlideTime: Int = guardHitTime,
+    val guardControlTime: Int = guardSlideTime,val airGuardControlTime: Int = guardControlTime
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -285,6 +287,8 @@ class FightingCharacter(
         "yvel" -> coordinates.toLocal(getHitData.velocityY)
         "yaccel" -> coordinates.toLocal(getHitData.accelerationY)
         "hittime" -> getHitData.time.toDouble()
+        "slidetime" -> getHitData.slideTime.toDouble()
+        "ctrltime" -> getHitData.controlTime.toDouble()
         "hitshaketime" -> hitPauseLeft.toDouble()
         "guarded" -> if(getHitData.guarded)1.0 else 0.0
         "fall" -> if(getHitData.fall)1.0 else 0.0
@@ -733,6 +737,9 @@ class FightingCharacter(
                 val hitAcceleration=CoreHitAcceleration.parse(args,this,errors) ?: return false
                 val hitAnimations=CoreHitAnimations.parse(args,errors) ?: return false
                 val hitVelocities=CoreHitVelocities.parse(args,this,errors,true) ?: return false
+                val hitTime=integer(args["ground.hittime"] ?: args["projground.hittime"],12).coerceIn(0,600)
+                val guardHitTime=integer(args["guard.hittime"] ?: args["projguard.hittime"],hitTime).coerceIn(0,600)
+                val controlTimings=CoreHitControlTimings.parse(args,this,guardHitTime,errors,true) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -754,14 +761,15 @@ class FightingCharacter(
                     animationType = hitAnimations.ground,airAnimationType = hitAnimations.air,
                     fallAnimationType = hitAnimations.fall,
                     airGuardVelocityX = hitVelocities.airGuard.x,airGuardVelocityY = hitVelocities.airGuard.y,
+                    groundSlideTime = controlTimings.groundSlide,guardSlideTime = controlTimings.guardSlide,
+                    guardControlTime = controlTimings.guardControl,airGuardControlTime = controlTimings.airGuardControl,
                     velocityX = hitVelocities.ground.x,
                     velocityY = hitVelocities.ground.y,
                     airVelocityX = hitVelocities.air.x,
                     airVelocityY = hitVelocities.air.y,
-                    hitTime = integer(args["ground.hittime"] ?: args["projground.hittime"],12).coerceIn(0,600),
+                    hitTime = hitTime,
                     airHitTime = integer(args["air.hittime"] ?: args["projair.hittime"],20).coerceIn(0,600),
-                    guardHitTime = integer(args["guard.hittime"] ?: args["projguard.hittime"],
-                        integer(args["ground.hittime"] ?: args["projground.hittime"],12)).coerceIn(0,600),
+                    guardHitTime = guardHitTime,
                     guardVelocityX = hitVelocities.guard.x,
                     guardVelocityY = hitVelocities.guard.y,
                     fall = integer(args["fall"]) != 0,
@@ -800,6 +808,9 @@ class FightingCharacter(
                 val hitAcceleration=CoreHitAcceleration.parse(args,this,errors) ?: return false
                 val hitAnimations=CoreHitAnimations.parse(args,errors) ?: return false
                 val hitVelocities=CoreHitVelocities.parse(args,this,errors) ?: return false
+                val hitTime=integer(args["ground.hittime"],12).coerceIn(0,600)
+                val guardHitTime=integer(args["guard.hittime"],hitTime).coerceIn(0,600)
+                val controlTimings=CoreHitControlTimings.parse(args,this,guardHitTime,errors) ?: return false
                 val priority = (args["priority"] ?: "4,Hit").split(',')
                 val next = HitDefinition(
                     attr = args["attr"] ?: "S, NA",
@@ -825,9 +836,11 @@ class FightingCharacter(
                     animationType = hitAnimations.ground,airAnimationType = hitAnimations.air,
                     fallAnimationType = hitAnimations.fall,
                     airGuardVelocityX = hitVelocities.airGuard.x,airGuardVelocityY = hitVelocities.airGuard.y,
+                    groundSlideTime = controlTimings.groundSlide,guardSlideTime = controlTimings.guardSlide,
+                    guardControlTime = controlTimings.guardControl,airGuardControlTime = controlTimings.airGuardControl,
                     guardVelocityX = hitVelocities.guard.x,
                     guardVelocityY = hitVelocities.guard.y,
-                    hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600),
+                    hitTime = hitTime,
                     id = integer(args["id"]),
                     p2State = args["p2stateno"]?.let { integer(it, -1) }?.takeIf { it >= 0 },
                     p2GetP1State = integer(args["p2getp1state"], 1) != 0,
@@ -836,7 +849,7 @@ class FightingCharacter(
                     airVelocityX = hitVelocities.air.x,
                     airVelocityY = hitVelocities.air.y,
                     airHitTime = integer(args["air.hittime"],20).coerceIn(0,600),
-                    guardHitTime = integer(args["guard.hittime"],integer(args["ground.hittime"],12)).coerceIn(0,600),
+                    guardHitTime = guardHitTime,
                     fall = integer(args["fall"]) != 0,
                     airFall = integer(args["air.fall"],integer(args["fall"])) != 0
                 )
@@ -963,10 +976,13 @@ class FightingCharacter(
         val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
         val falling=!guarded && (if(airborne)hit.airFall else hit.fall)
         val animationType=CoreHitAnimations.select(hit,initialType == "A" || override?.forceAir == true,falling,y)
+        // Unguarded hits preserve the prior guard control threshold, as in MUGEN.
+        val controlTime=if(guarded) { if(airGuard)hit.airGuardControlTime else hit.guardControlTime } else getHitData.controlTime
         getHitData=CoreGetHitData(damage,x,y,guarded,falling,duration,
             fallVelocityX=hit.fallVelocityX?.let(::facing),fallVelocityY=hit.fallVelocityY,received=true,
             fallDamage=hit.fallDamage,fallKill=hit.fallKill,
-            fallRecover=hit.fallRecover,fallRecoverTime=hit.fallRecoverTime,accelerationY=hit.hitAccelerationY,animationType=animationType)
+            fallRecover=hit.fallRecover,fallRecoverTime=hit.fallRecoverTime,accelerationY=hit.hitAccelerationY,animationType=animationType,
+            slideTime=if(guarded)hit.guardSlideTime else hit.groundSlideTime,controlTime=controlTime)
         world?.effects?.onHit(this)
         val minimumLife=if(if(guarded)hit.guardKill else hit.kill)0 else 1
         life = (life - damage).coerceAtLeast(minimumLife)

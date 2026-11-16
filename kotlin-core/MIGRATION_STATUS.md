@@ -1,6 +1,69 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current aerial-guard continuation — November 16, 2026
+## Current slide/control timing continuation — November 16, 2026
+
+Continues published main source `9848b24`. HitDef and Projectile now capture
+ground.slidetime, guard.slidetime, guard.ctrltime and airguard.ctrltime.
+Ground slide defaults to zero. Guard slide defaults to the resolved guard
+hittime; guard control defaults to guard slide; aerial guard control defaults
+to ground guard control. Explicit overrides affect only their inheritance
+branch. Existing hittime defaults and 0–600 bounds remain unchanged, including
+the engine's current twelve-tick ground default.
+
+Numeric expressions evaluate when the attack is installed, including nested
+expressions and actor variables. Signed integer thresholds are retained;
+zero/negative values permit immediate authored conditions. Out-of-range or
+invalid fields diagnose the whole request before replacing a working HitDef
+or queuing a projectile. Projectile-prefixed aliases are accepted with standard
+names taking precedence. Projectiles keep captured values after creator variables
+or state banks change, and helpers retain their own incoming timing data.
+
+GetHitVar(slidetime/ctrltime) exposes captured tick thresholds, not countdowns.
+Accepted guards capture guard slide time and choose ground/aerial control time
+from the incoming victim posture, before the reaction StateDef changes it.
+Unguarded hits capture ground slide time and retain the previous guard-control
+threshold (initially zero), following the legacy behavior noted in IKEMEN's
+MUGEN compatibility code. Fresh guards replace the old guard thresholds.
+
+Authored VelSet can stop sliding at Time>=GetHitVar(slidetime), while CtrlSet
+can restore control at Time>=GetHitVar(ctrltime). State Time advances after
+controllers, so a threshold N fires after N completed active state ticks;
+zero/negative thresholds fire on the first eligible controller phase. Hitpause
+freezes ordinary controllers and State Time, including its final frozen tick.
+The existing hittime countdown and HitOver remain independent of these values.
+
+Thresholds are scalar tick quantities across localcoord and borrowed state banks.
+State changes restart Time but preserve the captured thresholds. Reading them
+never stops motion, changes control, creates another contact or modifies life,
+power, hitpause or other reaction data. Wasm snapshots expose getHitSlideTime
+and getHitControlTime for inspection. Automatic guard/common-state decisions
+and complete native hit-data clearing remain separate work.
+
+Validation:
+
+- 758 JVM and 753 compiled-Wasm tests pass, including 24 new cases for defaults,
+  independent overrides, expressions, posture selection, static thresholds,
+  authored slide/control decisions, pause, signed bounds, state/bank changes,
+  invalid requests, projectile aliases/capture, helpers and pure reads.
+- Exported Wasm checks 120 root/helper/projectile, source localcoord 320/640,
+  guard posture, inheritance/override/boundary and pause combinations. An
+  additional borrowed-bank sequence verifies authored slide stopping and
+  SelfState without rescaling tick quantities.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Parameter defaults follow the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+Exact native controller/contact phases, guard hitstun, complete timing/reset
+semantics, automatic common-state control and physical-phone performance remain
+incomplete or unverified. This does not certify native frame parity. Main CI
+verifies shared browser/APK Wasm identity and anonymous permanent downloads
+before publication.
+
+## Aerial-guard continuation — November 16, 2026
 
 Continues published main source `637034a`. HitDef and Projectile now capture
 separate ground-guard and aerial-guard knockback. An accepted guard uses the
