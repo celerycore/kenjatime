@@ -20,10 +20,21 @@ data class ArenaRules(
         require(gravity in 0..(4*Fixed.ONE))
         require(playerHalfWidth in 0..(100*Fixed.ONE))
     }
-    fun step(p1: FightingCharacter,p2: FightingCharacter,frozen1:Boolean,frozen2:Boolean) {
+    fun step(p1: FightingCharacter,p2: FightingCharacter,frozen1:Boolean,frozen2:Boolean,
+             helpers: List<HelperEntity> = emptyList()) {
         if(!frozen1) individual(p1)
         if(!frozen2) individual(p2)
-        if(pushPlayers && p1.life>0 && p2.life>0 && p1.binding == null && p2.binding == null) separate(p1,p2)
+        if(pushPlayers) {
+            val pushers=(listOf(p1,p2)+helpers.map { it.actor }).filter {
+                it.playerPushEnabled && it.life>0 && !it.destroyed && it.binding == null
+            }
+            fun firstSide(actor: FightingCharacter)=actor === p1 || actor.opponent === p2
+            for(i in pushers.indices)for(j in i+1 until pushers.size) {
+                val a=pushers[i];val b=pushers[j]
+                // Helpers inherit their root's opponent in the two-root fight model.
+                if(firstSide(a) != firstSide(b))separate(a,b)
+            }
+        }
         if(autoFaceIdle) {
             if(p1.binding == null && p1.control && p1.stateType=="S")p1.facingRight=p1.posX<=p2.posX
             if(p2.binding == null && p2.control && p2.stateType=="S")p2.facingRight=p2.posX<=p1.posX
@@ -31,7 +42,8 @@ data class ArenaRules(
     }
     private fun individual(p:FightingCharacter) {
         if(p.binding != null) return
-        p.posX=p.posX.coerceIn(left,right)
+        val limits=horizontalLimits(p)
+        p.posX=p.posX.coerceIn(limits.first,limits.second)
         if(p.advanceFallbackReaction(ground))return
         val physics=p.stateProgram?.physics?.uppercase()
         if(physics=="A" && p.stateType=="A")p.velY+=p.definition.coordinates.fixedToWorld(p.definition.airGravity)
@@ -44,31 +56,31 @@ data class ArenaRules(
             }
         }
     }
+    internal fun horizontalLimits(p: FightingCharacter): Pair<Int,Int> {
+        // Helpers are not screen-bound by default; ScreenBound remains separate work.
+        if(p.parent != null)return Int.MIN_VALUE to Int.MAX_VALUE
+        val low=maxOf(left.toLong(),left.toLong()+p.edgeWidthWorld(-1))
+        val high=minOf(right.toLong(),right.toLong()-p.edgeWidthWorld(1))
+        if(low>high) { val center=((left.toLong()+right)/2).toInt();return center to center }
+        return low.toInt() to high.toInt()
+    }
     private fun separate(p1:FightingCharacter,p2:FightingCharacter) {
         if(abs(p1.posY.toLong()-p2.posY.toLong())>50L*Fixed.ONE)return
         val diff=p2.posX.toLong()-p1.posX.toLong()
         val forward=if(diff>=0)1 else -1
-        val minDistance=(p1.bodyWidthWorld(forward).toLong()+p2.bodyWidthWorld(-forward)).coerceAtLeast(2L*Fixed.ONE)
+        val minDistance=p1.playerWidthWorld(forward).toLong()+p2.playerWidthWorld(-forward)
         if(abs(diff)>=minDistance)return
-        val penetration=(minDistance-abs(diff)).toInt()
-        if(p1.positionFrozen || p2.positionFrozen) {
-            if(p1.positionFrozen && p2.positionFrozen)return
-            if(p1.positionFrozen)p2.posX=(p2.posX.toLong()+forward.toLong()*penetration)
-                .coerceIn(left.toLong(),right.toLong()).toInt()
-            else p1.posX=(p1.posX.toLong()-forward.toLong()*penetration)
-                .coerceIn(left.toLong(),right.toLong()).toInt()
-            return
-        }
-        val half=penetration/2
-        val before1=p1.posX
-        val before2=p2.posX
-        p1.posX=(p1.posX.toLong()-forward.toLong()*half).coerceIn(left.toLong(),right.toLong()).toInt()
-        p2.posX=(p2.posX.toLong()+forward.toLong()*(penetration-half)).coerceIn(left.toLong(),right.toLong()).toInt()
-        // If a player is pinned to the screen edge, give the remaining space to the other.
-        val delta=(minDistance-abs(p2.posX.toLong()-p1.posX.toLong())).coerceAtLeast(0).toInt()
-        if(delta>0) {
-            if(p1.posX==before1)p2.posX=(p2.posX.toLong()+forward.toLong()*delta).coerceIn(left.toLong(),right.toLong()).toInt()
-            else if(p2.posX==before2)p1.posX=(p1.posX.toLong()-forward.toLong()*delta).coerceIn(left.toLong(),right.toLong()).toInt()
-        }
+        val penetration=minDistance-abs(diff)
+        val limits1=horizontalLimits(p1);val limits2=horizontalLimits(p2)
+        val room1=if(p1.positionFrozen)0L else (if(forward>0)p1.posX.toLong()-limits1.first
+            else limits1.second.toLong()-p1.posX).coerceAtLeast(0)
+        val room2=if(p2.positionFrozen)0L else (if(forward>0)limits2.second.toLong()-p2.posX
+            else p2.posX.toLong()-limits2.first).coerceAtLeast(0)
+        var travel1=minOf(penetration/2,room1)
+        val travel2=minOf(penetration-travel1,room2)
+        // Give residual travel to the first actor when the second has less edge room.
+        travel1=minOf(penetration-travel2,room1)
+        p1.posX=(p1.posX.toLong()-forward*travel1).coerceIn(limits1.first.toLong(),limits1.second.toLong()).toInt()
+        p2.posX=(p2.posX.toLong()+forward*travel2).coerceIn(limits2.first.toLong(),limits2.second.toLong()).toInt()
     }
 }

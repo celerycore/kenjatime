@@ -1,6 +1,84 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current angle-drawing continuation — November 17, 2026
+## Current body-space continuation — November 17, 2026
+
+Continues published main source `d9e5d46`. CNS now executes PlayerPush and Width.
+PlayerPush requires a numeric value; zero disables body pushing and nonzero
+values enable it. Roots default to enabled, helpers to disabled. Either actor
+disabling its push check permits overlap while leaving attack contacts, damage,
+velocity, state/animation clocks and arena bounds active.
+
+Width accepts independent player and edge front/back pairs, or value as shorthand
+for both pairs. The shorthand cannot be combined with player or edge. Omitted
+pairs are zero; a single component defaults its back component to zero. Integer
+components truncate before conversion from active state-bank units into canonical
+fixed-point offsets. Nested expressions use the executing actor's variables.
+Inputs are bounded to -100000..100000 local pixels. Invalid expressions, keys,
+conflicting forms or bounds reject the complete request, preserving earlier
+valid offsets. Later valid requests replace all four offsets together.
+
+Player widths add signed offsets to the character's own base widths, independent
+of the borrowed bank and sprite drawing scale. Effective widths floor at zero.
+The CNS importer now honors Size air.front/air.back separately from ground widths;
+missing air values retain the existing ground-width fallback. Facing selects the
+front or back side. P2BodyDist retains its base-width path without temporary
+Width offsets. AIR attack/hurt boxes remain unchanged.
+
+Both assertions reset before each active controller phase and persist through
+hitpause. Normal controllers stay gated there, while ignorehitpause=1 may replace
+the retained values. Controller persistence and state-entry rearming still apply.
+State transitions do not rescale stored canonical offsets or make a one-tick
+assertion permanent. Snapshots expose playerPush and widthPlayerFront256,
+widthPlayerBack256, widthEdgeFront256 and widthEdgeBack256.
+
+The configured arena now applies each root's facing-relative edge insets when
+clamping motion and distributing push travel. Negative insets cannot exceed
+the configured hard bounds; crossed insets collapse to the arena midpoint.
+The solver gives unused displacement to an opponent with remaining edge room,
+using bounded Long arithmetic and no artificial separation when both widths are
+zero. PosFreeze actors remain anchored, and bound actors stay excluded.
+Global arena push disable still takes precedence without disabling edge insets.
+
+Helpers may opt into pushing opponents using their own flags, widths and freeze
+assertion; same-side actors do not push each other. Pair traversal is stable in
+root/helper creation order. Helpers retain their default lack of screen bounds.
+The arena still uses its bounded 50-pixel vertical eligibility policy; complete
+native size-box/Clsn2 push checks, ScreenBound/camera margins, helper screen-bound
+opt-in, team modes and corner-push/contact phases remain separate work.
+
+Validation:
+
+- 901 JVM and 896 compiled-Wasm tests pass, including 35 new cases for defaults,
+  numeric flags, one-tick lifetime, persistence, invalid requests, independent
+  pairs, shorthand, signed/zero widths, integer coordinate conversion, both
+  facings, air widths, edge allocation, impossible insets, bindings, freeze,
+  hitpause, helper teams, borrowed banks, contacts and pure presentation reads.
+- Exported Wasm checks 32 coordinate/facing/width/push combinations through
+  expiration, eight edge-inset sequences, retained/replaced hitpause assertions,
+  four helper opt-in/freeze sequences and a borrowed-bank/SelfState sequence.
+- All 16 adapter/import/download checks and production browser checks pass.
+  An imported public-KFM-art fixture verifies actual Canvas actor positions
+  through disabled pushing, widened separation and expired Width, with unchanged
+  sprite scales. Existing angle, priority, coordinate, import, CSV and mobile
+  layout checks remain passing.
+- Two KFM 600-tick replays produce nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics and identical physical checksums/power traces,
+  ending at 485/415 power. Final positions differ slightly from the preceding
+  continuation because the authored air widths now participate in pushing.
+
+Measured controller-name coverage is now 66 of 97 in the live legacy JavaScript
+registry (68.0%), up from 64 of 97 (66.0%); 31 names remain outside the Kotlin
+contract. The Elecbyte 1.1 reference overlap is 65 of 89 (73.0%). These are name
+counts, not overall rewrite completion. Complete parameters, expressions,
+physics, effects, AI, teams and native behavior parity remain incomplete.
+
+Semantics follow the [Elecbyte Width reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#width)
+and [PlayerPush reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#playerpush).
+This continuation does not certify native frame parity or physical-phone
+performance. Main CI verifies browser/APK Wasm identity and anonymous permanent
+downloads before publication.
+
+## Angle-drawing continuation — November 17, 2026
 
 Continues published main source `8c9e795`. CNS now executes AngleSet, AngleAdd,
 AngleMul and AngleDraw. Set/Add/Mul require a value and compose in controller

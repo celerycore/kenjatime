@@ -3172,6 +3172,192 @@ try {
 } finally { api.ktCoreRelease(borrowedAngle); }
 console.log("Native Wasm AngleSet/Add/Mul/Draw / 64 localcoord-facing-scale-flip-offset transforms / per-tick expiry / hitpause / independent helpers / actor-owned borrowed banks / pure reads: OK (synthetic)");
 
+const bodyWidthCases=[{front:0,back:0},{front:20,back:-5},{front:-100,back:-100},{front:10,back:5}];
+for(const width of [320,640])for(const face of [false,true])
+for(const push of [0,1])for(const offsets of bodyWidthCases) {
+  const factor=width/320;
+  const body=api.ktCoreCreateWithDefinitions("body-space actor","opponent",air,air,
+    `[Size]\nground.front=${15*factor}\nground.back=${15*factor}\n${motionIdle}
+[State 0, body widths]
+type=Width
+trigger1=Time<2
+player=ifelse(1,${offsets.front*factor},0),min(${offsets.back*factor},100)
+[State 0, push checking]
+type=PlayerPush
+trigger1=Time<2
+value=${push}`,motionIdle,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreConfigureArena(body,-100,100,0,true,false);api.ktCoreDebugSetFacing(body,0,face);
+    for(let tick=0;tick<3;tick++) {
+      api.ktCoreSetup(body,-5*256,0,5*256,0);api.ktCoreAdvance(body,0,"",0,"");
+      const a=JSON.parse(api.ktCoreSnapshot(body,0)),b=JSON.parse(api.ktCoreSnapshot(body,1));
+      const enabled=tick<2?!!push:true,front=tick<2?offsets.front:0,back=tick<2?offsets.back:0;
+      const distance=Math.max(0,15+(face?front:back))+15;
+      const penetration=enabled?Math.max(0,distance-10)*256:0;
+      assert.equal(a.playerPush,enabled);assert.equal(a.widthPlayerFront256,front*256||0);
+      assert.equal(a.widthPlayerBack256,back*256||0);assert.equal(a.widthEdgeFront256,0);assert.equal(a.widthEdgeBack256,0);
+      assert.equal(a.x256,-5*256-Math.floor(penetration/2));assert.equal(b.x256,5*256+Math.ceil(penetration/2));
+      assert.equal(a.stateTime,tick+1);assert.equal(a.life,1000);assert.equal(b.life,1000);
+      assert.equal(a.power,0);assert.equal(b.power,0);assert.deepEqual(JSON.parse(api.ktCoreContacts(body)),[]);
+      const checksum=api.ktCoreChecksum(body);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(body,12);
+      assert.equal(api.ktCoreChecksum(body),checksum);assert.deepEqual(JSON.parse(api.ktCoreSnapshot(body,0)),a);
+    }
+    assert.equal(api.ktCoreIssues(body),"");
+  } finally { api.ktCoreRelease(body); }
+}
+for(const width of [320,640])for(const face of [false,true])for(const shorthand of [false,true]) {
+  const f=width/320;
+  const edge=api.ktCoreCreateWithDefinitions("edge-width actor","opponent",air,air,
+    `${motionIdle}\n[State 0, edge widths]\ntype=Width\ntrigger1=1\n`+
+    (shorthand?`value=${20*f},${5*f}`:`edge=${20*f},${5*f}`),motionIdle,"","",
+    `[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreConfigureArena(edge,-100,100,0,true,false);api.ktCoreDebugSetFacing(edge,0,face);
+    for(const direction of [-1,1]) {
+      api.ktCoreSetup(edge,direction*120*256,0,-direction*120*256,0);api.ktCoreAdvance(edge,0,"",0,"");
+      const a=JSON.parse(api.ktCoreSnapshot(edge,0));
+      const inset=(face===(direction>0))?20:5;
+      assert.equal(a.x256,direction*(100-inset)*256);
+      assert.equal(a.widthEdgeFront256,20*256);assert.equal(a.widthEdgeBack256,5*256);
+      assert.equal(a.widthPlayerFront256,shorthand?20*256:0);
+    }
+    assert.equal(api.ktCoreIssues(edge),"");
+  } finally { api.ktCoreRelease(edge); }
+}
+for(const ignore of [0,1]) {
+  const pausedBody=api.ktCoreCreate("paused body assertions","attacker",air,projectileFacingAir,
+    `${motionIdle}
+[State 0, width before hit]
+type=Width
+trigger1=1
+player=10,5
+[State 0, overlap before hit]
+type=PlayerPush
+trigger1=1
+value=0
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, replacement width]
+type=Width
+trigger1=Time=0
+ignorehitpause=${ignore}
+player=20,-5
+[State 5000, replacement push]
+type=PlayerPush
+trigger1=Time=0
+ignorehitpause=${ignore}
+value=1`,`${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, pause defender]
+type=HitDef
+trigger1=Time=0
+damage=0
+getpower=0,0
+givepower=0,0
+ground.velocity=0,0
+pausetime=0,2`);
+  try {
+    api.ktCoreConfigureArena(pausedBody,-100,100,0,true,false);api.ktCoreSetup(pausedBody,0,0,-5*256,0);
+    api.ktCoreDebugSetFacing(pausedBody,1,true);api.ktCoreDebugForceState(pausedBody,1,200);
+    api.ktCoreAdvance(pausedBody,0,"",0,"");
+    for(let tick=1;tick<=4;tick++) {
+      api.ktCoreAdvance(pausedBody,0,"",0,"");const a=JSON.parse(api.ktCoreSnapshot(pausedBody,0));
+      assert.equal(a.widthPlayerFront256,tick===4?0:(ignore||tick===3?20:10)*256);
+      assert.equal(a.playerPush,ignore===1||tick>=3);assert.equal(a.hitPauseThisTick,tick<=2);
+      assert.equal(a.stateTime,Math.max(0,tick-2));assert.equal(a.life,1000);assert.equal(a.power,0);
+    }
+    assert.equal(api.ktCoreIssues(pausedBody),"");
+  } finally { api.ktCoreRelease(pausedBody); }
+}
+for(const enabled of [0,1])for(const frozen of [0,1]) {
+  const helperBody=api.ktCoreCreate("helper body owner","opponent",air,air,`${motionIdle}
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+pos=70,0
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, opt into push]
+type=PlayerPush
+trigger1=1
+value=${enabled}
+[State 700, helper width]
+type=Width
+trigger1=1
+player=10,0
+[State 700, helper hold]
+type=PosFreeze
+trigger1=1
+value=${frozen}`,motionIdle);
+  try {
+    api.ktCoreConfigureArena(helperBody,-100,100,0,true,false);api.ktCoreSetup(helperBody,-70*256,0,5*256,0);
+    for(let i=0;i<2;i++)api.ktCoreAdvance(helperBody,0,"",0,"");
+    const a=JSON.parse(api.ktCoreSnapshot(helperBody,0)),b=JSON.parse(api.ktCoreSnapshot(helperBody,1));
+    const plan=JSON.parse(api.ktCoreRenderPlan(helperBody,0)),h=plan.draws.find(d=>d.kind==="helper");
+    const root=plan.draws.find(d=>d.kind==="fighter"&&d.side===0);
+    const worldX=(h.x-root.x)/(1.4*plan.cameraZoom)+a.x256/256;
+    assert.ok(Math.abs(worldX-(enabled?(frozen?0:-17.5):0))<1e-8);
+    assert.equal(a.x256,-70*256);assert.equal(b.x256,(enabled?(frozen?40:22.5):5)*256);
+    assert.equal(api.ktCoreIssues(helperBody),"");
+  } finally { api.ktCoreRelease(helperBody); }
+}
+const borrowedWidth=api.ktCoreCreateWithDefinitions("width bank","own actor",projectileFacingAir,air,
+  `[Size]\nground.front=80\n${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, actor width]
+type=Width
+trigger1=Time=0
+player=var(0),0
+edge=4,6
+[State 700, actor push]
+type=PlayerPush
+trigger1=Time=0
+value=0
+[State 700, release]
+type=SelfState
+trigger1=Time=1
+value=0`,`${motionIdle}
+[State 0, own variable]
+type=VarSet
+trigger1=1
+v=0
+value=20`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedWidth,0,0,5*256,0);api.ktCoreDebugForceState(borrowedWidth,0,200);
+  api.ktCoreAdvance(borrowedWidth,0,"",0,"");api.ktCoreAdvance(borrowedWidth,0,"",0,"");
+  const actor=JSON.parse(api.ktCoreSnapshot(borrowedWidth,1));
+  assert.equal(actor.stateOwner,1);assert.equal(actor.widthPlayerFront256,10*256);
+  assert.equal(actor.widthEdgeFront256,2*256);assert.equal(actor.widthEdgeBack256,3*256);assert.equal(actor.playerPush,false);
+  api.ktCoreAdvance(borrowedWidth,0,"",0,"");const own=JSON.parse(api.ktCoreSnapshot(borrowedWidth,1));
+  assert.equal(own.stateOwner,2);assert.equal(own.widthPlayerFront256,0);assert.equal(own.playerPush,true);
+  assert.equal(api.ktCoreIssues(borrowedWidth),"");
+} finally { api.ktCoreRelease(borrowedWidth); }
+console.log("Native Wasm PlayerPush/Width / 32 localcoord-facing-width-push combinations / 8 edge-inset sequences / hitpause retention / helper opt-in and anchors / borrowed banks / active-tick expiry / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

@@ -88,7 +88,8 @@ data class MugenConstants(
     val projectileDoScale: Boolean = false,
     val maxPower: Int = 3000,
     val defence: Int = 100,
-    val attack: Int = 100
+    val attack: Int = 100,
+    val airFront: Int = front,val airBack: Int = back
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -107,7 +108,8 @@ data class FighterDefinition(
     val projectileDoScale: Boolean = false,
     val maxPower: Int = 3000,
     val defence: Int = 100,
-    val attack: Int = 100
+    val attack: Int = 100,
+    val airFront: Int = groundFront,val airBack: Int = groundBack
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -145,7 +147,8 @@ data class FighterDefinition(
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
-                if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack
+                if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack,
+                constants.airFront,constants.airBack
             )
         }
     }
@@ -179,7 +182,9 @@ object MugenCnsParser {
                 ?.takeIf { it.isFinite() }?.let { it != 0.0 } ?: false,
             maxPower = script.section("Data")?.int("power",3000)?.coerceAtLeast(0) ?: 3000,
             defence = script.section("Data")?.int("defence",100)?.coerceIn(1,100000) ?: 100,
-            attack = script.section("Data")?.int("attack",100)?.coerceIn(0,100000) ?: 100
+            attack = script.section("Data")?.int("attack",100)?.coerceIn(0,100000) ?: 100,
+            airFront = size?.int("air.front",size.int("ground.front",15))?.coerceIn(0,200) ?: 15,
+            airBack = size?.int("air.back",size.int("ground.back",15))?.coerceIn(0,200) ?: 15
         )
     }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
@@ -288,6 +293,9 @@ class FightingCharacter(
     internal var drawScaleY = 1.0
     internal var spritePriority = 0
     internal var positionFrozen = false
+    internal var playerPushOverride: Boolean? = null
+    internal val playerPushEnabled: Boolean get() = playerPushOverride ?: (parent == null)
+    internal var widthOffsets = CoreWidthOffsets.ZERO
     var binding: ActorBinding? = null
         private set
     internal var hitPauseThisTick = false
@@ -347,8 +355,19 @@ class FightingCharacter(
     /** Expressions and spatial controllers use the active state owner's
      * coordinates, including own -2 code executed while in a foreign state. */
     val coordinates: MugenCoordinates get() = stateOwner.definition.coordinates
-    fun bodyWidthWorld(direction: Int): Int = definition.coordinates.toWorld(
-        (if(facingRight == (direction > 0))definition.groundFront else definition.groundBack).toDouble())
+    /** Base body distance stays independent of temporary Width modifiers (MUGEN convention). */
+    fun bodyWidthWorld(direction: Int): Int {
+        val front=facingRight == (direction > 0)
+        val width=if(stateType == "A") {
+            if(front)definition.airFront else definition.airBack
+        }else if(front)definition.groundFront else definition.groundBack
+        return definition.coordinates.toWorld(width.toDouble())
+    }
+    internal fun playerWidthWorld(direction: Int): Int = (bodyWidthWorld(direction).toLong()+
+        if(facingRight == (direction > 0))widthOffsets.playerFront else widthOffsets.playerBack)
+        .coerceIn(0,Int.MAX_VALUE.toLong()).toInt()
+    internal fun edgeWidthWorld(direction: Int): Int =
+        if(facingRight == (direction > 0))widthOffsets.edgeFront else widthOffsets.edgeBack
     var animationOwner: FightingCharacter = this
         private set
     private var scriptOwner: FightingCharacter = this
@@ -520,6 +539,7 @@ class FightingCharacter(
             "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "posfreeze" -> CorePositionFreeze.execute(this,c,errors)
+            "playerpush", "width" -> CoreBodySpace.execute(this,c,errors)
             "sprpriority" -> CoreSpritePriority.execute(this,c,errors)
             "angleset", "angleadd", "anglemul", "angledraw" -> CoreAngleDrawing.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
@@ -918,6 +938,7 @@ class FightingCharacter(
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0
+        CoreBodySpace.beginTick(this,paused)
         hitPauseThisTick = paused
         hitFilters.beginTick()
         hitOverrides.beginTick()
@@ -1128,7 +1149,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         p1.tick(issues)
         p2.tick(issues)
         if (allowCombat) entities.advanceHelpers(issues)
-        arena?.step(p1,p2,p1Frozen,p2Frozen)
+        arena?.step(p1,p2,p1Frozen,p2Frozen,if(allowCombat)entities.helpers else emptyList())
         CoreBindings.resolve(p1,p2,if(allowCombat) entities.helpers else emptyList())
         camera?.update(p1,p2)
         p1.beginContactPhase();p2.beginContactPhase()

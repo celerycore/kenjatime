@@ -184,6 +184,36 @@ try:
         result["angleDrawCanvasTransform"]="passed"
         angles.close()
 
+        bodies=browser.new_page(viewport={"width":1000,"height":780})
+        body_errors=[]
+        bodies.on("pageerror",lambda error:body_errors.append(str(error)))
+        bodies.goto(base,wait_until="domcontentloaded",timeout=30000)
+        bodies.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        bodies.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-body-space.zip"))
+        bodies.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=bodies.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        for selector in ["#p1-select","#p2-select"]:
+            bodies.locator(selector).select_option(value=installed)
+        bodies.locator("#cpu").uncheck()
+        bodies.locator("#start").click()
+        for gap in [10,70,30]:
+            observed=bodies.wait_for_function("""gap => {
+              const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paint=qa?.lastActorTransformPaint;
+              const roots=plan?.draws.filter(d=>d.kind==='fighter')||[];
+              if(roots.length!==2||roots.some(d=>d.action!==706)||paint?.frame!==plan.frame)return false;
+              const distance=Math.abs(roots[1].x-roots[0].x)/(1.4*plan.cameraZoom);
+              return Math.abs(distance-gap)<1e-6 ? {plan,paint} : false;
+            }""",arg=gap,timeout=30000).json_value()
+            plan,paint=observed["plan"],observed["paint"]
+            actor=next(d for d in plan["draws"] if d["kind"]=="fighter" and d["side"]==0)
+            assert abs(paint["x"]-actor["x"])<1e-4,observed
+            assert abs(paint["a"]-1.4*plan["cameraZoom"])<1e-5,observed
+            assert abs(paint["d"]-1.1*plan["cameraZoom"])<1e-5,observed
+        assert not body_errors,body_errors
+        result["playerPushWidthCanvasSpacing"]="passed"
+        bodies.close()
+
         high=browser.new_page(viewport={"width":1000,"height":780})
         high_errors=[]
         high.on("pageerror",lambda error:high_errors.append(str(error)))

@@ -186,3 +186,38 @@ angleFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(angleFiles["kfm/kfm.air"
 0,0,8,-4,-1
 `);
 writeFileSync("test-output/kotlin-kfm-angle.zip",zipSync(angleFiles));
+
+// Repeated fixed placements distinguish disabled push, widened body push and
+// expired Width in the real Kotlin worker without browser-side fight logic.
+const bodyFiles=Object.fromEntries(raw);
+bodyFiles["kfm/kfm.cns"]=encoder.encode(`[Size]
+ground.front=15
+ground.back=15
+air.front=15
+air.back=15
+[Statedef 0]
+type=S
+physics=N
+anim=706
+ctrl=0
+[Statedef -2]
+[State -2, controlled placement]
+type=PosSet
+trigger1=1
+x=ifelse(Facing=1,-5,5)
+y=0
+[State -2, alternate push]
+type=PlayerPush
+trigger1=1
+value=(Time%120>=30)&&(Time%120<90)
+[State -2, temporary width]
+type=Width
+trigger1=Time%120<60
+player=20,0
+edge=20,5
+`);
+bodyFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(bodyFiles["kfm/kfm.air"])+`
+[Begin Action 706]
+0,0,0,0,-1
+`);
+writeFileSync("test-output/kotlin-kfm-body-space.zip",zipSync(bodyFiles));

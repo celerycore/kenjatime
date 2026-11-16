@@ -118,6 +118,11 @@ private object Fights {
         ",\"x256\":" + p.posX + ",\"y256\":" + p.posY +
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
         ",\"positionFrozen\":" + p.positionFrozen +
+        ",\"playerPush\":" + p.playerPushEnabled +
+        ",\"widthPlayerFront256\":" + p.widthOffsets.playerFront +
+        ",\"widthPlayerBack256\":" + p.widthOffsets.playerBack +
+        ",\"widthEdgeFront256\":" + p.widthOffsets.edgeFront +
+        ",\"widthEdgeBack256\":" + p.widthOffsets.edgeBack +
         ",\"spritePriority\":" + p.spritePriority +
         ",\"drawAngleDegrees\":" + p.drawAngleDegrees +
         ",\"angleDraw\":" + p.angleDrawEnabled +
