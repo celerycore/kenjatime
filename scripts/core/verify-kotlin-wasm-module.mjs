@@ -1702,6 +1702,148 @@ try {
 } finally { api.ktCoreRelease(invalidInitialPersistence); }
 console.log("Native Wasm StateDef hit/contact/manual-count persistence / spent windows / first valid replacement / entry diagnostics / bounded HitAdd / pure reads: OK (synthetic)");
 
+for(const kind of ["root","projectile"])for(const guarded of [false,true])for(const face of [false,true])for(const x of [0,1])for(const y of [0,1]) {
+  const controller=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=10,2
+guardflag=HL
+ground.velocity=8,-4
+guard.velocity=6,-2`;
+  const source=kind==="projectile" ? `${motionIdle}\n[State 0, shot]\n${controller}` :
+    `${motionIdle}\n[Statedef 200]\ntype=S\nphysics=N\nanim=200\n[State 200, hit]\n${controller}`;
+  const reaction=state=>`[Statedef ${state}]
+type=S
+movetype=H
+physics=N
+anim=0
+[State ${state}, clobber]
+type=VelSet
+trigger1=Time=0
+x=99
+y=88
+[State ${state}, restore captured axes]
+type=HitVelSet
+trigger1=Time=0
+x=${x}
+y=${y}`;
+  const restore=api.ktCoreCreateWithDefinitions("captured knockback","reaction",projectileFacingAir,air,
+    source,`${motionIdle}\nctrl=1\n${reaction(5000)}\n${reaction(150)}`,"","","[Info]\nlocalcoord=640,480","");
+  try {
+    api.ktCoreSetup(restore,0,0,(face ? 5 : -5)*256,0);
+    api.ktCoreDebugSetFacing(restore,0,face);api.ktCoreDebugSetFacing(restore,1,!face);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(restore,1)).getHitReceived,false);
+    const input=guarded ? (face ? 8 : 4) : 0;
+    if(kind==="root")api.ktCoreDebugForceState(restore,0,200);
+    else api.ktCoreAdvance(restore,0,"",input,"");
+    api.ktCoreAdvance(restore,0,"",input,"");
+    api.ktCoreDebugSetFacing(restore,1,face);api.ktCoreAdvance(restore,0,"",0,"");
+    const victim=JSON.parse(api.ktCoreSnapshot(restore,1));
+    const incomingX=(face ? 1 : -1)*(guarded ? 3 : 4)*256,incomingY=(guarded ? -1 : -2)*256;
+    assert.equal(victim.vx256,x ? incomingX : 99*256);assert.equal(victim.vy256,y ? incomingY : 88*256);
+    assert.equal(victim.getHitX256,incomingX);assert.equal(victim.getHitY256,incomingY);
+    assert.equal(victim.getHitReceived,true);assert.equal(victim.life,guarded ? 998 : 990);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(restore)),[]);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(restore,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(restore,1)),victim);
+    assert.equal(api.ktCoreIssues(restore),"");
+  } finally { api.ktCoreRelease(restore); }
+}
+for(const kind of ["root","projectile"])for(const width of [320,640])for(const mode of ["unset","zero","custom","disabled"]) {
+  const fall=mode==="disabled" ? 0 : 1;
+  const params=mode==="unset" ? "" : mode==="zero" ? "fall.xvelocity=0" : "fall.xvelocity=8\nfall.yvelocity=-10";
+  const controller=`type=${kind==="projectile" ? "Projectile" : "HitDef"}\ntrigger1=Time=0\nprojanim=200\ndamage=10\nfall=${fall}\n${params}`;
+  const source=kind==="projectile" ? `${motionIdle}\n[State 0, shot]\n${controller}` :
+    `${motionIdle}\n[Statedef 200]\ntype=S\nphysics=N\nanim=200\n[State 200, hit]\n${controller}`;
+  const bounce=api.ktCoreCreateWithDefinitions("fall metadata","bounce",projectileFacingAir,air,source,
+    `${motionIdle}
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, current velocity]
+type=VelSet
+trigger1=Time=0
+x=99
+y=88
+[State 5000, bounce]
+type=HitFallVel
+trigger1=Time=0
+[State 5000, observe local fall queries]
+type=PowerSet
+trigger1=Time=0
+value=abs(GetHitVar(fall.yvel))*10+abs(GetHitVar(fall.xvel))`,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"[Info]\nlocalcoord=640,480");
+  try {
+    api.ktCoreSetup(bounce,0,0,5*256,0);
+    if(kind==="root")api.ktCoreDebugForceState(bounce,0,200);else api.ktCoreAdvance(bounce,0,"",0,"");
+    api.ktCoreAdvance(bounce,0,"",0,"");api.ktCoreAdvance(bounce,0,"",0,"");
+    const victim=JSON.parse(api.ktCoreSnapshot(bounce,1));
+    const fallX=mode==="unset" ? null : mode==="zero" ? 0 : 8*320/width*256;
+    const fallY=mode==="custom" || mode==="disabled" ? -10*320/width*256 : -4.5*256;
+    assert.equal(victim.getHitFallX256,fallX);assert.equal(victim.getHitFallY256,fallY);
+    assert.equal(victim.getHitFall,!!fall);
+    assert.equal(victim.vx256,fall && fallX!==null ? fallX : 99/2*256);
+    assert.equal(victim.vy256,fall ? fallY : 88/2*256);
+    assert.equal(victim.power,Math.abs(fallY)/256*2*10+Math.abs(fallX ?? 0)/256*2);
+    assert.equal(victim.life,990);assert.equal(api.ktCoreIssues(bounce),"");
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(bounce,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(bounce,1)),victim);
+  } finally { api.ktCoreRelease(bounce); }
+}
+for(const [initialFall,flag] of [[0,1],[1,0],[1,-1]]) {
+  const fallSet=api.ktCoreCreateWithDefinitions("fall editing bank","borrowed reaction",projectileFacingAir,air,
+    `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=10
+ground.velocity=8,-4
+fall=${initialFall}
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, restore original]
+type=HitVelSet
+trigger1=Time=0
+x=1
+y=1
+[State 700, edit fall data in active bank units]
+type=HitFallSet
+trigger1=Time=0
+value=${flag}
+xvel=6
+yvel=-10
+[State 700, apply fall data]
+type=HitFallVel
+trigger1=Time=0
+[State 700, observe local data]
+type=PowerSet
+trigger1=Time=0
+value=abs(GetHitVar(fall.xvel))*100+abs(GetHitVar(fall.yvel))`,motionIdle,
+    "","","[Info]\nlocalcoord=640,480","");
+  try {
+    api.ktCoreSetup(fallSet,0,0,5*256,0);api.ktCoreDebugForceState(fallSet,0,200);
+    api.ktCoreAdvance(fallSet,0,"",0,"");api.ktCoreAdvance(fallSet,0,"",0,"");
+    const victim=JSON.parse(api.ktCoreSnapshot(fallSet,1));
+    const falling=flag===-1 ? !!initialFall : !!flag;
+    assert.equal(victim.stateOwner,1);assert.equal(victim.localCoordWidth,640);assert.equal(victim.ownLocalCoordWidth,320);
+    assert.equal(victim.getHitFall,falling);assert.equal(victim.getHitFallX256,3*256);assert.equal(victim.getHitFallY256,-5*256);
+    assert.equal(victim.vx256,(falling ? 3 : 4)*256);assert.equal(victim.vy256,(falling ? -5 : -2)*256);
+    assert.equal(victim.getHitX256,4*256);assert.equal(victim.getHitY256,-2*256);
+    assert.equal(victim.power,610);assert.equal(victim.life,990);assert.equal(api.ktCoreIssues(fallSet),"");
+  } finally { api.ktCoreRelease(fallSet); }
+}
+console.log("Native Wasm HitVelSet sparse axes / hit-guard-projectile capture / HitFallSet and HitFallVel / omitted X and canonical bounce / mixed and borrowed units / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

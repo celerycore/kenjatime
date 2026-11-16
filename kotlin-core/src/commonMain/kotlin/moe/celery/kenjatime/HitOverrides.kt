@@ -59,5 +59,6 @@ internal class CoreHitOverrides {
  * facing or custom-state coordinate changes. The reaction clock reaches -1. */
 internal data class CoreGetHitData(
     val damage: Int=0,val velocityX: Int=0,val velocityY: Int=0,
-    val guarded: Boolean=false,val fall: Boolean=false,var time: Int=-1
+    val guarded: Boolean=false,var fall: Boolean=false,var time: Int=-1,
+    var fallVelocityX: Int?=null,var fallVelocityY: Int=0,val received: Boolean=false
 )

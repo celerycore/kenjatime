@@ -37,7 +37,8 @@ data class HitDefinition(
     val givePower: Int = HitPowerRules.DEFAULT.defender(damage),
     val guardGetPower: Int = getPower/2,val guardGivePower: Int = givePower/2,
     /** Projectiles retain the creator's factor; body hits use the live actor. */
-    val capturedAttackMultiplier: Double? = null
+    val capturedAttackMultiplier: Double? = null,
+    val fallVelocityX: Int? = null,val fallVelocityY: Int = Fixed.of(-4.5)
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -273,6 +274,8 @@ class FightingCharacter(
         "hitshaketime" -> hitPauseLeft.toDouble()
         "guarded" -> if(getHitData.guarded)1.0 else 0.0
         "fall" -> if(getHitData.fall)1.0 else 0.0
+        "fall.xvel" -> coordinates.toLocal(getHitData.fallVelocityX ?: 0)
+        "fall.yvel" -> coordinates.toLocal(getHitData.fallVelocityY)
         else -> throw IllegalArgumentException("Unsupported GetHitVar field: $name")
     }
     fun releaseBinding() { binding = null }
@@ -477,6 +480,7 @@ class FightingCharacter(
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
+            "hitvelset", "hitfallset", "hitfallvel" -> CoreGetHitControllers.execute(this,c,errors)
             "changestate", "selfstate" -> {
                 val next = args["value"]?.let { CoreExpression.number(it, this, errors)?.toInt() }
                 val owner = if (c.type.equals("selfstate", true)) this else scriptOwner
@@ -708,6 +712,7 @@ class FightingCharacter(
                 val hitFlags=CoreHitFlags.parse(args["hitflag"] ?: args["projhitflag"],errors) ?: return false
                 val hitDamage=integer(damage.getOrNull(0))
                 val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
+                val fallVelocities=CoreFallVelocities.parse(args,this,errors) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -722,6 +727,7 @@ class FightingCharacter(
                     kill = kills.hit,guardKill = kills.guard,
                     getPower = powers.get.first,guardGetPower = powers.get.second,
                     givePower = powers.give.first,guardGivePower = powers.give.second,
+                    fallVelocityX = fallVelocities.x,fallVelocityY = fallVelocities.y,
                     velocityX = number(groundVelocity.getOrNull(0)),
                     velocityY = number(groundVelocity.getOrNull(1)),
                     airVelocityX = number(airVelocity.getOrNull(0)),
@@ -762,6 +768,7 @@ class FightingCharacter(
                 val hitFlags=CoreHitFlags.parse(args["hitflag"],errors) ?: return false
                 val hitDamage=integer(args["damage"]?.substringBefore(','))
                 val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
+                val fallVelocities=CoreFallVelocities.parse(args,this,errors) ?: return false
                 val velocity = (args["ground.velocity"] ?: "0,0").split(',')
                 val airVelocity = (args["air.velocity"] ?: "0,0").split(',')
                 val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
@@ -783,6 +790,7 @@ class FightingCharacter(
                     kill = kills.hit,guardKill = kills.guard,
                     getPower = powers.get.first,guardGetPower = powers.get.second,
                     givePower = powers.give.first,guardGivePower = powers.give.second,
+                    fallVelocityX = fallVelocities.x,fallVelocityY = fallVelocities.y,
                     guardVelocityX = number(guardVelocity.getOrNull(0)),
                     guardVelocityY = number(guardVelocity.getOrNull(1)),
                     hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600),
@@ -910,11 +918,13 @@ class FightingCharacter(
         val damage=CoreDamage.contact(hit,attacker,this,guarded)
         attacker?.addPower(if(guarded)hit.guardGetPower else hit.getPower)
         addPower(if(guarded)hit.guardGivePower else hit.givePower)
-        val x=(if(guarded)hit.guardVelocityX else if(airborne)hit.airVelocityX else hit.velocityX)*
-            if(attackerFacingRight)1 else -1
+        fun facing(value: Int)=(value.toLong()*(if(attackerFacingRight)1 else -1))
+            .coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
+        val x=facing(if(guarded)hit.guardVelocityX else if(airborne)hit.airVelocityX else hit.velocityX)
         val y=if(guarded)hit.guardVelocityY else if(airborne)hit.airVelocityY else hit.velocityY
         val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
-        getHitData=CoreGetHitData(damage,x,y,guarded,!guarded && (if(airborne)hit.airFall else hit.fall),duration)
+        getHitData=CoreGetHitData(damage,x,y,guarded,!guarded && (if(airborne)hit.airFall else hit.fall),duration,
+            fallVelocityX=hit.fallVelocityX?.let(::facing),fallVelocityY=hit.fallVelocityY,received=true)
         world?.effects?.onHit(this)
         val minimumLife=if(if(guarded)hit.guardKill else hit.kill)0 else 1
         life = (life - damage).coerceAtLeast(minimumLife)

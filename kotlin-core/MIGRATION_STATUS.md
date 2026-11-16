@@ -1,6 +1,64 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current state persistence continuation — November 16, 2026
+## Current get-hit velocity continuation — November 16, 2026
+
+Continues published main source `2d24c44`. CNS now executes HitVelSet,
+HitFallSet and HitFallVel. They act only on MoveType H actors with captured
+data from an accepted hit/guard contact. HitVelSet restores selected x/y axes
+from the original incoming velocities; omitted/zero flags leave axes unchanged.
+Later facing or state-bank changes cannot mirror or rescale stored knockback.
+
+HitDef and Projectile now capture fall.xvelocity and fall.yvelocity, including
+nested numeric expressions in the executing actor's active units. Omitted fall
+X means no horizontal override. Omitted fall Y defaults to canonical -4.5 stage
+pixels per tick, independent of source localcoord. Authored fall X uses impact
+facing once, including the projectile's captured orientation. Extreme incoming
+and fall X mirroring now saturates instead of wrapping Int.MIN_VALUE.
+
+HitFallSet edits the captured fall flag and optional fall x/y velocities.
+Value -1/omission preserves the flag; 0 clears it and 1 enables it. Runtime
+xvel/yvel convert active state-bank units to canonical world components once.
+These edits do not alter original incoming velocities. HitFallVel requires
+the captured fall flag; it applies stored Y and applies X only when explicitly
+defined. An explicit zero X stops horizontal motion, while omitted X preserves
+current motion. Disabling fall prevents application of the bounce velocities.
+
+GetHitVar(fall.xvel/fall.yvel) reports values in the current active units;
+undefined X queries return zero. Actor snapshots retain nullable fall X to
+distinguish omission from zero and expose whether hit data has been received.
+A new accepted contact replaces previous runtime fall edits. Outside MoveType H,
+or before any accepted contact, the controllers leave velocities/data alone.
+Stale stored data and full native recovery/reset semantics remain separate work.
+
+All controller arguments and both authored fall components are validated before
+mutation. Invalid input preserves reaction data, an existing HitDef or the
+projectile queue. Existing persistence/ignorehitpause rules apply. The
+controllers do not deal damage, award power, create contacts, change state or
+automatically perform ground collision, bounce/recovery or fall damage.
+
+Validation:
+
+- 615 JVM and 610 compiled-Wasm tests pass, including 21 new cases for sparse
+  axes, guard data, gating, fall defaults/edits, expressions, facing, units,
+  invalid requests, fresh contacts, helpers, overrides, bounds and pause.
+- Exported Wasm checks 32 root/projectile hit/guard, facing and axis combinations;
+  16 fall-default/zero/custom/disabled cases across localcoord 320/640; and
+  three borrowed-bank fall-edit/apply sequences. Pure presentation reads cannot
+  repeat a reaction or damage.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Parameters and fall defaults follow the
+[Elecbyte controller reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitfallset).
+Native fall gating/facing quirks, common-state ordering, full hit-data resets and
+automatic bounce/recovery remain unverified. These checks do not certify native
+frame parity or physical-phone performance. Main CI verifies browser/APK asset
+identity and anonymous permanent downloads before publication.
+
+## State persistence continuation — November 16, 2026
 
 Continues published main source `c52cb2b`. StateDef now honors hitdefpersist,
 movehitpersist and hitcountpersist independently. Omitted/zero values reset the
