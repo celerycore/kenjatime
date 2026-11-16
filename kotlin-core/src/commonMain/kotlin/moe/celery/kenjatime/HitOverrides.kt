@@ -61,5 +61,6 @@ internal data class CoreGetHitData(
     val damage: Int=0,val velocityX: Int=0,val velocityY: Int=0,
     val guarded: Boolean=false,var fall: Boolean=false,var time: Int=-1,
     var fallVelocityX: Int?=null,var fallVelocityY: Int=0,val received: Boolean=false,
-    var fallDamage: Int=0,val fallKill: Boolean=true
+    var fallDamage: Int=0,val fallKill: Boolean=true,
+    val fallRecover: Boolean=false,val fallRecoverTime: Int=4,var fallTime: Int=0
 )

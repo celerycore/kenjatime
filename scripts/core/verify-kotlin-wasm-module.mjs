@@ -2029,6 +2029,135 @@ try {
 } finally { api.ktCoreRelease(borrowedFall); }
 console.log("Native Wasm HitFallDamage / independent fall.kill / root-helper-projectile scalar capture / live defence / consume once / signed bounds / pure reads: OK (synthetic)");
 
+// Recovery clocks are actor-owned ticks, not active-bank spatial coordinates or state Time.
+for(const kind of ["root","helper","projectile"])for(const width of [320,640])for(const enabled of [0,1])for(const delay of [0,4])for(const pause of [0,2]) {
+  const controller=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=0
+fall=1
+fall.damage=30
+fall.recover=${enabled}
+fall.recovertime=${delay}
+pausetime=0,${pause}`;
+  const source=motionIdle+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "")+
+    (kind==="projectile" ? "" : "\n[Statedef 200]\ntype=S\nphysics=N\nanim=200")+
+    `\n[State ${kind==="projectile" ? 0 : 200}, contact]\n${controller}`;
+  const recovery=api.ktCoreCreateWithDefinitions("recovery source","recovery queries",projectileFacingAir,air,source,
+    `${motionIdle}
+[Statedef 5000]
+type=A
+movetype=H
+physics=N
+anim=0
+[State 5000, observe native triggers and scalar fields]
+type=PowerSet
+trigger1=1
+ignorehitpause=1
+value=HitFall*1000+CanRecover*500+GetHitVar(fall.recover)*100+GetHitVar(fall.recovertime)*10+GetHitVar(fall.time)`,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(recovery,0,0,5*256,0);
+    if(kind==="root")api.ktCoreDebugForceState(recovery,0,200);else api.ktCoreAdvance(recovery,0,"",0,"");
+    api.ktCoreAdvance(recovery,0,"",0,"");
+    const captured=JSON.parse(api.ktCoreSnapshot(recovery,1));
+    assert.equal(captured.getHitFallTime,0);assert.equal(captured.getHitFallRecover,!!enabled);
+    assert.equal(captured.getHitFallRecoverTime,delay);assert.equal(captured.canRecover,!!enabled && delay===0);
+    for(let tick=1;tick<=pause+delay+2;tick++) {
+      api.ktCoreAdvance(recovery,0,"",0,"");
+      const victim=JSON.parse(api.ktCoreSnapshot(recovery,1)),elapsed=Math.max(0,tick-pause),ready=!!enabled && elapsed>=delay;
+      assert.equal(victim.getHitFallTime,elapsed);assert.equal(victim.canRecover,ready);
+      assert.equal(victim.power,1000+Number(ready)*500+enabled*100+delay*10+elapsed);
+      assert.equal(victim.state,5000);assert.equal(victim.life,1000);assert.equal(victim.getHitFallDamage,30);
+      assert.equal(JSON.parse(api.ktCoreSnapshot(recovery,0)).power,0);assert.deepEqual(JSON.parse(api.ktCoreContacts(recovery)),[]);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(recovery,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(recovery,1)),victim);
+    }
+    assert.equal(api.ktCoreIssues(recovery),"");
+  } finally { api.ktCoreRelease(recovery); }
+}
+const borrowedRecovery=api.ktCoreCreateWithDefinitions("recovery bank","own recovery",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+fall=1
+fall.recovertime=3
+p2stateno=700
+[Statedef 700]
+type=A
+movetype=H
+physics=N
+anim=0
+[State 700, recovery]
+type=SelfState
+trigger1=HitFall && CanRecover
+value=5200`,
+  `${motionIdle}
+[Statedef 5200]
+type=A
+movetype=I
+physics=N
+anim=0
+ctrl=1`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedRecovery,0,0,5*256,0);api.ktCoreDebugForceState(borrowedRecovery,0,200);
+  api.ktCoreAdvance(borrowedRecovery,0,"",0,"");
+  for(let tick=1;tick<=2;tick++) {
+    api.ktCoreAdvance(borrowedRecovery,0,"",0,"");const victim=JSON.parse(api.ktCoreSnapshot(borrowedRecovery,1));
+    assert.equal(victim.state,700);assert.equal(victim.stateOwner,1);assert.equal(victim.getHitFallTime,tick);
+    assert.equal(victim.localCoordWidth,640);assert.equal(victim.getHitFallRecoverTime,3);assert.equal(victim.canRecover,false);
+  }
+  api.ktCoreAdvance(borrowedRecovery,0,"",0,"");
+  const recovered=JSON.parse(api.ktCoreSnapshot(borrowedRecovery,1));
+  assert.equal(recovered.state,5200);assert.equal(recovered.stateOwner,2);assert.equal(recovered.localCoordWidth,320);
+  assert.equal(recovered.getHitFallTime,3);assert.equal(recovered.canRecover,false);
+  api.ktCoreAdvance(borrowedRecovery,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(borrowedRecovery,1)).getHitFallTime,3);
+  assert.equal(api.ktCoreIssues(borrowedRecovery),"");
+} finally { api.ktCoreRelease(borrowedRecovery); }
+const guardRecovery=api.ktCoreCreate("guard recovery source","deferred guard recovery",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+guardflag=HL
+fall=1
+fall.recovertime=2`,
+  `${motionIdle}
+ctrl=1
+[Statedef 150]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 150, enable deferred recovery clock]
+type=HitFallSet
+trigger1=Time=1
+value=1`);
+try {
+  api.ktCoreSetup(guardRecovery,0,0,5*256,0);api.ktCoreDebugForceState(guardRecovery,0,200);
+  api.ktCoreAdvance(guardRecovery,0,"",8,"");
+  for(const expected of [0,0,1,2]) {
+    api.ktCoreAdvance(guardRecovery,0,"",0,"");const victim=JSON.parse(api.ktCoreSnapshot(guardRecovery,1));
+    assert.equal(victim.getHitGuarded,true);assert.equal(victim.getHitFallTime,expected);assert.equal(victim.canRecover,expected>=2);
+    assert.equal(victim.life,1000);
+  }
+  assert.equal(api.ktCoreIssues(guardRecovery),"");
+} finally { api.ktCoreRelease(guardRecovery); }
+console.log("Native Wasm fall recovery permission / thresholds / hitpause clocks / root-helper-projectile capture / CanRecover and HitFall / borrowed SelfState recovery / deferred guard / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

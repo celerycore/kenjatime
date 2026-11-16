@@ -84,6 +84,8 @@ object CoreExpression {
                 "incustomstate" -> if (f.stateOwner !== f) 1.0 else 0.0
                 "numtarget" -> f.targets().size.toDouble()
                 "hitcount" -> f.hitCount.toDouble()
+                "hitfall" -> if(f.getHitData.fall)1.0 else 0.0
+                "canrecover" -> if(f.canRecover)1.0 else 0.0
                 "movecontact" -> if (f.moveContact) 1.0 else 0.0
                 "movehit" -> if (f.moveHit) 1.0 else 0.0
                 "moveguarded" -> if (f.moveGuarded) 1.0 else 0.0

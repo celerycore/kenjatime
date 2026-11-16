@@ -1,6 +1,65 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current fall-damage continuation — November 16, 2026
+## Current fall-recovery continuation — November 16, 2026
+
+Continues published main source `fc27815`. HitDef and Projectile now capture
+fall.recover and fall.recovertime, defaulting to enabled and four ticks.
+Expressions evaluate once when an attack is installed, including projectile
+creation. Invalid flags or out-of-range/non-numeric thresholds preserve a
+working HitDef or leave the projectile queue alone. Signed integer thresholds
+are retained; zero/negative delays permit immediate eligibility.
+
+GetHitVar(fall.recover/fall.recovertime/fall.time) exposes the permission,
+threshold and elapsed fall ticks. HitFall reads the captured fall flag.
+CanRecover returns true for a living MoveType H actor with accepted hit data,
+fall enabled, recovery permitted and elapsed ticks at least the threshold.
+Outside those conditions it returns false. Authored CNS may use these triggers
+to select a recovery state; eligibility itself never changes state or motion.
+
+The clock starts at zero on each accepted hit/guard contact. It advances once
+before controllers on an unpaused MoveType H tick with the fall flag enabled,
+independently of state Time. Hitpause, including its final frozen tick, does
+not advance it. Opted-in ignorehitpause controllers observe the frozen value.
+HitFallSet can suspend/resume the clock by editing the flag without resetting
+elapsed time. Guard contacts initially disable fall. A later accepted contact
+replaces the permission/threshold and restarts the clock; a get-hit state/bank
+change preserves it. Outside MoveType H the stored clock freezes. Complete
+native stale-data clearing and contact/pause ordering remain unverified.
+
+Tick quantities never rescale in mixed or borrowed local coordinates. Helpers
+own their recovery data, and multi-hit projectiles restart it on each accepted
+contact. The timer saturates at Int.MAX_VALUE. Read-only expression, snapshot
+and presentation access cannot advance it. Recovery eligibility preserves pending
+fall damage, life, power and contact history. Wasm actor snapshots now expose
+getHitFallRecover, getHitFallRecoverTime, getHitFallTime and canRecover.
+
+Validation:
+
+- 665 JVM and 660 compiled-Wasm tests pass, including 25 new cases for defaults,
+  permission, thresholds, pause, authored recovery transitions, flag edits,
+  guarded/fresh contacts, state/bank changes, helpers, projectile capture,
+  invalid input, scalar units, saturation and pure reads.
+- Exported Wasm checks 48 root/helper/projectile, localcoord 320/640, permission,
+  delay and hitpause combinations. Additional sequences verify deferred guard
+  timing and an authored SelfState recovery from a borrowed 640-wide bank to
+  the victim's own 320-wide state.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including actual sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Defaults and recovery delay follow the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef);
+[CanRecover](https://network.mugenguild.com/justnopoint/1.1docs/trigger.html#canrecover)
+is defined by that reference while falling. The additional inactive/dead gates
+above are this engine's bounded behavior outside that scope. Automatic air
+recovery, command selection, landing damage, bounce/liedown physics and exact
+native pause/reset phases remain incomplete or unverified. These checks do not
+certify native frame parity or physical-phone performance. Main CI checks shared
+browser/APK Wasm identity and anonymous permanent downloads before publication.
+
+## Fall-damage continuation — November 16, 2026
 
 Continues published main source `a3e4d92`. HitDef and Projectile now capture
 fall.damage and an independent fall.kill flag. Omitted amounts default to zero;

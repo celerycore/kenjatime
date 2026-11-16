@@ -39,7 +39,8 @@ data class HitDefinition(
     /** Projectiles retain the creator's factor; body hits use the live actor. */
     val capturedAttackMultiplier: Double? = null,
     val fallVelocityX: Int? = null,val fallVelocityY: Int = Fixed.of(-4.5),
-    val fallDamage: Int = 0,val fallKill: Boolean = true
+    val fallDamage: Int = 0,val fallKill: Boolean = true,
+    val fallRecover: Boolean = true,val fallRecoverTime: Int = 4
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -267,6 +268,8 @@ class FightingCharacter(
     internal val projectileHistory = CoreProjectileHistory()
     internal var getHitData = CoreGetHitData()
         private set
+    val canRecover: Boolean get() = moveType == "H" && life > 0 && getHitData.received &&
+        getHitData.fall && getHitData.fallRecover && getHitData.fallTime >= getHitData.fallRecoverTime
     fun getHitVar(name: String): Double = when(name) {
         "damage" -> getHitData.damage.toDouble()
         "xvel" -> coordinates.toLocal(getHitData.velocityX)
@@ -278,6 +281,9 @@ class FightingCharacter(
         "fall.xvel" -> coordinates.toLocal(getHitData.fallVelocityX ?: 0)
         "fall.yvel" -> coordinates.toLocal(getHitData.fallVelocityY)
         "fall.damage" -> getHitData.fallDamage.toDouble()
+        "fall.recover" -> if(getHitData.fallRecover)1.0 else 0.0
+        "fall.recovertime" -> getHitData.fallRecoverTime.toDouble()
+        "fall.time" -> getHitData.fallTime.toDouble()
         else -> throw IllegalArgumentException("Unsupported GetHitVar field: $name")
     }
     fun releaseBinding() { binding = null }
@@ -716,6 +722,7 @@ class FightingCharacter(
                 val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
                 val fallVelocities=CoreFallVelocities.parse(args,this,errors) ?: return false
                 val fallDamage=CoreFallDamage.parse(args,this,errors) ?: return false
+                val fallRecovery=CoreFallRecovery.parse(args,this,errors) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -732,6 +739,7 @@ class FightingCharacter(
                     givePower = powers.give.first,guardGivePower = powers.give.second,
                     fallVelocityX = fallVelocities.x,fallVelocityY = fallVelocities.y,
                     fallDamage = fallDamage,fallKill = kills.fall,
+                    fallRecover = fallRecovery.enabled,fallRecoverTime = fallRecovery.time,
                     velocityX = number(groundVelocity.getOrNull(0)),
                     velocityY = number(groundVelocity.getOrNull(1)),
                     airVelocityX = number(airVelocity.getOrNull(0)),
@@ -774,6 +782,7 @@ class FightingCharacter(
                 val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
                 val fallVelocities=CoreFallVelocities.parse(args,this,errors) ?: return false
                 val fallDamage=CoreFallDamage.parse(args,this,errors) ?: return false
+                val fallRecovery=CoreFallRecovery.parse(args,this,errors) ?: return false
                 val velocity = (args["ground.velocity"] ?: "0,0").split(',')
                 val airVelocity = (args["air.velocity"] ?: "0,0").split(',')
                 val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
@@ -797,6 +806,7 @@ class FightingCharacter(
                     givePower = powers.give.first,guardGivePower = powers.give.second,
                     fallVelocityX = fallVelocities.x,fallVelocityY = fallVelocities.y,
                     fallDamage = fallDamage,fallKill = kills.fall,
+                    fallRecover = fallRecovery.enabled,fallRecoverTime = fallRecovery.time,
                     guardVelocityX = number(guardVelocity.getOrNull(0)),
                     guardVelocityY = number(guardVelocity.getOrNull(1)),
                     hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600),
@@ -856,6 +866,7 @@ class FightingCharacter(
         if (paused) hitPauseLeft--
         if (!paused && hitStunLeft > 0) hitStunLeft--
         if (!paused && getHitData.time >= 0)getHitData.time--
+        CoreFallRecovery.advance(this,paused)
         // Global state controllers participate in the pause only when explicitly opted in.
         val changed = (stateOwner === this && executeState(-3, errors, paused)) ||
             executeState(-2, errors, paused) ||
@@ -931,7 +942,8 @@ class FightingCharacter(
         val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
         getHitData=CoreGetHitData(damage,x,y,guarded,!guarded && (if(airborne)hit.airFall else hit.fall),duration,
             fallVelocityX=hit.fallVelocityX?.let(::facing),fallVelocityY=hit.fallVelocityY,received=true,
-            fallDamage=hit.fallDamage,fallKill=hit.fallKill)
+            fallDamage=hit.fallDamage,fallKill=hit.fallKill,
+            fallRecover=hit.fallRecover,fallRecoverTime=hit.fallRecoverTime)
         world?.effects?.onHit(this)
         val minimumLife=if(if(guarded)hit.guardKill else hit.kill)0 else 1
         life = (life - damage).coerceAtLeast(minimumLife)
