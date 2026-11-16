@@ -2399,6 +2399,73 @@ try {
 } finally { api.ktCoreRelease(borrowedHitAnimation); }
 console.log("Native Wasm hit animation strings / ground-air-fall selection / inherited defaults / guards / root-helper-projectile / authored ChangeAnim / borrowed banks and SelfState / pure reads: OK (synthetic)");
 
+for(const kind of ["root","helper","projectile"])for(const width of [320,640])for(const face of [false,true])for(const airborne of [false,true])for(const mode of ["default","explicit","zero"])for(const pause of [0,2]) {
+  const units=width/320;
+  const overrides=mode==="default" ? "" : mode==="zero" ? "guard.velocity=0\nairguard.velocity=0,0" :
+    `guard.velocity=${3*units},${-units}\nairguard.velocity=${6*units},${-4*units}`;
+  const hit=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=10,2
+guardflag=HLA
+ground.velocity=${8*units},${-6*units}
+air.velocity=${4*units},${-8*units}
+guard.pausetime=0,${pause}
+${overrides}`;
+  const source=motionIdle+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "")+
+    (kind==="projectile" ? "" : "\n[Statedef 200]\ntype=S\nphysics=N\nanim=200")+
+    `\n[State ${kind==="projectile" ? 0 : 200}, hit]\n${hit}`;
+  const restore=[150,152].map(state=>`[Statedef ${state}]
+type=S
+movetype=H
+physics=N
+anim=0
+[State ${state}, clobber]
+type=VelSet
+trigger1=Time=0
+ignorehitpause=1
+x=99
+y=88
+[State ${state}, restore captured guard vector]
+type=HitVelSet
+trigger1=Time=0
+ignorehitpause=1
+x=1
+y=1`).join("\n");
+  const guardMotion=api.ktCoreCreateWithDefinitions("guard vector source","guard recipient",projectileFacingAir,air,
+    source,`${motionIdle}\nctrl=1\n[Statedef 400]\ntype=A\nphysics=N\nanim=0\nctrl=1\n${restore}`,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"[Info]\nlocalcoord=640,480");
+  try {
+    api.ktCoreSetup(guardMotion,0,0,(face ? 5 : -5)*256,0);
+    api.ktCoreDebugSetFacing(guardMotion,0,face);api.ktCoreDebugSetFacing(guardMotion,1,!face);
+    if(airborne)api.ktCoreDebugForceState(guardMotion,1,400);
+    const input=face ? 8 : 4;
+    if(kind==="root")api.ktCoreDebugForceState(guardMotion,0,200);else api.ktCoreAdvance(guardMotion,0,"",input,"");
+    api.ktCoreAdvance(guardMotion,0,"",input,"");
+    const expectedX=(face ? 1 : -1)*(mode==="zero" ? 0 : airborne ? 6 : mode==="default" ? 8 : 3)*256 || 0;
+    const expectedY=(mode==="zero" ? 0 : airborne ? -4 : mode==="default" ? 0 : -1)*256 || 0;
+    const captured=JSON.parse(api.ktCoreSnapshot(guardMotion,1));
+    assert.equal(captured.state,airborne ? 152 : 150);assert.equal(captured.getHitGuarded,true);
+    assert.equal(captured.getHitX256,expectedX);assert.equal(captured.getHitY256,expectedY);
+    assert.equal(captured.getHitDamage,2);assert.equal(captured.life,998);assert.equal(captured.hitPause,pause);
+    api.ktCoreDebugSetFacing(guardMotion,1,face);
+    for(let tick=1;tick<=pause+2;tick++) {
+      api.ktCoreAdvance(guardMotion,0,"",0,"");const victim=JSON.parse(api.ktCoreSnapshot(guardMotion,1));
+      const active=Math.max(0,tick-pause);
+      assert.equal(victim.vx256,expectedX);assert.equal(victim.vy256,expectedY);
+      assert.equal(victim.x256,(face ? 5 : -5)*256+active*expectedX);assert.equal(victim.y256,active*expectedY || 0);
+      assert.equal(victim.getHitX256,expectedX);assert.equal(victim.getHitY256,expectedY);
+      assert.equal(victim.life,998);assert.equal(victim.power,3);assert.equal(JSON.parse(api.ktCoreSnapshot(guardMotion,0)).power,3);
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(guardMotion)),[]);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(guardMotion,12);
+      assert.deepEqual(JSON.parse(api.ktCoreSnapshot(guardMotion,1)),victim);
+    }
+    assert.equal(api.ktCoreIssues(guardMotion),"");
+  } finally { api.ktCoreRelease(guardMotion); }
+}
+console.log("Native Wasm ground and aerial guard vectors / pre-quantization defaults / root-helper-projectile capture / mixed units / impact facing / HitVelSet restore / pause / chip and power / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

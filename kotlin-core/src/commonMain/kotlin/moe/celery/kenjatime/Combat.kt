@@ -20,7 +20,7 @@ data class HitDefinition(
     val priorityType: String = "Hit",
     val defenderPause: Int = hitPause,
     val guardPause: Int = hitPause,
-    val guardVelocityX: Int = 0,
+    val guardVelocityX: Int = velocityX,
     val guardVelocityY: Int = 0,
     val hitTime: Int = 12,
     val id: Int = 0,
@@ -44,7 +44,9 @@ data class HitDefinition(
     val hitAccelerationY: Int = Fixed.of(0.35),
     val animationType: HitAnimationType = HitAnimationType.LIGHT,
     val airAnimationType: HitAnimationType = animationType,
-    val fallAnimationType: HitAnimationType = if(airAnimationType == HitAnimationType.UP)HitAnimationType.UP else HitAnimationType.BACK
+    val fallAnimationType: HitAnimationType = if(airAnimationType == HitAnimationType.UP)HitAnimationType.UP else HitAnimationType.BACK,
+    val airGuardVelocityX: Int = (airVelocityX.toLong()*3/2).coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt(),
+    val airGuardVelocityY: Int = airVelocityY/2
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -720,9 +722,6 @@ class FightingCharacter(
                 require(projectilePriority >= 1) { "Projectile projpriority must be positive" }
                 val removeOnHit=(args["projremove"]?.let(::value) ?: 1.0) != 0.0
                 val damage = (args["damage"] ?: args["projdamage"] ?: "0,0").split(',')
-                val groundVelocity = (args["ground.velocity"] ?: args["projground.velocity"] ?: "0,0").split(',')
-                val airVelocity = (args["air.velocity"] ?: args["projair.velocity"] ?: "0,0").split(',')
-                val guardVelocity = (args["guard.velocity"] ?: args["projguard.velocity"] ?: "0,0").split(',')
                 val pauses=CoreHitPauses.parse(args,this,errors,true) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hitFlags=CoreHitFlags.parse(args["hitflag"] ?: args["projhitflag"],errors) ?: return false
@@ -733,6 +732,7 @@ class FightingCharacter(
                 val fallRecovery=CoreFallRecovery.parse(args,this,errors) ?: return false
                 val hitAcceleration=CoreHitAcceleration.parse(args,this,errors) ?: return false
                 val hitAnimations=CoreHitAnimations.parse(args,errors) ?: return false
+                val hitVelocities=CoreHitVelocities.parse(args,this,errors,true) ?: return false
                 val hit = HitDefinition(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -753,16 +753,17 @@ class FightingCharacter(
                     hitAccelerationY = hitAcceleration,
                     animationType = hitAnimations.ground,airAnimationType = hitAnimations.air,
                     fallAnimationType = hitAnimations.fall,
-                    velocityX = number(groundVelocity.getOrNull(0)),
-                    velocityY = number(groundVelocity.getOrNull(1)),
-                    airVelocityX = number(airVelocity.getOrNull(0)),
-                    airVelocityY = number(airVelocity.getOrNull(1)),
+                    airGuardVelocityX = hitVelocities.airGuard.x,airGuardVelocityY = hitVelocities.airGuard.y,
+                    velocityX = hitVelocities.ground.x,
+                    velocityY = hitVelocities.ground.y,
+                    airVelocityX = hitVelocities.air.x,
+                    airVelocityY = hitVelocities.air.y,
                     hitTime = integer(args["ground.hittime"] ?: args["projground.hittime"],12).coerceIn(0,600),
                     airHitTime = integer(args["air.hittime"] ?: args["projair.hittime"],20).coerceIn(0,600),
                     guardHitTime = integer(args["guard.hittime"] ?: args["projguard.hittime"],
                         integer(args["ground.hittime"] ?: args["projground.hittime"],12)).coerceIn(0,600),
-                    guardVelocityX = number(guardVelocity.getOrNull(0)),
-                    guardVelocityY = number(guardVelocity.getOrNull(1)),
+                    guardVelocityX = hitVelocities.guard.x,
+                    guardVelocityY = hitVelocities.guard.y,
                     fall = integer(args["fall"]) != 0,
                     airFall = integer(args["air.fall"],integer(args["fall"])) != 0,
                     p1State = args["p1stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
@@ -798,16 +799,14 @@ class FightingCharacter(
                 val fallRecovery=CoreFallRecovery.parse(args,this,errors) ?: return false
                 val hitAcceleration=CoreHitAcceleration.parse(args,this,errors) ?: return false
                 val hitAnimations=CoreHitAnimations.parse(args,errors) ?: return false
-                val velocity = (args["ground.velocity"] ?: "0,0").split(',')
-                val airVelocity = (args["air.velocity"] ?: "0,0").split(',')
-                val guardVelocity = (args["guard.velocity"] ?: "0,0").split(',')
+                val hitVelocities=CoreHitVelocities.parse(args,this,errors) ?: return false
                 val priority = (args["priority"] ?: "4,Hit").split(',')
                 val next = HitDefinition(
                     attr = args["attr"] ?: "S, NA",
                     damage = hitDamage,
                     hitPause = pauses.hit.first,
-                    velocityX = number(velocity.getOrNull(0)),
-                    velocityY = number(velocity.getOrNull(1)),
+                    velocityX = hitVelocities.ground.x,
+                    velocityY = hitVelocities.ground.y,
                     guardDamage = integer(args["guard.damage"] ?: args["damage"]?.substringAfter(',',"0")),
                     guardFlag = (args["guardflag"] ?: "").uppercase().replace(" ", ""),
                     hitFlag = hitFlags,
@@ -825,16 +824,17 @@ class FightingCharacter(
                     hitAccelerationY = hitAcceleration,
                     animationType = hitAnimations.ground,airAnimationType = hitAnimations.air,
                     fallAnimationType = hitAnimations.fall,
-                    guardVelocityX = number(guardVelocity.getOrNull(0)),
-                    guardVelocityY = number(guardVelocity.getOrNull(1)),
+                    airGuardVelocityX = hitVelocities.airGuard.x,airGuardVelocityY = hitVelocities.airGuard.y,
+                    guardVelocityX = hitVelocities.guard.x,
+                    guardVelocityY = hitVelocities.guard.y,
                     hitTime = integer(args["ground.hittime"], 12).coerceIn(0,600),
                     id = integer(args["id"]),
                     p2State = args["p2stateno"]?.let { integer(it, -1) }?.takeIf { it >= 0 },
                     p2GetP1State = integer(args["p2getp1state"], 1) != 0,
                     stateOwner = scriptOwner,
                     p1State = args["p1stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
-                    airVelocityX = number(airVelocity.getOrNull(0)),
-                    airVelocityY = number(airVelocity.getOrNull(1)),
+                    airVelocityX = hitVelocities.air.x,
+                    airVelocityY = hitVelocities.air.y,
                     airHitTime = integer(args["air.hittime"],20).coerceIn(0,600),
                     guardHitTime = integer(args["guard.hittime"],integer(args["ground.hittime"],12)).coerceIn(0,600),
                     fall = integer(args["fall"]) != 0,
@@ -955,8 +955,11 @@ class FightingCharacter(
         addPower(if(guarded)hit.guardGivePower else hit.givePower)
         fun facing(value: Int)=(value.toLong()*(if(attackerFacingRight)1 else -1))
             .coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
-        val x=facing(if(guarded)hit.guardVelocityX else if(airborne)hit.airVelocityX else hit.velocityX)
-        val y=if(guarded)hit.guardVelocityY else if(airborne)hit.airVelocityY else hit.velocityY
+        val airGuard=guarded && initialType == "A"
+        val x=facing(when { airGuard -> hit.airGuardVelocityX;guarded -> hit.guardVelocityX
+            airborne -> hit.airVelocityX;else -> hit.velocityX })
+        val y=when { airGuard -> hit.airGuardVelocityY;guarded -> hit.guardVelocityY
+            airborne -> hit.airVelocityY;else -> hit.velocityY }
         val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
         val falling=!guarded && (if(airborne)hit.airFall else hit.fall)
         val animationType=CoreHitAnimations.select(hit,initialType == "A" || override?.forceAir == true,falling,y)

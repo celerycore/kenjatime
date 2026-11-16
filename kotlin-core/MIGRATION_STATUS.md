@@ -1,6 +1,66 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current hit-animation continuation — November 16, 2026
+## Current aerial-guard continuation — November 16, 2026
+
+Continues published main source `637034a`. HitDef and Projectile now capture
+separate ground-guard and aerial-guard knockback. An accepted guard uses the
+victim's posture at contact, before its reaction StateDef can change that
+posture. Air guards use airguard.velocity; standing/crouching guards keep
+guard.velocity. Unguarded contacts still select their ground/air hit vectors.
+
+Omitted guard.velocity now inherits ground.velocity X with zero Y. Omitted
+airguard.velocity defaults to air.velocity X times 1.5 and Y divided by two.
+The defaults resolve in authored units before canonical fixed-point conversion,
+so subpixel factors do not multiply an already truncated value. Explicit zero
+vectors override the defaults. The existing optional ground-guard Y component
+is retained as an engine extension; the Elecbyte parameter is horizontal only.
+
+One shared parser now handles ground.velocity, air.velocity, guard.velocity
+and airguard.velocity in both controllers. It splits only top-level commas,
+so nested numeric expressions work in every component. One-component vectors
+use zero Y. Blank components, excess components, unbalanced syntax and invalid
+expressions diagnose the complete request before replacing a working HitDef or
+queuing a projectile. Existing projectile-prefixed aliases remain accepted,
+with standard names taking precedence, including projairguard.velocity.
+
+All components convert once from the executing actor's active state-bank units.
+At impact, only the selected X component receives captured attacker/projectile
+facing. Later facing or borrowed-bank changes cannot mirror or rescale stored
+knockback. GetHitVar(xvel/yvel) reports it in current active units, and HitVelSet
+restores that same vector after authored velocity edits. Helpers keep their own
+data; projectile packets retain resolved defaults after creator variables change.
+Shot velocity/acceleration remain separate from incoming victim knockback.
+
+Vector selection preserves chip damage, authored power, guard pause/hittime,
+fall suppression and contact history. Existing pause rules freeze motion through
+the final frozen tick. Read-only snapshots and presentation do not create extra
+motion, damage or contacts. The existing Wasm getHitX256/getHitY256 fields expose
+the selected canonical guard vector without a new client API.
+
+Validation:
+
+- 734 JVM and 729 compiled-Wasm tests pass, including 22 new cases for defaults,
+  subpixel conversion, explicit/signed vectors, nested expressions, posture,
+  facing, HitVelSet, bank changes, invalid requests, aliases, projectile capture,
+  helpers, fresh contacts, chip/power preservation, pause and bounds.
+- Exported Wasm checks 144 root/helper/projectile, source localcoord 320/640,
+  facing, guard posture, default/explicit/zero vector and pause combinations.
+  Each sequence verifies captured/restored axes, motion, chip, power and pure reads.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Defaults follow the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+Complete guard control/slide timing, native facing/contact phases, common-state
+physics, corner push and air recovery remain incomplete or unverified. These
+checks do not certify native frame parity or physical-phone performance. Main
+CI verifies shared browser/APK Wasm identity and anonymous permanent downloads
+before publication.
+
+## Hit-animation continuation — November 16, 2026
 
 Continues published main source `5c811db`. HitDef and Projectile now capture
 animtype, air.animtype and fall.animtype as typed reaction values. Supported
