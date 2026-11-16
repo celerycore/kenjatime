@@ -63,5 +63,5 @@ internal data class CoreGetHitData(
     var fallVelocityX: Int?=null,var fallVelocityY: Int=0,val received: Boolean=false,
     var fallDamage: Int=0,val fallKill: Boolean=true,
     val fallRecover: Boolean=false,val fallRecoverTime: Int=4,var fallTime: Int=0,
-    val accelerationY: Int=0
+    val accelerationY: Int=0,val animationType: HitAnimationType=HitAnimationType.LIGHT
 )

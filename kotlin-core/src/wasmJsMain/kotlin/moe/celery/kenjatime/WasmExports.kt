@@ -137,6 +137,7 @@ private object Fights {
         ",\"hitFilter2Time\":" + p.hitFilters.remaining(1) +
         ",\"hitOverrideTimes\":[" + (0..7).joinToString(",") { p.hitOverrides.remaining(it).toString() } + "]" +
         ",\"getHitDamage\":" + p.getHitData.damage +
+        ",\"getHitAnimType\":" + p.getHitData.animationType.code +
         ",\"getHitX256\":" + p.getHitData.velocityX +
         ",\"getHitY256\":" + p.getHitData.velocityY +
         ",\"getHitAccelerationY256\":" + p.getHitData.accelerationY +

@@ -1,6 +1,65 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current authored recoil continuation — November 16, 2026
+## Current hit-animation continuation — November 16, 2026
+
+Continues published main source `5c811db`. HitDef and Projectile now capture
+animtype, air.animtype and fall.animtype as typed reaction values. Supported
+names are Light, Medium (also Med), Hard, Back, Up and DiagUp, ignoring case
+and surrounding whitespace. These are static strings, not numeric expressions.
+Omitted animtype is Light; omitted air.animtype inherits animtype. Omitted
+fall.animtype is Up when the resolved air type is Up, otherwise Back.
+Invalid names diagnose the request before replacing a working HitDef or queuing
+a projectile, including invalid fields in an unused reaction branch.
+
+GetHitVar(animtype) exposes the selected code: Light=0, Medium=1, Hard=2,
+Back=3, Up=4 and DiagUp=5. Selection happens once on each accepted contact,
+before the reaction StateDef can change the victim's posture. The newly captured
+fall flag selects the fall type, otherwise an initially airborne victim selects
+the air type. Force-air HitOverride also uses air selection. Ground reactions
+use animtype, with Back/Up/DiagUp reduced to Hard when vertical knockback is
+zero. Guarding disables the fall branch and uses the initial standing/air
+posture; existing guard velocity handling remains separate work.
+
+The selected code is a scalar across local coordinates and state banks.
+Later facing, animation/posture changes and HitFallSet edits cannot reselect it.
+A new accepted contact replaces it; rejected contacts and presentation reads
+preserve it. Helpers own their captured data. Multi-hit projectiles choose anew
+using each incoming victim posture, while keeping the attack's authored types.
+Wasm snapshots expose getHitAnimType alongside the existing hit data.
+
+Authored ChangeAnim can choose an own-resource reaction from this query;
+ChangeAnim2 selects the corresponding animation from a borrowed state bank.
+SelfState then restores the victim's bank/resources without rewriting the
+captured code. Reading or selecting the metadata does not itself change the
+AIR action, state, motion, hit timers, life, power or contact history. Ordinary
+controller persistence and hitpause rules still govern authored animation changes.
+
+Validation:
+
+- 712 JVM and 707 compiled-Wasm tests pass, including 23 new cases for all names,
+  inheritance, defaults, ground/air/fall selection, guard and force-air routes,
+  authored ChangeAnim, bank/facing changes, invalid requests, helpers,
+  projectile capture/fresh contacts and pure reads.
+- Exported Wasm checks 210 root/helper/projectile, source localcoord 320/640
+  and reaction combinations, including all six codes, launched ground hits,
+  guarded air hits and default fall selection. An additional sequence verifies
+  ChangeAnim2 and SelfState resource ownership in a borrowed bank.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Names, codes and inheritance follow the
+[Elecbyte reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef).
+The non-launching ground fallback also follows IKEMEN's gethitAnimtype selection.
+Complete native fall carry/reset, KO-specific animation updates, exact contact
+phases and automatic common-state animation/physics remain incomplete or
+unverified. These checks do not certify native frame parity or physical-phone
+performance. Main CI verifies shared browser/APK Wasm identity and anonymous
+permanent downloads before publication.
+
+## Authored recoil continuation — November 16, 2026
 
 Continues published main source `bb7e935`. HitDef and Projectile now capture
 yaccel as a per-hit vertical acceleration. Authored values convert once from

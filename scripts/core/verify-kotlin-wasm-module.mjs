@@ -2307,6 +2307,98 @@ try {
 } finally { api.ktCoreRelease(borrowedRecoil); }
 console.log("Native Wasm captured HitDef yaccel / authored recoil / HitOver and HitShakeOver / root-helper-projectile / selected hit-guard-air clocks / pause boundaries / borrowed SelfState recovery / pure reads: OK (synthetic)");
 
+const reactionTypeAir=`${air}\n`+[0,1,2,3,4,5].map(code=>`[Begin Action ${5000+code}]\n${5000+code},0,0,0,-1`).join("\n");
+const animationCases=[
+  ...["light","medium","hard","back","up","diagup"].flatMap((name,code)=>[
+    {params:`animtype=${name}`,airborne:false,guarded:false,expected:Math.min(code,2)},
+    {params:`animtype=${name}\nground.velocity=0,-2`,airborne:false,guarded:false,expected:code},
+    {params:`animtype=hard\nair.animtype=${name}`,airborne:true,guarded:false,expected:code},
+    {params:`fall=1\nair.animtype=up\nfall.animtype=${name}`,airborne:false,guarded:false,expected:code},
+    {params:`fall=0\nair.fall=1\nfall.animtype=${name}`,airborne:true,guarded:false,expected:code}
+  ]),
+  {params:"fall=1\nanimtype=medium\nair.animtype=up\nfall.animtype=diagup",airborne:false,guarded:true,expected:1},
+  {params:"fall=1\nanimtype=medium\nair.animtype=up\nfall.animtype=diagup",airborne:true,guarded:true,expected:4},
+  {params:"fall=1\nair.animtype=up",airborne:false,guarded:false,expected:4},
+  {params:"fall=1\nair.animtype=diagup",airborne:false,guarded:false,expected:3},
+  {params:"",airborne:false,guarded:false,expected:0}
+];
+for(const kind of ["root","helper","projectile"])for(const width of [320,640])for(const test of animationCases) {
+  const hit=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=0
+guardflag=HLA
+${test.params}`;
+  const source=motionIdle+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "")+
+    (kind==="projectile" ? "" : "\n[Statedef 200]\ntype=S\nphysics=N\nanim=200")+
+    `\n[State ${kind==="projectile" ? 0 : 200}, hit]\n${hit}`;
+  const reactions=[5000,150,152].map(state=>`[Statedef ${state}]
+type=S
+movetype=H
+physics=N
+anim=0
+[State ${state}, authored hit animation]
+type=ChangeAnim
+trigger1=Time=0
+value=5000+GetHitVar(animtype)`).join("\n");
+  const hitAnimation=api.ktCoreCreateWithDefinitions("animation capture","authored reaction",projectileFacingAir,reactionTypeAir,
+    source,`${motionIdle}\nctrl=1\n[Statedef 400]\ntype=A\nphysics=N\nanim=0\nctrl=1\n${reactions}`,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"[Info]\nlocalcoord=640,480");
+  try {
+    api.ktCoreSetup(hitAnimation,0,0,5*256,0);if(test.airborne)api.ktCoreDebugForceState(hitAnimation,1,400);
+    if(kind==="root")api.ktCoreDebugForceState(hitAnimation,0,200);else api.ktCoreAdvance(hitAnimation,0,"",test.guarded ? 8 : 0,"");
+    api.ktCoreAdvance(hitAnimation,0,"",test.guarded ? 8 : 0,"");
+    const captured=JSON.parse(api.ktCoreSnapshot(hitAnimation,1));
+    assert.equal(captured.getHitAnimType,test.expected);assert.equal(captured.anim,0);assert.equal(captured.getHitGuarded,test.guarded);
+    api.ktCoreAdvance(hitAnimation,0,"",0,"");
+    const reacted=JSON.parse(api.ktCoreSnapshot(hitAnimation,1));
+    assert.equal(reacted.getHitAnimType,test.expected);assert.equal(reacted.anim,5000+test.expected);
+    assert.equal(reacted.life,1000);assert.equal(reacted.power,0);assert.equal(JSON.parse(api.ktCoreSnapshot(hitAnimation,0)).power,0);
+    assert.deepEqual(JSON.parse(api.ktCoreContacts(hitAnimation)),[]);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(hitAnimation,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(hitAnimation,1)),reacted);assert.equal(api.ktCoreIssues(hitAnimation),"");
+  } finally { api.ktCoreRelease(hitAnimation); }
+}
+const borrowedHitAnimation=api.ktCoreCreateWithDefinitions("borrowed reaction bank","own actor",`${projectileFacingAir}\n${reactionTypeAir}`,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, hit]
+type=HitDef
+trigger1=Time=0
+damage=0
+fall=1
+fall.animtype=diagup
+p2stateno=700
+[Statedef 700]
+type=A
+movetype=H
+physics=N
+anim=0
+[State 700, choose animation in borrowed bank]
+type=ChangeAnim2
+trigger1=Time=0
+value=5000+GetHitVar(animtype)
+[State 700, return]
+type=SelfState
+trigger1=Time=1
+value=0`,motionIdle,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedHitAnimation,0,0,5*256,0);api.ktCoreDebugForceState(borrowedHitAnimation,0,200);
+  api.ktCoreAdvance(borrowedHitAnimation,0,"",0,"");api.ktCoreAdvance(borrowedHitAnimation,0,"",0,"");
+  const borrowed=JSON.parse(api.ktCoreSnapshot(borrowedHitAnimation,1));
+  assert.equal(borrowed.stateOwner,1);assert.equal(borrowed.animationOwner,1);assert.equal(borrowed.localCoordWidth,640);
+  assert.equal(borrowed.getHitAnimType,5);assert.equal(borrowed.anim,5005);
+  api.ktCoreAdvance(borrowedHitAnimation,0,"",0,"");
+  const own=JSON.parse(api.ktCoreSnapshot(borrowedHitAnimation,1));
+  assert.equal(own.stateOwner,2);assert.equal(own.animationOwner,2);assert.equal(own.localCoordWidth,320);
+  assert.equal(own.getHitAnimType,5);assert.equal(own.anim,0);assert.equal(api.ktCoreIssues(borrowedHitAnimation),"");
+} finally { api.ktCoreRelease(borrowedHitAnimation); }
+console.log("Native Wasm hit animation strings / ground-air-fall selection / inherited defaults / guards / root-helper-projectile / authored ChangeAnim / borrowed banks and SelfState / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S
