@@ -223,7 +223,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 helper.actor.moveGuarded = guarded
                 helper.actor.hitPauseLeft = if (guarded) hit.guardPause else hit.hitPause
                 match.contacts.add(FightContact(helper.actor.id, enemy.id, guarded,
-                    if (guarded) hit.guardDamage else hit.damage))
+                    CoreDamage.contact(hit,helper.actor,enemy,guarded)))
                 enemy.receiveHit(hit, helper.actor.facingRight, guarded, helper.actor)
                 targetHurt.remove(enemy) // Next helper sees the new hit animation.
             }
@@ -247,7 +247,7 @@ class CoreEntities(private val match: DeterministicFight) {
             if (projectile.hitBoxes().any { box -> hurt(enemy).any { box.intersects(it) } }) {
                 val guarded = enemy.blocks(projectile.hit)
                 match.contacts.add(FightContact(projectile.entityId, enemy.id, guarded,
-                    if (guarded) projectile.hit.guardDamage else projectile.hit.damage))
+                    CoreDamage.contact(projectile.hit,projectile.owner,enemy,guarded)))
                 projectile.owner.projectileHistory.record(projectile.projectileId,
                     if(guarded)ProjectileContactKind.GUARDED else ProjectileContactKind.HIT,match.frame,errors)
                 enemy.receiveHit(projectile.hit, projectile.facingRight, guarded, projectile.owner)

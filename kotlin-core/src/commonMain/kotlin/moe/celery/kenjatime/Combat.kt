@@ -65,7 +65,8 @@ data class MugenConstants(
     val midX: Int = 0, val midY: Int = -60*Fixed.ONE,
     val projectileDoScale: Boolean = false,
     val maxPower: Int = 3000,
-    val defence: Int = 100
+    val defence: Int = 100,
+    val attack: Int = 100
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -83,13 +84,15 @@ data class FighterDefinition(
     val defaultExplodPostype: String = "p1",
     val projectileDoScale: Boolean = false,
     val maxPower: Int = 3000,
-    val defence: Int = 100
+    val defence: Int = 100,
+    val attack: Int = 100
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
         require(xScale in 0..65536 && yScale in 0..65536) { "Invalid character sprite scale" }
         require(maxPower >= 0) { "Invalid character maximum power" }
         require(defence in 1..100000) { "Invalid character base defence" }
+        require(attack in 0..100000) { "Invalid character base attack" }
     }
     val coordinates=MugenCoordinates(localCoordWidth)
     /** Rounded compatibility scale accessors. Collision geometry converts
@@ -120,7 +123,7 @@ data class FighterDefinition(
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
-                if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence
+                if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack
             )
         }
     }
@@ -153,7 +156,8 @@ object MugenCnsParser {
             projectileDoScale = size?.get("proj.doscale")?.toDoubleOrNull()
                 ?.takeIf { it.isFinite() }?.let { it != 0.0 } ?: false,
             maxPower = script.section("Data")?.int("power",3000)?.coerceAtLeast(0) ?: 3000,
-            defence = script.section("Data")?.int("defence",100)?.coerceIn(1,100000) ?: 100
+            defence = script.section("Data")?.int("defence",100)?.coerceIn(1,100000) ?: 100,
+            attack = script.section("Data")?.int("attack",100)?.coerceIn(0,100000) ?: 100
         )
     }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
@@ -876,7 +880,7 @@ class FightingCharacter(
         val initialType=stateType
         val override=if(guarded)null else hitOverrides.matching(hit)
         val airborne=!guarded && (stateType == "A" || override?.forceAir == true)
-        val damage=if(guarded)hit.guardDamage.coerceAtLeast(0) else hit.damage.coerceAtLeast(0)
+        val damage=CoreDamage.contact(hit,attacker,this,guarded)
         attacker?.addPower(if(guarded)hit.guardGetPower else hit.getPower)
         addPower(if(guarded)hit.guardGivePower else hit.givePower)
         val x=(if(guarded)hit.guardVelocityX else if(airborne)hit.airVelocityX else hit.velocityX)*
@@ -1031,7 +1035,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
             p1.moveHit = !guardB
             p1.moveGuarded = guardB
             p1.hitPauseLeft = if (guardB) ah.guardPause else ah.hitPause
-            contacts.add(FightContact(p1.id, p2.id, guardB, if (guardB) ah.guardDamage else ah.damage))
+            contacts.add(FightContact(p1.id, p2.id, guardB, CoreDamage.contact(ah,p1,p2,guardB)))
         }
         if (bh != null) {
             p2.markHit(p1.id)
@@ -1039,7 +1043,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
             p2.moveHit = !guardA
             p2.moveGuarded = guardA
             p2.hitPauseLeft = if (guardA) bh.guardPause else bh.hitPause
-            contacts.add(FightContact(p2.id, p1.id, guardA, if (guardA) bh.guardDamage else bh.damage))
+            contacts.add(FightContact(p2.id, p1.id, guardA, CoreDamage.contact(bh,p2,p1,guardA)))
         }
         if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB, p1)
         if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA, p2)

@@ -1,6 +1,60 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current scripted health continuation — November 16, 2026
+## Current base damage continuation — November 16, 2026
+
+Continues published main source `f3688e8`. Ordinary fighter, helper and
+Projectile contacts now scale hit and guard damage by the actual attacker's
+own [Data] attack divided by the recipient's own [Data] defence. Default 100/100
+stats preserve existing damage. Attack defaults to 100, accepts integer values
+bounded to 0–100000, and uses 100 for malformed/non-32-bit input. Zero attack
+produces zero damage while retaining accepted contacts and reactions.
+
+All contact paths use one shared pure calculation over immutable base stats.
+Positive halves round up, tiny positive damage retains a one-point minimum,
+and zero/negative authored damage stays zero. Wider intermediate arithmetic
+and saturating integer conversion prevent large products from wrapping. The
+existing independent kill/guard.kill life floors remain in effect.
+
+Contact reports and GetHitVar(damage) now expose the same scaled nominal amount,
+before life caps or nonlethal floors. The installed HitDef retains authored
+damage, so multi-hit projectiles cannot compound their scaling. Combat-power
+defaults continue to use authored hit damage rather than scaled damage, chip
+damage or actual life lost.
+
+Borrowed state banks cannot replace the actual attacker's base attack or the
+recipient's base defence. Helpers use their own immutable definitions and
+independent life, while their power meters still share the appropriate root.
+Projectiles use the actual creator's base stats, including after that actor
+borrows another state bank. Manual incoming hits without an attacker use a
+neutral 100 attack. Local coordinates and presentation cadence do not change
+the integer health amounts.
+
+Scripted LifeAdd/TargetLifeAdd retain their existing defence-only contracts;
+the attacker's base attack does not amplify scripted throw health changes.
+Runtime AttackMulSet/DefenceMulSet, fall/super defence, native accumulation and
+GetHitVar life-bound semantics remain outside this increment.
+
+Validation:
+
+- 551 JVM and 546 compiled-Wasm tests pass, including 23 new cases for constants,
+  hit/guard ratios, rounding, zero/tiny/extreme damage, lethality, power,
+  helpers, borrowed banks, projectiles, overrides, rejection, trades and units.
+- Exported Wasm checks 36 root/helper/projectile hit/guard combinations with
+  default, nondefault, zero, tiny, half and extreme base-stat inputs. It also
+  verifies an actual borrowed attack bank uses the executing actor's attack.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Base damage calculation follows the intended attack/defence relationship in
+the [IKEMEN damage implementation](https://github.com/ikemen-engine/Ikemen-GO/blob/develop/src/char.go).
+These synthetic checks do not certify native extreme rounding, life-bound
+metadata, contact ordering or physical-phone performance. Main CI verifies
+browser/APK asset identity and anonymous permanent downloads before publication.
+
+## Scripted health continuation — November 16, 2026
 
 Continues published main source `2aa1b21`. CNS now executes TargetLifeAdd, so
 captured throw victims receive their timed scripted damage. HitDef IDs select

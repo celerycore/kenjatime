@@ -1343,6 +1343,89 @@ for(const [type,params,expected,invalid] of [
 }
 console.log("Native Wasm TargetLifeAdd timed throw / captured IDs / base defence and absolute mode / kill flags / mixed coordinates / LifeAdd and LifeSet bounds / pure reads: OK (synthetic)");
 
+for(const kind of ["root","helper","projectile"])for(const guarded of [false,true])for(const config of [
+  {attack:100,defence:100,base:90,chip:20,hit:90,guard:20,power:[63,54,31,27]},
+  {attack:150,defence:200,base:90,chip:20,hit:68,guard:15,power:[63,54,31,27]},
+  {attack:0,defence:200,base:90,chip:20,hit:0,guard:0,power:[63,54,31,27]},
+  {attack:1,defence:100000,base:1,chip:1,hit:1,guard:1,power:[0,0,0,0]},
+  {attack:100000,defence:1,base:2147483647,chip:2147483647,hit:2147483647,guard:2147483647,power:[3000,3000,3000,3000]},
+  {attack:100,defence:200,base:3,chip:3,hit:2,guard:2,power:[2,1,1,0]}
+]) {
+  const controller=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=${config.base},${config.chip}
+guardflag=HL`;
+  const script=kind==="projectile" ? `${motionIdle}\n[State 0, shot]\n${controller}` :
+    `${motionIdle}\n[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nanim=200\n[State 200, hit]\n${controller}`+
+    (kind==="helper" ? "\n[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200" : "");
+  const scaledDamage=api.ktCoreCreateWithDefinitions("base attack","base defence",projectileFacingAir,air,
+    `[Data]\nattack=${config.attack}\n${script}`,`[Data]\ndefence=${config.defence}\n${hitFlagStates}`,
+    "","","[Info]\nlocalcoord=640,480","");
+  try {
+    api.ktCoreSetup(scaledDamage,0,0,5*256,0);
+    if(kind==="root")api.ktCoreDebugForceState(scaledDamage,0,200);
+    else api.ktCoreAdvance(scaledDamage,0,"",guarded ? 8 : 0,"");
+    api.ktCoreAdvance(scaledDamage,0,"",guarded ? 8 : 0,"");
+    const expected=guarded ? config.guard : config.hit;
+    const victim=JSON.parse(api.ktCoreSnapshot(scaledDamage,1));
+    const label=`${kind}/${guarded}/${config.attack}/${config.defence}/${config.base}`;
+    assert.equal(victim.life,Math.max(0,1000-expected),label);
+    assert.equal(victim.getHitDamage,expected,label);
+    const [contact]=JSON.parse(api.ktCoreContacts(scaledDamage));
+    assert.equal(contact.damage,expected,label);assert.equal(contact.guarded,guarded);
+    const offset=guarded ? 2 : 0;
+    assert.equal(JSON.parse(api.ktCoreSnapshot(scaledDamage,0)).power,config.power[offset],label);
+    assert.equal(victim.power,config.power[offset+1],label);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(scaledDamage,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(scaledDamage,1)),victim);
+    assert.equal(api.ktCoreIssues(scaledDamage),"");
+  } finally { api.ktCoreRelease(scaledDamage); }
+}
+const borrowedDamageAir=`${air}
+[Begin Action 200]
+Clsn1Default:1
+Clsn1[0]=0,-40,10,0
+Clsn2Default:1
+Clsn2[0]=-10,-40,10,0
+200,0,0,0,-1`;
+const borrowedDamage=api.ktCoreCreate("actual attacker","state lender",borrowedDamageAir,borrowedDamageAir,
+  `[Data]\nattack=150\n${hitFlagStates}`,
+  `[Data]
+attack=800
+defence=200
+${hitFlagStates}
+[Statedef 300]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 300, lend attack state]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=200
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, attack in borrowed bank]
+type=HitDef
+trigger1=Time=0
+damage=90`);
+try {
+  api.ktCoreSetup(borrowedDamage,0,0,5*256,0);api.ktCoreDebugForceState(borrowedDamage,1,300);
+  api.ktCoreAdvance(borrowedDamage,0,"",0,"");
+  assert.equal(JSON.parse(api.ktCoreSnapshot(borrowedDamage,0)).stateOwner,2);
+  api.ktCoreAdvance(borrowedDamage,0,"",0,"");
+  const victim=JSON.parse(api.ktCoreSnapshot(borrowedDamage,1));
+  assert.equal(victim.life,932);assert.equal(victim.getHitDamage,68);
+  assert.equal(JSON.parse(api.ktCoreContacts(borrowedDamage))[0].damage,68);
+  assert.equal(api.ktCoreIssues(borrowedDamage),"");
+} finally { api.ktCoreRelease(borrowedDamage); }
+console.log("Native Wasm base attack/defence scaling / root-helper-projectile hits and guards / zero and tiny damage / overflow / authored power / borrowed attacker banks / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S
