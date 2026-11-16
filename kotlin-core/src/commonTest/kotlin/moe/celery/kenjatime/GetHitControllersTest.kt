@@ -139,9 +139,9 @@ class GetHitControllersTest {
         val p=DeterministicFight(FightingCharacter(definition(bad),1),FightingCharacter(definition(),2))
         p.step();assertTrue(p.entities.projectiles.isEmpty());assertTrue(p.issues.any { it.startsWith("Invalid fall velocity:") })
     }
-    @Test fun aNewContactReplacesPreviousFallOverrides() {
+    @Test fun aNewContactReplacesFallVelocitiesWhileCarryingAnActiveFall() {
         val w=fight();hit(w,fall=true);execute(w.p2,"HitFallSet","xvel=9\nyvel=-6")
-        hit(w);assertFalse(w.p2.getHitData.fall);assertNull(w.p2.getHitData.fallVelocityX)
+        hit(w);assertTrue(w.p2.getHitData.fall);assertNull(w.p2.getHitData.fallVelocityX)
         assertEquals(Fixed.of(-4.5),w.p2.getHitData.fallVelocityY)
     }
     @Test fun helperReactionDataAndVelocitiesAreIndependentOfTheRoot() {

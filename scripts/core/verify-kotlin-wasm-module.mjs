@@ -2569,6 +2569,88 @@ try {
 } finally { api.ktCoreRelease(borrowedSlide); }
 console.log("Native Wasm slide and guard control thresholds / inherited defaults / ground-air selection / authored VelSet and CtrlSet / root-helper-projectile / signed bounds / pause / borrowed state units / pure reads: OK (synthetic)");
 
+const fallCarryCases=[
+  {params:"",ground:true,air:true},
+  {params:"forcenofall=1",ground:false,air:false},
+  {params:"fall=1\nforcenofall=1",ground:true,air:true},
+  {params:"air.fall=1\nforcenofall=1",ground:false,air:true},
+  {params:"fall=1\nair.fall=0\nforcenofall=1",ground:true,air:true},
+  {params:"fall=0\nair.fall=0",ground:true,air:true},
+  {params:"",ground:false,air:false,recovered:true}
+];
+for(const kind of ["root","helper","projectile"])for(const width of [320,640])for(const airborne of [false,true])for(const guarded of [false,true])for(const test of fallCarryCases) {
+  const follow=`type=${kind==="projectile" ? "Projectile" : "HitDef"}
+trigger1=Time=0
+projanim=200
+damage=0
+guardflag=HLA
+fall.damage=30
+fall.recovertime=0
+animtype=medium
+air.animtype=diagup
+fall.animtype=up
+${test.params}`;
+  const source=`${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, initial knockdown]
+type=HitDef
+trigger1=Time=0
+damage=0
+fall=1
+[Statedef 300]
+type=S
+physics=N
+anim=${kind==="root" ? 200 : 0}`+
+    (kind==="helper" ? "\n[State 300, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=400\n[Statedef 400]\ntype=S\nphysics=N\nanim=200" : "")+
+    `\n[State ${kind==="helper" ? 400 : 300}, follow-up]\n${follow}`;
+  const victim=`${motionIdle}
+ctrl=1
+[Statedef 5000]
+type=${airborne ? "A" : "S"}
+movetype=H
+physics=N
+anim=0
+ctrl=1
+[Statedef 150]
+type=S
+movetype=H
+physics=N
+anim=0
+ctrl=1
+[Statedef 152]
+type=A
+movetype=H
+physics=N
+anim=0
+ctrl=1`;
+  const carry=api.ktCoreCreateWithDefinitions("fall follow-up","fall recipient",projectileFacingAir,air,source,victim,
+    "","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(carry,0,0,5*256,0);api.ktCoreDebugForceState(carry,0,200);api.ktCoreAdvance(carry,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(carry,1)).getHitFall,true);
+    if(test.recovered)api.ktCoreDebugForceState(carry,1,0);
+    api.ktCoreDebugForceState(carry,0,300);
+    if(kind!=="root")api.ktCoreAdvance(carry,0,"",guarded ? 8 : 0,"");
+    api.ktCoreAdvance(carry,0,"",guarded ? 8 : 0,"");
+    const expected=!guarded && (airborne && !test.recovered ? test.air : test.ground);
+    const captured=JSON.parse(api.ktCoreSnapshot(carry,1));
+    assert.equal(JSON.parse(api.ktCoreContacts(carry)).length,1);assert.equal(captured.getHitGuarded,guarded);
+    assert.equal(captured.getHitFall,expected);assert.equal(captured.canRecover,expected);assert.equal(captured.getHitFallTime,0);
+    assert.equal(captured.getHitFallDamage,30);assert.equal(captured.getHitAnimType,expected ? 4 : airborne && !test.recovered ? 5 : 1);
+    assert.equal(captured.life,1000);assert.equal(captured.power,0);
+    for(let i=0;i<3;i++)api.ktCoreRenderPlan(carry,12);
+    assert.deepEqual(JSON.parse(api.ktCoreSnapshot(carry,1)),captured);
+    api.ktCoreAdvance(carry,0,"",0,"");const next=JSON.parse(api.ktCoreSnapshot(carry,1));
+    assert.equal(next.getHitFall,expected);assert.equal(next.getHitFallTime,expected ? 1 : 0);
+    assert.equal(next.getHitFallDamage,30);assert.equal(next.life,1000);assert.deepEqual(JSON.parse(api.ktCoreContacts(carry)),[]);
+    assert.equal(api.ktCoreIssues(carry),"");
+  } finally { api.ktCoreRelease(carry); }
+}
+console.log("Native Wasm active fall carry / forcenofall priority / air.fall overrides / root-helper-projectile follow-ups / guard and recovery gates / new metadata and animation / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

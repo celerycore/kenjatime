@@ -1,6 +1,74 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current slide/control timing continuation — November 16, 2026
+## Current fall-continuation rewrite — November 16, 2026
+
+Continues published main source `f6128b4`. HitDef and Projectile now capture
+forcenofall alongside validated boolean fall and air.fall expressions. Omitted
+fall/forcenofall default to false; omitted air.fall inherits fall. Numeric
+nonzero values, including fractional values, are true. Expressions evaluate
+at attack installation; invalid flags preserve a working HitDef or leave the
+projectile queue alone, even when the invalid flag's branch would be unused.
+
+An accepted unguarded follow-up now carries an existing fall only while the
+victim is in MoveType H with received hit data. Omitted/zero fall no longer
+silently clears that active fall. Forcenofall clears the carried flag unless
+fall=1 takes priority. An explicit air.fall=0 can prevent a new aerial fall
+while retaining an existing one when forced clearing is disabled; air.fall=1
+can request a new aerial fall even after the previous one is cleared. Guards
+suppress fall carry. Recovered/non-get-hit actors do not carry stale stored
+fall data into the next contact.
+
+Only the active flag carries. New contact data still replaces fall velocities,
+pending fall damage/kill permission, recovery permission/threshold and reaction
+timers. The fall recovery clock restarts at zero. Animation selection uses the
+resolved flag, so a carried fall selects the new packet's fall.animtype, while
+a cleared flag selects its nonfalling ground/air reaction. HitFallSet may enable
+or disable the flag before another contact without rewriting captured animation.
+
+Contact eligibility runs before fall resolution. Forcenofall cannot bypass
+HitBy/NotHitBy, HitOverride state-transfer rejection, dead-target rejection or
+the F requirement for hitting an already falling airborne victim. Clearing
+fall prevents HitFallDamage/CanRecover from acting through their existing gates;
+the new packet's pending metadata remains available if authored HitFallSet later
+enables fall. No automatic bounce, recovery, landing damage or KO state is added.
+
+Helpers retain their own fall flag. Projectile packets keep captured clearing
+permission after creator variables change. State-bank units and facing cannot
+alter the boolean carry/clear rules. Pause and read-only presentation cannot
+change the flag without an accepted contact or authored controller. Full native
+stale-data clearing outside MoveType H remains separate work.
+
+Validation:
+
+- 781 JVM and 776 compiled-Wasm tests pass, including 23 new cases for carry,
+  forced clearing, priority, guard/recovery gates, fresh metadata, animation,
+  damage/recovery eligibility, flags, invalid requests, projectiles, helpers,
+  borrowed banks, pause and pure reads. The prior fall-velocity reset test now
+  verifies carried fall with freshly replaced velocities.
+- Exported Wasm checks 168 root/helper/projectile follow-up, source localcoord
+  320/640, guard/incoming-posture and flag combinations. Each sequence verifies
+  captured animation, pending damage, restarted recovery time and pure reads.
+- All 16 adapter/import/download checks and production browser checks pass,
+  including real sprites/effects, scaling, imports, CSV and mobile layout.
+- Two KFM 600-tick replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and identical
+  power progression ending at 485/415.
+
+Controller-name progress snapshot: 57 of 97 names in the live legacy JavaScript
+registry (58.8%) are listed in the Kotlin contract. Against the Elecbyte 1.1
+reference, the overlap is 56 of 89 (62.9%), with VarMul as an extra Kotlin type.
+These counts do not measure parameter completeness, triggers, physics, effects
+or native parity and are not an overall rewrite-completion percentage.
+
+Flag priority follows the
+[Elecbyte HitDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#hitdef),
+with active-fall carry also present in IKEMEN's accepted-hit handling. Complete
+native guard/KO/reset phases, common-state physics and physical-phone performance
+remain incomplete or unverified. This does not certify native frame parity.
+Main CI verifies shared browser/APK Wasm identity and anonymous permanent downloads
+before publication.
+
+## Slide/control timing continuation — November 16, 2026
 
 Continues published main source `9848b24`. HitDef and Projectile now capture
 ground.slidetime, guard.slidetime, guard.ctrltime and airguard.ctrltime.

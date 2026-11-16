@@ -48,7 +48,8 @@ data class HitDefinition(
     val airGuardVelocityX: Int = (airVelocityX.toLong()*3/2).coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt(),
     val airGuardVelocityY: Int = airVelocityY/2,
     val groundSlideTime: Int = 0,val guardSlideTime: Int = guardHitTime,
-    val guardControlTime: Int = guardSlideTime,val airGuardControlTime: Int = guardControlTime
+    val guardControlTime: Int = guardSlideTime,val airGuardControlTime: Int = guardControlTime,
+    val forceNoFall: Boolean = false
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -736,6 +737,7 @@ class FightingCharacter(
                 val fallRecovery=CoreFallRecovery.parse(args,this,errors) ?: return false
                 val hitAcceleration=CoreHitAcceleration.parse(args,this,errors) ?: return false
                 val hitAnimations=CoreHitAnimations.parse(args,errors) ?: return false
+                val hitFalls=CoreHitFalls.parse(args,this,errors) ?: return false
                 val hitVelocities=CoreHitVelocities.parse(args,this,errors,true) ?: return false
                 val hitTime=integer(args["ground.hittime"] ?: args["projground.hittime"],12).coerceIn(0,600)
                 val guardHitTime=integer(args["guard.hittime"] ?: args["projguard.hittime"],hitTime).coerceIn(0,600)
@@ -772,8 +774,7 @@ class FightingCharacter(
                     guardHitTime = guardHitTime,
                     guardVelocityX = hitVelocities.guard.x,
                     guardVelocityY = hitVelocities.guard.y,
-                    fall = integer(args["fall"]) != 0,
-                    airFall = integer(args["air.fall"],integer(args["fall"])) != 0,
+                    fall = hitFalls.ground,airFall = hitFalls.air,forceNoFall = hitFalls.forceNoFall,
                     p1State = args["p1stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
                     p2State = args["p2stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
                     p2GetP1State = integer(args["p2getp1state"],1) != 0,
@@ -807,6 +808,7 @@ class FightingCharacter(
                 val fallRecovery=CoreFallRecovery.parse(args,this,errors) ?: return false
                 val hitAcceleration=CoreHitAcceleration.parse(args,this,errors) ?: return false
                 val hitAnimations=CoreHitAnimations.parse(args,errors) ?: return false
+                val hitFalls=CoreHitFalls.parse(args,this,errors) ?: return false
                 val hitVelocities=CoreHitVelocities.parse(args,this,errors) ?: return false
                 val hitTime=integer(args["ground.hittime"],12).coerceIn(0,600)
                 val guardHitTime=integer(args["guard.hittime"],hitTime).coerceIn(0,600)
@@ -850,8 +852,7 @@ class FightingCharacter(
                     airVelocityY = hitVelocities.air.y,
                     airHitTime = integer(args["air.hittime"],20).coerceIn(0,600),
                     guardHitTime = guardHitTime,
-                    fall = integer(args["fall"]) != 0,
-                    airFall = integer(args["air.fall"],integer(args["fall"])) != 0
+                    fall = hitFalls.ground,airFall = hitFalls.air,forceNoFall = hitFalls.forceNoFall
                 )
                 // A valid definition may replace a carried attack once. Repeated
                 // evaluation within a state must not reset its struck-target set.
@@ -974,7 +975,7 @@ class FightingCharacter(
         val y=when { airGuard -> hit.airGuardVelocityY;guarded -> hit.guardVelocityY
             airborne -> hit.airVelocityY;else -> hit.velocityY }
         val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
-        val falling=!guarded && (if(airborne)hit.airFall else hit.fall)
+        val falling=CoreHitFalls.resolve(hit,this,airborne,guarded)
         val animationType=CoreHitAnimations.select(hit,initialType == "A" || override?.forceAir == true,falling,y)
         // Unguarded hits preserve the prior guard control threshold, as in MUGEN.
         val controlTime=if(guarded) { if(airGuard)hit.airGuardControlTime else hit.guardControlTime } else getHitData.controlTime
