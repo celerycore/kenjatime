@@ -1,6 +1,73 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current guard-distance continuation — November 17, 2026
+## Current named-map continuation — November 17, 2026
+
+Continues published main source `2d743be`. CNS now executes MapSet, MapAdd,
+RootMapSet and RootMapAdd. Stores contain finite single-precision numbers,
+matching the existing legacy engine. Addition starts at zero for an unset key;
+each complete write/add result is rounded once to float32. Overflow, nonfinite
+inputs, invalid names, missing parameters and unsupported options diagnose the
+request without replacing an earlier value or inserting a new entry.
+
+Names are case-insensitive, limited to 128 UTF-16 characters and cannot contain
+NUL. Each actor can hold 4096 entries; existing keys remain writable at capacity.
+Map(name), Map("name") and single-quoted literal names read the executing actor's
+store. Missing reads return zero without insertion. Wrong arity, numeric and
+computed read keys diagnose unsupported expressions. Map reads are live within
+the controller phase, including immediately after earlier writes.
+
+The importer reads repeated Map sections in source order, accepting numeric
+literals and bounded constant expressions in the existing grammar. Invalid
+defaults diagnose individually while valid defaults remain usable. Actors and
+helpers receive independent copies of definition defaults; helpers do not copy
+their parent's current mutable values. State entry and borrowed banks preserve
+owned maps. Values are dimensionless and do not rescale with localcoord.
+
+Root controllers called by a helper write the topmost actual root's store while
+evaluating expressions against the executing helper's variables/maps. They do
+not redirect to a borrowed state bank or stop at an intermediate helper. Root
+controllers on root actors are no-ops. Destroyed roots cannot receive writes;
+cyclic parent chains diagnose instead of mutating a store. Standard controller
+persistence and ignorehitpause gating apply to local and root writes.
+
+On-demand ktCoreNamedMaps exports root/helper IDs and stores in stable actor
+order, with escaped JSON keys. Regular actor snapshots expose namedMapCount
+instead of copying potentially large stores every frame. Read-only expressions,
+inspection and presentation do not add entries or reset named state. A fresh
+fight starts from definition defaults; complete native round/reset policies
+remain separate work.
+
+Validation:
+
+- 981 JVM and 976 compiled-Wasm tests pass, including 27 new cases for defaults,
+  expressions, actor isolation, same-phase reads, key forms, float32 rounding,
+  invalid/atomic requests, capacity/overflow, persistence, pause, nested helpers,
+  root ownership, destroyed/cyclic ancestry, borrowed banks and pure reads.
+- Exported Wasm checks 36 coordinate/side/operation/default sequences, four
+  nested-root sequences, JSON key round trips, float32 results and a borrowed
+  bank/SelfState sequence that preserves the executing actor's store.
+- All 16 adapter/import/download checks and production browser checks pass.
+  Imported public-KFM-art CNS exercises all four map controllers: helper writes
+  advance the root's counter, which changes its painted animation and resets
+  through an authored cycle. All prior browser scenarios remain passing.
+- Two KFM 600-tick runs retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, the preceding physical checksum and matching power
+  traces ending at 485/415.
+
+Measured controller-name coverage is now 72 of 97 in the live legacy JavaScript
+registry (74.2%), up from 68 of 97 (70.1%); 25 names remain outside the Kotlin
+contract. These four are IKEMEN extensions, so the Elecbyte 1.1 reference overlap
+remains 67 of 89 (75.3%). Name counts do not quantify overall completion:
+parameters, expressions, physics, effects, AI, teams and native parity still
+require further work.
+
+Scope follows the existing JavaScript numeric-map implementation and
+[IKEMEN map controller ownership](https://github.com/ikemen-engine/Ikemen-GO/blob/develop/src/bytecode.go).
+Indexed/typed maps, computed keys, assignment expressions, parent/team variants,
+complete native reset policies and physical-phone performance remain incomplete
+or unverified. Main CI verifies shared browser/APK Wasm and anonymous downloads.
+
+## Guard-distance continuation — November 17, 2026
 
 Continues published main source `d999d35`. CNS now executes AttackDist with a
 required integer value, nested expressions and active state-bank coordinate

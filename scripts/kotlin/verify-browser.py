@@ -238,6 +238,29 @@ try:
         result["guardDistanceCnsAnimation"]="passed"
         proximity.close()
 
+        maps_page=browser.new_page(viewport={"width":1000,"height":780})
+        map_errors=[]
+        maps_page.on("pageerror",lambda error:map_errors.append(str(error)))
+        maps_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        maps_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        maps_page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-named-maps.zip"))
+        maps_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=maps_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        maps_page.locator("#p1-select").select_option(value=installed)
+        maps_page.locator("#cpu").uncheck()
+        maps_page.locator("#start").click()
+        for action in [710,711,710]:
+            maps_page.wait_for_function("""action => {
+              const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paint=qa?.lastActorTransformPaint;
+              return !!plan&&!!paint&&paint.frame===plan.frame&&
+                plan.draws.some(d=>d.kind==='helper')&&
+                plan.draws.some(d=>d.kind==='fighter'&&d.side===0&&d.action===action);
+            }""",arg=action,timeout=30000)
+        assert not map_errors,map_errors
+        result["namedMapCnsRootCounter"]="passed"
+        maps_page.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

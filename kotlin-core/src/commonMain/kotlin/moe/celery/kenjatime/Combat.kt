@@ -114,7 +114,8 @@ data class FighterDefinition(
     val attack: Int = 100,
     val airFront: Int = groundFront,val airBack: Int = groundBack,
     val drawOffsetX: Int = 0,val drawOffsetY: Int = 0,
-    val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE
+    val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE,
+    val initialMaps: Map<String,Double> = emptyMap(),val initialMapIssues: Set<String> = emptySet()
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -134,6 +135,7 @@ data class FighterDefinition(
         fun fromScript(name: String, air: String, cns: String, cmd: String = "",
                        defText: String = ""): FighterDefinition {
             val constants = MugenCnsParser.constants(cns)
+            val maps=CoreNamedMaps.defaults(cns)
             // Character localcoord is authored in DEF, not the AIR or CNS.
             // Nu-13 uses 1008x756. Never assume every character is 320x240.
             val info = if(defText.isBlank()) null else MugenDefParser.parse(defText).section("info")
@@ -154,7 +156,7 @@ data class FighterDefinition(
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
                 if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack,
                 constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY,
-                constants.attackDistance,constants.projectileAttackDistance
+                constants.attackDistance,constants.projectileAttackDistance,maps.first,maps.second
             )
         }
     }
@@ -409,7 +411,8 @@ class FightingCharacter(
         internal set
     private var powerValue = 0
     /** Helpers share their root's meter, independent of the active state bank. */
-    internal fun powerOwner(): FightingCharacter {
+    internal fun powerOwner(): FightingCharacter = rootActor()
+    internal fun rootActor(): FightingCharacter {
         if(parent == null)return this
         var actor=this
         val seen=mutableSetOf<FightingCharacter>()
@@ -472,10 +475,11 @@ class FightingCharacter(
     private var carriedHitDef=false
     private val controllerActivation = mutableMapOf<Pair<Int,Int>,Int>()
     internal val initializationIssues: MutableSet<String> = linkedSetOf()
+    internal val namedMaps=CoreNamedMaps(definition.initialMaps)
     private var evaluationIssues: MutableSet<String> = initializationIssues
     var animation: AirAnimationPlayer? = null
         private set
-    init { changeState(0) }
+    init { initializationIssues.addAll(definition.initialMapIssues);changeState(0) }
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
                     controlOverride: Boolean? = null,
                     errors: MutableSet<String> = world?.issues ?: evaluationIssues) {
@@ -563,6 +567,7 @@ class FightingCharacter(
             "angleset", "angleadd", "anglemul", "angledraw" -> CoreAngleDrawing.execute(this,c,errors)
             "offset" -> CoreDisplayOffset.execute(this,c,errors)
             "attackdist" -> CoreGuardDistance.execute(this,c,errors)
+            "mapset", "mapadd", "rootmapset", "rootmapadd" -> CoreNamedMaps.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)

@@ -261,6 +261,74 @@ guardFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(guardFiles["kfm/kfm.air"
 `);
 writeFileSync("test-output/kotlin-kfm-guard-distance.zip",zipSync(guardFiles));
 
+const mapFiles=Object.fromEntries(raw);
+mapFiles["kfm/kfm.cns"]=encoder.encode(`[Map]
+counter=.5
+own=2.25
+seed=1+2
+[Statedef 0]
+type=S
+physics=N
+anim=710
+ctrl=0
+[Statedef -2]
+[State -2, reset cycle]
+type=MapSet
+triggerall=IsHelper=0
+trigger1=Time%120=0
+map=counter
+value=0
+[State -2, local increment]
+type=MapAdd
+triggerall=IsHelper=0
+trigger1=1
+map=counter
+value=.25
+[State -2, helper]
+type=Helper
+triggerall=IsHelper=0
+trigger1=NumHelper=0
+stateno=700
+pos=0,-80
+[State -2, named state animation]
+type=ChangeAnim
+triggerall=IsHelper=0
+trigger1=1
+value=ifelse(map(counter)>=30,711,710)
+[Statedef 700]
+type=S
+physics=N
+anim=710
+ctrl=0
+[State 700, own state]
+type=MapSet
+trigger1=Time=0
+map=own
+value=9
+[State 700, own addition]
+type=MapAdd
+trigger1=1
+map=own
+value=.125
+[State 700, root initialization]
+type=RootMapSet
+trigger1=Time=0
+map=counter
+value=1
+[State 700, root increment]
+type=RootMapAdd
+trigger1=1
+map=counter
+value=.5
+`);
+mapFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(mapFiles["kfm/kfm.air"])+`
+[Begin Action 710]
+0,0,0,0,-1
+[Begin Action 711]
+0,1,0,0,-1
+`);
+writeFileSync("test-output/kotlin-kfm-named-maps.zip",zipSync(mapFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

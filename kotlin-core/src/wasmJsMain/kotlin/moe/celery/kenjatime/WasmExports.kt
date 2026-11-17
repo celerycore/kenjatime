@@ -118,6 +118,7 @@ private object Fights {
         ",\"x256\":" + p.posX + ",\"y256\":" + p.posY +
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
         ",\"positionFrozen\":" + p.positionFrozen +
+        ",\"namedMapCount\":" + p.namedMaps.size +
         ",\"guardDistance256\":" + p.guardDistance +
         ",\"inGuardDist\":" + p.inGuardDistance +
         ",\"playerPush\":" + p.playerPushEnabled +
@@ -246,6 +247,12 @@ private object Fights {
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
+/** On-demand inspection keeps potentially large maps out of per-frame snapshots. */
+@JsExport fun ktCoreNamedMaps(handle: Int): String {
+    val fight=Fights.get(handle)
+    return (listOf(fight.p1,fight.p2)+fight.entities.helpers.map { it.actor }).joinToString(
+        prefix="[",postfix="]",separator=",") { "{\"id\":"+it.id+",\"values\":"+it.namedMaps.json()+"}" }
+}
 @JsExport fun ktCoreReadDef(source: String, section: String, key: String): String? =
     MugenDefParser.parse(source).section(section)?.get(key)
 

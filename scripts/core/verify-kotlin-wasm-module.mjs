@@ -3658,6 +3658,149 @@ try {
 } finally {api.ktCoreRelease(guardBank);}
 console.log("Native Wasm AttackDist / 24 coordinate-side-range latch sequences / 8 helper-projectile range captures / previous controller reads / strict bounds / borrowed bank reset / pure reads: OK (synthetic)");
 
+const mapsOf=handle=>JSON.parse(api.ktCoreNamedMaps(handle));
+for(const width of [320,640,1008])for(const side of [0,1])for(const operation of ["MapSet","MapAdd"])
+for(const seed of [-2.5,0,1.25]) {
+  const source=`[Map]\nScore=${seed}\nconstant=max(2,3)*2\n${motionIdle}
+[State 0, write]
+type=${operation}
+trigger1=Time<2
+map="SCORE"
+value=ifelse(Time=0,2.5,map(score)*.5)
+[State 0, root controllers are not self writes]
+type=RootMapSet
+trigger1=1
+map=score
+value=999
+[State 0, unusual literal key]
+type=MapSet
+trigger1=Time=0
+map='quoted"key\\suffix'
+value=-.1`;
+  const other=`[Map]\nscore=7\n${motionIdle}`;
+  const handle=api.ktCoreCreateWithDefinitions("maps left","maps right",air,air,side===0?source:other,side===1?source:other,
+    "","",side===0?`[Info]\nlocalcoord=${width},${width*3/4}`:"",side===1?`[Info]\nlocalcoord=${width},${width*3/4}`:"");
+  try {
+    let expected=Math.fround(seed);
+    for(let tick=0;tick<3;tick++) {
+      api.ktCoreAdvance(handle,0,"",0,"");
+      if(tick<2)expected=Math.fround((operation==="MapAdd"?expected:0)+(tick===0?2.5:expected*.5));
+      const values=mapsOf(handle);assert.equal(values[side].values.score,expected);
+      assert.equal(values[1-side].values.score,7);assert.equal(values[side].values.constant,6);
+      assert.equal(values[side].values['quoted"key\\suffix'],Math.fround(-.1));
+      const actor=JSON.parse(api.ktCoreSnapshot(handle,side));assert.equal(actor.namedMapCount,3);
+      const snapshot=api.ktCoreNamedMaps(handle),checksum=api.ktCoreChecksum(handle);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(handle,12);
+      assert.equal(api.ktCoreNamedMaps(handle),snapshot);assert.equal(api.ktCoreChecksum(handle),checksum);
+    }
+    assert.equal(api.ktCoreIssues(handle),"");
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640])for(const side of [0,1]) {
+  const source=`[Map]\ncounter=1\nown=2\n${motionIdle}
+[State 0, root local addition]
+type=MapAdd
+trigger1=1
+map=counter
+value=.25
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, local state]
+type=MapSet
+trigger1=Time=0
+map=own
+value=3.25
+[State 700, root set]
+type=RootMapSet
+trigger1=Time=0
+map=counter
+value=map(own)
+[State 700, root add]
+type=RootMapAdd
+trigger1=1
+map=counter
+value=1.5
+[State 700, nested helper]
+type=Helper
+trigger1=Time=0
+stateno=800
+[Statedef 800]
+type=S
+physics=N
+anim=0
+[State 800, topmost root add]
+type=RootMapAdd
+trigger1=1
+map=counter
+value=map(own)`;
+  const handle=api.ktCoreCreateWithDefinitions("maps root","maps opponent",air,air,side===0?source:motionIdle,side===1?source:motionIdle,
+    "","",side===0?`[Info]\nlocalcoord=${width},${width*3/4}`:"",side===1?`[Info]\nlocalcoord=${width},${width*3/4}`:"");
+  try {
+    for(const expected of [1.25,4.75,8.5,12.25]) {
+      api.ktCoreAdvance(handle,0,"",0,"");const maps=mapsOf(handle);
+      assert.equal(maps[side].values.counter,expected);assert.deepEqual(maps[1-side].values,{});
+      for(const h of maps.slice(2))assert.equal(h.values.counter,1);
+    }
+    const maps=mapsOf(handle);assert.equal(maps.length,4);assert.equal(maps[2].values.own,3.25);assert.equal(maps[3].values.own,2);
+    assert.equal(api.ktCoreIssues(handle),"");
+  } finally {api.ktCoreRelease(handle);}
+}
+const borrowedMaps=api.ktCoreCreateWithDefinitions("map bank","executing store",projectileFacingAir,air,
+  `[Map]\nscore=99\n${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, executing store]
+type=MapSet
+trigger1=Time=0
+map=score
+value=var(0)+map(score)
+[State 700, add]
+type=MapAdd
+trigger1=Time=0
+map=score
+value=.5
+[State 700, root is not bank owner]
+type=RootMapSet
+trigger1=1
+map=score
+value=999
+[State 700, return]
+type=SelfState
+trigger1=Time=1
+value=0`,`[Map]\nscore=2\n${motionIdle}
+[State 0, own variable]
+type=VarSet
+trigger1=1
+v=0
+value=4`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedMaps,0,0,4*256,0);api.ktCoreDebugForceState(borrowedMaps,0,200);
+  api.ktCoreAdvance(borrowedMaps,0,"",0,"");api.ktCoreAdvance(borrowedMaps,0,"",0,"");
+  assert.equal(mapsOf(borrowedMaps)[1].values.score,6.5);assert.equal(mapsOf(borrowedMaps)[0].values.score,99);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(borrowedMaps,1)).stateOwner,1);
+  api.ktCoreAdvance(borrowedMaps,0,"",0,"");assert.equal(mapsOf(borrowedMaps)[1].values.score,6.5);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(borrowedMaps,1)).stateOwner,2);assert.equal(api.ktCoreIssues(borrowedMaps),"");
+} finally {api.ktCoreRelease(borrowedMaps);}
+console.log("Native Wasm MapSet/MapAdd/RootMapSet/RootMapAdd / 36 coordinate-side-operation-default sequences / four nested-root sequences / float32 state / escaped JSON / borrowed banks and SelfState / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

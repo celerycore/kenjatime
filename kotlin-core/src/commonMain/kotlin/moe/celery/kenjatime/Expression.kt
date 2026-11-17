@@ -117,6 +117,15 @@ object CoreExpression {
                 ?: throw IllegalArgumentException("Missing argument for "+name)
             fun idx(i:Int)=a(i).toInt()
             val v=when(name) {
+                "map" -> {
+                    require(args.size==1) { "Map requires one name" }
+                    val key=when(val arg=args[0]) {
+                        is Variable -> arg.key
+                        is Literal -> arg.v.s ?: throw IllegalArgumentException("Map name must be text")
+                        else -> throw IllegalArgumentException("Dynamic map names are unsupported")
+                    }
+                    f.namedMaps.read(key)
+                }
                 "projhittime","projguardedtime","projcontacttime","projcanceltime",
                 "projhit","projguarded","projcontact" -> {
                     val timed=name.endsWith("time")
@@ -351,6 +360,22 @@ object CoreExpression {
     }catch(e:IllegalArgumentException){
         errors.add("Unsupported expression: "+raw.take(100)+" ("+e.message+")")
         null
+    }
+    fun numericValue(raw:String,actor:FightingCharacter,errors:MutableSet<String>):Double?=try {
+        numeric(parse(raw.trim()),actor,"Map value")
+    }catch(e:IllegalArgumentException) { errors.add("Unsupported map expression: ${raw.take(100)} (${e.message})");null }
+    private val constantActor by lazy { FightingCharacter(FighterDefinition("constant expression"),0) }
+    fun constant(raw: String): Double {
+        val node=parse(raw.trim())
+        fun constant(n: Node): Boolean=when(n) {
+            is Literal -> n.v.n!=null
+            is Unary -> constant(n.x)
+            is Binary -> constant(n.x)&&constant(n.y)
+            is FunctionCall -> n.name in setOf("abs","floor","ceil","sin","cos","min","max","ifelse")&&n.args.all{constant(it)}
+            else -> false
+        }
+        require(constant(node)) { "Map default requires a numeric constant expression" }
+        return numeric(node,constantActor,"Map default")
     }
     fun test(raw:String,actor:FightingCharacter,errors:MutableSet<String>):Boolean=
         number(raw,actor,errors)?.let{it!=0.0}?:false
