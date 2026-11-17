@@ -632,6 +632,56 @@ try:
         result["paletteScopesOwnershipSineAndCanvasPixels"]="passed"
         palette_page.close()
 
+        remap = browser.new_page(viewport={"width": 1000, "height": 780})
+        remap_errors = []
+        remap.on("pageerror", lambda error: remap_errors.append(str(error)))
+        remap.goto(base, wait_until="domcontentloaded", timeout=30000)
+        remap.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)
+        remap.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-remappal.zip"))
+        remap.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0", timeout=45000)
+        installed = remap.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value"
+        )
+        for select in ["#p1-select", "#p2-select"]:
+            remap.locator(select).select_option(value=installed)
+        remap.locator("#cpu").uncheck()
+        remap.locator("#start").click()
+        for phase, target, colors in [
+            (0, None, None),
+            (1, [1, 2], [None, [231, 234, 247], [181, 172, 206]]),
+            (2, [1, 3], [None, [255, 253, 117], [210, 192, 44]]),
+            (3, None, None), (4, None, None),
+        ]:
+            observed = remap.wait_for_function("""({phase, fixture}) => {
+              const qa = window.__kenjatimeKotlinQA, plan = qa?.paintedRenderPlan;
+              if (!plan || plan.cameraY > -220 || qa.lastSpritePaintOrder?.frame !== plan.frame) return false;
+              const root = plan.draws.find(d => d.kind === 'fighter' && d.side === 0);
+              const rival = plan.draws.find(d => d.kind === 'fighter' && d.side === 1);
+              const shared = plan.draws.find(d => d.kind === 'helper' && d.action === 732);
+              const independent = plan.draws.find(d => d.kind === 'helper' && d.action === 733);
+              if (root?.action !== 731 || root.sprpriority !== phase || !rival || !shared || !independent) return false;
+              const canvas = document.querySelector('#arena'), context = canvas.getContext('2d'), scale = canvas.width / 960;
+              return [root, shared, independent, rival].map(actor => ({
+                palette: actor.remapPalette ?? null,
+                pixels: fixture.samples.map(point => {
+                  const x = point.x - fixture.axisX + .5, y = point.y - fixture.axisY + .5;
+                  return [...context.getImageData(
+                    Math.floor(scale * (actor.x + actor.transformA * x + actor.transformC * y)),
+                    Math.floor(scale * (actor.y + actor.transformB * x + actor.transformD * y)), 1, 1
+                  ).data];
+                }),
+              }));
+            }""", arg={"phase": phase, "fixture": samples}, timeout=20000).json_value()
+            for index, actor in enumerate(observed):
+                assert actor["palette"] == (target if index < 2 else None), observed
+                for sample_index, (point, pixel) in enumerate(zip(samples["samples"], actor["pixels"])):
+                    expected = ([16, 35, 56] if not point["rgba"][3] else
+                                (colors[sample_index] if index < 2 and colors else point["rgba"][:3]))
+                    assert all(abs(a-b) <= 2 for a, b in zip(pixel, expected + [255])), (phase, actor, point, pixel)
+        assert not remap_errors, remap_errors
+        result["paletteRemapSffPixelsAndSharedOwnership"] = "passed"
+        remap.close()
+
         trails=browser.new_page(viewport={"width":1000,"height":780})
         trail_errors=[]
         trails.on("pageerror",lambda error:trail_errors.append(str(error)))

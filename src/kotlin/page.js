@@ -8,7 +8,7 @@ import {ArchiveLibrary} from "../mobile-library.js";
 import {collectBenchmarkDeviceInfo,describeBenchmarkDevice} from "../core/benchmark-device.js";
 import {findBenchmarkFighters} from "../core/benchmark-roster.js";
 import {paintBlendedSprite} from "./sprite-blend.js";
-import {paletteRgba} from "./sprite-palette.js";
+import {paletteCatalog,paletteRgba} from "./sprite-palette.js";
 import {readSoundBank} from "./sound-assets.js";
 import {KotlinAudio} from "./audio.js";
 
@@ -126,7 +126,7 @@ function initialiseSpriteArt(item){
     item.unavailable=true;item.warning="SFF exceeds supported 480 MiB decoded limit";return;
   }
   try{
-    item.bank=sff(item.spriteBytes,{cacheBytes:8*MB});
+    item.bank=sff(item.spriteBytes,{externalPalettes:item.externalPalettes,cacheBytes:8*MB});
     item.index=new Map();
     for(let i=0;i<item.bank.sprites.length;i++){
       const sp=item.bank.sprites[i];
@@ -139,26 +139,24 @@ function initialiseSpriteArt(item){
     console.warn("Visual-only SFF preview unavailable",error.message);
   }
 }
-function spriteImage(item,group,number){
+function spriteImage(item,group,number,remapPalette){
   if(!item||group<0||number<0)return null;
   initialiseSpriteArt(item);
   if(item.unavailable||!item.bank)return null;
-  const key=group+":"+number;
+  const spriteKey=group+":"+number;
+  const key=spriteKey+(remapPalette?"@pal:"+remapPalette.join(":"):"");
   const existing=item.imageCache.get(key);
   if(existing){
     item.imageCache.delete(key);item.imageCache.set(key,existing);
     return existing;
   }
-  const index=item.index.get(key);
+  const index=item.index.get(spriteKey);
   if(index===undefined)return null;
   try{
-    // The original code passed only two arguments to decodeWithPalette,
-    // always threw "Palette 1,undefined does not exist" and silently
-    // rendered every fighter as a rectangle. Use the SFF's real palette.
     let sprite=item.bank.decode(index);
-    if(item.bank.palettes.some(p=>p.group===1&&p.number===1)){
-      try{sprite=item.bank.decodeWithPalette(index,1,1)}
-      catch{/* A character may use its authored embedded palette. */}
+    if(remapPalette){
+      try{sprite=item.bank.decodeWithPalette(index,...remapPalette)}
+      catch{/* Preserve authored art if the target palette data is corrupt. */}
     }
     if(!sprite||sprite.w<=0||sprite.h<=0||sprite.w*sprite.h>2*1024*1024)return null;
     const image=document.createElement("canvas");
@@ -246,7 +244,7 @@ function render(){
     const item=images[fighter.side]||images[0];
     const x=fighter.x;
     const y=fighter.y; // both projected by Kotlin's deterministic camera
-    const img=spriteImage(item,fighter.group,fighter.number);
+    const img=spriteImage(item,fighter.group,fighter.number,fighter.remapPalette);
     if(img){
       // Authored localcoord comes from Kotlin's DEF parser (Nu-13 1008x756,
       // standard MUGEN 320x240). Avoid hard-coding a 1:1 character scale.
@@ -401,14 +399,19 @@ function begin(){
     try{return item.soundBank||(item.soundBank=readSoundBank(item.soundBytes))}
     catch(error){return {samples:new Map(),catalog:"",warnings:[error.message]}}
   });
+  const paletteBanks=[p1,p2].map(item=>{
+    initialiseSpriteArt(item);
+    if(!item.bank)return {palettes:"",sprites:""};
+    return item.paletteCatalog??=(paletteCatalog(item.bank));
+  });
   audio.configure(soundBanks);audio.setEnabled(byId("sound").checked);audio.setPaused(false);audio.prepare();
   images=[p1,p2];activeNames=[p1.name,p2.name];
   startedAt=performance.now();previousTime=0;previousTick=0;workerStats=null;latest=null;
   lastClipboards=null;byId("clipboard-output").textContent="Waiting for authored debug messages…";
   worker.postMessage({type:"start",
     matchToken:++matchToken,
-    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||"",soundCatalog:soundBanks[0].catalog},
-    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||"",soundCatalog:soundBanks[1].catalog},
+    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||"",soundCatalog:soundBanks[0].catalog,paletteCatalog:paletteBanks[0]},
+    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||"",soundCatalog:soundBanks[1].catalog,paletteCatalog:paletteBanks[1]},
     cpu:byId("cpu").checked,endless:byId("endless").checked,
     level:+byId("ai-level").value
   });

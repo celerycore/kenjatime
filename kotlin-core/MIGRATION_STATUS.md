@@ -1,6 +1,35 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current victory quote and hit count continuation — November 18, 2026
+## Current palette remapping continuation — November 18, 2026
+
+Continues published main source `563af7c`. RemapPal resolves indexed sprite
+palettes in Kotlin from SFF and ACT metadata. Source and destination IDs
+must exist and have the same indexed color depth. Wildcard remaps replace
+the palette table and apply to matching depths. Individual source resets
+can restore the authored palette under a wildcard. Remaps are nontransitive
+and support up to eight entries per palette family. Invalid requests preserve
+the previous table.
+
+Helpers, projectiles and Explods with shared palettes see their family's
+current remaps. Entities with independent palettes capture the remaps at
+creation. Afterimages retain the table from their captured pose. Canvas uses
+Kotlin's selected palette before applying PalFX and blending. Sprites retain
+their authored palette by default, and true-color sprites keep their colors
+under RemapPal.
+
+Verification passed on 1,310 JVM, 1,305 Wasm and 33 adapter tests. The Wasm
+checks exercise shared and independent projectile and Explod remaps alongside
+saved afterimage palettes. Chromium checks pixels from KFM's embedded SFF
+palettes through remap, PalFX composition and reset. Both 600-tick KFM
+replays retain the previous combat checksum.
+
+Controller-name coverage reaches 91 of 97 (93.8%), up from 90 of 97 (92.8%).
+Six types remain (6.2%): Pause, SuperPause, MakeDust, GameMakeAnim, ForceFeedback
+and ModifyPlayer. The Elecbyte 1.1 overlap is 84 of 89 (94.4%). Initial palette
+selection, per-entity remappal parameters, full parameter coverage and native
+parity remain separate work.
+
+## Previous victory quote and hit count continuation — November 18, 2026
 
 Continues published main source `a4f2cd0`. VictoryQuote selects from
 `victory0` through `victory99` in the executing fighter's CNS `[Quotes]`

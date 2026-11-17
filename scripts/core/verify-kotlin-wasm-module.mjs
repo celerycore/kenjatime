@@ -4931,6 +4931,62 @@ value = 5
 }
 console.log('Native Wasm VictoryQuote and HitCount / both winning sides and draws / signed manual counts and authored outro selection: OK');
 
+const remapCns = `${motionIdle}
+[State 0, blue]
+type = RemapPal
+trigger1 = Time = 0
+source = 1,1
+dest = 1,2
+[State 0, trails]
+type = AfterImage
+trigger1 = Time = 0
+time = -1
+length = 6
+timegap = 1
+framegap = 1
+[State 0, red]
+type = RemapPal
+trigger1 = Time = 1
+dest = 1,3
+[State 0, clear]
+type = RemapPal
+trigger1 = Time = 3
+` + [0, 1].map(own => `[State 0, spark ${own}]
+type = Explod
+trigger1 = Time = 0
+id = ${own + 100}
+anim = 0
+ownpal = ${own}
+removetime = -1
+[State 0, projectile ${own}]
+type = Projectile
+trigger1 = Time = 0
+projid = ${own + 200}
+projanim = 0
+ownpal = ${own}
+projremovetime = 30
+`).join('');
+const remapHandle = api.ktCoreCreateWithDefinitions('Remap', 'Other', air, air, remapCns, motionIdle, '', '', '', '');
+try {
+  api.ktCoreSetup(remapHandle, -70*256, 0, 70*256, 0);
+  for (const side of [0, 1]) api.ktCorePaletteCatalog(remapHandle, side, '1,1,8;1,2,8;1,3,8', '0,0,1,1');
+  for (let i = 0; i < 3; i++) api.ktCoreAdvance(remapHandle,0,'',0,'');
+  const plan = JSON.parse(api.ktCoreRenderPlan(remapHandle, 0));
+  const draws = kind => plan.draws.filter(draw => draw.kind === kind);
+  assert.deepEqual(draws('fighter').map(draw => draw.remapPalette ?? null), [[1, 3], null]);
+  for (const kind of ['explod', 'projectile']) {
+    assert.deepEqual(draws(kind).map(draw => draw.remapPalette), [[1, 3], [1, 2]]);
+  }
+  assert.ok(draws('afterimage').some(draw => draw.captureFrame === 1 && draw.remapPalette?.[1] === 2));
+  api.ktCoreAdvance(remapHandle,0,'',0,'');
+  const cleared = JSON.parse(api.ktCoreRenderPlan(remapHandle, 0)).draws;
+  assert.ok(cleared.filter(draw => draw.kind === 'fighter').every(draw => !draw.remapPalette));
+  assert.equal(api.ktCoreIssues(remapHandle), '');
+} finally {
+  api.ktCoreRelease(remapHandle);
+}
+console.log('Native Wasm RemapPal / original palette metadata, wildcard and reset, frozen and shared entity palettes, and historical trail colors: OK');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

@@ -138,6 +138,13 @@ object CorePresentationPlanner {
             if(trail != null)json.append(",\"afterimageOwnerId\":").append(ownerId)
                 .append(",\"historyIndex\":").append(trail.index)
                 .append(",\"captureFrame\":").append(trail.pose.capturedAt)
+            if (frame != null) {
+                val remaps = pose?.paletteRemaps ?: projectile?.paletteEffects?.remaps
+                    ?: effect?.paletteEffects?.remaps ?: emptyMap()
+                fight.paletteBanks.resolve(side, frame.group, frame.sprite, remaps)?.let {
+                    json.append(",\"remapPalette\":").append(it.json())
+                }
+            }
             json
                 .append(",\"blend\":").append(blend.json())
                 .append(",\"palFX\":").append((trail?.layers ?: fight.palettes.layers(actor?.paletteEffects ?: projectile?.paletteEffects ?: effect?.paletteEffects ?: fight.p1.paletteEffects))

@@ -257,6 +257,8 @@ private object Fights {
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreSoundCatalog(handle: Int,side: Int,catalog: String): Unit = Fights.get(handle).sounds.catalog(side,catalog)
+@JsExport fun ktCorePaletteCatalog(handle: Int, side: Int, palettes: String, sprites: String): Unit =
+    Fights.get(handle).paletteBanks.catalog(side, palettes, sprites)
 @JsExport fun ktCoreSounds(handle: Int): String = Fights.get(handle).sounds.json()
 @JsExport fun ktCoreSoundEvents(handle: Int): String = Fights.get(handle).sounds.eventJson()
 @JsExport fun ktCoreReversals(handle: Int): String = Fights.get(handle).reversals.json()

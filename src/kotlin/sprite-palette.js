@@ -27,3 +27,50 @@ export function paletteRgba(source,layers){
   }
   return output;
 }
+/** Describe authored palette IDs without decoding any sprite pixels. */
+export function paletteCatalog(bank) {
+  const palettes = new Map();
+  for (const palette of bank.palettes) {
+    const key = palette.group + "," + palette.number;
+    if (palette.colors > 0 && palette.colors <= 256 && !palettes.has(key)) {
+      palettes.set(key, key + "," + Math.ceil(Math.log2(palette.colors)));
+    }
+  }
+  const sprites = new Map();
+  const bases = new Map();
+  function baseIndex(start) {
+    let index = start;
+    const visited = new Set();
+    while (bank.sprites[index] && !bases.has(index) && !visited.has(index)) {
+      visited.add(index);
+      const sprite = bank.sprites[index];
+      if (sprite.length) {
+        bases.set(index, index);
+        break;
+      }
+      index = sprite.link;
+    }
+    const base = bases.get(index) ?? -1;
+    for (const link of visited) bases.set(link, base);
+    return base;
+  }
+  const seen = new Set();
+  for (const [index, sprite] of bank.sprites.entries()) {
+    const key = sprite.group + "," + sprite.number;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const base = bank.sprites[baseIndex(index)];
+    if (!base) continue;
+    const indexed = bank.version === 1 || base.format === 10 ||
+      (base.format < 10 && [5, 8].includes(base.depth));
+    if (!indexed) continue;
+    const palette = bank.palettes[bank.version === 1 ? base.palette : sprite.palette];
+    if (!palette) continue;
+    const source = palette.group + "," + palette.number;
+    if (palettes.has(source)) sprites.set(key, key + "," + source);
+  }
+  return {
+    palettes: [...palettes.values()].join(";"),
+    sprites: [...sprites.values()].join(";"),
+  };
+}

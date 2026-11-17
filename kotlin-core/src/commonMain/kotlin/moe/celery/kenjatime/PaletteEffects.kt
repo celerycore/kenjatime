@@ -21,6 +21,8 @@ internal data class CorePaletteEffect(val remaining: Int,val add: List<Int>,val 
 }
 /** Shared palette families age once per fight tick, independently of actor count or drawing. */
 internal class CorePaletteEffects {
+    var remaps: CorePaletteRemap = emptyMap()
+    fun copyRemaps() = CorePaletteEffects().also { it.remaps = remaps }
     var effect: CorePaletteEffect?=null;private set
     fun beginTick() { effect=effect?.let {if(it.remaining==1)null else it.copy(remaining=if(it.remaining<0)-1 else it.remaining-1,age=it.age+1)} }
     fun replace(next: CorePaletteEffect) {effect=next.takeUnless {it.remaining==0}}

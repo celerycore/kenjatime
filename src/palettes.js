@@ -46,8 +46,7 @@ export function validatePaletteRemap(character,source,dest){
  }
 }
 
-export function characterSpriteBank(character){
- if(banks.has(character))return banks.get(character);
+export function readExternalPalettes(character){
  const diagnostics=[],externalPalettes=new Map(),files=character.files,base=character.path.slice(0,character.path.lastIndexOf('/')+1);
  const actFiles=new Map();
  for(const [key,value]of Object.entries(character.def.files||{}))if(/^pal\d+$/.test(key)&&value){
@@ -73,7 +72,13 @@ export function characterSpriteBank(character){
   try{externalPalettes.set(number,decodeAct(data,{order}));}
   catch(error){diagnostics.push({type:'palette',source:character.path,line:0,message:error.message});}
  }
- const bank=sff(files[character.sprite.path],{externalPalettes});
+ return {externalPalettes,diagnostics};
+}
+
+export function characterSpriteBank(character){
+ if(banks.has(character))return banks.get(character);
+ const {externalPalettes,diagnostics}=readExternalPalettes(character);
+ const bank=sff(character.files[character.sprite.path],{externalPalettes});
  bank.diagnostics=diagnostics;bank.selectablePalettes=[...new Set((bank.palettes||[]).filter(p=>p.group===1&&p.number>=1&&p.number<=12).map(p=>p.number))].sort((a,b)=>a-b);
  if(!bank.selectablePalettes.length)bank.selectablePalettes=[1];
  const preferred=String(character.def.info?.['pal.defaults']||'1').split(',').map(Number);bank.defaultPalette=preferred.find(p=>bank.selectablePalettes.includes(p))??bank.selectablePalettes[0];

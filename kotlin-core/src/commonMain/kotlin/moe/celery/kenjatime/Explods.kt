@@ -18,7 +18,7 @@ class CoreExplod internal constructor(
     val owner: FightingCharacter, val id: Int, val sequence: Long,
     config: ExplodConfig, val bornAt: Long, action: AirAction
 ) {
-    internal val paletteEffects=if(config.ownPalette)CorePaletteEffects() else owner.paletteEffects
+    internal val paletteEffects=if(config.ownPalette)owner.paletteEffects.copyRemaps() else owner.paletteEffects
     var config = config; internal set
     var animation = AirAnimationPlayer(action); internal set
     internal var animationResetAt = bornAt

@@ -115,6 +115,8 @@ self.onmessage=async({data})=>{
         a.air,b.air,a.cns,b.cns,a.cmd,b.cmd,a.defText,b.defText);
       api.ktCoreSoundCatalog(handle,0,a.soundCatalog||"");
       api.ktCoreSoundCatalog(handle,1,b.soundCatalog||"");
+      api.ktCorePaletteCatalog(handle,0,a.paletteCatalog?.palettes||"",a.paletteCatalog?.sprites||"");
+      api.ktCorePaletteCatalog(handle,1,b.paletteCatalog?.palettes||"",b.paletteCatalog?.sprites||"");
       api.ktCoreSetup(handle,-70*256,0,70*256,0);
       api.ktCoreConfigureArena(handle,-250,250,0,true,true);
       endless=data.endless!==false;

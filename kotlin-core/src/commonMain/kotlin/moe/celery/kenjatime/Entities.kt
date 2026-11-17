@@ -57,7 +57,7 @@ class CoreProjectile(
     /** Captured effective scale: projscale, optionally multiplied by own Size. */
     val scaleX: Double = 1.0,val scaleY: Double = 1.0,val spritePriority: Int = 3,val ownPalette: Boolean=false
 ) {
-    internal val paletteEffects=if(ownPalette)CorePaletteEffects() else owner.paletteEffects
+    internal val paletteEffects=if(ownPalette)owner.paletteEffects.copyRemaps() else owner.paletteEffects
     val hit=hit.copy(capturedAttackMultiplier=hit.capturedAttackMultiplier ?: owner.attackMultiplier)
     companion object {
         const val MAX_SCALE = 64.0
@@ -149,7 +149,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.rootActor().commands else emptyList())
                 actor.parent = owner
                 actor.ownPalette=request.ownPalette
-                if(!request.ownPalette)actor.paletteEffects=owner.paletteEffects
+                actor.paletteEffects = if (request.ownPalette) owner.paletteEffects.copyRemaps() else owner.paletteEffects
                 actor.world = match
                 actor.posX = owner.posX + request.offsetX * if (owner.facingRight) 1 else -1
                 actor.posY = owner.posY + request.offsetY

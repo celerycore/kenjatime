@@ -681,6 +681,60 @@ paletteFiles['kfm/kfm.air']=encoder.encode(decoder.decode(paletteFiles['kfm/kfm.
 `).join(''));
 writeFileSync('test-output/kotlin-kfm-palette.zip',zipSync(paletteFiles));
 
+const remapFiles = Object.fromEntries(raw);
+remapFiles['kfm/kfm.air'] = paletteFiles['kfm/kfm.air'];
+remapFiles['kfm/kfm.cns'] = encoder.encode(`[Statedef 0]
+type = S
+physics = N
+anim = 731
+[State 0, phase]
+type = SprPriority
+trigger1 = 1
+value = floor(Time / 60)
+[State 0, specific]
+type = RemapPal
+triggerall = ID = 1
+trigger1 = Time = 60
+source = 1,1
+dest = 1,2
+[State 0, wildcard]
+type = RemapPal
+triggerall = ID = 1
+trigger1 = Time = 120
+dest = 1,3
+[State 0, effect after remap]
+type = PalFX
+triggerall = ID = 1
+trigger1 = Time = 120
+time = 60
+add = 15,20,0
+[State 0, restore authored palette]
+type = RemapPal
+triggerall = ID = 1
+trigger1 = Time = 180
+source = 1,1
+[State 0, clear]
+type = RemapPal
+triggerall = ID = 1
+trigger1 = Time = 240
+` + [0, 1].map(own => `[State 0, helper]
+type = Helper
+triggerall = ID = 1
+trigger1 = Time = 0
+stateno = ${700 + own}
+ownpal = ${own}
+pos = ${own ? 200 : -150},-100
+`).join('') + `[Statedef 700]
+type = S
+physics = N
+anim = 732
+[Statedef 701]
+type = S
+physics = N
+anim = 733
+`);
+writeFileSync('test-output/kotlin-kfm-remappal.zip', zipSync(remapFiles));
+
 const afterimageFiles=Object.fromEntries(raw);
 const trailPhase=(phase,trans='none',duration=-1)=>`[State 0, trail phase ${phase}]
 type=AfterImage

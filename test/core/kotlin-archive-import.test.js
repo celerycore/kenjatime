@@ -3,6 +3,24 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {packageFiles,sff} from "../../src/formats.js";
 import {joinImportedResources,availableKotlinFighters} from "../../src/kotlin/archive-import.js";
+import {paletteCatalog} from "../../src/kotlin/sprite-palette.js";
+
+test("palette metadata respects linked SFF v2 palettes and excludes true-color and cyclic sprites",()=>{
+ const palettes=[
+   {group:1,number:1,colors:256},
+   {group:1,number:2,colors:32},
+ ];
+ const sprites=[
+   {group:0,number:0,length:12,format:2,depth:8,palette:0},
+   {group:0,number:1,length:0,link:0,palette:1},
+   {group:0,number:2,length:32,format:12,depth:32,palette:1},
+   {group:0,number:3,length:0,link:2,palette:0},
+   {group:0,number:4,length:0,link:4,palette:0},
+ ];
+ assert.deepEqual(paletteCatalog({version:2,palettes,sprites}),{
+   palettes:"1,1,8;1,2,5",sprites:"0,0,1,1;0,1,1,2",
+ });
+});
 
 const kfm=packageFiles(new Uint8Array(readFileSync("public/kfm.zip")));
 test("bundled KFM has a complete playable SFF/AIR/CNS source",()=>{

@@ -627,6 +627,7 @@ class FightingCharacter(
             "assertinput" -> CoreAssertedInputs.execute(this,c,errors)
             "trans" -> CoreTransparency.execute(this,c,errors)
             "palfx", "allpalfx", "bgpalfx" -> world?.palettes?.execute(this,c,errors)
+            "remappal" -> world?.paletteBanks?.execute(this, c, errors)
             "afterimage", "afterimagetime" -> CoreAfterImages.execute(this,c,errors)
             "displaytoclipboard", "appendtoclipboard", "clearclipboard" -> CoreClipboard.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
@@ -1180,6 +1181,7 @@ data class CorePresentationEvent(
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     internal val environment=CoreEnvironmentEffects()
     internal val palettes=CoreFightPalettes(this)
+    internal val paletteBanks = CoreFightPaletteBanks(this)
     internal val reversals=CoreReversals(this)
     internal val sounds=CoreSounds(this)
     var hitPowerRules=HitPowerRules.DEFAULT
