@@ -15,6 +15,7 @@
     "playerpush",
     "screenbound",
     "assertinput",
+    "trans",
     "width",
     "sprpriority",
     "angleset",
@@ -85,6 +86,7 @@
     "stopsnd"
   ],
   "knownIncomplete": [
+    "Trans resolves default/none/add/addalpha/add1/sub and 0..256 alpha pairs into per-tick actor blend descriptors, including MUGEN 1.1 hitpause reset; AIR A/A1/S/ASnDm applies to fighters/helpers/projectiles/Explods; Canvas paints weighted additive and clamped subtractive RGB with cached alpha masks; partial-alpha/rotated-edge native parity, WinMUGEN pause exceptions, extended AIR metadata, CNS Explod transparency parameters and full palette/color effects remain incomplete or unverified",
     "AssertInput queues actor-local U/D/L/R/F/B and abcxyzs bits for the next input sample; keyctrl helpers receive their real root's raw physical input and command definitions while assertions stay local; input remapping, configurable SOCD resolution, extra IKEMEN buttons, redirectid, full input/pause scheduler phases and native timing parity remain incomplete or unverified",
     "ScreenBound controls configured horizontal arena constraints and per-axis camera eligibility for roots and opted-in helpers; assertions survive hitpause and reset on the next active tick; untracked axes hold position and no tracked actors freeze zoom; native viewport margins, stage-version exceptions, camera tension/zoom phases, team modes and exact native frame parity remain incomplete or unverified",
     "EnvShake, EnvColor, HitDef/Projectile impact shake and one-shot FallEnvShake use per-fight visual clocks; fall.envshake fields retain captured canonical amplitude across state banks; automatic common-state landing execution, extended shake parameters, complete stage foreground/motif layers, global pause and native frame parity remain incomplete or unverified",
@@ -131,7 +133,7 @@
     "HitDef/Projectile capture fall.recover and fall.recovertime; a bounded actor-owned unpaused fall clock drives CanRecover and HitFall for authored recovery, with scalar mixed-bank units and fresh-contact reset; automatic recovery and native guard/pause/reset phases remain incomplete or unverified",
     "HitVelSet/HitFallSet/HitFallVel/HitFallDamage use captured reaction data for MoveType H actors, with sparse axes, authored fall velocities, explicit fall gating and one-shot pending fall damage; native facing/phase quirks, complete hit-data reset, automatic landing damage, automatic recovery and common-state bouncing remain incomplete or unverified",
     "HitDef/Projectile p1stateno follows successful unguarded contacts in its captured state bank; deterministic trade/KO precedence and first-valid-follow-up ordering have synthetic coverage, not native contact-phase certification",
-    "Explod supports active-state coordinate conversion; common F animations, viewport postypes, palette/blend/rotation and advanced pause parameters are diagnosed as unsupported",
+    "Explod supports active-state coordinate conversion and AIR frame blending; common F animations, viewport postypes, CNS palette/blend/rotation and advanced pause parameters are diagnosed as unsupported",
     "Pause/superpause, complete effects, sound/video, AI decisions",
     "Original character timing parity and performance on physical mobile hardware",
     "Playback of queued PlaySnd/StopSnd events remains browser-adapter responsibility",

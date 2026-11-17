@@ -69,6 +69,7 @@ object CorePresentationPlanner {
                  definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null) {
             if(fight.environment.color?.under == false && effect?.config?.onTop != true)return
             val frame = action?.frame
+            val blend=actor?.drawBlend ?: frame?.blend ?: SpriteBlend.NORMAL
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
             val effectScaleX=effect?.config?.scaleX ?: 1.0
@@ -133,6 +134,7 @@ object CorePresentationPlanner {
             if(effect != null)json.append(",\"effectId\":").append(effect.id)
                 .append(",\"effectSequence\":").append(effect.sequence)
             json
+                .append(",\"blend\":").append(blend.json())
                 .append("},")
         }
         data class PlannedDraw(val priority: Long,val order: Int,val append: () -> Unit)

@@ -127,6 +127,10 @@ data class FighterDefinition(
         require(attack in 0..100000) { "Invalid character base attack" }
     }
     val coordinates=MugenCoordinates(localCoordWidth)
+    internal val airIssues: Set<String> = buildSet {
+        for((number,action) in animations)for(frame in action.frames)if(frame.blend == null && size<128)
+            add("Unsupported AIR transparency in action $number: ${frame.transparency.take(100)}")
+    }
     /** Rounded compatibility scale accessors. Collision geometry converts
      * whole coordinates through coordinates.box to retain rational precision. */
     val collisionScaleX: Int
@@ -307,6 +311,7 @@ class FightingCharacter(
     internal var drawScaleY = 1.0
     internal var drawOffsetX = 0
     internal var drawOffsetY = 0
+    internal var drawBlend: SpriteBlend? = null
     /** Own Size offsets follow facing; Offset controller axes stay world-aligned. */
     internal val displayOffsetX: Long get() = definition.coordinates.fixedToWorld(definition.drawOffsetX).toLong()*
         (if(facingRight)1 else -1)+drawOffsetX
@@ -490,7 +495,7 @@ class FightingCharacter(
     private var evaluationIssues: MutableSet<String> = initializationIssues
     var animation: AirAnimationPlayer? = null
         private set
-    init { initializationIssues.addAll(definition.initialMapIssues);changeState(0) }
+    init { initializationIssues.addAll(definition.initialMapIssues);initializationIssues.addAll(definition.airIssues);changeState(0) }
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
                     controlOverride: Boolean? = null,
                     errors: MutableSet<String> = world?.issues ?: evaluationIssues) {
@@ -583,6 +588,7 @@ class FightingCharacter(
             "fallenvshake" -> CoreFallEnvShake.execute(this,c,errors)
             "screenbound" -> CoreScreenBounds.execute(this,c,errors)
             "assertinput" -> CoreAssertedInputs.execute(this,c,errors)
+            "trans" -> CoreTransparency.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -986,6 +992,7 @@ class FightingCharacter(
         positionFrozen=false
         angleDrawEnabled=false;drawScaleX=1.0;drawScaleY=1.0
         drawOffsetX=0;drawOffsetY=0
+        drawBlend=null
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0

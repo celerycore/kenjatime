@@ -7,6 +7,7 @@ import {archiveAccept} from "../uploads.js";
 import {ArchiveLibrary} from "../mobile-library.js";
 import {collectBenchmarkDeviceInfo,describeBenchmarkDevice} from "../core/benchmark-device.js";
 import {findBenchmarkFighters} from "../core/benchmark-roster.js";
+import {paintBlendedSprite} from "./sprite-blend.js";
 
 /** Browser/Capacitor adapter only: input, archive IO, sprite decoding, display.
  * Simulation and deterministic CPU behavior are compiled Kotlin/WASM.
@@ -26,6 +27,7 @@ let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplod
 let lastExplodPaint=null,lastProjectilePaint=null;
 let lastSpritePaintOrder=null,lastActorTransformPaint=null;
 let lastEnvironmentPaint=null;
+let lastPaintedRenderPlan=null;
 const debugWarning=new Set();
 const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
@@ -173,6 +175,18 @@ function spriteImage(item,group,number){
     return null;
   }
 }
+function whiteSpriteMask(item,img){
+  if(img.whiteMask)return img.whiteMask;
+  const mask=document.createElement("canvas");mask.width=img.w;mask.height=img.h;
+  const mc=mask.getContext("2d");mc.drawImage(img.image,0,0);
+  mc.globalCompositeOperation="source-in";mc.fillStyle="#fff";mc.fillRect(0,0,img.w,img.h);
+  const bytes=img.w*img.h*4,limit=32*MB;
+  while(item.decodedBytes+bytes>limit&&item.imageCache.size){
+    const oldest=item.imageCache.keys().next().value;
+    item.decodedBytes-=item.imageCache.get(oldest).bytes;item.imageCache.delete(oldest);
+  }
+  img.bytes+=bytes;item.decodedBytes+=bytes;img.whiteMask=mask;return mask;
+}
 function render(){
   requestAnimationFrame(render);
   const now=performance.now();
@@ -242,8 +256,9 @@ function render(){
           scaleY:transform.d/scale,plannedScaleX:sx,plannedScaleY:sy,
           facing:fighter.facing,flipX:fighter.flipX||1,flipY:fighter.flipY||1});
       }
-      ctx.drawImage(img.image,-img.x,-img.y);
-      paintedDraws.push(Object.freeze({side:fighter.side,kind:fighter.kind,priority:fighter.sprpriority??0}));
+      const blendPasses=paintBlendedSprite(ctx,img.image,-img.x,-img.y,fighter.blend,()=>whiteSpriteMask(item,img));
+      paintedDraws.push(Object.freeze({side:fighter.side,kind:fighter.kind,priority:fighter.sprpriority??0,
+        blend:fighter.blend,blendPasses}));
       ctx.restore();
       paintedSpriteCount++;
       if(fighter.kind==="explod"&&sx!==0&&sy!==0)paintedExplodCount++;
@@ -260,6 +275,7 @@ function render(){
   lastSpritePaintOrder=Object.freeze({frame:latest.frame,draws:Object.freeze(paintedDraws)});
   lastEnvironmentPaint=Object.freeze({frame:latest.frame,stageOffsetY:latest.stageOffsetY??0,
     color:environmentColor?Object.freeze({...environmentColor}):null});
+  lastPaintedRenderPlan=latest;
   const life=latest.health||[0,0]; // correct authored maxLife from Kotlin
   ctx.fillStyle="#0b1521";ctx.fillRect(22,20,382,31);ctx.fillRect(556,20,382,31);
   ctx.fillStyle="#95d78f";ctx.fillRect(25,23,life[0],25);
@@ -471,6 +487,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get sources(){return [...installedTables.values()].map(x=>x.name)},
   get lastVisualFrame(){return latest?.frame??0},
   get renderPlan(){return latest},
+  get paintedRenderPlan(){return lastPaintedRenderPlan},
   get warning(){return images.find(x=>x?.warning)?.warning||""}
 });
 async function initialize(){

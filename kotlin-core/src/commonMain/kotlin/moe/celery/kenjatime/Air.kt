@@ -13,8 +13,11 @@ data class MugenRect(val x1: Int, val y1: Int, val x2: Int, val y2: Int) {
 data class AirBox(val attack: Boolean, val rect: MugenRect)
 data class AirFrame(
     val group: Int, val sprite: Int, val offsetX: Int, val offsetY: Int,
-    val duration: Int, val flip: String = "", val boxes: List<AirBox> = emptyList()
-)
+    val duration: Int, val flip: String = "", val boxes: List<AirBox> = emptyList(),
+    val transparency: String = ""
+) {
+    internal val blend=CoreTransparency.air(transparency)
+}
 data class AirAction(val number: Int, val frames: List<AirFrame>, val loopIndex: Int? = null) {
     // Shared by all actors using this immutable action. Trigger reads never
     // rebuild cumulative frame durations or walk an action from its start.
@@ -161,7 +164,8 @@ object MugenAirParser {
             if (numbers.any { it == null }) continue
             frames.add(AirFrame(numbers[0]!!, numbers[1]!!, numbers[2]!!,
                 numbers[3]!!, numbers[4]!!,
-                values.getOrNull(5) ?: "", if (usePending) default.filterNot { it.attack in overridden } + pending else default.toList()))
+                values.getOrNull(5) ?: "", if (usePending) default.filterNot { it.attack in overridden } + pending else default.toList(),
+                values.getOrNull(6) ?: ""))
             pending.clear()
             overridden.clear()
             usePending = false

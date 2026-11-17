@@ -1,6 +1,7 @@
 import {readFileSync,mkdirSync,writeFileSync} from "node:fs";
 import {unzipSync,zipSync} from "fflate";
 import {rar4} from "../../test/fixtures/rar-fixtures.js";
+import {sff} from "../../src/formats.js";
 
 const all=unzipSync(new Uint8Array(readFileSync("public/kfm.zip")));
 const raw=Object.entries(all).filter(([path])=>!path.endsWith("/"));
@@ -531,6 +532,51 @@ inputFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(inputFiles["kfm/kfm.air"
 0,2,0,-300,-1
 `);
 writeFileSync("test-output/kotlin-kfm-assert-input.zip",zipSync(inputFiles));
+
+const blendFiles=Object.fromEntries(raw);
+const blendModes=[['none'],['add'],['addalpha'],['add1'],['add','128,128'],['sub'],['default'],null,['add','0,256'],['add','0,0']];
+blendFiles['kfm/kfm.cns']=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=728
+ctrl=0
+[State 0, flat pixel reference]
+type=EnvColor
+trigger1=1
+value=40,70,120
+under=1
+time=1
+[State 0, phase]
+type=SprPriority
+trigger1=1
+value=floor((Time%400)/40)-5
+`+blendModes.map((spec,index)=>spec?`[State 0, blend ${index}]
+type=Trans
+trigger1=floor((Time%400)/40)=${index}
+trans=${spec[0]}
+${spec[1]?`alpha=${spec[1]}`:''}
+`:'').join(''));
+blendFiles['kfm/kfm.air']=encoder.encode(decoder.decode(blendFiles['kfm/kfm.air'])+`
+[Begin Action 728]
+0,0,0,-300,-1,,AS64D192
+`);
+writeFileSync('test-output/kotlin-kfm-trans.zip',zipSync(blendFiles));
+const blendBank=sff(all['kfm/kfm.sff']);
+const blendSprite=blendBank.decodeWithPalette(blendBank.sprites.findIndex(s=>s.group===0&&s.number===0),1,1);
+const blendSamples=[],seenColors=new Set();
+for(let y=2;y<blendSprite.h-2;y++)for(let x=2;x<blendSprite.w-2;x++){
+  const offset=(y*blendSprite.w+x)*4,color=[...blendSprite.rgba.slice(offset,offset+4)],key=color.join(',');
+  if(seenColors.has(key))continue;
+  let uniform=true;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+    const p=((y+dy)*blendSprite.w+x+dx)*4;
+    if(color.some((c,i)=>blendSprite.rgba[p+i]!==c))uniform=false;
+  }
+  if(!uniform)continue;
+  seenColors.add(key);blendSamples.push({x,y,rgba:color});
+}
+if(!blendSamples.some(s=>s.rgba[3]===0)||blendSamples.filter(s=>s.rgba[3]===255).length<2)throw Error('KFM blend fixture needs transparent and distinct opaque interior pixels');
+writeFileSync('test-output/kotlin-trans-samples.json',JSON.stringify({axisX:blendSprite.x,axisY:blendSprite.y,samples:blendSamples}));
 
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);

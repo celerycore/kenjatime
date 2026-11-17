@@ -4228,6 +4228,76 @@ try {
 } finally {api.ktCoreRelease(assertedBank);}
 console.log('Native Wasm AssertInput / 48 coordinate-facing-side-press-hold-motion-physical sequences / six nested-helper routing sequences / borrowed bank and SelfState / isolated queues and pure reads: OK (synthetic)');
 
+const weightedAir=air.replace(/^(0,0,0,0,-1).*$/m,'$1,,AS32D192');
+for(const width of [320,640,1008])for(const face of [false,true])for(const mode of ['default','none','add','addalpha','add1','sub'])for(const explicit of [false,true]) {
+  const handle=api.ktCoreCreateWithDefinitions('sprite blend','opponent',weightedAir,air,`${motionIdle}
+[State 0, blend]
+type=Trans
+trigger1=Time=0
+trans=${mode}
+${explicit?'alpha=128,64':''}`,motionIdle,'','',`[Info]\nlocalcoord=${width},${width*3/4}`,'');
+  try {
+    api.ktCoreSetup(handle,0,0,100*256,0);api.ktCoreDebugSetFacing(handle,0,face);api.ktCoreAdvance(handle,0,'',0,'');
+    const inherited={mode:'add',source:32,destination:192};
+    const expected=mode==='default'?inherited:mode==='none'?{mode:'normal',source:256,destination:0}:
+      mode==='sub'?{mode:'sub',source:256,destination:256}:{mode:'add',source:explicit?128:256,
+        destination:explicit?64:mode==='addalpha'?0:mode==='add1'?128:256};
+    const snapshot=JSON.parse(api.ktCoreSnapshot(handle,0)),plan=JSON.parse(api.ktCoreRenderPlan(handle,0));
+    assert.deepEqual(plan.draws[0].blend,expected);assert.deepEqual(snapshot.blendOverride,mode==='default'?null:expected);
+    assert.equal(snapshot.x256,0);assert.equal(snapshot.y256,0);assert.equal(snapshot.life,1000);assert.equal(snapshot.power,0);
+    const checksum=api.ktCoreChecksum(handle),before=api.ktCoreSnapshot(handle,0);
+    for(let i=0;i<4;i++)assert.deepEqual(JSON.parse(api.ktCoreRenderPlan(handle,0)),plan);
+    assert.equal(api.ktCoreChecksum(handle),checksum);assert.equal(api.ktCoreSnapshot(handle,0),before);
+    api.ktCoreAdvance(handle,0,'',0,'');assert.equal(JSON.parse(api.ktCoreSnapshot(handle,0)).blendOverride,null);
+    assert.deepEqual(JSON.parse(api.ktCoreRenderPlan(handle,0)).draws[0].blend,inherited);assert.equal(api.ktCoreIssues(handle),'');
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const [flag,expected] of [['',{mode:'normal',source:256,destination:0}],['A',{mode:'add',source:256,destination:256}],
+  ['a1',{mode:'add',source:256,destination:128}],['s',{mode:'sub',source:256,destination:256}],
+  ['AS000D256',{mode:'add',source:0,destination:256}],['AS128D064',{mode:'add',source:128,destination:64}]]) {
+  const handle=api.ktCoreCreate('AIR blend','opponent',air.replace(/^(0,0,0,0,-1).*$/m,`$1,,${flag}`),air,motionIdle,motionIdle);
+  try {assert.deepEqual(JSON.parse(api.ktCoreRenderPlan(handle,0)).draws[0].blend,expected);assert.equal(api.ktCoreIssues(handle),'');}
+  finally {api.ktCoreRelease(handle);}
+}
+const blendEntitiesAir=projectileFacingAir.replace(/^(0,0,0,0,-1).*$/m,'$1,,S').replace(/^(200,0,0,0,-1).*$/m,'$1,,AS32D96');
+const blendEntities=api.ktCoreCreate('isolated blends','opponent',blendEntitiesAir,air,`${motionIdle}
+[State 0, root override]
+type=Trans
+trigger1=1
+trans=none
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+[State 0, projectile]
+type=Projectile
+trigger1=Time=0
+projanim=200
+projremovetime=20
+[State 0, effect]
+type=Explod
+trigger1=Time=0
+anim=200
+removetime=-1
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, helper override]
+type=Trans
+trigger1=1
+trans=addalpha
+alpha=128,128`,motionIdle);
+try {
+  api.ktCoreSetup(blendEntities,0,0,100*256,0);for(let i=0;i<2;i++)api.ktCoreAdvance(blendEntities,0,'',0,'');
+  const draws=JSON.parse(api.ktCoreRenderPlan(blendEntities,0)).draws;
+  assert.deepEqual(draws.find(d=>d.kind==='fighter').blend,{mode:'normal',source:256,destination:0});
+  assert.deepEqual(draws.find(d=>d.kind==='helper').blend,{mode:'add',source:128,destination:128});
+  for(const kind of ['projectile','explod'])assert.deepEqual(draws.find(d=>d.kind===kind).blend,{mode:'add',source:32,destination:96});
+  assert.equal(api.ktCoreIssues(blendEntities),'');
+} finally {api.ktCoreRelease(blendEntities);}
+console.log('Native Wasm Trans / 72 coordinate-facing-mode-alpha sequences / six AIR flag cases / independent helper-projectile-Explod blends / expiry and pure reads: OK (synthetic)');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

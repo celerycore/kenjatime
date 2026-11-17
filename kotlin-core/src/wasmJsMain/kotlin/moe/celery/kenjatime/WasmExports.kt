@@ -132,6 +132,7 @@ private object Fights {
         ",\"spritePriority\":" + p.spritePriority +
         ",\"drawAngleDegrees\":" + p.drawAngleDegrees +
         ",\"angleDraw\":" + p.angleDrawEnabled +
+        ",\"blendOverride\":" + (p.drawBlend?.json() ?: "null") +
         ",\"drawScaleX\":" + p.drawScaleX +
         ",\"drawScaleY\":" + p.drawScaleY +
         ",\"drawOffsetX256\":" + p.drawOffsetX +

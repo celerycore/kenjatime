@@ -1,6 +1,67 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current AssertInput continuation — November 17, 2026
+## Current Trans/AIR transparency continuation — November 17, 2026
+
+Continues published main source `74b097c`. Trans now resolves default, none,
+add, addalpha, add1 and sub into final sprite blend descriptors. Additive modes
+accept two finite integer alpha expressions in 0..256, truncating after range
+validation. Default alpha pairs are 256/256 for add, 256/0 for addalpha and
+256/128 for add1. Sub fixes both alphas at 256; none restores ordinary opaque
+sprite painting. Valid alpha arguments on non-additive modes do not change
+their fixed behavior. Malformed/unknown parameters preserve an earlier valid
+override atomically.
+
+Default clears the controller override and restores the current AIR frame's
+blend. AIR now retains and resolves A, A1, S and ASnDm separately from H/V flip
+and collision boxes. Unsupported AIR transparency is diagnosed during fighter
+initialization with a normal visual fallback. Resolution is cached per immutable
+frame. Animation ownership selects the AIR blend, including ChangeAnim2 and
+borrowed animations retained after a state-bank return. Helpers have independent
+Trans overrides; projectiles and Explods use their own AIR flags without
+inheriting the creator's Trans.
+
+Overrides clear before every actor controller pass, including hitpause, matching
+the MUGEN 1.1 rule. Standard ignorehitpause can reassert on paused ticks;
+persistent gating and same-tick state transitions keep their existing behavior.
+WinMUGEN's exception remains outside this contract. Alpha values are
+dimensionless and use the executing actor's variables without localcoord scaling.
+Rendering/inspection cannot advance animation or clear an override.
+
+Kotlin owns final normal/add/sub descriptors and alpha values for every sprite.
+The opaque Canvas host paints additive RGB as clamp(source*S/256 + dest*D/256)
+inside the sprite mask, preserving transparent regions. Subtractive RGB is
+max(dest-source,0), implemented with masked inversion/addition/inversion.
+Subtraction lazily caches white alpha masks under the existing 32 MiB sprite
+cache budget. Context state is restored after every paint. No pixel readback is
+used by production rendering, and collision geometry, simulation checksums,
+movement, health and power remain independent of visibility/blending.
+
+Validation:
+
+- 1125 JVM and 1120 compiled-Wasm tests pass, including 29 new cases for AIR
+  parsing/defaults/fallback, every Trans mode and alpha endpoint, expressions,
+  atomic errors, expiry, pause, persistent gating, borrowed banks/animations,
+  helper/effect isolation, fully transparent attacks and pure reads.
+- Exported Wasm checks 72 coordinate/facing/mode/alpha sequences, six AIR flag
+  cases and independent fighter/helper/projectile/Explod blend descriptors.
+- All 16 adapter/import/download tests and production Chromium checks pass.
+  An independent 36-case RGB matrix checks the actual host painter, transparent
+  holes, untouched pixels, mirroring and context restoration. Imported public
+  KFM art verifies ten timed CNS/AIR modes against decoded source pixel colors
+  and a known backdrop, including saturation, subtraction, AIR restoration,
+  expiry, invisible sprites and zero/zero alpha. Prior browser checks still pass.
+- Two 600-tick KFM replays retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, matching physical checksums and power ending 485/415.
+
+Measured controller-name coverage is 78 of 97 in the live legacy JavaScript
+registry (80.4%), up from 77 of 97 (79.4%); 19 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 72 of 89 (80.9%). Overall rewrite completion
+remains unmeasured: full parameters, expressions, physics, effects, AI, teams,
+physical-phone performance and native behavior parity still need work. Partial
+alpha/rotated-edge native parity, extended AIR metadata, CNS Explod transparency
+parameters and palette effects are not certified by these blend checks.
+
+## Previous AssertInput continuation — November 17, 2026
 
 Continues published main source `4294fee`. AssertInput now queues actor-local
 input for the next simulation input sample. It supports flag/flag2/flag3,

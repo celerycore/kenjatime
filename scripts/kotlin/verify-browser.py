@@ -1,7 +1,7 @@
 """Verify actual Kotlin/Wasm-combat browser UI, not a JavaScript fallback."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import csv, io, functools, http.server, shutil, threading, json, math
+import csv, io, functools, http.server, shutil, threading, json, math, base64
 
 ROOT=Path(__file__).resolve().parents[2]
 class Quiet(http.server.SimpleHTTPRequestHandler):
@@ -416,6 +416,89 @@ try:
         assert not input_errors,input_errors
         result["assertInputCommandAndHelperCanvas"]="passed"
         input_page.close()
+
+        # Independent RGB equations exercise the real host painter, including
+        # transparent holes, untouched pixels, mirroring and context restoration.
+        blend_source=base64.b64encode((ROOT/"src/kotlin/sprite-blend.js").read_bytes()).decode()
+        pixel_matrix=page.evaluate("""async module=>{
+          const {paintBlendedSprite}=await import(module),s=document.createElement('canvas');s.width=3;s.height=1;
+          const sc=s.getContext('2d');sc.putImageData(new ImageData(new Uint8ClampedArray([100,30,50,255,200,80,80,255,0,0,0,0]),3,1),0,0);
+          const mask=document.createElement('canvas');mask.width=3;mask.height=1;
+          const mc=mask.getContext('2d');mc.drawImage(s,0,0);mc.globalCompositeOperation='source-in';mc.fillStyle='#fff';mc.fillRect(0,0,3,1);
+          const modes=[{mode:'normal',source:256,destination:0},{mode:'sub',source:256,destination:256}];
+          for(const source of [0,64,128,256])for(const destination of [0,64,128,256])modes.push({mode:'add',source,destination});
+          const rows=[];
+          for(const mode of modes)for(const mirror of [false,true]){
+            const c=document.createElement('canvas');c.width=4;c.height=1;const x=c.getContext('2d',{alpha:false});
+            x.fillStyle='rgb(40,70,120)';x.fillRect(0,0,4,1);x.globalAlpha=.5;
+            if(mirror){x.translate(4,0);x.scale(-1,1)}
+            paintBlendedSprite(x,s,0,0,mode,()=>mask);
+            rows.push({mode,mirror,pixels:[...x.getImageData(0,0,4,1).data],alpha:x.globalAlpha,composite:x.globalCompositeOperation});
+          }return rows;
+        }""","data:text/javascript;base64,"+blend_source)
+        background=[40,70,120]
+        for row in pixel_matrix:
+            expected=[]
+            for source in [[100,30,50],[200,80,80],None,None]:
+                if source is None:
+                    color=background
+                elif row["mode"]["mode"]=="normal":
+                    color=source
+                elif row["mode"]["mode"]=="sub":
+                    color=[max(d-s,0) for s,d in zip(source,background)]
+                else:
+                    color=[min(255,round(s*row["mode"]["source"]/256+d*row["mode"]["destination"]/256)) for s,d in zip(source,background)]
+                expected.append(color+[255])
+            if row["mirror"]:
+                expected=list(reversed(expected))
+            assert all(abs(a-b)<=1 for a,b in zip(row["pixels"],[v for pixel in expected for v in pixel])),row
+            assert row["alpha"]==.5 and row["composite"]=="source-over",row
+        result["spriteBlendRgbMatrix"]=len(pixel_matrix)
+
+        blend_page=browser.new_page(viewport={"width":1000,"height":780})
+        blend_errors=[]
+        blend_page.on("pageerror",lambda error:blend_errors.append(str(error)))
+        blend_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        blend_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        blend_page.locator("#archive").set_input_files(str(ROOT/"test-output/kotlin-kfm-trans.zip"))
+        blend_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=blend_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        blend_page.locator("#p1-select").select_option(value=installed)
+        blend_page.locator("#cpu").uncheck();blend_page.locator("#start").click()
+        samples=json.loads((ROOT/"test-output/kotlin-trans-samples.json").read_text())
+        modes=[("normal",256,0),("add",256,256),("add",256,0),("add",256,128),("add",128,128),
+               ("sub",256,256),("add",64,192),("add",64,192),("add",0,256),("add",0,0)]
+        for phase,(mode,source_alpha,destination_alpha) in enumerate(modes):
+            observed=blend_page.wait_for_function("""({phase,fixture})=>{
+              const qa=window.__kenjatimeKotlinQA,p=qa?.paintedRenderPlan,paint=qa?.lastActorTransformPaint;
+              if(!p||p.frame<1||!paint||paint.frame!==p.frame||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
+              const actor=p.draws.find(d=>d.kind==='fighter'&&d.side===0);
+              if(actor?.action!==728||actor.sprpriority!==phase-5||p.environment?.color?.red!==40||p.cameraY>-220)return false;
+              const c=document.querySelector('#arena'),x=c.getContext('2d'),scale=c.width/960;
+              const pixels=fixture.samples.map(s=>{
+                const sx=s.x-fixture.axisX+.5,sy=s.y-fixture.axisY+.5;
+                const px=actor.x+actor.transformA*sx+actor.transformC*sy,py=actor.y+actor.transformB*sx+actor.transformD*sy;
+                return [...x.getImageData(Math.floor(px*scale),Math.floor(py*scale),1,1).data];
+              });
+              return {actor,pixels,paint:qa.lastSpritePaintOrder.draws.find(d=>d.kind==='fighter'&&d.side===0)};
+            }""",arg={"phase":phase,"fixture":samples},timeout=30000).json_value()
+            assert observed["actor"]["blend"]=={"mode":mode,"source":source_alpha,"destination":destination_alpha},observed
+            for sample,pixel in zip(samples["samples"],observed["pixels"]):
+                source=sample["rgba"][:3]
+                if sample["rgba"][3]==0:
+                    expected=background
+                elif mode=="normal":
+                    expected=source
+                elif mode=="sub":
+                    expected=[max(d-s,0) for s,d in zip(source,background)]
+                else:
+                    expected=[min(255,round(s*source_alpha/256+d*destination_alpha/256)) for s,d in zip(source,background)]
+                assert all(abs(a-b)<=2 for a,b in zip(pixel,expected+[255])),(phase,sample,pixel,expected,observed)
+            assert observed["paint"]["blendPasses"]==(3 if mode=="sub" else 1 if mode=="normal" else int(destination_alpha<256)+int(source_alpha>0)),observed
+        assert not blend_errors,blend_errors
+        result["transAirAndCnsCanvasPixels"]="passed"
+        blend_page.close()
 
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
