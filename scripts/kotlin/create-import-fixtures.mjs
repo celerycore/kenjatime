@@ -464,6 +464,74 @@ boundsFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(boundsFiles["kfm/kfm.ai
 `);
 writeFileSync("test-output/kotlin-kfm-screen-bound.zip",zipSync(boundsFiles));
 
+const inputFiles=Object.fromEntries(raw);
+inputFiles["kfm/kfm.cmd"]=encoder.encode(`[Command]
+name="pressed"
+command=F+a
+[Command]
+name="held"
+command=/F+a
+[Command]
+name="helper_button"
+command=/b
+`);
+inputFiles["kfm/kfm.cns"]=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=720
+ctrl=0
+[State 0, authored input]
+type=AssertInput
+trigger1=Time%120<60
+flag=F
+flag2=a
+[State 0, remember real press]
+type=VarSet
+trigger1=command="pressed"
+v=0
+value=Time+20
+[State 0, command-driven pose]
+type=ChangeAnim
+trigger1=1
+value=ifelse(command="helper_button",727,ifelse(Time<var(0),721,ifelse(command="held",722,723)))
+[State 0, keyctrl helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+keyctrl=1
+pos=0,-90
+[Statedef 700]
+type=S
+physics=N
+anim=725
+ctrl=0
+[State 700, own input]
+type=AssertInput
+trigger1=1
+flag=b
+[State 700, isolated command-driven pose]
+type=ChangeAnim
+trigger1=1
+value=ifelse(command="held",727,ifelse(command="helper_button",726,725))
+`);
+inputFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(inputFiles["kfm/kfm.air"])+`
+[Begin Action 720]
+0,0,0,-300,-1
+[Begin Action 721]
+0,0,0,-300,-1
+[Begin Action 722]
+0,1,0,-300,-1
+[Begin Action 723]
+0,2,0,-300,-1
+[Begin Action 725]
+0,0,0,-300,-1
+[Begin Action 726]
+0,1,0,-300,-1
+[Begin Action 727]
+0,2,0,-300,-1
+`);
+writeFileSync("test-output/kotlin-kfm-assert-input.zip",zipSync(inputFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

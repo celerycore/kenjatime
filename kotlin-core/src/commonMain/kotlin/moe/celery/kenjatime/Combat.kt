@@ -267,6 +267,7 @@ class FightingCharacter(
     val commands: List<MugenCommand> = emptyList()
 ) {
     val input = InputBuffer()
+    internal var pendingAssertedInput = InputFrame()
     private val commandCache = mutableMapOf<String,Boolean>()
     fun commandActive(name: String): Boolean {
         val normalized = name.lowercase()
@@ -581,6 +582,7 @@ class FightingCharacter(
             "envshake", "envcolor" -> world?.environment?.execute(this,c,errors)
             "fallenvshake" -> CoreFallEnvShake.execute(this,c,errors)
             "screenbound" -> CoreScreenBounds.execute(this,c,errors)
+            "assertinput" -> CoreAssertedInputs.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -1196,13 +1198,13 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         if (sequence?.finished == true) { frame++; return }
         environment.beginTick()
         val allowCombat = sequence == null || sequence.active
-        p1.input.update(if (allowCombat) a else InputFrame())
-        p2.input.update(if (allowCombat) b else InputFrame())
+        CoreAssertedInputs.sample(p1,a,allowCombat)
+        CoreAssertedInputs.sample(p2,b,allowCombat)
         val p1Frozen = p1.hitPauseLeft > 0
         val p2Frozen = p2.hitPauseLeft > 0
         p1.tick(issues)
         p2.tick(issues)
-        if (allowCombat) entities.advanceHelpers(issues)
+        if (allowCombat) entities.advanceHelpers(issues,a,b) else entities.clearHelperInputs()
         arena?.step(p1,p2,p1Frozen,p2Frozen,if(allowCombat)entities.helpers else emptyList())
         CoreBindings.resolve(p1,p2,if(allowCombat) entities.helpers else emptyList())
         camera?.update(p1,p2,if(allowCombat)entities.helpers else emptyList())

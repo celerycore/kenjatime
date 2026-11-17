@@ -1,6 +1,65 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current ScreenBound continuation — November 17, 2026
+## Current AssertInput continuation — November 17, 2026
+
+Continues published main source `4294fee`. AssertInput now queues actor-local
+input for the next simulation input sample. It supports flag/flag2/flag3,
+literal U/D/L/R/F/B directions and a/b/c/x/y/z/s buttons, with quoted lists,
+plus/pipe/comma/whitespace separators and the documented literal aliases in
+AssertedInputs.kt. Multiple valid requests union their bits. Entire requests
+validate before changing the queue; unsupported keys/flags, empty flags and
+malformed quotes preserve earlier queued input.
+
+Forward/back resolve to physical left/right at controller execution, using the
+executing actor's facing. Later facing or state-bank changes do not reinterpret
+those captured bits. Queued inputs merge with the next raw physical sample and
+are consumed once, including in hitpause. They never change current-tick command
+results or invalidate the command cache during a controller pass. Normal
+persistent/ignorehitpause gating governs new requests. Continuous assertions
+produce a press, held samples and a release through Kotlin's existing command
+buffer, including multi-sample motion commands and guarding.
+
+Input sampling now routes raw physical input to keyctrl helpers from their real
+root. Helpers retain independent buffers and assertion queues: a root assertion
+does not become a helper's physical input. Nested keyctrl helpers use root CMD
+definitions even when their immediate parent has keyctrl disabled. Non-keyctrl
+helpers receive no physical input and retain no command definitions, but their
+own asserted bits can still be sampled. Destroyed helpers do not sample inputs.
+Inactive round phases discard root queues and clear helper buffers/queues;
+intro/KO controller requests cannot leak into later active combat.
+
+ktCoreInputs provides on-demand sampled and pending direction/button bitmasks
+for roots/helpers, including real-root IDs. Button mask bits 0..6 represent
+abcxyzs. Inspection and rendering never consume queues or resample inputs.
+No browser-side command or input simulation is added.
+
+This subset retains opposite direction bits like existing physical samples.
+Configurable SOCD resolution, input remapping, extra IKEMEN buttons, redirectid,
+complete pause/input scheduler phases and native timing parity remain open.
+AssertInput is an IKEMEN extension, outside the Elecbyte 1.1 controller list.
+
+Validation:
+
+- 1096 JVM and 1091 compiled-Wasm tests pass, including 33 new cases for queued
+  delivery, press/hold/release, motion commands, physical merging, facing,
+  invalid atomic requests, command caching, hitpause, state transitions,
+  helper/nested-helper isolation, round gating, guarding and pure reads.
+- Exported Wasm checks 48 coordinate/facing/side/input sequences, six nested
+  helper routing sequences and borrowed-bank assertion followed by SelfState.
+- All 16 adapter/import/download tests and production Chromium checks pass.
+  Imported public KFM art with synthetic CNS/CMD verifies command-driven press,
+  hold and release sprite poses plus simultaneous independent helper input,
+  actual Canvas transforms and painted helper sprites. Earlier scenarios pass.
+- Two 600-tick KFM replays retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, matching physical checksums and power ending 485/415.
+
+Measured controller-name coverage is 77 of 97 in the live legacy JavaScript
+registry (79.4%), up from 76 of 97 (78.4%); 20 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap remains 71 of 89 (79.8%). Overall rewrite
+completion remains unmeasured: full parameters, expressions, physics, effects,
+AI, teams, physical-phone performance and native behavior parity still need work.
+
+## Previous ScreenBound continuation — November 17, 2026
 
 Continues published main source `9bdf2a2`. ScreenBound now controls configured
 horizontal arena constraints and independent X/Y camera eligibility. Omitted

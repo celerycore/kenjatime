@@ -4111,6 +4111,123 @@ trigger1=1`,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
 }
 console.log("Native Wasm ScreenBound / 48 coordinate-facing-bound-camera-axis sequences / three helper opt-in and expiry sequences / canonical edge clamps and frozen camera / pure reads: OK (synthetic)");
 
+const assertedCommands=[['poke','a'],['held','/a'],['release','~a'],['motion','D,DF,F,a'],['held_c','/c'],['held_x','/x']]
+  .map(([name,command])=>`[Command]\nname="${name}"\ncommand=${command}`).join('\n');
+for(const width of [320,640,1008])for(const face of [false,true])for(const side of [0,1])for(const mode of ['press','hold','motion','mix']) {
+  const requests=mode==='motion'?[['D','Time=0'],['D+F','Time=1'],['F+a','Time=2']]:
+    [[mode==='mix'?'F':mode==='hold'?'F+a':'a',mode==='hold'?'Time<3':'Time=0']];
+  const script=`${motionIdle}\n`+requests.map(([flag,trigger])=>`[State 0, assert]\ntype=AssertInput\ntrigger1=${trigger}\nflag=${flag}`).join('\n')+
+    '\n'+['poke','held','release','motion'].map((name,index)=>`[State 0, count]\ntype=VarAdd\ntrigger1=command="${name}"\nv=${index}\nvalue=1`).join('\n')+
+    '\n[State 0, encode command counts]\ntype=LifeSet\ntrigger1=1\nvalue=1000-var(0)*100-var(1)*10-var(2)-var(3)*400';
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('asserted first','asserted second',air,air,
+    side===0?script:motionIdle,side===1?script:motionIdle,assertedCommands,assertedCommands,side===0?def:'',side===1?def:'');
+  try {
+    api.ktCoreSetup(handle,-100*256,0,100*256,0);api.ktCoreDebugSetFacing(handle,side,face);
+    const forward=face?8:4;
+    const samples=mode==='motion'?[[0,0,2,0],[2,0,2|forward,0],[2|forward,0,forward,1],[forward,1,0,0],[0,0,0,0],[0,0,0,0]]:
+      mode==='hold'?[[0,0,forward,1],[forward,1,forward,1],[forward,1,forward,1],[forward,1,0,0],[0,0,0,0],[0,0,0,0]]:
+      mode==='mix'?[[0,0,forward,0],[forward,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]:
+      [[0,0,0,1],[0,1,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+    for(let tick=0;tick<samples.length;tick++) {
+      const physical=mode==='mix'&&tick===1?'a':'';
+      api.ktCoreAdvance(handle,side===0?0:1,side===0?physical:'b',side===1?0:1,side===1?physical:'b');
+      const inputs=JSON.parse(api.ktCoreInputs(handle)),current=inputs[side],other=inputs[1-side];
+      assert.deepEqual([current.directions,current.buttons,current.pendingDirections,current.pendingButtons],samples[tick]);
+      assert.equal(current.rootId,side+1);assert.equal(other.directions,1);assert.equal(other.buttons,2);assert.equal(other.pendingButtons,0);
+      if(tick===0)assert.equal(JSON.parse(api.ktCoreSnapshot(handle,side)).life,1000);
+      const before=api.ktCoreInputs(handle),checksum=api.ktCoreChecksum(handle);
+      for(let i=0;i<3;i++){assert.equal(api.ktCoreInputs(handle),before);api.ktCoreRenderPlan(handle,12);}
+      assert.equal(api.ktCoreChecksum(handle),checksum);
+    }
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle,side)).life,mode==='hold'?869:mode==='motion'?489:889);
+    assert.equal(api.ktCoreIssues(handle),'');
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008])for(const side of [0,1]) {
+  const script=`${motionIdle}
+[State 0, root assertion]
+type=AssertInput
+trigger1=1
+flag=a
+[State 0, non-keyctrl parent]
+type=Helper
+trigger1=Time=0
+stateno=700
+keyctrl=0
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, own assertion]
+type=AssertInput
+trigger1=1
+flag=b
+[State 700, nested keyctrl helper]
+type=Helper
+trigger1=Time=0
+stateno=701
+keyctrl=1
+[Statedef 701]
+type=S
+physics=N
+anim=0
+[State 701, own assertion]
+type=AssertInput
+trigger1=1
+flag=c
+[State 701, root command definitions and isolated input]
+type=LifeSet
+trigger1=1
+value=ifelse(command="held_c" && command="held_x" && command="held"=0,777,666)`;
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('input root','input rival',air,air,side===0?script:motionIdle,
+    side===1?script:motionIdle,assertedCommands,assertedCommands,side===0?def:'',side===1?def:'');
+  try {
+    api.ktCoreSetup(handle,-100*256,0,100*256,0);
+    for(let i=0;i<4;i++)api.ktCoreAdvance(handle,0,side===0?'x':'y',0,side===1?'x':'y');
+    const inputs=JSON.parse(api.ktCoreInputs(handle));assert.equal(inputs.length,4);
+    assert.equal(inputs[side].buttons,9);assert.equal(inputs[2].buttons,2);assert.equal(inputs[3].buttons,12);
+    assert.equal(inputs[2].rootId,side+1);assert.equal(inputs[3].rootId,side+1);
+    const plan=JSON.parse(api.ktCoreRenderPlan(handle,0));assert.equal(plan.draws.filter(d=>d.kind==='helper').at(-1).life,777);
+    assert.equal(api.ktCoreIssues(handle),'');
+  } finally {api.ktCoreRelease(handle);}
+}
+const assertedBank=api.ktCoreCreateWithDefinitions('assertion bank','own commands',projectileFacingAir,air,
+`${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+p2stateno=700
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, queue for executing actor]
+type=AssertInput
+trigger1=Time=0
+flag=F+a
+[State 700, return]
+type=SelfState
+trigger1=Time=0
+value=0`,`${motionIdle}
+[State 0, consume own command]
+type=LifeSet
+trigger1=command="own"
+value=888`,"",'[Command]\nname="own"\ncommand=F+a','[Info]\nlocalcoord=1008,756','');
+try {
+  api.ktCoreSetup(assertedBank,0,0,4*256,0);api.ktCoreDebugForceState(assertedBank,0,200);
+  for(let i=0;i<3;i++)api.ktCoreAdvance(assertedBank,0,'',0,'');
+  assert.equal(JSON.parse(api.ktCoreSnapshot(assertedBank,1)).life,888);
+  assert.equal(JSON.parse(api.ktCoreSnapshot(assertedBank,1)).stateOwner,2);
+  assert.equal(JSON.parse(api.ktCoreInputs(assertedBank))[0].buttons,0);assert.equal(api.ktCoreIssues(assertedBank),'');
+} finally {api.ktCoreRelease(assertedBank);}
+console.log('Native Wasm AssertInput / 48 coordinate-facing-side-press-hold-motion-physical sequences / six nested-helper routing sequences / borrowed bank and SelfState / isolated queues and pure reads: OK (synthetic)');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

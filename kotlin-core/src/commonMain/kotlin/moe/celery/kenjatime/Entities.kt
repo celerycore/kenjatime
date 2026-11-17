@@ -145,7 +145,7 @@ class CoreEntities(private val match: DeterministicFight) {
                     continue
                 }
                 val owner = request.owner
-                val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.commands else emptyList())
+                val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.rootActor().commands else emptyList())
                 actor.parent = owner
                 actor.world = match
                 actor.posX = owner.posX + request.offsetX * if (owner.facingRight) 1 else -1
@@ -195,10 +195,19 @@ class CoreEntities(private val match: DeterministicFight) {
             }
         }
     }
-    fun advanceHelpers(errors: MutableSet<String>) {
+    fun clearHelperInputs() {
+        for(helper in helpers) {
+            helper.actor.pendingAssertedInput=InputFrame()
+            helper.actor.input.clear()
+        }
+    }
+    fun advanceHelpers(errors: MutableSet<String>,p1Input: InputFrame=InputFrame(),p2Input: InputFrame=InputFrame()) {
         pendingRequests.clear()
         for (helper in helpers.toList()) {
             if (helper.actor.destroyed) continue
+            val physical=if(!helper.keyControl)InputFrame() else if(helper.actor.rootActor() === match.p1)p1Input else p2Input
+            helper.actor.roundState=match.p1.roundState
+            CoreAssertedInputs.sample(helper.actor,physical)
             helper.actor.tick(errors)
             if (!helper.actor.destroyed) pendingRequests.addAll(helper.actor.flushEntityRequests())
         }

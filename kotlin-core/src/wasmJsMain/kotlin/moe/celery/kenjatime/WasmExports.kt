@@ -255,6 +255,17 @@ private object Fights {
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
 @JsExport fun ktCoreEnvironment(handle: Int): String = Fights.get(handle).environment.json()
+/** On-demand actor-local sampled and queued input bitmasks; buttons are abcxyzs bits 0..6. */
+@JsExport fun ktCoreInputs(handle: Int): String {
+    val fight=Fights.get(handle)
+    return (listOf(fight.p1,fight.p2)+fight.entities.helpers.map { it.actor }).joinToString(
+        prefix="[",postfix="]",separator=",") {
+        val input=it.input.latest() ?: InputFrame();val pending=it.pendingAssertedInput
+        "{\"id\":${it.id},\"rootId\":${it.rootActor().id},\"directions\":${input.directions},"+
+            "\"buttons\":${CoreAssertedInputs.buttonsMask(input)},\"pendingDirections\":${pending.directions},"+
+            "\"pendingButtons\":${CoreAssertedInputs.buttonsMask(pending)}}"
+    }
+}
 /** On-demand inspection keeps potentially large maps out of per-frame snapshots. */
 @JsExport fun ktCoreNamedMaps(handle: Int): String {
     val fight=Fights.get(handle)

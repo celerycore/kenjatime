@@ -387,6 +387,36 @@ try:
         result["screenBoundEdgesAndCameraCanvas"]="passed"
         bounds_page.close()
 
+        input_page=browser.new_page(viewport={"width":1000,"height":780})
+        input_errors=[]
+        input_page.on("pageerror",lambda error:input_errors.append(str(error)))
+        input_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        input_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        input_page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-assert-input.zip"))
+        input_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=input_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        input_page.locator("#p1-select").select_option(value=installed)
+        input_page.locator("#cpu").uncheck()
+        input_page.locator("#start").click()
+        for action in [721,722,723]:
+            observed=input_page.wait_for_function("""action=>{
+              const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paint=qa?.lastActorTransformPaint;
+              if(!plan||!paint||paint.frame!==plan.frame||qa.lastSpritePaintOrder?.frame!==plan.frame)return false;
+              const root=plan.draws.find(d=>d.kind==='fighter'&&d.side===0);
+              const helper=plan.draws.find(d=>d.kind==='helper'&&d.side===0);
+              if(root?.action!==action||helper?.action!==726)return false;
+              return {plan,paint,root,helper,draws:qa.lastSpritePaintOrder.draws};
+            }""",arg=action,timeout=30000).json_value()
+            assert observed["root"]["number"]=={721:0,722:1,723:2}[action],observed
+            assert observed["helper"]["number"]==1,observed
+            assert any(d["kind"]=="helper" for d in observed["draws"]),observed
+            assert abs(observed["paint"]["x"]-observed["root"]["x"])<1e-4,observed
+            assert abs(observed["paint"]["y"]-observed["root"]["y"])<1e-4,observed
+        assert not input_errors,input_errors
+        result["assertInputCommandAndHelperCanvas"]="passed"
+        input_page.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]
