@@ -50,7 +50,9 @@ data class HitDefinition(
     val groundSlideTime: Int = 0,val guardSlideTime: Int = guardHitTime,
     val guardControlTime: Int = guardSlideTime,val airGuardControlTime: Int = guardControlTime,
     val forceNoFall: Boolean = false,
-    val guardDistance: Int = 160*Fixed.ONE
+    val guardDistance: Int = 160*Fixed.ONE,
+    val impactShake: HitShakeDefinition = HitShakeDefinition(),
+    val fallShake: HitShakeDefinition = HitShakeDefinition()
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -344,6 +346,10 @@ class FightingCharacter(
         "fall.recover" -> if(getHitData.fallRecover)1.0 else 0.0
         "fall.recovertime" -> getHitData.fallRecoverTime.toDouble()
         "fall.time" -> getHitData.fallTime.toDouble()
+        "fall.envshake.time" -> getHitData.fallShake.time.toDouble()
+        "fall.envshake.freq" -> getHitData.fallShake.frequency
+        "fall.envshake.ampl" -> coordinates.toLocal(getHitData.fallShake.amplitude256)
+        "fall.envshake.phase" -> getHitData.fallShake.phase
         else -> throw IllegalArgumentException("Unsupported GetHitVar field: $name")
     }
     fun releaseBinding() { binding = null }
@@ -569,6 +575,7 @@ class FightingCharacter(
             "attackdist" -> CoreGuardDistance.execute(this,c,errors)
             "mapset", "mapadd", "rootmapset", "rootmapadd" -> CoreNamedMaps.execute(this,c,errors)
             "envshake", "envcolor" -> world?.environment?.execute(this,c,errors)
+            "fallenvshake" -> CoreFallEnvShake.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -814,7 +821,9 @@ class FightingCharacter(
                 val controlTimings=CoreHitControlTimings.parse(args,this,guardHitTime,errors,true) ?: return false
                 val projectileSpritePriority=CoreSpritePriority.projectile(this,args["projsprpriority"],errors) ?: return false
                 val guardDistance=CoreGuardDistance.parse(args,this,errors,true) ?: return false
+                val shakes=CoreHitShakes.parse(args,this,errors) ?: return false
                 val hit = HitDefinition(
+                    impactShake=shakes.impact,fallShake=shakes.fall,
                     guardDistance=guardDistance,
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -888,7 +897,9 @@ class FightingCharacter(
                 val controlTimings=CoreHitControlTimings.parse(args,this,guardHitTime,errors) ?: return false
                 val priority = (args["priority"] ?: "4,Hit").split(',')
                 val nextGuardDistance=CoreGuardDistance.parse(args,this,errors) ?: return false
+                val shakes=CoreHitShakes.parse(args,this,errors) ?: return false
                 val next = HitDefinition(
+                    impactShake=shakes.impact,fallShake=shakes.fall,
                     guardDistance=nextGuardDistance,
                     attr = args["attr"] ?: "S, NA",
                     damage = hitDamage,
@@ -1065,7 +1076,9 @@ class FightingCharacter(
             fallVelocityX=hit.fallVelocityX?.let(::facing),fallVelocityY=hit.fallVelocityY,received=true,
             fallDamage=hit.fallDamage,fallKill=hit.fallKill,
             fallRecover=hit.fallRecover,fallRecoverTime=hit.fallRecoverTime,accelerationY=hit.hitAccelerationY,animationType=animationType,
-            slideTime=if(guarded)hit.guardSlideTime else hit.groundSlideTime,controlTime=controlTime)
+            slideTime=if(guarded)hit.guardSlideTime else hit.groundSlideTime,controlTime=controlTime,
+            fallShake=if(guarded)getHitData.fallShake else hit.fallShake)
+        world?.environment?.startShake(hit.impactShake)
         world?.effects?.onHit(this)
         val minimumLife=if(if(guarded)hit.guardKill else hit.kill)0 else 1
         life = (life - damage).coerceAtLeast(minimumLife)

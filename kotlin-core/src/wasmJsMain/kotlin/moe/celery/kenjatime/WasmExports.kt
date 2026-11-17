@@ -174,6 +174,10 @@ private object Fights {
         ",\"getHitFallRecover\":" + p.getHitData.fallRecover +
         ",\"getHitFallRecoverTime\":" + p.getHitData.fallRecoverTime +
         ",\"getHitFallTime\":" + p.getHitData.fallTime +
+        ",\"getHitFallShakeTime\":" + p.getHitData.fallShake.time +
+        ",\"getHitFallShakeFrequency\":" + p.getHitData.fallShake.frequency +
+        ",\"getHitFallShakeAmplitude256\":" + p.getHitData.fallShake.amplitude256 +
+        ",\"getHitFallShakePhase\":" + p.getHitData.fallShake.phase +
         ",\"canRecover\":" + p.canRecover +
         ",\"fallbackHitReaction\":" + p.fallbackHitReaction +
         ",\"power\":" + p.power +

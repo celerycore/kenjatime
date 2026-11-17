@@ -1,6 +1,55 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current environment-effects continuation — November 17, 2026
+## Current attack/fall-shake continuation — November 17, 2026
+
+Continues published main source `7f8be96`. HitDef and Projectile now capture
+envshake.time/freq/ampl/phase and fall.envshake.time/freq/ampl/phase as immutable
+attack metadata. Every accepted body, helper or projectile contact may start the
+impact shake, including a guarded contact. Rejected contacts have no effect.
+Zero-time metadata leaves an existing global shake intact. A fresh unguarded
+hit replaces pending fall data, including clearing it when no fall shake was
+authored; guard preserves the prior pending fall data without arming new data.
+
+FallEnvShake starts the pending fall shake and consumes only its time field.
+It requires neither the current MoveType H nor a fall flag, and can execute
+after SelfState. GetHitVar supports all four fall.envshake fields. Pending time
+does not count down before consumption. Active effects use the existing global
+visual clock, including through actor hitpause. Standard persistent and
+ignorehitpause gating applies; repeated consumption does not restart the effect.
+No automatic common-state landing execution is claimed: the authored controller
+must run. Extra controller/shake parameters and invalid numeric metadata are
+diagnosed before replacing an attack or queuing a projectile.
+
+Shake units, bounds and defaults match the existing direct EnvShake subset:
+time defaults to zero; frequency defaults to 60 degrees/tick; phase defaults to
+zero below 90 degrees/tick and 90 at or above it. Default amplitude is -4
+canonical pixels. Explicit integer amplitudes convert through the attack's
+active state bank exactly once. Incoming fall data retains canonical amplitude;
+GetHitVar converts it through the recipient's current bank for queries. Neither
+later facing/variable changes nor borrowed-state transitions rescale the effect.
+
+Validation:
+
+- 1033 JVM and 1028 compiled-Wasm tests pass, including 25 new cases for capture,
+  contact rejection, guarded contacts, pending replacement, one-shot consumption,
+  pause gating, coordinate banks, helper isolation, multi-hit projectiles,
+  delayed projectiles, atomic invalid metadata and pure presentation reads.
+- Exported Wasm checks 48 coordinate/source/facing/guard/default sequences and
+  borrowed-bank GetHitVar queries followed by SelfState consumption.
+- All 16 adapter/import/download tests and production browser checks pass.
+  Imported public KFM art with synthetic CNS verifies impact displacement,
+  deferred fall displacement, expiry, actual Canvas actor transforms and stage
+  pixels. Prior browser scenarios remain passing.
+- Two 600-tick KFM runs retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, matching physical checksums and power ending 485/415.
+
+Measured controller-name coverage is 75 of 97 in the live legacy JavaScript
+registry (77.3%), up from 74 of 97 (76.3%); 22 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 70 of 89 (78.7%). This is not an overall
+rewrite-completion percentage: full parameters, expressions, physics, effects,
+AI, teams, physical-phone performance and native behavior parity remain open.
+
+## Previous environment-effects continuation — November 17, 2026
 
 Continues published main source `fd5ecda`. CNS now executes EnvShake and EnvColor.
 Each fight owns separate visual state and advances it once at the start of a

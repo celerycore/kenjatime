@@ -308,6 +308,42 @@ try:
         result["environmentCanvasPixelsAndShake"]="passed"
         environment_page.close()
 
+        fall_shake_page=browser.new_page(viewport={"width":1000,"height":780})
+        fall_shake_errors=[]
+        fall_shake_page.on("pageerror",lambda error:fall_shake_errors.append(str(error)))
+        fall_shake_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        fall_shake_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        fall_shake_page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-fall-shake.zip"))
+        fall_shake_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=fall_shake_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        fall_shake_page.locator("#p1-select").select_option(value=installed)
+        fall_shake_page.locator("#cpu").uncheck()
+        fall_shake_page.locator("#start").click()
+        for mode in ["impact","fall","expired"]:
+            observed=fall_shake_page.wait_for_function("""mode => {
+              const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paint=qa?.lastEnvironmentPaint,actor=qa?.lastActorTransformPaint;
+              if(!plan||!paint||!actor||paint.frame!==plan.frame||actor.frame!==plan.frame)return false;
+              const victim=plan.draws.find(d=>d.kind==='fighter'&&d.side===1);
+              if(!victim)return false;
+              const expected=mode==='impact'?6:mode==='fall'?12:0;
+              if(plan.environment?.offsetY!==expected)return false;
+              if(victim.action!==(mode==='impact'?715:716))return false;
+              if(mode==='expired'&&plan.environment.shake)return false;
+              const canvas=document.querySelector('#arena'),ctx=canvas.getContext('2d'),scale=canvas.width/960;
+              const line=Array.from(ctx.getImageData(Math.round(10*scale),Math.round((438+plan.stageOffsetY)*scale),1,1).data);
+              return {plan,paint,actor,line};
+            }""",arg=mode,timeout=30000).json_value()
+            plan=observed["plan"]
+            offset={"impact":6,"fall":12,"expired":0}[mode]
+            assert abs(plan["stageOffsetY"]-offset*1.1*plan["cameraZoom"])<1e-8,observed
+            expected_y=435-(plan["cameraY"]+300)*1.1*plan["cameraZoom"]+plan["stageOffsetY"]
+            assert abs(observed["actor"]["y"]-expected_y)<1e-4,observed
+            assert observed["line"]==[83,123,117,255],observed
+        assert not fall_shake_errors,fall_shake_errors
+        result["impactAndDeferredFallShakeCanvas"]="passed"
+        fall_shake_page.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

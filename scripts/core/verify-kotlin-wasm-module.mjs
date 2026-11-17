@@ -3934,6 +3934,110 @@ try {
 } finally {api.ktCoreRelease(environmentBank);}
 console.log("Native Wasm EnvShake/EnvColor / 36 coordinate-frequency-duration-amplitude sequences / 18 color layer sequences / OnTop visibility / independent physical state / borrowed bank and global lifetime / pure reads: OK (synthetic)");
 
+// Impact capture and deferred consumption execute in the actual compiled module.
+for(const width of [320,640,1008])for(const projectile of [false,true])for(const facing of [-1,1])for(const guarded of [false,true])for(const explicit of [false,true]) {
+  const f=width/320,parameters=`damage=0\nguardflag=HL\nenvshake.time=5\nenvshake.freq=90\nfall.envshake.time=3\nfall.envshake.freq=0\nfall.envshake.phase=90\n${explicit?`envshake.ampl=${-20*f}\nfall.envshake.ampl=${-40*f}`:""}`;
+  const attack=`${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=${projectile?0:200}
+[State 200, captured shake]
+type=${projectile?"Projectile":"HitDef"}
+trigger1=Time=0
+projanim=200
+${parameters}`;
+  const defense=`${motionIdle}
+ctrl=1
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, capture query]
+type=LifeSet
+trigger1=Time=0
+value=GetHitVar(fall.envshake.time)
+[State 5000, consume]
+type=FallEnvShake
+trigger1=1`;
+  const handle=api.ktCoreCreateWithDefinitions("captured shake","victim",translatedContactAir(width),air,attack,defense,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(handle,0,0,facing*4*256,0);api.ktCoreDebugSetFacing(handle,0,facing===1);
+    api.ktCoreDebugSetFacing(handle,1,facing!==1);api.ktCoreDebugForceState(handle,0,200);
+    const buttons=guarded?(facing===1?8:4):0;
+    api.ktCoreAdvance(handle,0,"",buttons,"");
+    if(projectile)api.ktCoreAdvance(handle,0,"",buttons,"");
+    assert.equal(JSON.parse(api.ktCoreContacts(handle)).length,1);
+    const victim=JSON.parse(api.ktCoreSnapshot(handle,1)),amplitude=explicit?-20:-4;
+    assert.equal(victim.getHitGuarded,guarded);assert.equal(victim.getHitFallShakeTime,guarded?0:3);
+    assert.equal(JSON.parse(api.ktCoreEnvironment(handle)).offsetY,-amplitude);
+    if(!guarded) {
+      api.ktCoreAdvance(handle,0,"",0,"");
+      const consumed=JSON.parse(api.ktCoreSnapshot(handle,1));assert.equal(consumed.getHitFallShakeTime,0);
+      assert.equal(consumed.life,3);assert.equal(consumed.getHitFallShakeAmplitude256,(explicit?-40:-4)*256);
+      const effect=JSON.parse(api.ktCoreEnvironment(handle));assert.equal(effect.offsetY,explicit?40:4);
+      assert.equal(effect.shake.age,0);assert.equal(effect.shake.remaining,3);
+      const before=api.ktCoreEnvironment(handle),checksum=api.ktCoreChecksum(handle);
+      for(let i=0;i<4;i++)api.ktCoreRenderPlan(handle,12);
+      assert.equal(api.ktCoreEnvironment(handle),before);assert.equal(api.ktCoreChecksum(handle),checksum);
+      for(let i=0;i<3;i++)api.ktCoreAdvance(handle,0,"",0,"");
+      assert.equal(JSON.parse(api.ktCoreEnvironment(handle)).shake,null);
+    }
+    assert.equal(api.ktCoreIssues(handle),"");
+  } finally {api.ktCoreRelease(handle);}
+}
+// Delayed authored consumption still uses canonical captured units after SelfState.
+const fallShakeBank=api.ktCoreCreateWithDefinitions("fall shake bank","recipient",projectileFacingAir,air,
+`${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+p2stateno=700
+fall.envshake.time=4
+fall.envshake.freq=0
+fall.envshake.phase=90
+fall.envshake.ampl=-16
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, query borrowed units]
+type=VarSet
+trigger1=Time=0
+v=0
+value=GetHitVar(fall.envshake.ampl)
+[State 700, return]
+type=SelfState
+trigger1=Time=0
+value=0`,`${motionIdle}
+[State 0, query own units]
+type=VarSet
+trigger1=GetHitVar(fall.envshake.time)>0
+v=1
+value=GetHitVar(fall.envshake.ampl)
+[State 0, encode captured queries]
+type=LifeSet
+trigger1=GetHitVar(fall.envshake.time)>0
+value=1000+var(0)*10+var(1)
+[State 0, consume after return]
+type=FallEnvShake
+trigger1=GetHitVar(fall.envshake.time)>0`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(fallShakeBank,0,0,4*256,0);api.ktCoreDebugForceState(fallShakeBank,0,200);
+  for(let i=0;i<3;i++)api.ktCoreAdvance(fallShakeBank,0,"",0,"");
+  const victim=JSON.parse(api.ktCoreSnapshot(fallShakeBank,1));
+  assert.equal(victim.stateOwner,2);assert.equal(victim.life,832);
+  assert.equal(victim.getHitFallShakeTime,0);assert.equal(JSON.parse(api.ktCoreEnvironment(fallShakeBank)).offsetY,8);
+  assert.equal(api.ktCoreIssues(fallShakeBank),"");
+} finally {api.ktCoreRelease(fallShakeBank);}
+console.log("Native Wasm HitDef/Projectile impact shake + FallEnvShake / 48 coordinate-source-facing-guard-default sequences / borrowed queries and SelfState consumption / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

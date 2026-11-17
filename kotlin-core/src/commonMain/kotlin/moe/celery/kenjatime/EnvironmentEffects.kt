@@ -10,6 +10,10 @@ internal data class CoreEnvironmentShake(val remaining: Int,val frequency: Doubl
 internal class CoreEnvironmentEffects {
     var color: CoreEnvironmentColor?=null; private set
     var shake: CoreEnvironmentShake?=null; private set
+    /** Zero-time attack metadata leaves any unrelated active shake intact. */
+    fun startShake(value: HitShakeDefinition) {
+        if(value.time>0)shake=CoreEnvironmentShake(value.time,value.frequency,value.amplitude256,value.phase)
+    }
     val offsetY: Double get() {
         val s=shake ?: return 0.0
         val value=-s.amplitude256.toDouble()/Fixed.ONE*sin(((s.phase%360+s.frequency*s.age)%360)*PI/180)

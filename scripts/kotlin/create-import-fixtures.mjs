@@ -373,6 +373,63 @@ environmentFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(environmentFiles["
 `);
 writeFileSync("test-output/kotlin-kfm-environment.zip",zipSync(environmentFiles));
 
+const fallShakeFiles=Object.fromEntries(raw);
+fallShakeFiles["kfm/kfm.cns"]=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=714
+ctrl=0
+[State 0, impact and deferred fall]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+envshake.time=90
+envshake.freq=0
+envshake.phase=90
+envshake.ampl=-6
+fall.envshake.time=60
+fall.envshake.freq=0
+fall.envshake.phase=90
+fall.envshake.ampl=-12
+[State 0, repeat]
+type=ChangeState
+trigger1=Time=299
+value=0
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=715
+ctrl=0
+[State 700, borrowed art]
+type=ChangeAnim2
+trigger1=Time=0
+value=715
+[State 700, indicate consumption]
+type=ChangeAnim2
+trigger1=Time=30
+value=716
+[State 700, deferred fall shake]
+type=FallEnvShake
+trigger1=Time>=30
+[State 700, return]
+type=SelfState
+trigger1=Time=140
+value=0
+`);
+fallShakeFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(fallShakeFiles["kfm/kfm.air"])+`
+[Begin Action 714]
+Clsn1Default:1
+Clsn1[0]=-500,-60,500,0
+0,0,0,-300,-1
+[Begin Action 715]
+0,0,0,-300,-1
+[Begin Action 716]
+0,1,0,-300,-1
+`);
+writeFileSync("test-output/kotlin-kfm-fall-shake.zip",zipSync(fallShakeFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])
