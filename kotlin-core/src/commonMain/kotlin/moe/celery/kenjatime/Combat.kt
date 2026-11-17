@@ -274,6 +274,8 @@ class FightingCharacter(
     val input = InputBuffer()
     internal var pendingAssertedInput = InputFrame()
     internal var clipboardText = ""
+    internal var ownPalette = true
+    internal var paletteEffects = CorePaletteEffects()
     private val commandCache = mutableMapOf<String,Boolean>()
     fun commandActive(name: String): Boolean {
         val normalized = name.lowercase()
@@ -591,6 +593,7 @@ class FightingCharacter(
             "screenbound" -> CoreScreenBounds.execute(this,c,errors)
             "assertinput" -> CoreAssertedInputs.execute(this,c,errors)
             "trans" -> CoreTransparency.execute(this,c,errors)
+            "palfx", "allpalfx", "bgpalfx" -> world?.palettes?.execute(this,c,errors)
             "displaytoclipboard", "appendtoclipboard", "clearclipboard" -> CoreClipboard.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
@@ -769,6 +772,7 @@ class FightingCharacter(
             }
             "helper" -> {
                 val offset = (args["pos"] ?: "0,0").split(',')
+                val ownPalette=args["ownpal"]?.let { (CoreExpression.number(it,this,errors) ?: return false)!=0.0 } ?: false
                 entityRequests.add(EntityRequest.Helper(
                     this,
                     integer(args["id"]),
@@ -777,7 +781,7 @@ class FightingCharacter(
                     number(offset.getOrNull(1)),
                     integer(args["facing"], 1),
                     integer(args["keyctrl"]) != 0,
-                    integer(args["bindtime"])
+                    integer(args["bindtime"]),ownPalette
                 ))
             }
             "projectile" -> try {
@@ -838,6 +842,7 @@ class FightingCharacter(
                 val projectileSpritePriority=CoreSpritePriority.projectile(this,args["projsprpriority"],errors) ?: return false
                 val guardDistance=CoreGuardDistance.parse(args,this,errors,true) ?: return false
                 val shakes=CoreHitShakes.parse(args,this,errors) ?: return false
+                val ownPalette=args["ownpal"]?.let {value(it)!=0.0} ?: false
                 val hit = HitDefinition(
                     impactShake=shakes.impact,fallShake=shakes.fall,
                     guardDistance=guardDistance,
@@ -890,7 +895,7 @@ class FightingCharacter(
                     multiplierX=multiplier.first,multiplierY=multiplier.second,
                     stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
                     removeOnHit=removeOnHit,hits=hits,missTime=missTime,priority=projectilePriority,
-                    scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority
+                    scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority,ownPalette=ownPalette
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")
@@ -1145,6 +1150,7 @@ data class CorePresentationEvent(
 /** Two-actor deterministic subset, not a full MUGEN contact phase. */
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     internal val environment=CoreEnvironmentEffects()
+    internal val palettes=CoreFightPalettes(this)
     var hitPowerRules=HitPowerRules.DEFAULT
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
@@ -1207,6 +1213,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         p2.roundState = sequence?.roundState() ?: 2
         if (sequence?.finished == true) { frame++; return }
         environment.beginTick()
+        palettes.beginTick()
         val allowCombat = sequence == null || sequence.active
         CoreAssertedInputs.sample(p1,a,allowCombat)
         CoreAssertedInputs.sample(p2,b,allowCombat)

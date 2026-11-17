@@ -633,6 +633,54 @@ clipboardFiles['kfm/kfm.air']=encoder.encode(decoder.decode(clipboardFiles['kfm/
 `);
 writeFileSync('test-output/kotlin-kfm-clipboard.zip',zipSync(clipboardFiles));
 
+const paletteFiles=Object.fromEntries(raw);
+const palettePhases=[{}, {PalFX:'add=20,-30,10'}, {PalFX:'mul=128,256,0'}, {PalFX:'color=0'}, {PalFX:'invertall=1'},
+  {PalFX:'sinadd=64,0,-64,16'}, {BGPalFX:'add=15,20,-10'}, {AllPalFX:'invertall=1'},
+  {PalFX:'add=10,0,0',BGPalFX:'add=0,20,0',AllPalFX:'mul=128,128,128'}, {}];
+paletteFiles['kfm/kfm.cns']=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=731
+ctrl=0
+[State 0, phase]
+type=SprPriority
+trigger1=1
+value=floor((Time%600)/60)-5
+`+['PalFX','AllPalFX','BGPalFX'].map(type=>`[State 0, clear ${type}]
+type=${type}
+triggerall=Facing=1
+trigger1=Time%600=0
+time=0
+`).join('')+palettePhases.map((phase,index)=>Object.entries(phase).map(([type,params])=>`[State 0, ${type} phase ${index}]
+type=${type}
+triggerall=Facing=1
+trigger1=Time%600=${index*60}
+time=60
+${params}
+`).join('')).join('')+[0,1].map(own=>`[State 0, palette helper ${own}]
+type=Helper
+triggerall=Facing=1
+trigger1=Time=0
+stateno=${700+own}
+ownpal=${own}
+pos=${own?200:-150},-100
+`).join('')+`[Statedef 700]
+type=S
+physics=N
+anim=732
+ctrl=0
+[Statedef 701]
+type=S
+physics=N
+anim=733
+ctrl=0
+`);
+paletteFiles['kfm/kfm.air']=encoder.encode(decoder.decode(paletteFiles['kfm/kfm.air'])+[731,732,733].map(n=>`
+[Begin Action ${n}]
+0,0,0,-300,-1
+`).join(''));
+writeFileSync('test-output/kotlin-kfm-palette.zip',zipSync(paletteFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

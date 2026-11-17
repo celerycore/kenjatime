@@ -256,6 +256,21 @@ private object Fights {
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
 @JsExport fun ktCoreEnvironment(handle: Int): String = Fights.get(handle).environment.json()
+@JsExport fun ktCorePalettes(handle: Int): String {
+    val fight=Fights.get(handle);val groups=mutableListOf<CorePaletteEffects>()
+    fun group(value: CorePaletteEffects): Int {
+        val index=groups.indexOf(value);if(index>=0)return index
+        groups.add(value);return groups.lastIndex
+    }
+    val actors=(listOf(fight.p1,fight.p2)+fight.entities.helpers.map {it.actor}).joinToString(
+        prefix="[",postfix="]",separator=",") {"{\"id\":${it.id},\"ownPalette\":${it.ownPalette},\"group\":${group(it.paletteEffects)}}"}
+    val projectiles=fight.entities.projectiles.joinToString(prefix="[",postfix="]",separator=",") {
+        "{\"id\":${it.entityId},\"ownPalette\":${it.ownPalette},\"group\":${group(it.paletteEffects)}}"}
+    val explods=fight.effects.all.joinToString(prefix="[",postfix="]",separator=",") {
+        "{\"sequence\":${it.sequence},\"ownPalette\":${it.config.ownPalette},\"group\":${group(it.paletteEffects)}}"}
+    return "{\"all\":${fight.palettes.all.json()},\"background\":${fight.palettes.background.json()},\"actors\":$actors,"+
+        "\"projectiles\":$projectiles,\"explods\":$explods,\"groups\":${groups.joinToString(prefix="[",postfix="]",separator=",") {it.json()}}}"
+}
 /** Debug text is queried separately; regular render snapshots never carry it. */
 @JsExport fun ktCoreClipboards(handle: Int): String {
     val fight=Fights.get(handle)

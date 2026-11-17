@@ -8,6 +8,7 @@ import {ArchiveLibrary} from "../mobile-library.js";
 import {collectBenchmarkDeviceInfo,describeBenchmarkDevice} from "../core/benchmark-device.js";
 import {findBenchmarkFighters} from "../core/benchmark-roster.js";
 import {paintBlendedSprite} from "./sprite-blend.js";
+import {paletteRgba} from "./sprite-palette.js";
 
 /** Browser/Capacitor adapter only: input, archive IO, sprite decoding, display.
  * Simulation and deterministic CPU behavior are compiled Kotlin/WASM.
@@ -158,15 +159,15 @@ function spriteImage(item,group,number){
     image.width=sprite.w;image.height=sprite.h;
     image.getContext("2d").putImageData(
       new ImageData(new Uint8ClampedArray(sprite.rgba),sprite.w,sprite.h),0,0);
-    const bytes=sprite.w*sprite.h*4;
+    const bytes=sprite.w*sprite.h*8; // decoded RGBA plus its Canvas copy
     // 32 MiB visual hot cache. Kotlin simulation does not depend on this.
     const limit=32*MB;
-    while(item.decodedBytes+bytes>limit&&item.imageCache.size){
+    while((item.decodedBytes+bytes>limit||item.imageCache.size>=256)&&item.imageCache.size){
       const oldest=item.imageCache.keys().next().value;
       item.decodedBytes-=item.imageCache.get(oldest).bytes;
       item.imageCache.delete(oldest);
     }
-    const entry={image,bytes,w:sprite.w,h:sprite.h,
+    const entry={key,image,rgba:sprite.rgba,bytes,w:sprite.w,h:sprite.h,
       x:sprite.x||0,y:sprite.y||0};
     if(bytes<=limit){item.imageCache.set(key,entry);item.decodedBytes+=bytes;}
     return entry;
@@ -178,6 +179,20 @@ function spriteImage(item,group,number){
     }
     return null;
   }
+}
+function paletteSpriteImage(item,base,layers){
+  if(!layers?.length)return base;
+  const key=base.key+"@fx:"+JSON.stringify(layers),existing=item.imageCache.get(key);
+  if(existing){item.imageCache.delete(key);item.imageCache.set(key,existing);return existing}
+  const image=document.createElement("canvas");image.width=base.w;image.height=base.h;
+  image.getContext("2d").putImageData(new ImageData(paletteRgba(base.rgba,layers),base.w,base.h),0,0);
+  const bytes=base.w*base.h*4,limit=32*MB;
+  while((item.decodedBytes+bytes>limit||item.imageCache.size>=256)&&item.imageCache.size){
+    const oldest=item.imageCache.keys().next().value;
+    item.decodedBytes-=item.imageCache.get(oldest).bytes;item.imageCache.delete(oldest);
+  }
+  const entry={image,bytes,w:base.w,h:base.h,x:base.x,y:base.y};
+  item.imageCache.set(key,entry);item.decodedBytes+=bytes;return entry;
 }
 function whiteSpriteMask(item,img){
   if(img.whiteMask)return img.whiteMask;
@@ -206,16 +221,17 @@ function render(){
   }
   const scale=canvas.width/960;
   ctx.setTransform(scale,0,0,scale,0,0);
-  ctx.fillStyle="#102338";ctx.fillRect(0,0,960,540);
+  const paletteColors=latest.paletteColors||{},color=(key,fallback)=>paletteColors[key]?`rgb(${paletteColors[key].join(",")})`:fallback;
+  ctx.fillStyle=color("backdrop","#102338");ctx.fillRect(0,0,960,540);
   ctx.save();ctx.translate(0,latest.stageOffsetY??0);
-  ctx.fillStyle="#183e4b";ctx.fillRect(0,405,960,135);
-  ctx.strokeStyle="#467077";ctx.lineWidth=2;
+  ctx.fillStyle=color("ground","#183e4b");ctx.fillRect(0,405,960,135);
+  ctx.strokeStyle=color("grid","#467077");ctx.lineWidth=2;
   for(let x=0;x<960;x+=64){ctx.beginPath();ctx.moveTo(x,405);ctx.lineTo(x+60,540);ctx.stroke();}
-  ctx.fillStyle="#537b75";ctx.fillRect(0,437,960,3);
+  ctx.fillStyle=color("floor","#537b75");ctx.fillRect(0,437,960,3);
   ctx.restore();
   const environmentColor=latest.environment?.color;
   if(environmentColor){
-    ctx.fillStyle=`rgb(${environmentColor.red},${environmentColor.green},${environmentColor.blue})`;
+    ctx.fillStyle=color("environment",`rgb(${environmentColor.red},${environmentColor.green},${environmentColor.blue})`);
     ctx.fillRect(0,0,960,540);
   }
   const draws=latest.draws||[];
@@ -260,9 +276,10 @@ function render(){
           scaleY:transform.d/scale,plannedScaleX:sx,plannedScaleY:sy,
           facing:fighter.facing,flipX:fighter.flipX||1,flipY:fighter.flipY||1});
       }
-      const blendPasses=paintBlendedSprite(ctx,img.image,-img.x,-img.y,fighter.blend,()=>whiteSpriteMask(item,img));
+      const paintedImage=paletteSpriteImage(item,img,fighter.palFX);
+      const blendPasses=paintBlendedSprite(ctx,paintedImage.image,-img.x,-img.y,fighter.blend,()=>whiteSpriteMask(item,img));
       paintedDraws.push(Object.freeze({side:fighter.side,kind:fighter.kind,priority:fighter.sprpriority??0,
-        blend:fighter.blend,blendPasses}));
+        blend:fighter.blend,palFX:fighter.palFX,blendPasses}));
       ctx.restore();
       paintedSpriteCount++;
       if(fighter.kind==="explod"&&sx!==0&&sy!==0)paintedExplodCount++;
@@ -281,10 +298,10 @@ function render(){
     color:environmentColor?Object.freeze({...environmentColor}):null});
   lastPaintedRenderPlan=latest;
   const life=latest.health||[0,0]; // correct authored maxLife from Kotlin
-  ctx.fillStyle="#0b1521";ctx.fillRect(22,20,382,31);ctx.fillRect(556,20,382,31);
-  ctx.fillStyle="#95d78f";ctx.fillRect(25,23,life[0],25);
-  ctx.fillStyle="#80bbf0";ctx.fillRect(559,23,life[1],25);
-  ctx.fillStyle="#e9f2fa";ctx.font="14px system-ui";
+  ctx.fillStyle=color("hud","#0b1521");ctx.fillRect(22,20,382,31);ctx.fillRect(556,20,382,31);
+  ctx.fillStyle=color("life1","#95d78f");ctx.fillRect(25,23,life[0],25);
+  ctx.fillStyle=color("life2","#80bbf0");ctx.fillRect(559,23,life[1],25);
+  ctx.fillStyle=color("names","#e9f2fa");ctx.font="14px system-ui";
   ctx.fillText(activeNames[0],26,69);ctx.textAlign="right";ctx.fillText(activeNames[1],934,69);ctx.textAlign="left";
 }
 function setQuality(){
@@ -502,6 +519,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get renderPlan(){return latest},
   get clipboards(){return lastClipboards},
   get paintedRenderPlan(){return lastPaintedRenderPlan},
+  get spriteCaches(){return images.map(item=>({bytes:item?.decodedBytes||0,entries:item?.imageCache?.size||0}))},
   get warning(){return images.find(x=>x?.warning)?.warning||""}
 });
 async function initialize(){

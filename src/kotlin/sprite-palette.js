@@ -1,0 +1,27 @@
+/** Apply Kotlin-resolved palette layers to straight RGBA bytes; alpha is unchanged. */
+let scratch=new Uint8ClampedArray(0);
+export function paletteRgba(source,layers){
+  if(scratch.length<source.length)scratch=new Uint8ClampedArray(source.length);
+  const output=scratch.subarray(0,source.length),colors=new Map();
+  for(let p=0;p<source.length;p+=4){
+    const alpha=source[p+3];output[p+3]=alpha;
+    if(alpha===0){output[p]=source[p];output[p+1]=source[p+1];output[p+2]=source[p+2];continue}
+    const key=(source[p]<<16)|(source[p+1]<<8)|source[p+2];
+    let rgb=colors.get(key);
+    if(!rgb){
+      rgb=[source[p],source[p+1],source[p+2]];
+      for(const layer of layers){
+        const grey=.299*rgb[0]+.587*rgb[1]+.114*rgb[2];
+        rgb=rgb.map((channel,i)=>{
+          let n=layer.color===256?channel:grey+(channel-grey)*layer.color/256;
+          if(layer.invert)n=255-n;
+          return Math.max(0,Math.min(255,(n+layer.add[i])*layer.mul[i]/256));
+        });
+      }
+      rgb=rgb.map(n=>Math.max(0,Math.min(255,Math.floor(n+1e-9))));
+      if(colors.size<4096)colors.set(key,rgb);
+    }
+    output[p]=rgb[0];output[p+1]=rgb[1];output[p+2]=rgb[2];
+  }
+  return output;
+}

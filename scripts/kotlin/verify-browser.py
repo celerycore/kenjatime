@@ -541,6 +541,94 @@ try:
         result["actorClipboardDebugPanel"]="passed"
         clipboard_page.close()
 
+        def palette_rgb(source,layers):
+            rgb=list(source)
+            for layer in layers:
+                grey=(rgb[0]*299+rgb[1]*587+rgb[2]*114)/1000
+                mixed=[v*layer["color"]/256+grey*(256-layer["color"])/256 for v in rgb]
+                if layer["invert"]:
+                    mixed=[255-v for v in mixed]
+                rgb=[max(0,min(255,(v+a)*m/256)) for v,a,m in zip(mixed,layer["add"],layer["mul"])]
+            return [max(0,min(255,math.floor(v+1e-9))) for v in rgb]
+        def palette_layer(add=(0,0,0),mul=(256,256,256),color=256,invert=False):
+            return {"add":list(add),"mul":list(mul),"color":color,"invert":invert}
+        palette_layers=[[],[palette_layer(add=(20,-50,100))],[palette_layer(mul=(128,512,0))],
+            [palette_layer(color=0)],[palette_layer(invert=True)],[palette_layer(color=128)],
+            [palette_layer(add=(10,0,-10),mul=(256,128,512),color=0,invert=True)],
+            [palette_layer(add=(20,0,0)),palette_layer(mul=(128,256,256),invert=True)],
+            [palette_layer(mul=(128,256,256),invert=True),palette_layer(add=(20,0,0))]]
+        palette_module="data:text/javascript;base64,"+base64.b64encode((ROOT/"src/kotlin/sprite-palette.js").read_bytes()).decode()
+        palette_matrix=page.evaluate("""async({module,layers})=>{
+          const {paletteRgba}=await import(module),source=new Uint8ClampedArray([100,30,50,255,250,0,200,128,0,0,0,0,17,88,240,255]);
+          return {rows:layers.map(list=>[...paletteRgba(source,list)]),source:[...source]};
+        }""",{"module":palette_module,"layers":palette_layers})
+        raw_rgba=[100,30,50,255,250,0,200,128,0,0,0,0,17,88,240,255]
+        assert palette_matrix["source"]==raw_rgba
+        for layers,row in zip(palette_layers,palette_matrix["rows"]):
+            expected=[]
+            for offset in range(0,len(raw_rgba),4):
+                rgba=raw_rgba[offset:offset+4]
+                expected+=(palette_rgb(rgba[:3],layers) if rgba[3] else rgba[:3])+[rgba[3]]
+            assert all(abs(a-b)<=1 for a,b in zip(row,expected)),(layers,row,expected)
+            assert row[3::4]==raw_rgba[3::4]
+        result["paletteRgbaMathMatrix"]=len(palette_matrix["rows"])
+
+        palette_page=browser.new_page(viewport={"width":1000,"height":780})
+        palette_errors=[]
+        palette_page.on("pageerror",lambda error:palette_errors.append(str(error)))
+        palette_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        palette_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        palette_page.locator("#archive").set_input_files(str(ROOT/"test-output/kotlin-kfm-palette.zip"))
+        palette_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=palette_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        for select in ["#p1-select","#p2-select"]:
+            palette_page.locator(select).select_option(value=installed)
+        palette_page.locator("#cpu").uncheck();palette_page.locator("#start").click()
+        for phase in range(10):
+            observed=palette_page.wait_for_function("""({phase,fixture})=>{
+              const qa=window.__kenjatimeKotlinQA,p=qa?.paintedRenderPlan;
+              if(!p||p.frame<1||p.cameraY>-220||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
+              const first=p.draws.find(d=>d.kind==='fighter'&&d.side===0),second=p.draws.find(d=>d.kind==='fighter'&&d.side===1);
+              const shared=p.draws.find(d=>d.kind==='helper'&&d.action===732),own=p.draws.find(d=>d.kind==='helper'&&d.action===733);
+              if(first?.action!==731||first.sprpriority!==phase-5||!second||!shared||!own)return false;
+              if(phase===5&&!first.palFX[0]?.add[0])return false;
+              const c=document.querySelector('#arena'),ctx=c.getContext('2d'),scale=c.width/960;
+              const sample=(x,y)=>[...ctx.getImageData(Math.floor(x*scale),Math.floor(y*scale),1,1).data];
+              const actors=[first,second,shared,own].map(actor=>({actor,pixels:fixture.samples.map(s=>{
+                const x=s.x-fixture.axisX+.5,y=s.y-fixture.axisY+.5;
+                return sample(actor.x+actor.transformA*x+actor.transformC*y,actor.y+actor.transformB*x+actor.transformD*y);
+              })}));
+              return {frame:p.frame,actors,backdrop:sample(10,100),hud:sample(30,30),colors:p.paletteColors,caches:qa.spriteCaches};
+            }""",arg={"phase":phase,"fixture":samples},timeout=30000).json_value()
+            local=[];global_layers=[];background_layers=[]
+            if phase==1:local=[palette_layer(add=(20,-30,10))]
+            elif phase==2:local=[palette_layer(mul=(128,256,0))]
+            elif phase==3:local=[palette_layer(color=0)]
+            elif phase==4:local=[palette_layer(invert=True)]
+            elif phase==5:
+                age=(observed["frame"]-1)%600-300
+                wave=math.sin(2*math.pi*age/16)
+                local=[palette_layer(add=(math.trunc(64*wave),0,math.trunc(-64*wave)))]
+            elif phase==6:background_layers=[palette_layer(add=(15,20,-10))]
+            elif phase==7:global_layers=[palette_layer(invert=True)]
+            elif phase==8:
+                local=[palette_layer(add=(10,0,0))];background_layers=[palette_layer(add=(0,20,0))];global_layers=[palette_layer(mul=(128,128,128))]
+            backdrop=palette_rgb([16,35,56],background_layers+global_layers)
+            hud=palette_rgb([149,215,143],background_layers+global_layers)
+            assert observed["backdrop"]==backdrop+[255],(phase,observed)
+            assert observed["hud"]==hud+[255],(phase,observed)
+            for index,row in enumerate(observed["actors"]):
+                layers=(local if index in [0,2] else [])+global_layers
+                assert row["actor"]["palFX"]==layers,(phase,index,row,layers)
+                for point,pixel in zip(samples["samples"],row["pixels"]):
+                    expected=palette_rgb(point["rgba"][:3],layers) if point["rgba"][3] else backdrop
+                    assert all(abs(a-b)<=2 for a,b in zip(pixel,expected+[255])),(phase,index,point,pixel,expected)
+            assert all(c["bytes"]<=32*1024*1024 and c["entries"]<=256 for c in observed["caches"]),observed
+        assert not palette_errors,palette_errors
+        result["paletteScopesOwnershipSineAndCanvasPixels"]="passed"
+        palette_page.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

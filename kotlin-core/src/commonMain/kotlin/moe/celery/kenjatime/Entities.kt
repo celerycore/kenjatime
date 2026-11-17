@@ -5,7 +5,7 @@ sealed class EntityRequest {
     data class Helper(
         val owner: FightingCharacter, val helperId: Int, val state: Int,
         val offsetX: Int, val offsetY: Int, val face: Int, val keyControl: Boolean,
-        val bindTime: Int
+        val bindTime: Int,val ownPalette: Boolean=false
     ) : EntityRequest()
     data class Projectile(
         val owner: FightingCharacter, val projectileId: Int, val animation: Int,
@@ -19,7 +19,7 @@ sealed class EntityRequest {
         val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0,
         val priority: Int = 1,val scaleX: Double = 1.0,val scaleY: Double = 1.0,
         val attackMultiplier: Double = hit.capturedAttackMultiplier ?: owner.attackMultiplier,
-        val spritePriority: Int = 3
+        val spritePriority: Int = 3,val ownPalette: Boolean=false
     ) : EntityRequest()
 }
 
@@ -55,8 +55,9 @@ class CoreProjectile(
     val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
     val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0,priority: Int = 1,
     /** Captured effective scale: projscale, optionally multiplied by own Size. */
-    val scaleX: Double = 1.0,val scaleY: Double = 1.0,val spritePriority: Int = 3
+    val scaleX: Double = 1.0,val scaleY: Double = 1.0,val spritePriority: Int = 3,val ownPalette: Boolean=false
 ) {
+    internal val paletteEffects=if(ownPalette)CorePaletteEffects() else owner.paletteEffects
     val hit=hit.copy(capturedAttackMultiplier=hit.capturedAttackMultiplier ?: owner.attackMultiplier)
     companion object {
         const val MAX_SCALE = 64.0
@@ -147,6 +148,8 @@ class CoreEntities(private val match: DeterministicFight) {
                 val owner = request.owner
                 val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.rootActor().commands else emptyList())
                 actor.parent = owner
+                actor.ownPalette=request.ownPalette
+                if(!request.ownPalette)actor.paletteEffects=owner.paletteEffects
                 actor.world = match
                 actor.posX = owner.posX + request.offsetX * if (owner.facingRight) 1 else -1
                 actor.posY = owner.posY + request.offsetY
@@ -191,7 +194,7 @@ class CoreEntities(private val match: DeterministicFight) {
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,
                     facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
                     request.stageBound,request.heightTop,request.heightBottom,
-                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY,request.spritePriority))
+                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY,request.spritePriority,request.ownPalette))
             }
         }
     }

@@ -1,6 +1,73 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current debug clipboard continuation — November 17, 2026
+## Current palette effects continuation — November 17, 2026
+
+Continues published main source `40a1a8c`. PalFX, AllPalFX and BGPalFX now
+capture finite numeric expressions for time, add, mul, color, invertall and
+sinadd. Time defaults to zero (cancel); -1 lasts indefinitely. Positive effects
+show for the authored number of ticks, with the first sine sample at age zero.
+Each request replaces the whole effect and restarts its wave. Invalid fields,
+expressions, counts or bounds preserve an earlier effect atomically. Normal
+persistent/ignorehitpause gating controls requests; existing visual clocks
+advance once per fight tick through actor hitpause, independently of drawing.
+
+Roots own separate palette families. Helper, Projectile and Explod ownpal
+defaults to zero and shares the immediate creator's family; nonzero captures
+an independent family. PalFX on a non-owning helper cannot overwrite its
+creator's effect. Sharing survives nested helpers and creator destruction,
+and every retained family ages only once even when several actors/effects
+reference it. ModifyExplod cannot change palette ownership after creation.
+Borrowed state banks use executing-actor values without rescaling colors or
+changing palette ownership. AllPalFX additionally affects independent families;
+BGPalFX affects the current stage and HUD colors without affecting sprites.
+
+Kotlin resolves ordered local-then-global sprite layers and background/HUD-
+then-global colors. Each layer mixes luminance, inverts, adds (including the
+integer sine contribution), multiplies and clamps RGB; final bytes round down.
+The Canvas adapter transforms decoded RGBA without changing alpha, then applies
+the existing AIR/Trans blend. Decoded sprites, palette variants and subtraction
+masks share a 32 MiB/256-entry per-character LRU budget; a reusable scratch RGBA
+buffer is bounded by the existing two-million-pixel sprite limit (8 MiB).
+Production painting performs no pixel readback. ktCorePalettes provides pure,
+on-demand effect clocks and palette-family ownership inspection.
+
+Validation:
+
+- 1191 JVM and 1186 compiled-Wasm tests pass, including 34 new common tests for
+  defaults, expiry/replacement, sine direction, atomic errors, RGB ordering,
+  scope composition, hitpause/persistence, borrowed banks, pure reads, ownpal
+  families and retained children/projectiles/Explods after creator destruction.
+- Exported Wasm checks 108 coordinate/side/scope/duration/wave sequences and
+  three retained nested helper/projectile/Explod families across 320, 640 and
+  1008-wide state banks. Resolved stage/HUD colors and repeated inspection are
+  checked independently of combat checksums.
+- All 16 adapter/import/download tests and production Chromium checks pass.
+  Nine RGBA cases check color math, saturation, ordering, unchanged source and
+  exact alpha preservation. Imported public KFM sprites verify ten timed Canvas
+  phases: add, multiply, grayscale, inversion, sine, background/HUD, global and
+  combined scopes, own/shared helpers and expiry. Cache bounds and earlier
+  browser scenarios pass.
+- Two 600-tick KFM replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and power ending
+  485/415. Palette requests do not change collision boxes or combat state.
+
+Measured controller-name coverage is 84 of 97 in the live legacy JavaScript
+registry (86.6%), up from 81 of 97 (83.5%); 13 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 78 of 89 (87.6%). Overall rewrite completion
+remains unmeasured: complete parameters, expressions, physics, effects, AI,
+teams, physical-phone performance and native behavior parity still need work.
+Native combined-shader/rounding parity, palette selection/remaps, automatic
+HitDef/Projectile palfx.* effects, global Pause/SuperPause timing, extended
+hue/sinmul/sincolor/invertblend/redirectid and complete stage/motif/fallback
+visuals are outside this validated subset. Sine periods are bounded to
+-36000..36000 (zero disables); duration to -1..36000, additive channels to
+-100000..100000, multipliers to 0..65536 and color to 0..256.
+
+Semantics use the [Elecbyte PalFX controller reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#palfx)
+and shared-family behavior in IKEMEN GO. Synthetic clocks and actual Canvas
+pixel checks do not certify native MUGEN frame-for-frame or shader parity.
+
+## Previous debug clipboard continuation — November 17, 2026
 
 Continues published main source `92fc6e9`. DisplayToClipboard replaces actor
 debug text, AppendToClipboard adds a new line to nonempty text, and ClearClipboard

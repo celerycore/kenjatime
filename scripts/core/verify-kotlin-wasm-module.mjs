@@ -4402,6 +4402,116 @@ try {
 } finally {api.ktCoreRelease(clipboardBank);}
 console.log('Native Wasm DisplayToClipboard/AppendToClipboard/ClearClipboard / 140 C printf numeric oracle cases / six coordinate-side actor-helper lifecycles / borrowed banks and SelfState / JSON escaping and pure reads: OK (synthetic; not native game parity)');
 
+const paletteRgb=(source,fx)=>{
+  const grey=(source[0]*299+source[1]*587+source[2]*114)/1000;
+  return source.map((v,i)=>{
+    const desaturated=v*fx.color/256+grey*(256-fx.color)/256;
+    const inverted=fx.invert?255-desaturated:desaturated;
+    return Math.max(0,Math.min(255,Math.floor((inverted+fx.add[i])*fx.mul[i]/256+1e-9)));
+  });
+};
+for(const width of [320,640,1008])for(const side of [0,1])for(const type of ['PalFX','AllPalFX','BGPalFX'])for(const duration of [0,1,3])for(const wave of [false,true]) {
+  const source=`${motionIdle}\n[State 0, palette]\ntype=${type}\ntrigger1=Time=0\ntime=${duration}\nadd=10,-20,30\nmul=128,256,512\ncolor=128\ninvertall=${side}\n${wave?'sinadd=20,0,-10,4':''}`;
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('palette first','palette second',air,air,side===0?source:motionIdle,
+    side===1?source:motionIdle,'','',side===0?def:'',side===1?def:'');
+  try {
+    api.ktCoreSetup(handle,-100*256,0,100*256,0);
+    for(let age=0;age<5;age++) {
+      api.ktCoreAdvance(handle,0,'',0,'');const state=JSON.parse(api.ktCorePalettes(handle)),plan=JSON.parse(api.ktCoreRenderPlan(handle,0));
+      const active=age<duration,s=wave?Math.sin(2*Math.PI*age/4):0;
+      const layer={add:[10+Math.trunc(20*s),-20,30+Math.trunc(-10*s)],mul:[128,256,512],color:128,invert:!!side};
+      for(const d of plan.draws)assert.deepEqual(d.palFX,active&&(type==='AllPalFX'||type==='PalFX'&&d.side===side)?[layer]:[]);
+      const effect=type==='AllPalFX'?state.all:type==='BGPalFX'?state.background:state.groups[state.actors[side].group];
+      if(active){assert.equal(effect.remaining,duration-age);assert.equal(effect.age,age);assert.deepEqual(effect.layer,layer)}else assert.equal(effect,null);
+      const stage=active&&type!=='PalFX';
+      assert.deepEqual(plan.paletteColors.backdrop,stage?paletteRgb([16,35,56],layer):[16,35,56]);
+      assert.deepEqual(plan.paletteColors.life1,stage?paletteRgb([149,215,143],layer):[149,215,143]);
+      const before=api.ktCorePalettes(handle),checksum=api.ktCoreChecksum(handle);
+      for(let i=0;i<3;i++){assert.equal(api.ktCorePalettes(handle),before);api.ktCoreRenderPlan(handle,12)}
+      assert.equal(api.ktCoreChecksum(handle),checksum);assert.equal(api.ktCoreIssues(handle),'');
+    }
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008]) {
+  const source=`${motionIdle}
+[State 0, local]
+type=PalFX
+trigger1=Time=0
+time=10
+add=10,0,0
+[State 0, all]
+type=AllPalFX
+trigger1=Time=0
+time=10
+mul=128,128,128
+`+[0,1].map(own=>`[State 0, helper ${own}]
+type=Helper
+trigger1=Time=0
+stateno=${700+own}
+ownpal=${own}
+[State 0, shot ${own}]
+type=Projectile
+trigger1=Time=0
+projanim=200
+projremovetime=20
+ownpal=${own}
+[State 0, effect ${own}]
+type=Explod
+trigger1=Time=0
+anim=0
+removetime=-1
+ownpal=${own}`).join('\n')+`
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, ignored without ownpal]
+type=PalFX
+trigger1=Time=0
+time=10
+add=99,0,0
+[Statedef 701]
+type=S
+physics=N
+anim=0
+[State 701, independent palette]
+type=PalFX
+trigger1=Time=0
+time=10
+add=0,20,0
+[State 701, retained family]
+type=Helper
+trigger1=Time=0
+stateno=702
+[State 701, retained projectile]
+type=Projectile
+trigger1=Time=0
+projanim=200
+projremovetime=20
+[State 701, destroy creator]
+type=DestroySelf
+trigger1=Time=1
+[Statedef 702]
+type=S
+physics=N
+anim=0`;
+  const handle=api.ktCoreCreateWithDefinitions('palette family','opponent',projectileFacingAir,air,source,motionIdle,'','',`[Info]\nlocalcoord=${width},${width*3/4}`,'');
+  try {
+    api.ktCoreSetup(handle,-100*256,0,100*256,0);for(let i=0;i<4;i++)api.ktCoreAdvance(handle,0,'',0,'');
+    const state=JSON.parse(api.ktCorePalettes(handle)),root=state.actors[0],shared=state.actors[2],nested=state.actors[3];
+    assert.equal(state.actors.length,4);assert.equal(shared.group,root.group);assert.notEqual(nested.group,root.group);assert.equal(nested.ownPalette,false);
+    assert.deepEqual(state.groups[root.group].layer.add,[10,0,0]);assert.equal(state.groups[root.group].age,3);
+    assert.deepEqual(state.groups[nested.group].layer.add,[0,20,0]);assert.equal(state.groups[nested.group].age,2);
+    assert.equal(state.projectiles[0].group,root.group);assert.notEqual(state.projectiles[1].group,root.group);assert.equal(state.groups[state.projectiles[1].group],null);
+    assert.equal(state.projectiles[2].group,nested.group);assert.equal(state.explods[0].group,root.group);assert.equal(state.groups[state.explods[1].group],null);
+    const plan=JSON.parse(api.ktCoreRenderPlan(handle,0));
+    assert.deepEqual(plan.draws.find(d=>d.kind==='helper'&&d.palFX[0]?.add[1]===20).palFX.map(x=>x.add),[[0,20,0],[0,0,0]]);
+    assert.equal(api.ktCoreIssues(handle),'');
+  } finally {api.ktCoreRelease(handle);}
+}
+console.log('Native Wasm PalFX/AllPalFX/BGPalFX / 108 coordinate-side-scope-duration-wave sequences / three retained helper-projectile-Explod palette families / ownpal isolation / resolved stage-HUD colors and pure reads: OK (synthetic)');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

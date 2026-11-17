@@ -57,6 +57,7 @@ object CorePresentationPlanner {
             .append(",\"cameraY\":").append(camera?.y ?: 0.0)
             .append(",\"stageOffsetY\":").append(stageOffsetY)
             .append(",\"environment\":").append(fight.environment.json())
+            .append(",\"paletteColors\":").append(fight.palettes.colors())
             .append(",\"helpers\":").append(fight.entities.helpers.size)
             .append(",\"projectiles\":").append(fight.entities.projectiles.size)
             .append(",\"explods\":").append(fight.effects.all.size)
@@ -135,6 +136,8 @@ object CorePresentationPlanner {
                 .append(",\"effectSequence\":").append(effect.sequence)
             json
                 .append(",\"blend\":").append(blend.json())
+                .append(",\"palFX\":").append(fight.palettes.layers(actor?.paletteEffects ?: projectile?.paletteEffects ?: effect?.paletteEffects ?: fight.p1.paletteEffects)
+                    .joinToString(prefix="[",postfix="]",separator=",") {it.json()})
                 .append("},")
         }
         data class PlannedDraw(val priority: Long,val order: Int,val append: () -> Unit)

@@ -10,7 +10,7 @@ data class ExplodConfig(
     val facing: Int = 1, val verticalFacing: Int = 1,
     val scaleX: Double = 1.0, val scaleY: Double = 1.0,
     val priority: Int = 0, val onTop: Boolean = false,
-    val removeOnHit: Boolean = false, val ignoreHitPause: Boolean = true
+    val removeOnHit: Boolean = false, val ignoreHitPause: Boolean = true,val ownPalette: Boolean=false
 )
 
 /** Explods are visual entities. They never participate in Clsn contacts. */
@@ -18,6 +18,7 @@ class CoreExplod internal constructor(
     val owner: FightingCharacter, val id: Int, val sequence: Long,
     config: ExplodConfig, val bornAt: Long, action: AirAction
 ) {
+    internal val paletteEffects=if(config.ownPalette)CorePaletteEffects() else owner.paletteEffects
     var config = config; internal set
     var animation = AirAnimationPlayer(action); internal set
     internal var animationResetAt = bornAt
@@ -106,7 +107,8 @@ class CoreExplods(private val fight: DeterministicFight) {
             scaleX=scale.first,scaleY=scale.second,priority=integer("sprpriority",base.priority),
             onTop=integer("ontop",if(base.onTop)1 else 0) != 0,
             removeOnHit=integer("removeongethit",if(base.removeOnHit)1 else 0) != 0,
-            ignoreHitPause=integer("ignorehitpause",if(base.ignoreHitPause)1 else 0) != 0)
+            ignoreHitPause=integer("ignorehitpause",if(base.ignoreHitPause)1 else 0) != 0,
+            ownPalette=args["ownpal"]?.let {number(it)!=0.0} ?: base.ownPalette)
     }
     fun execute(actor: FightingCharacter, controller: StateController, source: FightingCharacter) {
         try {
@@ -120,7 +122,7 @@ class CoreExplods(private val fight: DeterministicFight) {
                 "removeexplod" -> common
                 "explodbindtime" -> common+setOf("time","value")
                 else -> common+setOf("anim","postype","pos","vel","velocity","accel","bindtime","removetime",
-                    "facing","vfacing","scale","sprpriority","ontop","removeongethit")
+                    "facing","vfacing","scale","sprpriority","ontop","removeongethit")+if(type=="explod")setOf("ownpal") else emptySet()
             }
             require(args.keys.all { it in allowed }) { "Unsupported Explod parameter: ${args.keys.first { it !in allowed }}" }
             fun integer(raw: String) = CoreExpression.number(raw,actor,fight.issues)?.toInt()
