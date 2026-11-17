@@ -1,6 +1,38 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current sound channel continuation — November 18, 2026
+## Current victory quote and hit count continuation — November 18, 2026
+
+Continues published main source `a4f2cd0`. VictoryQuote selects from
+`victory0` through `victory99` in the executing fighter's CNS `[Quotes]`
+sections. Omitted, out-of-range and missing indexes select a deterministic
+fallback from the available quotes. Helpers leave the root's selection alone.
+Quoted text uses the same escapes as clipboard text.
+
+The winner can select a quote during the outro with Win. Lose and DrawGame
+also read the recorded round result. Kotlin resolves the quote when the
+existing single-round flow finishes. The browser shows the result and
+displays the quote as text. Ties and fighters without quotes have no quote.
+Starting another match clears the previous quote.
+
+HitCount sets a signed 32-bit manual count from a numeric expression,
+truncating fractional values toward zero. It shares the HitCount trigger
+and StateDef hitcountpersist rules with HitAdd. HitAdd retains its existing
+nonnegative saturation rules. Invalid assignments preserve the count.
+
+Verification passed on 1,306 JVM, 1,301 Wasm and 32 adapter tests. The
+exported Wasm checks cover both winning sides, draws and signed manual
+counts. Chromium exercises the selected quote in a completed match,
+preserves literal markup in the text and clears it on restart. Both
+600-tick KFM replays match the previous combat checksum.
+
+Controller-name coverage reaches 90 of 97 (92.8%), up from 88 of 97
+(90.7%). Seven types remain (7.2%): Pause, SuperPause, RemapPal, MakeDust,
+GameMakeAnim, ForceFeedback and ModifyPlayer. The Elecbyte 1.1 overlap is
+83 of 89 (93.3%). Overall engine completion also requires broader parameter
+coverage, multi-round and team flow, automatic combo counts, and native
+timing and behavior verification.
+
+## Previous sound channel continuation — November 18, 2026
 
 Continues published main source `0305157`. SndPan updates a playing actor's
 named sound channel. PlaySnd and StopSnd now control playback of samples from

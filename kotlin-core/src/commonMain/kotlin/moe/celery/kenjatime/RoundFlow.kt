@@ -28,6 +28,8 @@ class CoreRoundFlow(val rules: CoreRoundRules = CoreRoundRules()) {
         private set
     var winner = -1 // -1 undecided; 0 tie; 1 player one; 2 player two
         private set
+    var victoryQuote: String? = null
+        private set
 
     val active: Boolean get() = phase == CoreRoundPhase.ACTIVE
     val finished: Boolean get() = phase == CoreRoundPhase.FINISHED
@@ -56,11 +58,20 @@ class CoreRoundFlow(val rules: CoreRoundRules = CoreRoundRules()) {
                 }
             }
             CoreRoundPhase.KO -> if(phaseTime>=rules.koFrames)advance(CoreRoundPhase.OUTRO)
-            CoreRoundPhase.OUTRO -> if(phaseTime>=rules.outroFrames)advance(CoreRoundPhase.FINISHED)
+            CoreRoundPhase.OUTRO -> if (phaseTime >= rules.outroFrames) {
+                val winnerActor = when (winner) {
+                    1 -> p1
+                    2 -> p2
+                    else -> null
+                }
+                victoryQuote = winnerActor?.let { CoreVictoryQuotes.select(it, remainingTicks) }
+                advance(CoreRoundPhase.FINISHED)
+            }
             CoreRoundPhase.FINISHED -> {}
         }
     }
     fun statusJson():String = "{\"phase\":\"" + phase.name + "\",\"phaseTime\":" + phaseTime +
         ",\"roundState\":" + roundState() + ",\"timerTicks\":" + remainingTicks +
-        ",\"winner\":" + winner + ",\"finished\":" + finished + "}"
+        ",\"winner\":" + winner + ",\"finished\":" + finished +
+        ",\"victoryQuote\":" + (victoryQuote?.let(MugenQuotedText::quote) ?: "null") + "}"
 }

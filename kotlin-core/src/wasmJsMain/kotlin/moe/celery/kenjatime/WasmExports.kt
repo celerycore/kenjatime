@@ -287,7 +287,7 @@ private object Fights {
 @JsExport fun ktCoreClipboards(handle: Int): String {
     val fight=Fights.get(handle)
     return (listOf(fight.p1,fight.p2)+fight.entities.helpers.map {it.actor}).joinToString(prefix="[",postfix="]",separator=",") {
-        "{\"id\":${it.id},\"rootId\":${it.rootActor().id},\"text\":${CoreClipboard.quote(it.clipboardText)}}"
+        "{\"id\":${it.id},\"rootId\":${it.rootActor().id},\"text\":${MugenQuotedText.quote(it.clipboardText)}}"
     }
 }
 /** On-demand actor-local sampled and queued input bitmasks; buttons are abcxyzs bits 0..6. */

@@ -81,6 +81,13 @@ object CoreExpression {
                 "animelem" -> f.animation?.index?.plus(1)?.toDouble() ?: 0.0
                 "animtime" -> f.animation?.remaining?.toDouble() ?: 0.0
                 "roundstate" -> f.roundState.toDouble()
+                "win", "lose" -> {
+                    val fight = f.world
+                    val winner = fight?.roundFlow?.winner ?: -1
+                    val side = if (f.rootActor() === fight?.p1) 1 else 2
+                    if (winner > 0 && (winner == side) == (key == "win")) 1.0 else 0.0
+                }
+                "drawgame" -> if (f.world?.roundFlow?.winner == 0) 1.0 else 0.0
                 "alive" -> if (f.life>0) 1.0 else 0.0
                 "ishelper" -> if (f.parent!=null) 1.0 else 0.0
                 "incustomstate" -> if (f.stateOwner !== f) 1.0 else 0.0
@@ -386,9 +393,13 @@ object CoreExpression {
         errors.add("Unsupported expression: "+raw.take(100)+" ("+e.message+")")
         null
     }
-    fun numericValue(raw:String,actor:FightingCharacter,errors:MutableSet<String>):Double?=try {
-        numeric(parse(raw.trim()),actor,"Map value")
-    }catch(e:IllegalArgumentException) { errors.add("Unsupported map expression: ${raw.take(100)} (${e.message})");null }
+    fun numericValue(raw: String, actor: FightingCharacter, errors: MutableSet<String>, label: String = "map"): Double? =
+        try {
+            numeric(parse(raw.trim()), actor, "$label value")
+        } catch (e: IllegalArgumentException) {
+            errors.add("Unsupported $label expression: ${raw.take(100)} (${e.message})")
+            null
+        }
     internal fun debugNumber(raw: String,actor: FightingCharacter): CoreDebugNumber {
         val value=parse(raw.trim()).read(actor)
         val n=value.n ?: throw IllegalArgumentException("Clipboard params require numeric expressions")

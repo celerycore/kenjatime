@@ -387,10 +387,16 @@ byId("preset").onclick=()=>{
   byId("quality").value="performance";
   status("Kotlin CPU-versus-CPU benchmark preset selected. Imported character scripts will run with Kotlin's currently supported controller subset.");
 };
+function setVictoryQuote(text = ""){
+  const quote=byId("victory-quote");
+  quote.textContent=text;
+  quote.hidden=!text;
+}
 function begin(){
   const p1=fighters.get(byId("p1-select").value),p2=fighters.get(byId("p2-select").value);
   if(!p1||!p2||!backend){status("Kotlin runtime or fighter missing.");return}
   setQuality();
+  setVictoryQuote();
   const soundBanks=[p1,p2].map(item=>{
     try{return item.soundBank||(item.soundBank=readSoundBank(item.soundBytes))}
     catch(error){return {samples:new Map(),catalog:"",warnings:[error.message]}}
@@ -416,6 +422,7 @@ byId("pause").onclick=()=>{
 };
 byId("reset").onclick=()=>{
   matchToken++;
+  setVictoryQuote();
   worker.postMessage({type:"stop"});
   audio.reset();audio.setPaused(false);
   running=false;paused=false;latest=null;workerStats=null;
@@ -505,10 +512,14 @@ worker.onmessage=({data})=>{
   }else if(data.type==="paused"){
     byId("banner").textContent=data.value?"Paused · Kotlin fight frozen":"Kotlin/WASM · 60 Hz combat";
   }else if(data.type==="complete"){
+    if(data.matchToken!==matchToken)return;
     audio.reset();
     running=false;paused=false;byId("pause").disabled=true;
     byId("reset").disabled=true;byId("record").disabled=true;
-    byId("banner").textContent="Match complete";
+    const winner=data.round.winner;
+    byId("banner").textContent=winner===0?"Match drawn":
+      `${activeNames[winner-1]} wins · Player ${winner}`;
+    setVictoryQuote(data.round.victoryQuote??"");
   }else if(data.type==="error"){
     audio.reset();
     running=false;paused=false;byId("pause").disabled=true;byId("record").disabled=true;

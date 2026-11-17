@@ -117,7 +117,8 @@ data class FighterDefinition(
     val airFront: Int = groundFront,val airBack: Int = groundBack,
     val drawOffsetX: Int = 0,val drawOffsetY: Int = 0,
     val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE,
-    val initialMaps: Map<String,Double> = emptyMap(),val initialMapIssues: Set<String> = emptySet()
+    val initialMaps: Map<String,Double> = emptyMap(),val initialMapIssues: Set<String> = emptySet(),
+    val victoryQuotes: Map<Int, String> = emptyMap(), val victoryQuoteIssues: Set<String> = emptySet()
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -142,6 +143,7 @@ data class FighterDefinition(
                        defText: String = ""): FighterDefinition {
             val constants = MugenCnsParser.constants(cns)
             val maps=CoreNamedMaps.defaults(cns)
+            val quotes = CoreVictoryQuotes.read(cns)
             // Character localcoord is authored in DEF, not the AIR or CNS.
             // Nu-13 uses 1008x756. Never assume every character is 320x240.
             val info = if(defText.isBlank()) null else MugenDefParser.parse(defText).section("info")
@@ -162,7 +164,8 @@ data class FighterDefinition(
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
                 if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack,
                 constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY,
-                constants.attackDistance,constants.projectileAttackDistance,maps.first,maps.second
+                constants.attackDistance,constants.projectileAttackDistance,maps.first,maps.second,
+                quotes.first, quotes.second
             )
         }
     }
@@ -435,6 +438,7 @@ class FightingCharacter(
     }
     var destroyed = false
     var hitCount = 0
+    internal var victoryQuoteIndex = -1
     private var randomState = 0x6d2b79f5 xor id
     val asserted: MutableSet<String> = linkedSetOf()
     var life = definition.maxLife
@@ -523,7 +527,12 @@ class FightingCharacter(
     private var evaluationIssues: MutableSet<String> = initializationIssues
     var animation: AirAnimationPlayer? = null
         private set
-    init { initializationIssues.addAll(definition.initialMapIssues);initializationIssues.addAll(definition.airIssues);changeState(0) }
+    init {
+        initializationIssues.addAll(definition.initialMapIssues)
+        initializationIssues.addAll(definition.victoryQuoteIssues)
+        initializationIssues.addAll(definition.airIssues)
+        changeState(0)
+    }
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
                     controlOverride: Boolean? = null,
                     errors: MutableSet<String> = world?.issues ?: evaluationIssues) {
@@ -713,7 +722,8 @@ class FightingCharacter(
             }
             "lifeadd", "lifeset", "targetlifeadd" -> CoreLifeControllers.execute(this,c,errors)
             "attackmulset", "defencemulset" -> CoreDamage.execute(this,c,errors)
-            "hitadd" -> CoreHitCounts.add(this,c,errors)
+            "hitadd", "hitcount" -> CoreHitCounts.execute(this,c,errors)
+            "victoryquote" -> CoreVictoryQuotes.execute(this,c,errors)
             "assertspecial" -> {
                 args["flag"]?.lowercase()?.let { asserted.add(it) }
             }

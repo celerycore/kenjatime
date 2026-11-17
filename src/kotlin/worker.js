@@ -73,7 +73,7 @@ function pump(){
     }
     if(!endless && typeof api.ktCoreRoundState==="function"){
       const round=JSON.parse(api.ktCoreRoundState(handle));
-      if(round?.finished){working=false;emit("complete",{round});return}
+      if(round?.finished){working=false;emit("complete",{round,matchToken});return}
     }
     // Kotlin's clock is the only authority on owed 60Hz ticks. Present fewer
     // snapshots when behind, but always process the same input/time sequence.

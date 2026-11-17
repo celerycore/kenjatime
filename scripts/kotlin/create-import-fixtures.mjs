@@ -802,6 +802,33 @@ soundFiles['kfm/kfm.air']=encoder.encode(decoder.decode(soundFiles['kfm/kfm.air'
 `);
 writeFileSync('test-output/kotlin-kfm-sound.zip',zipSync(soundFiles));
 
+const victoryFiles = Object.fromEntries(raw);
+victoryFiles['kfm/kfm.cns'] = encoder.encode(`[Quotes]
+victory0 = "Fallback"
+victory5 = "Good round; <strong>rematch</strong>!\\nReady?"
+[Statedef 0]
+type = S
+physics = N
+anim = 0
+[State 0, manual hits]
+type = HitCount
+trigger1 = Time = 0
+value = 5
+[State 0, add]
+type = HitAdd
+trigger1 = Time = 1
+value = 2
+[State 0, finish]
+type = LifeSet
+trigger1 = RoundState = 2 && ID = 2
+value = 0
+[State 0, select]
+type = VictoryQuote
+trigger1 = Win && HitCount = 7
+value = 5
+`);
+writeFileSync('test-output/kotlin-kfm-victory.zip', zipSync(victoryFiles));
+
 for(const side of [0,1]) {
  const files=Object.fromEntries(raw),reverser=side+1;
  files['kfm/kfm.cns']=encoder.encode(`[Statedef 0]

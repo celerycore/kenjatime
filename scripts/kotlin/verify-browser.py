@@ -780,6 +780,32 @@ try:
         result["sndChannelsStereoSignalPriorityPitchExpiryPauseMuteAndReset"]="passed"
         sound.close()
 
+        victory = browser.new_page(viewport={"width": 1000, "height": 780})
+        victory_errors = []
+        victory.on("pageerror", lambda error: victory_errors.append(str(error)))
+        victory.goto(base, wait_until="domcontentloaded", timeout=30000)
+        victory.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)
+        victory.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-victory.zip"))
+        victory.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0", timeout=45000)
+        installed = victory.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value"
+        )
+        for selector in ["#p1-select", "#p2-select"]:
+            victory.locator(selector).select_option(value=installed)
+        victory.locator("#cpu").uncheck()
+        victory.locator("#endless").uncheck()
+        victory.locator("#start").click()
+        quote = victory.locator("#victory-quote")
+        quote.wait_for(state="visible", timeout=20000)
+        assert quote.text_content() == "Good round; <strong>rematch</strong>!\nReady?"
+        assert quote.locator("strong").count() == 0
+        assert "wins · Player 1" in victory.locator("#banner").text_content()
+        victory.locator("#start").click()
+        quote.wait_for(state="hidden", timeout=10000)
+        assert not victory_errors, victory_errors
+        result["victoryQuoteAndHitCountInCompletedMatch"] = "passed"
+        victory.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

@@ -112,7 +112,7 @@ class ClipboardTest {
         assertEquals("a".repeat(6191)+"\n"+"b".repeat(2000),w.p1.clipboardText);assertEquals(8192,w.p1.clipboardText.length)
     }
     @Test fun jsonEscapingPreservesTextWithoutInterpretingMarkup() {
-        assertEquals("\"\\u0000\\u0009\\u000a\\\"\\\\猫\"",CoreClipboard.quote("\u0000\t\n\"\\猫"))
+        assertEquals("\"\\u0000\\u0009\\u000a\\\"\\\\猫\"",MugenQuotedText.quote("\u0000\t\n\"\\猫"))
         assertEquals("<img src=x onerror=alert(1)>",formatted("<img src=x onerror=alert(1)>"))
     }
     @Test fun displayAppendAndClearExecuteInAuthoredControllerOrder() {
@@ -153,7 +153,7 @@ class ClipboardTest {
         val a=fight(c(params="text=\"t=%d pos=%.2f\"\nparams=Time,Pos X"));val b=fight()
         a.p1.velX=256;b.p1.velX=256
         repeat(4){a.step();b.step();assertEquals(b.checksum(),a.checksum())}
-        val text=a.p1.clipboardText;val checksum=a.checksum();repeat(10){CoreClipboard.quote(text);CorePresentationPlanner.snapshot(a,12)}
+        val text=a.p1.clipboardText;val checksum=a.checksum();repeat(10){MugenQuotedText.quote(text);CorePresentationPlanner.snapshot(a,12)}
         assertEquals(text,a.p1.clipboardText);assertEquals(checksum,a.checksum())
     }
     @Test fun expressionsKeepTheirExistingValuesWhileAddingTypeMetadata() {

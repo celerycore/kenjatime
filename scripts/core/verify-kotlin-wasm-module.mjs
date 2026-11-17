@@ -4887,6 +4887,50 @@ abspan=${80*width/320}`;
 }
 console.log('Native Wasm PlaySnd/SndPan/StopSnd / 288 coordinate-side-facing-pan-pitch-loop sequences / six helper channel lifecycles / six borrowed sound-bank routes / pure reads: OK (synthetic; native mixer timing unverified)');
 
+for (const winner of [0, 1, 2]) {
+  function script(side) {
+    return `${motionIdle}
+[Quotes]
+victory0 = "Fallback ${side}"
+victory5 = "Winner ${side}; \\"ready?\\""
+[State 0, begin count]
+type = HitCount
+trigger1 = Time = 0
+value = ifelse(ID = 1, 5.9, -5.9)
+[State 0, add to count]
+type = HitAdd
+trigger1 = Time = 1
+value = 12
+[State 0, loser]
+type = LifeSet
+trigger1 = RoundState = 2 && ID != ${winner}
+value = 0
+[State 0, quote]
+type = VictoryQuote
+trigger1 = Win && HitCount = ${side === 1 ? 17 : 7}
+value = 5
+`;
+  }
+  const handle = api.ktCoreCreateWithDefinitions('First', 'Second', air, air, script(1), script(2), '', '', '', '');
+  try {
+    api.ktCoreEnableRoundFlow(handle, 0, 0, 0, 1, 2, 1);
+    api.ktCoreAdvance(handle, 0, '', 0, '');
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle, 0)).hitCount, 5);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle, 1)).hitCount, -5);
+    for (let i = 0; i < 5; i++) api.ktCoreAdvance(handle, 0, '', 0, '');
+    assert.equal(JSON.parse(api.ktCoreRoundState(handle)).victoryQuote, null);
+    api.ktCoreAdvance(handle, 0, '', 0, '');
+    const done = JSON.parse(api.ktCoreRoundState(handle));
+    assert.equal(done.winner, winner);
+    assert.equal(done.finished, true);
+    assert.equal(done.victoryQuote, winner ? `Winner ${winner}; "ready?"` : null);
+    assert.equal(api.ktCoreIssues(handle), '');
+  } finally {
+    api.ktCoreRelease(handle);
+  }
+}
+console.log('Native Wasm VictoryQuote and HitCount / both winning sides and draws / signed manual counts and authored outro selection: OK');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

@@ -26,7 +26,7 @@ class StatePersistenceTest {
     private fun add(actor: FightingCharacter,value: String,options: String="") {
         val c=MugenCnsParser.parse("$idle\n[State 0, count]\ntype=HitAdd\ntrigger1=1\nvalue=$value\n$options")
             .getValue(0).controllers.single()
-        CoreHitCounts.add(actor,c,actor.world!!.issues)
+        CoreHitCounts.execute(actor,c,actor.world!!.issues)
     }
 
     @Test fun parserRetainsIndependentRawPersistenceExpressions() {
@@ -138,7 +138,7 @@ class StatePersistenceTest {
             "value=1,2","value=1\nunsupported=1")) {
             val w=fight();w.p1.hitCount=7
             val c=MugenCnsParser.parse("$idle\n[State 0, add]\ntype=HitAdd\ntrigger1=1\n$params").getValue(0).controllers.single()
-            CoreHitCounts.add(w.p1,c,w.issues);assertEquals(7,w.p1.hitCount)
+            CoreHitCounts.execute(w.p1,c,w.issues);assertEquals(7,w.p1.hitCount)
             assertTrue(w.issues.any { it.startsWith("Invalid HitAdd:") })
         }
     }

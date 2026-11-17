@@ -20,19 +20,23 @@ internal data class CoreStatePersistence(val hitDef: Boolean=false,val moveHit: 
 }
 
 internal object CoreHitCounts {
-    fun add(actor: FightingCharacter,controller: StateController,errors: MutableSet<String>) {
+    fun execute(actor: FightingCharacter,controller: StateController,errors: MutableSet<String>) {
+        val set = controller.type.equals("hitcount", true)
+        val name = if (set) "HitCount" else "HitAdd"
         try {
             val args=controller.params
             require(args.keys.all { it in setOf("type","value","persistent","ignorehitpause") }) {
-                "Unsupported HitAdd parameter"
+                "Unsupported parameter"
             }
             val raw=args["value"] ?: throw IllegalArgumentException("Missing value")
-            val amount=CoreExpression.number(raw,actor,errors)
+            val amount = (if (set) CoreExpression.numericValue(raw, actor, errors, name)
+                else CoreExpression.number(raw, actor, errors))
                 ?: throw IllegalArgumentException("Invalid value expression")
-            require(amount in Int.MIN_VALUE.toDouble()..Int.MAX_VALUE.toDouble()) { "HitAdd value out of range" }
-            actor.hitCount=(actor.hitCount.toLong()+amount.toInt()).coerceIn(0L,Int.MAX_VALUE.toLong()).toInt()
+            require(amount in Int.MIN_VALUE.toDouble()..Int.MAX_VALUE.toDouble()) { "Value out of range" }
+            actor.hitCount = if (set) amount.toInt()
+                else (actor.hitCount.toLong() + amount.toInt()).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
         }catch(e: IllegalArgumentException) {
-            errors.add("Invalid HitAdd: ${e.message}")
+            errors.add("Invalid $name: ${e.message}")
         }
     }
 }
