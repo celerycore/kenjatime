@@ -2,16 +2,18 @@ package moe.celery.kenjatime
 
 import kotlin.math.*
 
+internal data class CoreDebugNumber(val value: Double,val floating: Boolean)
+
 /** Bounded, cached, immutable CNS expression trees. Unknown syntax fails closed. */
 object CoreExpression {
     private data class Token(val value: String, val type: Char)
     private sealed interface Node { fun read(f: FightingCharacter): Value }
     private data class Value(val n: Double? = null, val s: String? = null,
-                             val range: Pair<Double,Double>? = null) {
+                             val range: Pair<Double,Double>? = null,val floating: Boolean=false) {
         fun number(): Double = n ?: s?.toDoubleOrNull() ?: 0.0
         fun bool() = number() != 0.0
         fun string() = s ?: (n?.toString() ?: "")
-        companion object { fun num(d: Double) = Value(n=d); fun str(s: String) = Value(s=s) }
+        companion object { fun num(d: Double,floating: Boolean=d%1.0!=0.0) = Value(n=d,floating=floating); fun str(s: String) = Value(s=s) }
     }
     private data class Literal(val v: Value): Node { override fun read(f: FightingCharacter) = v }
     private fun numeric(node: Node,f: FightingCharacter,label: String): Double {
@@ -108,13 +110,21 @@ object CoreExpression {
                     throw IllegalArgumentException("Unsupported identifier: " + key)
                 }
             }
-            return Value.num(v)
+            return Value.num(v,key in setOf("pos x","pos y","vel x","vel y","p2dist x","p2dist y","p2bodydist x","p2bodydist y") || v%1.0!=0.0)
         }
     }
     private data class FunctionCall(val name:String,val args:List<Node>): Node {
         override fun read(f: FightingCharacter): Value {
-            fun a(i:Int): Double = args.getOrNull(i)?.read(f)?.number()
-                ?: throw IllegalArgumentException("Missing argument for "+name)
+            var floating=false
+            fun a(i:Int): Double {
+                val value=args.getOrNull(i)?.read(f) ?: throw IllegalArgumentException("Missing argument for "+name)
+                floating=floating || value.floating;return value.number()
+            }
+            if(name=="ifelse") {
+                val selected=args.getOrNull(if(a(0)!=0.0)1 else 2)?.read(f)
+                    ?: throw IllegalArgumentException("Missing argument for ifelse")
+                return Value.num(selected.number(),selected.floating)
+            }
             fun idx(i:Int)=a(i).toInt()
             val v=when(name) {
                 "map" -> {
@@ -153,7 +163,6 @@ object CoreExpression {
                 "cos" -> cos(a(0)*PI/180.0)
                 "min" -> min(a(0),a(1))
                 "max" -> max(a(0),a(1))
-                "ifelse" -> if(a(0)!=0.0) a(1) else a(2)
                 "animelemtime", "animelemno", "animexist", "selfanimexist" -> {
                     require(args.size == 1) { "$name requires one argument" }
                     val argument = idx(0)
@@ -180,14 +189,21 @@ object CoreExpression {
                 }
                 else -> throw IllegalArgumentException("Unsupported function: "+name)
             }
-            return Value.num(v)
+            val resultFloating=when(name) {
+                "map","fvar","sysfvar","sin","cos" -> true
+                "abs","min","max" -> floating
+                "gethitvar" -> (args[0] as Variable).key in setOf("xvel","yvel","yaccel","fall.xvel","fall.yvel",
+                    "fall.envshake.freq","fall.envshake.ampl","fall.envshake.phase")
+                else -> false
+            }
+            return Value.num(v,resultFloating || v%1.0!=0.0)
         }
     }
     private data class Unary(val op:String,val x:Node): Node {
         override fun read(f:FightingCharacter):Value {
-            val n=x.read(f).number()
+            val value=x.read(f);val n=value.number()
             return Value.num(when(op) { "-"->-n; "+"->n; "!"->if(n==0.0)1.0 else 0.0
-                else -> throw IllegalArgumentException("Bad unary operator") })
+                else -> throw IllegalArgumentException("Bad unary operator") },op!="!" && value.floating)
         }
     }
     private data class Binary(val op:String,val x:Node,val y:Node):Node {
@@ -215,14 +231,15 @@ object CoreExpression {
                 else->null
             }
             if(comparison!=null)return Value.num(if(comparison)1.0 else 0.0)
-            return Value.num(when(op) {
+            val result=when(op) {
                 "+"->left+right
                 "-"->left-right
                 "*"->left*right
                 "/"->if(right==0.0)throw IllegalArgumentException("Divide by zero") else left/right
                 "%"->if(right==0.0)throw IllegalArgumentException("Modulo by zero") else left%right
                 else->throw IllegalArgumentException("Unsupported operator: "+op)
-            })
+            }
+            return Value.num(result,a.floating || b.floating || result%1.0!=0.0)
         }
     }
     private class Parser(val tokens:List<Token>) {
@@ -271,7 +288,7 @@ object CoreExpression {
                 val n=or();expect(")");depth--;return n
             }
             val t=consume()
-            if(t.type=='n')return Literal(Value.num(t.value.toDouble()))
+            if(t.type=='n')return Literal(Value.num(t.value.toDouble(),t.value.any { it=='.'||it=='e'||it=='E' }))
             if(t.type=='s')return Literal(Value.str(t.value))
             if(t.type!='i')throw IllegalArgumentException("Invalid token "+t.value)
             var name=t.value.lowercase()
@@ -331,6 +348,12 @@ object CoreExpression {
             }else if(c.isDigit() || c=='.' && source.getOrNull(i+1)?.isDigit()==true){
                 val start=i
                 while(i<source.length&&(source[i].isDigit()||source[i]=='.'))i++
+                if(source.getOrNull(i) in listOf('e','E')) {
+                    i++;if(source.getOrNull(i) in listOf('+','-'))i++
+                    val exponentStart=i
+                    while(source.getOrNull(i)?.isDigit()==true)i++
+                    require(i>exponentStart) {"Malformed exponent"}
+                }
                 val raw=source.substring(start,i)
                 require(raw.toDoubleOrNull()!=null){"Malformed number"}
                 result.add(Token(raw,'n'))
@@ -364,6 +387,12 @@ object CoreExpression {
     fun numericValue(raw:String,actor:FightingCharacter,errors:MutableSet<String>):Double?=try {
         numeric(parse(raw.trim()),actor,"Map value")
     }catch(e:IllegalArgumentException) { errors.add("Unsupported map expression: ${raw.take(100)} (${e.message})");null }
+    internal fun debugNumber(raw: String,actor: FightingCharacter): CoreDebugNumber {
+        val value=parse(raw.trim()).read(actor)
+        val n=value.n ?: throw IllegalArgumentException("Clipboard params require numeric expressions")
+        require(n.isFinite()) { "Nonfinite clipboard parameter" }
+        return CoreDebugNumber(n,value.floating)
+    }
     private val constantActor by lazy { FightingCharacter(FighterDefinition("constant expression"),0) }
     fun constant(raw: String): Double {
         val node=parse(raw.trim())

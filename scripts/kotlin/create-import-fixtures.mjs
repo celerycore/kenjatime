@@ -578,6 +578,61 @@ for(let y=2;y<blendSprite.h-2;y++)for(let x=2;x<blendSprite.w-2;x++){
 if(!blendSamples.some(s=>s.rgba[3]===0)||blendSamples.filter(s=>s.rgba[3]===255).length<2)throw Error('KFM blend fixture needs transparent and distinct opaque interior pixels');
 writeFileSync('test-output/kotlin-trans-samples.json',JSON.stringify({axisX:blendSprite.x,axisY:blendSprite.y,samples:blendSamples}));
 
+const clipboardFiles=Object.fromEntries(raw);
+clipboardFiles['kfm/kfm.cns']=encoder.encode(String.raw`[Statedef 0]
+type=S
+physics=N
+anim=730
+ctrl=0
+[State 0, integer]
+type=VarSet
+trigger1=Time=0
+v=0
+value=42
+[State 0, floating value]
+type=VarSet
+trigger1=Time=0
+fv=0
+value=1.25
+[State 0, display]
+type=DisplayToClipboard
+trigger1=Time%240=0
+text="root=%d f=%.2f\n\tquote=\"; 猫 <img id=clipboard-injected src=x onerror=alert(1)> 100%%"
+params=var(0),fvar(0)
+[State 0, append]
+type=AppendToClipboard
+trigger1=Time%240=30
+text="line=%d"
+params=Time%240
+[State 0, clear]
+type=ClearClipboard
+trigger1=Time%240=90
+[State 0, append after clear]
+type=AppendToClipboard
+trigger1=Time%240=150
+text="after clear"
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+pos=0,-80
+[Statedef 700]
+type=S
+physics=N
+anim=730
+ctrl=0
+[State 700, own message]
+type=DisplayToClipboard
+trigger1=Time=0
+text="helper=%d"
+params=var(0)
+`);
+clipboardFiles['kfm/kfm.air']=encoder.encode(decoder.decode(clipboardFiles['kfm/kfm.air'])+`
+[Begin Action 730]
+0,0,0,-300,-1
+`);
+writeFileSync('test-output/kotlin-kfm-clipboard.zip',zipSync(clipboardFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

@@ -4,6 +4,7 @@
  */
 let api=null,handle=0,clock=0,channel=null,working=false,paused=false;
 let gameMode="cpu",level=4,endless=true,controls=[{directions:0,buttons:""},{directions:0,buttons:""}];
+let debugEnabled=false;
 let lastSnapshot=-Infinity,lastStats=-Infinity,elapsedCpuMs=0,completedInWindow=0,
   lastBatchCpu=0,callbacks=0,backendVersion="";
 const emit=(type,data={})=>self.postMessage({type,...data});
@@ -57,6 +58,7 @@ function pump(){
       lastSnapshot=now;
     }
     if(now-lastStats>=500){
+      if(debugEnabled)emit("clipboards",{rows:JSON.parse(api.ktCoreClipboards(handle)),frame:api.ktCoreClockTicks(clock)});
       emit("stats",{completed:api.ktCoreClockTicks(clock),backlog:debt,
         ticks:completedInWindow,windowMs:lastStats===-Infinity?500:now-lastStats,
         cpuMs:elapsedCpuMs,averageTickCpuMs:completedInWindow?
@@ -119,7 +121,11 @@ self.onmessage=async({data})=>{
       lastSnapshot=-Infinity;lastStats=-Infinity;
       elapsedCpuMs=0;completedInWindow=0;lastBatchCpu=0;
       emit("started",{version:backendVersion});
+      if(debugEnabled)emit("clipboards",{rows:JSON.parse(api.ktCoreClipboards(handle)),frame:0});
       schedule(0);
+    }else if(data.type==="debug"){
+      debugEnabled=!!data.enabled;
+      if(debugEnabled && handle)emit("clipboards",{rows:JSON.parse(api.ktCoreClipboards(handle)),frame:api.ktCoreClockTicks(clock)});
     }else if(data.type==="input"){
       controls[data.side?1:0]={
         directions:Number(data.directions)||0,

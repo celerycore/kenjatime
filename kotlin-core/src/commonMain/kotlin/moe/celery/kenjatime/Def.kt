@@ -12,7 +12,7 @@ data class MugenDefFile(val sections: List<MugenSection>) {
 }
 /** Parse quoted semicolons, '=' and ':' assignments and duplicate sections without losing ordering. */
 object MugenDefParser {
-    fun parse(content: String): MugenDefFile {
+    fun parse(content: String,preserveQuotes: Boolean=false): MugenDefFile {
         require(content.length <= 16_777_216) { "MUGEN script exceeds 16 MiB" }
         val result = ArrayList<MugenSection>()
         var section: String? = null
@@ -24,12 +24,16 @@ object MugenDefParser {
         }
         for (raw in content.removePrefix("\uFEFF").lineSequence()) {
             var quote = '\u0000'
+            var escaped=false
             val line = StringBuilder()
             for (c in raw) {
-                if (quote == '\u0000' && (c == '"' || c == '\'')) quote = c
-                else if (quote == c) quote = '\u0000'
+                if(!escaped) {
+                    if (quote == '\u0000' && (c == '"' || c == '\'')) quote = c
+                    else if (quote == c) quote = '\u0000'
+                }
                 if (c == ';' && quote == '\u0000') break
                 line.append(c)
+                escaped=quote != '\u0000' && c == '\\' && !escaped
             }
             val stripped = line.toString().trim()
             if (stripped.isEmpty()) continue
@@ -42,7 +46,8 @@ object MugenDefParser {
             val index = stripped.indexOfFirst { it == '=' || it == ':' }
             if (index < 1) continue
             val key = stripped.substring(0, index).trim().lowercase()
-            val value = stripped.substring(index + 1).trim().removeSurrounding("\"").removeSurrounding("'")
+            val rawValue = stripped.substring(index + 1).trim()
+            val value = if(preserveQuotes)rawValue else rawValue.removeSurrounding("\"").removeSurrounding("'")
             if (key.isNotEmpty()) entries.add(key to value)
         }
         flush()

@@ -500,6 +500,47 @@ try:
         result["transAirAndCnsCanvasPixels"]="passed"
         blend_page.close()
 
+        clipboard_page=browser.new_page(viewport={"width":1000,"height":780})
+        clipboard_errors=[]
+        clipboard_page.on("pageerror",lambda error:clipboard_errors.append(str(error)))
+        clipboard_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        clipboard_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        clipboard_page.locator("#archive").set_input_files(str(ROOT/"test-output/kotlin-kfm-clipboard.zip"))
+        clipboard_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=clipboard_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        clipboard_page.locator("#p1-select").select_option(value=installed)
+        clipboard_page.locator("#cpu").uncheck();clipboard_page.locator("#start").click()
+        clipboard_page.wait_for_function("window.__kenjatimeKotlinQA?.renderPlan?.frame>2",timeout=30000)
+        assert clipboard_page.evaluate("window.__kenjatimeKotlinQA.clipboards") is None
+        assert not clipboard_page.locator("#cns-debug").evaluate("el=>el.open")
+        clipboard_page.locator("#cns-debug summary").click()
+        message=clipboard_page.wait_for_function("""()=>{
+          const p=window.__kenjatimeKotlinQA?.clipboards;
+          return p?.rows[0]?.text.includes('root=42 f=1.25')&&p.rows.some(r=>r.id!==r.rootId&&r.text==='helper=0')?p:false;
+        }""",timeout=30000).json_value()
+        assert '\n    quote="; 猫 <img id=clipboard-injected' in message["rows"][0]["text"],message
+        assert '100%' in message["rows"][0]["text"],message
+        assert clipboard_page.locator("#clipboard-injected").count()==0
+        assert 'Player 1' in clipboard_page.locator("#clipboard-output").inner_text()
+        assert 'Helper ' in clipboard_page.locator("#clipboard-output").inner_text()
+        clipboard_page.wait_for_function("window.__kenjatimeKotlinQA?.clipboards?.rows[0]?.text.endsWith('\\nline=30')",timeout=30000)
+        clipboard_page.wait_for_function("window.__kenjatimeKotlinQA?.clipboards?.rows[0]?.text===''",timeout=30000)
+        clipboard_page.wait_for_function("window.__kenjatimeKotlinQA?.clipboards?.rows[0]?.text==='after clear'",timeout=30000)
+        old_frame=clipboard_page.evaluate("window.__kenjatimeKotlinQA.clipboards.frame")
+        clipboard_page.locator("#cns-debug summary").click()
+        clipboard_page.wait_for_function("frame=>window.__kenjatimeKotlinQA.renderPlan.frame>frame+20",arg=old_frame,timeout=10000)
+        assert clipboard_page.evaluate("window.__kenjatimeKotlinQA.clipboards.frame")==old_frame
+        clipboard_page.locator("#cns-debug summary").click()
+        clipboard_page.wait_for_function("frame=>window.__kenjatimeKotlinQA.clipboards?.frame>frame",arg=old_frame,timeout=10000)
+        assert "clipboards" not in clipboard_page.evaluate("window.__kenjatimeKotlinQA.renderPlan")
+        clipboard_page.locator("#reset").click()
+        clipboard_page.wait_for_function("window.__kenjatimeKotlinQA.clipboards===null",timeout=10000)
+        assert clipboard_page.locator("#clipboard-output").inner_text()=="Match stopped."
+        assert not clipboard_errors,clipboard_errors
+        result["actorClipboardDebugPanel"]="passed"
+        clipboard_page.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

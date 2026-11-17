@@ -32,6 +32,10 @@ const debugWarning=new Set();
 const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
 const worker=new Worker(new URL("./worker.js",import.meta.url),{type:"module"});
+let lastClipboards=null;
+byId("cns-debug").addEventListener("toggle",()=>{
+  worker.postMessage({type:"debug",enabled:byId("cns-debug").open});
+});
 let backend="",running=false,paused=false,latest=null,lastDraw=0;
 let frameSamples=0,drawn=0,measureStart=performance.now(),renderFps=0;
 let startedAt=0,recording=false,rows=[],lastSample=0,previousTick=0,previousTime=0;
@@ -366,6 +370,7 @@ function begin(){
   setQuality();
   images=[p1,p2];activeNames=[p1.name,p2.name];
   startedAt=performance.now();previousTime=0;previousTick=0;workerStats=null;latest=null;
+  lastClipboards=null;byId("clipboard-output").textContent="Waiting for authored debug messages…";
   worker.postMessage({type:"start",
     p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||""},
     p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||""},
@@ -382,6 +387,7 @@ byId("pause").onclick=()=>{
 byId("reset").onclick=()=>{
   worker.postMessage({type:"stop"});
   running=false;paused=false;latest=null;workerStats=null;
+  lastClipboards=null;byId("clipboard-output").textContent="Match stopped.";
   byId("pause").disabled=true;
   byId("pause").textContent="Pause";
   byId("reset").disabled=true;
@@ -451,6 +457,12 @@ worker.onmessage=({data})=>{
     latest=data.visuals;
     byId("entities").textContent=latest.helpers+" / "+latest.projectiles;
     byId("debt").textContent=Number(data.debt).toFixed(0)+" ticks";
+  }else if(data.type==="clipboards"){
+    if(running&&byId("cns-debug").open){
+      lastClipboards=data;
+      byId("clipboard-output").textContent=data.rows.map(r=>
+        (r.id===r.rootId?"Player "+r.id:"Helper "+r.id+" · Player "+r.rootId)+"\n"+(r.text||"(empty)")).join("\n\n");
+    }
   }else if(data.type==="stats"){
     workerStats=data;
     byId("hz").textContent=(data.windowMs?data.ticks*1000/data.windowMs:0).toFixed(1)+" Hz";
@@ -469,6 +481,7 @@ worker.onmessage=({data})=>{
     status("Kotlin runtime error: "+data.message+". The engine will not silently switch to JavaScript.");
   }else if(data.type==="stopped"){
     running=false;byId("pause").disabled=true;
+    lastClipboards=null;byId("clipboard-output").textContent="Match stopped.";
     byId("reset").disabled=true;
   }
 };
@@ -487,6 +500,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get sources(){return [...installedTables.values()].map(x=>x.name)},
   get lastVisualFrame(){return latest?.frame??0},
   get renderPlan(){return latest},
+  get clipboards(){return lastClipboards},
   get paintedRenderPlan(){return lastPaintedRenderPlan},
   get warning(){return images.find(x=>x?.warning)?.warning||""}
 });

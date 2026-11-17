@@ -16,6 +16,9 @@
     "screenbound",
     "assertinput",
     "trans",
+    "displaytoclipboard",
+    "appendtoclipboard",
+    "clearclipboard",
     "width",
     "sprpriority",
     "angleset",
@@ -86,6 +89,7 @@
     "stopsnd"
   ],
   "knownIncomplete": [
+    "DisplayToClipboard/AppendToClipboard/ClearClipboard use actor-owned bounded debug text, quoted printf formats, six numeric params, type-mismatch fallback and exact portable binary64 decimal rounding; browser debug snapshots are requested only while the panel is open; side-effecting expressions, native float32 arithmetic, version-specific formatting/clipboard row limits and native game timing parity remain incomplete or unverified",
     "Trans resolves default/none/add/addalpha/add1/sub and 0..256 alpha pairs into per-tick actor blend descriptors, including MUGEN 1.1 hitpause reset; AIR A/A1/S/ASnDm applies to fighters/helpers/projectiles/Explods; Canvas paints weighted additive and clamped subtractive RGB with cached alpha masks; partial-alpha/rotated-edge native parity, WinMUGEN pause exceptions, extended AIR metadata, CNS Explod transparency parameters and full palette/color effects remain incomplete or unverified",
     "AssertInput queues actor-local U/D/L/R/F/B and abcxyzs bits for the next input sample; keyctrl helpers receive their real root's raw physical input and command definitions while assertions stay local; input remapping, configurable SOCD resolution, extra IKEMEN buttons, redirectid, full input/pause scheduler phases and native timing parity remain incomplete or unverified",
     "ScreenBound controls configured horizontal arena constraints and per-axis camera eligibility for roots and opted-in helpers; assertions survive hitpause and reset on the next active tick; untracked axes hold position and no tracked actors freeze zoom; native viewport margins, stage-version exceptions, camera tension/zoom phases, team modes and exact native frame parity remain incomplete or unverified",

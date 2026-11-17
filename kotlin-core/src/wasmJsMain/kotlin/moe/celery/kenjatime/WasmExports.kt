@@ -256,6 +256,13 @@ private object Fights {
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
 @JsExport fun ktCoreEnvironment(handle: Int): String = Fights.get(handle).environment.json()
+/** Debug text is queried separately; regular render snapshots never carry it. */
+@JsExport fun ktCoreClipboards(handle: Int): String {
+    val fight=Fights.get(handle)
+    return (listOf(fight.p1,fight.p2)+fight.entities.helpers.map {it.actor}).joinToString(prefix="[",postfix="]",separator=",") {
+        "{\"id\":${it.id},\"rootId\":${it.rootActor().id},\"text\":${CoreClipboard.quote(it.clipboardText)}}"
+    }
+}
 /** On-demand actor-local sampled and queued input bitmasks; buttons are abcxyzs bits 0..6. */
 @JsExport fun ktCoreInputs(handle: Int): String {
     val fight=Fights.get(handle)

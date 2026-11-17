@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -4297,6 +4297,110 @@ try {
   assert.equal(api.ktCoreIssues(blendEntities),'');
 } finally {api.ktCoreRelease(blendEntities);}
 console.log('Native Wasm Trans / 72 coordinate-facing-mode-alpha sequences / six AIR flag cases / independent helper-projectile-Explod blends / expiry and pure reads: OK (synthetic)');
+
+const clipboardOracle=JSON.parse(readFileSync('test/fixtures/kotlin-clipboard-printf.json','utf8'));
+for(const row of clipboardOracle.cases) {
+  const handle=api.ktCoreCreate('printf oracle','opponent',air,air,`${motionIdle}
+[State 0, format]
+type=DisplayToClipboard
+trigger1=Time=0
+text="${row.format}"
+params=${row.param}`,motionIdle);
+  try {
+    api.ktCoreAdvance(handle,0,'',0,'');const rows=JSON.parse(api.ktCoreClipboards(handle));
+    assert.equal(rows[0].text,row.expected,JSON.stringify(row));assert.equal(rows[1].text,'');
+    const before=api.ktCoreClipboards(handle),checksum=api.ktCoreChecksum(handle);
+    for(let i=0;i<3;i++){assert.equal(api.ktCoreClipboards(handle),before);api.ktCoreRenderPlan(handle,12);}
+    assert.equal(api.ktCoreChecksum(handle),checksum);api.ktCoreAdvance(handle,0,'',0,'');
+    assert.equal(api.ktCoreClipboards(handle),before);assert.equal(api.ktCoreIssues(handle),'');
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008])for(const side of [0,1]) {
+  const source=`${motionIdle}
+[State 0, integer]
+type=VarSet
+trigger1=Time=0
+v=0
+value=42
+[State 0, float]
+type=VarSet
+trigger1=Time=0
+fv=0
+value=1.25
+[State 0, display]
+type=DisplayToClipboard
+trigger1=Time=0
+text="root=%d f=%.2f"
+params=var(0),fvar(0)
+[State 0, append escaped text]
+type=AppendToClipboard
+trigger1=Time=0
+text="line\\t\\\"猫\\\";100%%"
+[State 0, clear]
+type=ClearClipboard
+trigger1=Time=1
+[State 0, append after clear]
+type=AppendToClipboard
+trigger1=Time=2
+text="after"
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, own clipboard]
+type=DisplayToClipboard
+trigger1=Time=0
+text="helper=%d"
+params=var(0)`;
+  const other=`${motionIdle}\n[State 0, rival]\ntype=DisplayToClipboard\ntrigger1=Time=0\ntext="rival"`;
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('debug first','debug second',air,air,side===0?source:other,
+    side===1?source:other,'','',side===0?def:'',side===1?def:'');
+  try {
+    api.ktCoreSetup(handle,-100*256,0,100*256,0);api.ktCoreAdvance(handle,0,'',0,'');
+    let rows=JSON.parse(api.ktCoreClipboards(handle));
+    assert.equal(rows[side].text,'root=42 f=1.25\nline    "猫";100%');assert.equal(rows[1-side].text,'rival');assert.equal(rows[2].text,'');
+    api.ktCoreAdvance(handle,0,'',0,'');rows=JSON.parse(api.ktCoreClipboards(handle));
+    assert.equal(rows[side].text,'');assert.equal(rows[2].text,'helper=0');assert.equal(rows[2].rootId,side+1);
+    api.ktCoreAdvance(handle,0,'',0,'');rows=JSON.parse(api.ktCoreClipboards(handle));
+    assert.equal(rows[side].text,'after');assert.equal(rows[2].text,'helper=0');assert.equal(api.ktCoreIssues(handle),'');
+  } finally {api.ktCoreRelease(handle);}
+}
+const clipboardBank=api.ktCoreCreateWithDefinitions('debug bank','executing victim',projectileFacingAir,air,
+`${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+p2stateno=700
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, executing variables]
+type=DisplayToClipboard
+trigger1=Time=0
+text="victim=%d state=%d"
+params=var(0),StateNo
+[State 700, return]
+type=SelfState
+trigger1=Time=1
+value=0`,`${motionIdle}\n[State 0, own variable]\ntype=VarSet\ntrigger1=1\nv=0\nvalue=17`,
+  '','','[Info]\nlocalcoord=640,480','');
+try {
+  api.ktCoreSetup(clipboardBank,0,0,4*256,0);api.ktCoreDebugForceState(clipboardBank,0,200);
+  for(let i=0;i<4;i++)api.ktCoreAdvance(clipboardBank,0,'',0,'');
+  const rows=JSON.parse(api.ktCoreClipboards(clipboardBank));assert.equal(rows[0].text,'');assert.equal(rows[1].text,'victim=17 state=700');
+  assert.equal(JSON.parse(api.ktCoreSnapshot(clipboardBank,1)).stateOwner,2);assert.equal(api.ktCoreIssues(clipboardBank),'');
+} finally {api.ktCoreRelease(clipboardBank);}
+console.log('Native Wasm DisplayToClipboard/AppendToClipboard/ClearClipboard / 140 C printf numeric oracle cases / six coordinate-side actor-helper lifecycles / borrowed banks and SelfState / JSON escaping and pure reads: OK (synthetic; not native game parity)');
 
 const filterAttack=`[Statedef 0]
 anim=0

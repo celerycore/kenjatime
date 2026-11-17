@@ -208,7 +208,7 @@ object MugenCnsParser {
     private val statedef = Regex("statedef\\s+(-?\\d+)", RegexOption.IGNORE_CASE)
     /** Preserve the authored order. A [State] with no triggers never activates. */
     fun parse(source: String): Map<Int, StateProgram> {
-        val sections = MugenDefParser.parse(source).sections
+        val sections = MugenDefParser.parse(source,preserveQuotes=true).sections
         val controllers = linkedMapOf<Int, MutableList<StateController>>()
         val metadata = mutableMapOf<Int, MugenSection>()
         var current: Int? = null
@@ -216,7 +216,7 @@ object MugenCnsParser {
             val d = statedef.matchEntire(section.name)
             if (d != null) {
                 current = d.groupValues[1].toInt()
-                metadata[current] = section
+                metadata[current] = MugenSection(section.name,section.entries.map { (k,v) -> k to v.removeSurrounding("\"").removeSurrounding("'") })
                 controllers.getOrPut(current) { mutableListOf() }
                 continue
             }
@@ -226,7 +226,8 @@ object MugenCnsParser {
             val grouped = linkedMapOf<Int, MutableList<String>>()
             val all = mutableListOf<String>()
             val params = linkedMapOf<String, String>()
-            for ((key, value) in section.entries) {
+            for ((key, rawValue) in section.entries) {
+                val value=if(key=="text" || key=="params")rawValue else rawValue.removeSurrounding("\"").removeSurrounding("'")
                 if (key == "triggerall") all.add(value)
                 else if (key.startsWith("trigger") && key.drop(7).toIntOrNull() != null) {
                     grouped.getOrPut(key.drop(7).toInt()) { mutableListOf() }.add(value)
@@ -272,6 +273,7 @@ class FightingCharacter(
 ) {
     val input = InputBuffer()
     internal var pendingAssertedInput = InputFrame()
+    internal var clipboardText = ""
     private val commandCache = mutableMapOf<String,Boolean>()
     fun commandActive(name: String): Boolean {
         val normalized = name.lowercase()
@@ -589,6 +591,7 @@ class FightingCharacter(
             "screenbound" -> CoreScreenBounds.execute(this,c,errors)
             "assertinput" -> CoreAssertedInputs.execute(this,c,errors)
             "trans" -> CoreTransparency.execute(this,c,errors)
+            "displaytoclipboard", "appendtoclipboard", "clearclipboard" -> CoreClipboard.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)

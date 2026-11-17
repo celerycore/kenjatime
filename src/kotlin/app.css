@@ -64,6 +64,8 @@ button#start{background:#2e5947;border-color:#77bb8e}
 .stats b{font-size:1.14rem;color:var(--accent);overflow-wrap:anywhere}
 footer{text-align:center;font-size:.8rem;color:#90a8bb;
   padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+#cns-debug summary{cursor:pointer}
+#clipboard-output{white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto;font-size:.85rem}
 @media(max-width:620px){
   main{gap:10px}
   #version{flex-basis:auto}
