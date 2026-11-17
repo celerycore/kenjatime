@@ -95,7 +95,7 @@ object CoreExpression {
                 "numhelper" -> f.world?.entities?.helpers?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numproj" -> f.world?.entities?.projectiles?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numexplod" -> f.world?.effects?.count(f)?.toDouble() ?: 0.0
-                "inguarddist" -> if (p!=null && abs(p.posX.toLong()-f.posX.toLong()) <= 90L*Fixed.ONE) 1.0 else 0.0
+                "inguarddist" -> if(f.inGuardDistance)1.0 else 0.0
                 "true" -> 1.0
                 "false" -> 0.0
                 else -> {

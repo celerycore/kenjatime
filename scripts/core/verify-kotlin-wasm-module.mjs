@@ -3553,6 +3553,111 @@ try {
 } finally { api.ktCoreRelease(borrowedDisplay); }
 console.log("Native Wasm Offset / 36 coordinate-facing-angle-offset combinations / attached Explods / 20 translated body-helper-projectile contacts / hitpause / independent metadata and borrowed animation banks / expiry / pure reads: OK (synthetic)");
 
+// Guard proximity is a controller-phase latch with strict directional bounds.
+for(const width of [320,640,1008])for(const side of [0,1])for(const range of [0,100,101,160]) {
+  const f=width/320;
+  const source=`[Size]\nattack.dist=${160*f}\n${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=0
+[State 200, range]
+type=AttackDist
+trigger1=Time=0
+value=ifelse(1,${range*f},0)`;
+  const observer=`${motionIdle}
+[State 0, observed proximity]
+type=VarSet
+trigger1=1
+v=0
+value=InGuardDist
+[State 0, show controller read]
+type=ChangeAnim
+trigger1=1
+value=ifelse(var(0),1,0)`;
+  const observeAir=`${air}\n[Begin Action 1]\n0,1,0,0,-1`;
+  const guard=api.ktCoreCreateWithDefinitions("guard left","guard right",observeAir,observeAir,
+    side===0?source:observer,side===1?source:observer,"","",
+    side===0?`[Info]\nlocalcoord=${width},${width*3/4}`:"",
+    side===1?`[Info]\nlocalcoord=${width},${width*3/4}`:"");
+  try {
+    api.ktCoreSetup(guard,0,0,100*256,0);api.ktCoreDebugForceState(guard,side,200);
+    api.ktCoreAdvance(guard,0,"",0,"");let target=JSON.parse(api.ktCoreSnapshot(guard,1-side));
+    assert.equal(target.inGuardDist,range>100);assert.equal(target.anim,0);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(guard,side)).guardDistance256,Math.trunc(Math.trunc(range*f)*81920/width));
+    api.ktCoreAdvance(guard,0,"",0,"");target=JSON.parse(api.ktCoreSnapshot(guard,1-side));
+    assert.equal(target.anim,range>100?1:0);assert.equal(target.life,1000);assert.equal(target.power,0);
+    api.ktCoreDebugForceState(guard,side,0);api.ktCoreAdvance(guard,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(guard,1-side)).inGuardDist,false);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(guard,1-side)).anim,range>100?1:0);
+    api.ktCoreAdvance(guard,0,"",0,"");assert.equal(JSON.parse(api.ktCoreSnapshot(guard,1-side)).anim,0);
+    const before=api.ktCoreSnapshot(guard,1-side);for(let i=0;i<3;i++)api.ktCoreRenderPlan(guard,12);
+    assert.equal(api.ktCoreSnapshot(guard,1-side),before);assert.equal(api.ktCoreIssues(guard),"");
+  } finally {api.ktCoreRelease(guard);}
+}
+for(const width of [320,640])for(const kind of ["helper","projectile"])for(const range of [100,101]) {
+  const f=width/320;
+  const source=`[Size]\nattack.dist=${range*f}\nproj.attack.dist=${range*f}\n${motionIdle}
+[State 0, entity]
+type=${kind==="helper"?"Helper":"Projectile"}
+trigger1=Time=0
+${kind==="helper"?"stateno=200":"projanim=0\nvelocity=0,0\nprojremovetime=-1"}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=0`;
+  const guard=api.ktCoreCreateWithDefinitions("entity threat","defender",air,air,source,motionIdle,"","",
+    `[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(guard,0,0,100*256,0);api.ktCoreAdvance(guard,0,"",0,"");api.ktCoreAdvance(guard,0,"",0,"");
+    const defender=JSON.parse(api.ktCoreSnapshot(guard,1));assert.equal(defender.inGuardDist,range>100);
+    assert.equal(defender.life,1000);assert.equal(JSON.parse(api.ktCoreSnapshot(guard,0)).inGuardDist,false);
+    if(kind==="projectile")assert.equal(JSON.parse(api.ktCoreProjectiles(guard))[0].guardDistance256,range*256);
+    assert.equal(api.ktCoreIssues(guard),"");
+  } finally {api.ktCoreRelease(guard);}
+}
+const guardBank=api.ktCoreCreateWithDefinitions("guard bank","own metadata",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, borrow]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=A
+physics=N
+anim=0
+[State 700, range]
+type=AttackDist
+trigger1=Time=0
+value=var(0)
+[State 700, return]
+type=SelfState
+trigger1=Time=1
+value=0`,`[Size]\nattack.dist=80\n${motionIdle}
+[State 0, own variable]
+type=VarSet
+trigger1=1
+v=0
+value=202`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(guardBank,0,0,4*256,0);api.ktCoreDebugForceState(guardBank,0,200);
+  api.ktCoreAdvance(guardBank,0,"",0,"");api.ktCoreAdvance(guardBank,0,"",0,"");
+  const borrowed=JSON.parse(api.ktCoreSnapshot(guardBank,1));assert.equal(borrowed.stateOwner,1);
+  assert.equal(borrowed.guardDistance256,101*256);
+  api.ktCoreAdvance(guardBank,0,"",0,"");const own=JSON.parse(api.ktCoreSnapshot(guardBank,1));
+  assert.equal(own.stateOwner,2);assert.equal(own.guardDistance256,80*256);assert.equal(api.ktCoreIssues(guardBank),"");
+} finally {api.ktCoreRelease(guardBank);}
+console.log("Native Wasm AttackDist / 24 coordinate-side-range latch sequences / 8 helper-projectile range captures / previous controller reads / strict bounds / borrowed bank reset / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

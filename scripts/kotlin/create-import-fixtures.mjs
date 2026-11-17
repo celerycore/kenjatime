@@ -222,6 +222,45 @@ bodyFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(bodyFiles["kfm/kfm.air"])
 `);
 writeFileSync("test-output/kotlin-kfm-body-space.zip",zipSync(bodyFiles));
 
+const guardFiles=Object.fromEntries(raw);
+guardFiles["kfm/kfm.cns"]=encoder.encode(`[Statedef 0]
+type=S
+movetype=I
+physics=N
+anim=709
+ctrl=0
+[State 0, attacking side]
+type=ChangeState
+trigger1=Facing=1
+value=200
+[State 0, guard proximity read]
+type=ChangeAnim
+trigger1=1
+value=ifelse(InGuardDist,708,709)
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=709
+ctrl=0
+[State 200, fixed threat axis]
+type=PosSet
+trigger1=1
+x=0
+y=0
+[State 200, changing range]
+type=AttackDist
+trigger1=1
+value=ifelse(Time%90<30,1000,0)
+`);
+guardFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(guardFiles["kfm/kfm.air"])+`
+[Begin Action 708]
+0,0,0,0,-1
+[Begin Action 709]
+0,1,0,0,-1
+`);
+writeFileSync("test-output/kotlin-kfm-guard-distance.zip",zipSync(guardFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

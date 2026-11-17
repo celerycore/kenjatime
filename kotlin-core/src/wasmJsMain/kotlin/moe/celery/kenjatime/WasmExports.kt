@@ -118,6 +118,8 @@ private object Fights {
         ",\"x256\":" + p.posX + ",\"y256\":" + p.posY +
         ",\"vx256\":" + p.velX + ",\"vy256\":" + p.velY +
         ",\"positionFrozen\":" + p.positionFrozen +
+        ",\"guardDistance256\":" + p.guardDistance +
+        ",\"inGuardDist\":" + p.inGuardDistance +
         ",\"playerPush\":" + p.playerPushEnabled +
         ",\"widthPlayerFront256\":" + p.widthOffsets.playerFront +
         ",\"widthPlayerBack256\":" + p.widthOffsets.playerBack +
@@ -218,6 +220,7 @@ private object Fights {
     ",\"missTimeLeft\":"+p.missTimeLeft+",\"hitPause\":"+p.hitPauseLeft+
     ",\"removeOnHit\":"+p.removeOnHit+",\"priority\":"+p.priority+
     ",\"scaleX\":"+p.scaleX+",\"scaleY\":"+p.scaleY+",\"facing\":"+(if(p.facingRight)1 else -1)+
+    ",\"guardDistance256\":"+p.hit.guardDistance+
     ",\"attackMultiplier\":"+p.hit.capturedAttackMultiplier+
     ",\"anim\":"+p.action.action.number+",\"elem\":"+(p.action.index+1)+"}"
 }

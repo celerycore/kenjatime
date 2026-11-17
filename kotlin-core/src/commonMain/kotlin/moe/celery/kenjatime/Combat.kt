@@ -49,7 +49,8 @@ data class HitDefinition(
     val airGuardVelocityY: Int = airVelocityY/2,
     val groundSlideTime: Int = 0,val guardSlideTime: Int = guardHitTime,
     val guardControlTime: Int = guardSlideTime,val airGuardControlTime: Int = guardControlTime,
-    val forceNoFall: Boolean = false
+    val forceNoFall: Boolean = false,
+    val guardDistance: Int = 160*Fixed.ONE
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -90,7 +91,8 @@ data class MugenConstants(
     val defence: Int = 100,
     val attack: Int = 100,
     val airFront: Int = front,val airBack: Int = back,
-    val drawOffsetX: Int = 0,val drawOffsetY: Int = 0
+    val drawOffsetX: Int = 0,val drawOffsetY: Int = 0,
+    val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -111,7 +113,8 @@ data class FighterDefinition(
     val defence: Int = 100,
     val attack: Int = 100,
     val airFront: Int = groundFront,val airBack: Int = groundBack,
-    val drawOffsetX: Int = 0,val drawOffsetY: Int = 0
+    val drawOffsetX: Int = 0,val drawOffsetY: Int = 0,
+    val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -150,7 +153,8 @@ data class FighterDefinition(
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
                 if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack,
-                constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY
+                constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY,
+                constants.attackDistance,constants.projectileAttackDistance
             )
         }
     }
@@ -187,7 +191,9 @@ object MugenCnsParser {
             attack = script.section("Data")?.int("attack",100)?.coerceIn(0,100000) ?: 100,
             airFront = size?.int("air.front",size.int("ground.front",15))?.coerceIn(0,200) ?: 15,
             airBack = size?.int("air.back",size.int("ground.back",15))?.coerceIn(0,200) ?: 15,
-            drawOffsetX = point("draw.offset",0,0),drawOffsetY = point("draw.offset",1,0)
+            drawOffsetX = point("draw.offset",0,0),drawOffsetY = point("draw.offset",1,0),
+            attackDistance = point("attack.dist",0,160*Fixed.ONE).coerceAtLeast(0),
+            projectileAttackDistance = point("proj.attack.dist",0,90*Fixed.ONE).coerceAtLeast(0)
         )
     }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
@@ -459,6 +465,9 @@ class FightingCharacter(
     var control = true
     var activeHitDef: HitDefinition? = null
         private set
+    internal var guardDistance=definition.coordinates.fixedToWorld(definition.attackDistance)
+    internal var inGuardDistance=false
+    internal fun replaceGuardDistance(distance: Int) { activeHitDef=activeHitDef?.copy(guardDistance=distance) }
     private val struck = mutableSetOf<Int>()
     private var carriedHitDef=false
     private val controllerActivation = mutableMapOf<Pair<Int,Int>,Int>()
@@ -481,6 +490,7 @@ class FightingCharacter(
         CoreSpritePriority.enter(this,program?.spritePriority,errors)
         if(!persistence.hitDef) {
             activeHitDef=null
+            guardDistance=definition.coordinates.fixedToWorld(definition.attackDistance)
             struck.clear()
         }
         carriedHitDef=persistence.hitDef && activeHitDef != null
@@ -552,6 +562,7 @@ class FightingCharacter(
             "sprpriority" -> CoreSpritePriority.execute(this,c,errors)
             "angleset", "angleadd", "anglemul", "angledraw" -> CoreAngleDrawing.execute(this,c,errors)
             "offset" -> CoreDisplayOffset.execute(this,c,errors)
+            "attackdist" -> CoreGuardDistance.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -796,7 +807,9 @@ class FightingCharacter(
                 val guardHitTime=integer(args["guard.hittime"] ?: args["projguard.hittime"],hitTime).coerceIn(0,600)
                 val controlTimings=CoreHitControlTimings.parse(args,this,guardHitTime,errors,true) ?: return false
                 val projectileSpritePriority=CoreSpritePriority.projectile(this,args["projsprpriority"],errors) ?: return false
+                val guardDistance=CoreGuardDistance.parse(args,this,errors,true) ?: return false
                 val hit = HitDefinition(
+                    guardDistance=guardDistance,
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
                     damage = hitDamage,
@@ -868,7 +881,9 @@ class FightingCharacter(
                 val guardHitTime=integer(args["guard.hittime"],hitTime).coerceIn(0,600)
                 val controlTimings=CoreHitControlTimings.parse(args,this,guardHitTime,errors) ?: return false
                 val priority = (args["priority"] ?: "4,Hit").split(',')
+                val nextGuardDistance=CoreGuardDistance.parse(args,this,errors) ?: return false
                 val next = HitDefinition(
+                    guardDistance=nextGuardDistance,
                     attr = args["attr"] ?: "S, NA",
                     damage = hitDamage,
                     hitPause = pauses.hit.first,
@@ -913,6 +928,7 @@ class FightingCharacter(
                 if (activeHitDef == null || carriedHitDef) {
                     if(carriedHitDef)struck.clear()
                     activeHitDef=next
+                    guardDistance=next.guardDistance
                     carriedHitDef=false
                 }
             }
@@ -1163,6 +1179,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         arena?.step(p1,p2,p1Frozen,p2Frozen,if(allowCombat)entities.helpers else emptyList())
         CoreBindings.resolve(p1,p2,if(allowCombat) entities.helpers else emptyList())
         camera?.update(p1,p2)
+        CoreGuardDistance.beginPhase(this,allowCombat)
         p1.beginContactPhase();p2.beginContactPhase()
         for(helper in entities.helpers)helper.actor.beginContactPhase()
         hitStates.clear()
@@ -1204,6 +1221,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         finishContactPhase()
         val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
+        if(allowCombat)for(shot in entities.projectiles)CoreGuardDistance.projectile(this,shot)
         effects.advance()
         sequence?.step(p1,p2)
         frame++

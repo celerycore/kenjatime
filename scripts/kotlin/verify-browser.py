@@ -214,6 +214,30 @@ try:
         result["playerPushWidthCanvasSpacing"]="passed"
         bodies.close()
 
+        proximity=browser.new_page(viewport={"width":1000,"height":780})
+        proximity_errors=[]
+        proximity.on("pageerror",lambda error:proximity_errors.append(str(error)))
+        proximity.goto(base,wait_until="domcontentloaded",timeout=30000)
+        proximity.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        proximity.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-guard-distance.zip"))
+        proximity.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=proximity.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        for selector in ["#p1-select","#p2-select"]:
+            proximity.locator(selector).select_option(value=installed)
+        proximity.locator("#cpu").uncheck()
+        proximity.locator("#start").click()
+        for action in [708,709,708]:
+            proximity.wait_for_function("""action => {
+              const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paints=qa?.lastSpritePaintOrder;
+              return !!plan&&!!paints&&paints.frame===plan.frame&&
+                paints.draws.some(d=>d.kind==='fighter'&&d.side===1)&&
+                plan.draws.some(d=>d.kind==='fighter'&&d.side===1&&d.action===action);
+            }""",arg=action,timeout=30000)
+        assert not proximity_errors,proximity_errors
+        result["guardDistanceCnsAnimation"]="passed"
+        proximity.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

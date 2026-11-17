@@ -241,6 +241,7 @@ class CoreEntities(private val match: DeterministicFight) {
             phases.add(ProjectilePhase(projectile,projectile.step()))
         }
         resolveClashes(phases)
+        for(phase in phases)CoreGuardDistance.projectile(match,phase.projectile,phase.advanced)
         for(phase in phases) {
             val projectile=phase.projectile
             if(!phase.advanced)continue

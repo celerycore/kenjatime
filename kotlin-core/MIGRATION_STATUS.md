@@ -1,6 +1,69 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current display-offset continuation — November 17, 2026
+## Current guard-distance continuation — November 17, 2026
+
+Continues published main source `d999d35`. CNS now executes AttackDist with a
+required integer value, nested expressions and active state-bank coordinate
+conversion. Negative values floor to zero. Inputs are bounded to -100000..100000
+local pixels; invalid values/keys preserve the current range and HitDef.
+Updating range preserves the attack window and struck-target set, so it cannot
+rearm a spent attack. Standard persistence and ignorehitpause behavior apply.
+
+The importer reads own Size.attack.dist and Size.proj.attack.dist, defaulting
+to 160 and 90 local pixels. Body range resets to own defaults on ordinary state
+entry and carries through hitdefpersist states. Explicit HitDef guard.dist and
+Projectile guard.dist/projguard.dist convert once through active-bank units.
+An omitted body HitDef range inherits the current value, including an earlier
+AttackDist in the same controller phase. An accepted explicit range replaces
+it; ignored same-window HitDefs do not replace it. Projectiles capture their
+range and launch facing independently of later creator changes.
+
+InGuardDist now reads a latched proximity result instead of the former fixed
+90-pixel absolute-distance approximation. CNS sees the preceding pass, regardless
+of which root executes first. After actor movement/bindings, attacking MoveType A
+roots/helpers contribute strictly forward distances greater than zero and less
+than their range. Temporary drawing offsets, body widths and vertical separation
+do not change this X-axis test. Both roots and opposing helpers can receive the
+flag; same-side actors do not threaten each other in the two-root team model.
+
+Projectiles contribute after movement/clashes, before contact exhaustion, and on
+birth. Paused/miss-delayed shots retain proximity; a final active lifetime tick
+may contribute. Canceled, exhausted, zero-range and invalid-attribute projectiles
+are excluded. The latch resets each pass; read-only expressions and render plans
+cannot refresh it. Snapshot JSON exposes guardDistance256/inGuardDist, and
+projectile snapshots expose captured guardDistance256. Physical contact blocking
+keeps its separate posture/input rules; automatic common-state guard entry is
+still separate work.
+
+Validation:
+
+- 954 JVM and 949 compiled-Wasm tests pass, including 25 new cases for defaults,
+  strict boundaries, facing, controller order, invalid/atomic requests, integer
+  units, state persistence, hitpause, spent HitDefs, borrowed banks, helper teams,
+  projectile capture/movement/pause/final lifetime and immutable latch reads.
+- Exported Wasm checks 24 coordinate/attacking-side/range latch sequences,
+  eight helper/projectile default captures and a borrowed-bank/SelfState reset.
+- All 16 adapter/import/download checks and production browser checks pass.
+  Imported public-KFM-art CNS changes a defender's animation from InGuardDist
+  as AttackDist alternates between enabled and zero ranges. Actual decoded
+  sprite painting is verified alongside all earlier browser scenarios.
+- Two KFM 600-tick runs retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, the preceding physical checksum and matching power
+  traces ending at 485/415.
+
+Measured controller-name coverage is now 68 of 97 in the live legacy JavaScript
+registry (70.1%), up from 67 of 97 (69.1%); 29 names remain outside the Kotlin
+contract. The Elecbyte 1.1 overlap is 67 of 89 (75.3%). These name counts do not
+measure overall rewrite completion: parameters, expressions, physics, effects,
+AI, teams and native behavior parity still require further work.
+
+Semantics follow the [Elecbyte AttackDist reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#attackdist)
+and existing JavaScript/native-source guard proximity conventions. Complete
+affectteam/team rules, common-state automatic guarding, exact native contact/
+removal phases and physical-phone performance remain incomplete or unverified.
+Main CI verifies shared browser/APK Wasm identity and anonymous public downloads.
+
+## Display-offset continuation — November 17, 2026
 
 Continues published main source `8c88f34`. CNS now executes Offset with optional
 x/y expressions. Each supplied axis replaces its current value; omitted axes
