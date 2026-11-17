@@ -261,6 +261,53 @@ try:
         result["namedMapCnsRootCounter"]="passed"
         maps_page.close()
 
+        environment_page=browser.new_page(viewport={"width":1000,"height":780})
+        environment_errors=[]
+        environment_page.on("pageerror",lambda error:environment_errors.append(str(error)))
+        environment_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        environment_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        environment_page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-environment.zip"))
+        environment_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=environment_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        environment_page.locator("#p1-select").select_option(value=installed)
+        environment_page.locator("#cpu").uncheck()
+        environment_page.locator("#start").click()
+        for mode in ["under","over","expired"]:
+            observed=environment_page.wait_for_function("""mode => {
+              const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paint=qa?.lastEnvironmentPaint;
+              if(!plan||!paint||paint.frame!==plan.frame||qa.lastSpritePaintOrder?.frame!==plan.frame)return false;
+              const color=plan.environment?.color;
+              if(mode==='under'&&(!color?.under||Math.abs(plan.stageOffsetY)<1||qa.lastActorTransformPaint?.frame!==plan.frame))return false;
+              if(mode==='under'&&!plan.draws.some(d=>d.kind==='fighter'&&d.side===0&&d.action===712))return false;
+              if(mode==='over'&&(!color||color.under))return false;
+              if(mode==='expired'&&(color||plan.environment?.shake))return false;
+              const canvas=document.querySelector('#arena'),ctx=canvas.getContext('2d'),scale=canvas.width/960;
+              const pixel=Array.from(ctx.getImageData(Math.round(10*scale),Math.round(100*scale),1,1).data);
+              let foregroundPixels=0;
+              if(mode==='over'){
+                const region=ctx.getImageData(Math.round(450*scale),Math.round(100*scale),Math.round(60*scale),Math.round(390*scale)).data;
+                for(let i=0;i<region.length;i+=4)if(region[i]!==12||region[i+1]!==34||region[i+2]!==56)foregroundPixels++;
+                if(foregroundPixels===0)return false;
+              }
+              return {plan,paint,pixel,foregroundPixels,draws:qa.lastSpritePaintOrder.draws,actor:qa.lastActorTransformPaint};
+            }""",arg=mode,timeout=30000).json_value()
+            plan=observed["plan"]
+            assert observed["pixel"]==([16,35,56,255] if mode=="expired" else [12,34,56,255]),observed
+            if mode=="under":
+                assert any(d["kind"]=="fighter" for d in observed["draws"]),observed
+                expected_y=435-plan["cameraY"]*1.1*plan["cameraZoom"]+plan["stageOffsetY"]
+                assert abs(observed["actor"]["y"]-expected_y)<1e-4,observed
+            elif mode=="over":
+                assert len(plan["draws"])==1 and plan["draws"][0]["effectId"]==712,observed
+                assert len(observed["draws"])==1 and observed["draws"][0]["kind"]=="explod",observed
+                assert observed["foregroundPixels"]>0,observed
+            else:
+                assert plan["stageOffsetY"]==0,observed
+        assert not environment_errors,environment_errors
+        result["environmentCanvasPixelsAndShake"]="passed"
+        environment_page.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

@@ -247,6 +247,7 @@ private object Fights {
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
+@JsExport fun ktCoreEnvironment(handle: Int): String = Fights.get(handle).environment.json()
 /** On-demand inspection keeps potentially large maps out of per-frame snapshots. */
 @JsExport fun ktCoreNamedMaps(handle: Int): String {
     val fight=Fights.get(handle)

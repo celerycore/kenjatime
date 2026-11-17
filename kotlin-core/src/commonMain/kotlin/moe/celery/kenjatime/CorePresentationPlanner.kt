@@ -47,11 +47,15 @@ object CorePresentationPlanner {
      * tick. Kotlin owns the roster/actor state and camera projection. */
     fun snapshot(fight: DeterministicFight, backlog: Long): String {
         val camera = fight.camera
+        val stageOffsetY=fight.environment.offsetY*VERTICAL_SCALE*(camera?.zoom ?: 1.0)
         val json = StringBuilder(2048)
         json.append("{\"frame\":").append(fight.frame)
             .append(",\"targetFps\":").append(targetFps(backlog))
             .append(",\"backlog\":").append(backlog.coerceAtLeast(0))
             .append(",\"cameraZoom\":").append(camera?.zoom ?: 1.0)
+            .append(",\"cameraY\":").append(camera?.y ?: 0.0)
+            .append(",\"stageOffsetY\":").append(stageOffsetY)
+            .append(",\"environment\":").append(fight.environment.json())
             .append(",\"helpers\":").append(fight.entities.helpers.size)
             .append(",\"projectiles\":").append(fight.entities.projectiles.size)
             .append(",\"explods\":").append(fight.effects.all.size)
@@ -62,6 +66,7 @@ object CorePresentationPlanner {
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
                  facingRight: Boolean, action: AirAnimationPlayer?,
                  definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null) {
+            if(fight.environment.color?.under == false && effect?.config?.onTop != true)return
             val frame = action?.frame
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
@@ -81,7 +86,7 @@ object CorePresentationPlanner {
             val vf=effect?.config?.verticalFacing ?: 1
             val offsetX=(frame?.offsetX ?: 0)*spriteScaleX*face
             val offsetY=(frame?.offsetY ?: 0)*spriteScaleY*vf
-            val axisX=pixelX(x256,camera);val axisY=pixelY(y256,camera)
+            val axisX=pixelX(x256,camera);val axisY=pixelY(y256,camera)+stageOffsetY
             val displayOffsetX=actor?.displayOffsetX ?: 0L
             val displayOffsetY=actor?.displayOffsetY ?: 0L
             val drawX=axisX+(displayOffsetX.toDouble()/Fixed.ONE+c*offsetX+s*offsetY)*HORIZONTAL_SCALE*zoom

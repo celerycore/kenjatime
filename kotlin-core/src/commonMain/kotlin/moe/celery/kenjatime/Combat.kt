@@ -568,6 +568,7 @@ class FightingCharacter(
             "offset" -> CoreDisplayOffset.execute(this,c,errors)
             "attackdist" -> CoreGuardDistance.execute(this,c,errors)
             "mapset", "mapadd", "rootmapset", "rootmapadd" -> CoreNamedMaps.execute(this,c,errors)
+            "envshake", "envcolor" -> world?.environment?.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -1112,6 +1113,7 @@ data class CorePresentationEvent(
 
 /** Two-actor deterministic subset, not a full MUGEN contact phase. */
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
+    internal val environment=CoreEnvironmentEffects()
     var hitPowerRules=HitPowerRules.DEFAULT
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
@@ -1173,6 +1175,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         p1.roundState = sequence?.roundState() ?: 2
         p2.roundState = sequence?.roundState() ?: 2
         if (sequence?.finished == true) { frame++; return }
+        environment.beginTick()
         val allowCombat = sequence == null || sequence.active
         p1.input.update(if (allowCombat) a else InputFrame())
         p2.input.update(if (allowCombat) b else InputFrame())

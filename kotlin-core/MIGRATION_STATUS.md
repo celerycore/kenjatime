@@ -1,6 +1,76 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current named-map continuation — November 17, 2026
+## Current environment-effects continuation — November 17, 2026
+
+Continues published main source `fd5ecda`. CNS now executes EnvShake and EnvColor.
+Each fight owns separate visual state and advances it once at the start of a
+simulation tick, before controllers may replace it. Rendering reads never age
+effects. Actor hitpause does not stop these global clocks; normal controller
+pause gating and ignorehitpause still govern requests. Later valid root/helper
+requests win in controller order, while invalid requests preserve the earlier
+complete effect. State changes and creator destruction do not reset the clock.
+
+EnvShake requires time and supports frequency, integer amplitude and phase.
+Omitted frequency is 60 degrees/tick; phase defaults to zero below 90 degrees/tick
+and 90 at or above it. Default amplitude is -4 canonical pixels independently of
+character resolution. Explicit integer amplitude converts through the active
+state bank. The sine displacement reverses the signed amplitude so a negative
+amplitude starts downward. Phase is normalized only for the wave calculation.
+New effects present age zero on their creation tick. Zero duration cancels the
+shake, and zero frequency with an explicit phase can hold a displacement.
+
+EnvColor defaults to white, one tick and over-scene mode. It accepts three RGB
+integer expressions and an under flag. A duration of -1 persists indefinitely;
+zero cancels it. Under-color replaces the stage backdrop while retaining normal
+draws. Over-color hides roots, helpers, projectiles and ordinary Explods, retaining
+OnTop Explods above the solid fill. Simulation entities remain alive and active;
+contacts, health, power and clocks continue independently of visibility.
+
+Kotlin emits the global environment descriptor, completed actor/effect positions
+and projected stageOffsetY. The Canvas host applies the same displacement to its
+stage art, paints the solid color and consumes Kotlin's filtered painter order.
+HUD rendering remains above these scene effects. Logical camera coordinates,
+movement, binding axes, attack/hurt boxes and guard proximity remain unchanged.
+ktCoreEnvironment provides on-demand clock/parameter inspection; render plans
+also include cameraY for projection checks.
+
+The bounded subset accepts finite durations up to 36000 ticks, color duration
+-1, RGB 0..255, frequency 0..180, amplitude -100000..100000 local pixels and phase
+-1000000..1000000 degrees. Extra IKEMEN parameters are diagnosed. Defaults and
+nested expressions evaluate on the executing actor; borrowed banks affect only
+explicit spatial units, not effect ownership or the default canonical amplitude.
+
+Validation:
+
+- 1008 JVM and 1003 compiled-Wasm tests pass, including 27 new cases for defaults,
+  duration/expiry, indefinite color, atomic invalid requests, expressions, phase,
+  frequency/amplitude, both hitpause behaviors, persistence, helper precedence,
+  borrowed units, fight isolation, OnTop layers, unchanged contacts and pure reads.
+- Exported Wasm checks 36 coordinate/frequency/duration/amplitude sequences,
+  18 color/visibility sequences across roots/helpers/projectiles/Explods, global
+  lifetimes through borrowed states and immutable inspection/presentation.
+- All 16 adapter/import/download checks and production browser checks pass.
+  Imported public-KFM-art CNS verifies actual Canvas RGB pixels for under/over
+  color and expiry, surviving OnTop sprite pixels, decoded painter order and
+  projected shake displacement. All prior browser scenarios remain passing.
+- Two KFM 600-tick runs retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, the preceding physical checksum and matching power
+  traces ending at 485/415.
+
+Measured controller-name coverage is now 74 of 97 in the live legacy JavaScript
+registry (76.3%), up from 72 of 97 (74.2%); 23 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 69 of 89 (77.5%). Name counts do not measure
+overall completion: parameters, expressions, physics, effects, AI, teams and
+native behavior parity still require further work.
+
+Semantics follow the [EnvShake reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#envshake)
+and [EnvColor reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#envcolor).
+HitDef/FallEnvShake integration, advanced shake parameters, full stage foreground/
+motif layers, global pause policies, native frame parity and physical-phone
+performance remain incomplete or unverified. Main CI verifies shared browser/APK
+Wasm identity and anonymous permanent downloads before publication.
+
+## Named-map continuation — November 17, 2026
 
 Continues published main source `2d743be`. CNS now executes MapSet, MapAdd,
 RootMapSet and RootMapAdd. Stores contain finite single-precision numbers,

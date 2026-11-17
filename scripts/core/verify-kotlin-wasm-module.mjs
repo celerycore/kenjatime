@@ -3801,6 +3801,139 @@ try {
 } finally {api.ktCoreRelease(borrowedMaps);}
 console.log("Native Wasm MapSet/MapAdd/RootMapSet/RootMapAdd / 36 coordinate-side-operation-default sequences / four nested-root sequences / float32 state / escaped JSON / borrowed banks and SelfState / pure reads: OK (synthetic)");
 
+for(const width of [320,640,1008])for(const frequency of [60,90])for(const duration of [0,1,3])for(const explicit of [false,true]) {
+  const f=width/320;
+  const handle=api.ktCoreCreateWithDefinitions("shake","opponent",air,air,`${motionIdle}
+[State 0, shake]
+type=EnvShake
+trigger1=Time=0
+time=${duration}
+freq=${frequency}
+${explicit?`ampl=${-20*f}`:""}`,motionIdle,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(handle,0,0,100*256,0);
+    for(let age=0;age<5;age++) {
+      api.ktCoreAdvance(handle,0,"",0,"");const effect=JSON.parse(api.ktCoreEnvironment(handle));
+      const active=age<duration,phase=frequency>=90?90:0,amplitude=explicit?-20:-4;
+      const expected=active?-amplitude*Math.sin((phase+frequency*age)*Math.PI/180):0;
+      assert.ok(Math.abs(effect.offsetY-expected)<1e-8);
+      if(active) {assert.equal(effect.shake.age,age);assert.equal(effect.shake.remaining,duration-age);}
+      else assert.equal(effect.shake,null);
+      const actor=JSON.parse(api.ktCoreSnapshot(handle,0));assert.equal(actor.x256,0);assert.equal(actor.y256,0);
+      assert.equal(actor.life,1000);assert.equal(actor.power,0);assert.equal(actor.stateTime,age+1);
+      const plan=JSON.parse(api.ktCoreRenderPlan(handle,0));assert.ok(Math.abs(plan.stageOffsetY-expected*1.1)<1e-8);
+      for(const draw of plan.draws)assert.ok(Math.abs(draw.axisY-435-expected*1.1)<1e-8);
+      const before=api.ktCoreEnvironment(handle),checksum=api.ktCoreChecksum(handle);
+      for(let i=0;i<3;i++)api.ktCoreRenderPlan(handle,12);
+      assert.equal(api.ktCoreEnvironment(handle),before);assert.equal(api.ktCoreChecksum(handle),checksum);
+    }
+    assert.equal(api.ktCoreIssues(handle),"");
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008])for(const under of [0,1])for(const duration of [-1,1,3]) {
+  const handle=api.ktCoreCreateWithDefinitions("environment layers","opponent",air,air,`${motionIdle}
+[State 0, color]
+type=EnvColor
+trigger1=Time=0
+value=max(12,2),34,56
+time=${duration}
+under=${under}
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+[State 0, projectile]
+type=Projectile
+trigger1=Time=0
+projanim=0
+projhits=0
+velocity=0,0
+projremovetime=-1
+[State 0, ordinary effect]
+type=Explod
+trigger1=Time=0
+id=1
+anim=0
+sprpriority=5
+removetime=-1
+[State 0, foreground effect]
+type=Explod
+trigger1=Time=0
+id=2
+anim=0
+ontop=1
+removetime=-1
+[Statedef 700]
+type=S
+physics=N
+anim=0`,motionIdle,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(handle,0,0,100*256,0);
+    for(let age=0;age<5;age++) {
+      api.ktCoreAdvance(handle,0,"",0,"");const plan=JSON.parse(api.ktCoreRenderPlan(handle,0));
+      const active=duration<0||age<duration;
+      if(active)assert.deepEqual(plan.environment.color,{red:12,green:34,blue:56,remaining:duration<0?-1:duration-age,under:!!under});
+      else assert.equal(plan.environment.color,null);
+      assert.equal(plan.draws.length,active&&!under?1:6);
+      if(active&&!under) {assert.equal(plan.draws[0].kind,"explod");assert.equal(plan.draws[0].effectId,2);}
+      assert.deepEqual(JSON.parse(api.ktCoreEntities(handle)),{helpers:1,projectiles:1});
+      assert.equal(JSON.parse(api.ktCoreExplods(handle)).length,2);assert.deepEqual(plan.health,[376,376]);
+      assert.equal(JSON.parse(api.ktCoreSnapshot(handle,0)).stateTime,age+1);
+    }
+    assert.equal(api.ktCoreIssues(handle),"");
+  } finally {api.ktCoreRelease(handle);}
+}
+const environmentBank=api.ktCoreCreateWithDefinitions("environment bank","executing actor",projectileFacingAir,air,
+  `${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, shake]
+type=EnvShake
+trigger1=Time=0
+time=3
+freq=0
+phase=90
+ampl=var(0)
+[State 700, color]
+type=EnvColor
+trigger1=Time=0
+value=12,34,56
+time=2
+under=1
+[State 700, return]
+type=SelfState
+trigger1=Time=1
+value=0`,`${motionIdle}
+[State 0, own variable]
+type=VarSet
+trigger1=1
+v=0
+value=-8`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(environmentBank,0,0,4*256,0);api.ktCoreDebugForceState(environmentBank,0,200);
+  api.ktCoreAdvance(environmentBank,0,"",0,"");api.ktCoreAdvance(environmentBank,0,"",0,"");
+  const effect=JSON.parse(api.ktCoreEnvironment(environmentBank));assert.equal(effect.offsetY,4);
+  assert.equal(effect.shake.amplitude256,-4*256);assert.equal(effect.color.remaining,2);
+  api.ktCoreAdvance(environmentBank,0,"",0,"");assert.equal(JSON.parse(api.ktCoreSnapshot(environmentBank,1)).stateOwner,2);
+  assert.equal(JSON.parse(api.ktCoreEnvironment(environmentBank)).offsetY,4);
+  api.ktCoreAdvance(environmentBank,0,"",0,"");assert.equal(JSON.parse(api.ktCoreEnvironment(environmentBank)).color,null);
+  api.ktCoreAdvance(environmentBank,0,"",0,"");assert.equal(JSON.parse(api.ktCoreEnvironment(environmentBank)).shake,null);
+  assert.equal(api.ktCoreIssues(environmentBank),"");
+} finally {api.ktCoreRelease(environmentBank);}
+console.log("Native Wasm EnvShake/EnvColor / 36 coordinate-frequency-duration-amplitude sequences / 18 color layer sequences / OnTop visibility / independent physical state / borrowed bank and global lifetime / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

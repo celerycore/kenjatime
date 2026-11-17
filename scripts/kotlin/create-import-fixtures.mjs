@@ -329,6 +329,50 @@ mapFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(mapFiles["kfm/kfm.air"])+`
 `);
 writeFileSync("test-output/kotlin-kfm-named-maps.zip",zipSync(mapFiles));
 
+const environmentFiles=Object.fromEntries(raw);
+environmentFiles["kfm/kfm.cns"]=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=712
+ctrl=0
+[Statedef -2]
+[State -2, shake]
+type=EnvShake
+trigger1=Time%120=0
+time=60
+freq=90
+ampl=-8
+[State -2, color layers]
+type=EnvColor
+trigger1=Time%120<60
+value=12,34,56
+time=1
+under=Time%120<30
+[State -2, foreground art]
+type=Explod
+trigger1=NumExplod(712)=0
+id=712
+anim=712
+postype=none
+pos=0,-300
+ontop=1
+removetime=-1
+[State -2, ordinary art]
+type=Explod
+trigger1=NumExplod(713)=0
+id=713
+anim=712
+postype=none
+pos=50,-300
+sprpriority=5
+removetime=-1
+`);
+environmentFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(environmentFiles["kfm/kfm.air"])+`
+[Begin Action 712]
+0,0,0,0,-1
+`);
+writeFileSync("test-output/kotlin-kfm-environment.zip",zipSync(environmentFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])
