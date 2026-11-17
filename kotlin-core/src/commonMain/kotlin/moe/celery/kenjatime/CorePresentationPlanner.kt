@@ -67,31 +67,32 @@ object CorePresentationPlanner {
             .append("],\"draws\":[")
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
                  facingRight: Boolean, action: AirAnimationPlayer?,
-                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null) {
+                 definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null,
+                 pose: CoreActorPose?=actor?.let {CoreActorPose.capture(it,fight.frame)},trail: CoreAfterImageDraw?=null,ownerId: Int=0) {
             if(fight.environment.color?.under == false && effect?.config?.onTop != true)return
-            val frame = action?.frame
-            val blend=actor?.drawBlend ?: frame?.blend ?: SpriteBlend.NORMAL
+            val frame = if(pose!=null)pose.frame else action?.frame
+            val blend=trail?.blend ?: actor?.drawBlend ?: frame?.blend ?: SpriteBlend.NORMAL
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
             val effectScaleX=effect?.config?.scaleX ?: 1.0
             val effectScaleY=effect?.config?.scaleY ?: 1.0
             val spriteScaleX=definition.coordinates.scale*(projectile?.scaleX ?:
-                (effectScaleX*if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0))*(actor?.drawScaleX ?: 1.0)
+                (effectScaleX*if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0))*(pose?.scaleX ?: 1.0)
             val spriteScaleY=definition.coordinates.scale*(projectile?.scaleY ?:
-                (effectScaleY*if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0))*(actor?.drawScaleY ?: 1.0)
+                (effectScaleY*if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0))*(pose?.scaleY ?: 1.0)
             val pixelScaleX=spriteScaleX*HORIZONTAL_SCALE*zoom
             val pixelScaleY=spriteScaleY*VERTICAL_SCALE*zoom
             // Rotate in canonical stage space, then project each pixel axis. This preserves
             // a rigid stage rotation despite the viewport's unequal X/Y pixel scales.
-            val rotation=if(actor?.angleDrawEnabled == true)(actor.drawAngleDegrees%360)*face else 0.0
+            val rotation=if(pose?.angleDraw == true)(pose.angle%360)*face else 0.0
             val radians=rotation*PI/180
             val c=cos(radians);val s=sin(radians)
             val vf=effect?.config?.verticalFacing ?: 1
             val offsetX=(frame?.offsetX ?: 0)*spriteScaleX*face
             val offsetY=(frame?.offsetY ?: 0)*spriteScaleY*vf
             val axisX=pixelX(x256,camera);val axisY=pixelY(y256,camera)+stageOffsetY
-            val displayOffsetX=actor?.displayOffsetX ?: 0L
-            val displayOffsetY=actor?.displayOffsetY ?: 0L
+            val displayOffsetX=pose?.offsetX ?: 0L
+            val displayOffsetY=pose?.offsetY ?: 0L
             val drawX=axisX+(displayOffsetX.toDouble()/Fixed.ONE+c*offsetX+s*offsetY)*HORIZONTAL_SCALE*zoom
             val drawY=axisY+(displayOffsetY.toDouble()/Fixed.ONE-s*offsetX+c*offsetY)*VERTICAL_SCALE*zoom
             val flip=frame?.flip?.uppercase() ?: ""
@@ -115,7 +116,7 @@ object CorePresentationPlanner {
                 .append(",\"transformC\":").append(matrixC)
                 .append(",\"transformD\":").append(matrixD)
                 .append(",\"rotationDegrees\":").append(cleanZero(rotation))
-                .append(",\"angleDraw\":").append(actor?.angleDrawEnabled == true)
+                .append(",\"angleDraw\":").append(pose?.angleDraw == true)
                 .append(",\"flipX\":").append(flipX)
                 .append(",\"flipY\":").append(flipY)
                 .append(",\"scale\":").append(camera?.zoom ?: 1.0)
@@ -124,19 +125,22 @@ object CorePresentationPlanner {
                 .append(",\"pixelScaleX\":").append(pixelScaleX)
                 .append(",\"pixelScaleY\":").append(pixelScaleY)
                 .append(",\"facing\":").append(if(facingRight) 1 else -1)
-                .append(",\"action\":").append(action?.action?.number ?: -1)
-                .append(",\"elem\":").append((action?.index ?: 0)+1)
-                .append(",\"elemTime\":").append(action?.tick ?: 0)
-                .append(",\"animTime\":").append(action?.remaining ?: 0L)
+                .append(",\"action\":").append(pose?.action ?: action?.action?.number ?: -1)
+                .append(",\"elem\":").append(pose?.element ?: ((action?.index ?: 0)+1))
+                .append(",\"elemTime\":").append(pose?.elementTime ?: action?.tick ?: 0)
+                .append(",\"animTime\":").append(pose?.animTime ?: action?.remaining ?: 0L)
                 .append(",\"group\":").append(frame?.group ?: -1)
                 .append(",\"number\":").append(frame?.sprite ?: -1)
                 .append(",\"life\":").append(life)
                 .append(",\"sprpriority\":").append(priority)
             if(effect != null)json.append(",\"effectId\":").append(effect.id)
                 .append(",\"effectSequence\":").append(effect.sequence)
+            if(trail != null)json.append(",\"afterimageOwnerId\":").append(ownerId)
+                .append(",\"historyIndex\":").append(trail.index)
+                .append(",\"captureFrame\":").append(trail.pose.capturedAt)
             json
                 .append(",\"blend\":").append(blend.json())
-                .append(",\"palFX\":").append(fight.palettes.layers(actor?.paletteEffects ?: projectile?.paletteEffects ?: effect?.paletteEffects ?: fight.p1.paletteEffects)
+                .append(",\"palFX\":").append((trail?.layers ?: fight.palettes.layers(actor?.paletteEffects ?: projectile?.paletteEffects ?: effect?.paletteEffects ?: fight.p1.paletteEffects))
                     .joinToString(prefix="[",postfix="]",separator=",") {it.json()})
                 .append("},")
         }
@@ -145,6 +149,11 @@ object CorePresentationPlanner {
         fun enqueue(priority: Long,append: () -> Unit) { planned.add(PlannedDraw(priority,planned.size,append)) }
         fun actorDraw(side: Int,kind: String,actor: FightingCharacter) {
             val priority=actor.spritePriority.toLong()
+            for(trail in actor.afterImages?.draws(actor,fight.palettes.all.layer()).orEmpty().asReversed())enqueue(trail.priority) {
+                val pose=trail.pose
+                draw(side,"afterimage",pose.x,pose.y,pose.facingRight,null,pose.definition,0,
+                    priority=trail.priority,pose=pose,trail=trail,ownerId=actor.id)
+            }
             enqueue(priority) { draw(side,kind,actor.posX,actor.posY,actor.facingRight,actor.animation,
                 actor.animationOwner.definition,actor.life,priority=priority,actor=actor) }
         }

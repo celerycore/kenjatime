@@ -19,6 +19,8 @@
     "palfx",
     "allpalfx",
     "bgpalfx",
+    "afterimage",
+    "afterimagetime",
     "displaytoclipboard",
     "appendtoclipboard",
     "clearclipboard",
@@ -92,6 +94,7 @@
     "stopsnd"
   ],
   "knownIncomplete": [
+    "AfterImage/AfterImageTime use bounded actor-owned immutable sprite histories, MUGEN-style length-slot sampling and finite wind-down, duration/value retiming, documented palette progression and normal/add/add1/sub blending; exact native capture/pause/round phases, native palette coefficient accumulation/rounding/invertblend, the documented nonunit-timegap retime bug, IKEMEN's newer length+1 ring, projectile/Explod afterimage.* parameters, shaders, shadows and reflections remain incomplete or unverified",
     "PalFX/AllPalFX/BGPalFX resolve timed add/mul/color/invertall/sinadd layers with shared ownpal=0 and independent ownpal=1 helper/projectile/Explod families; clocks advance once per fight tick through hitpause, with local then global and background/HUD then global composition; native stacked shader/rounding, palette selection/remaps, HitDef/Projectile palfx.* impact effects, global Pause/SuperPause timing, extended hue/sinmul/sincolor/invertblend/redirectid and complete stage/motif/fallback visuals remain incomplete or unverified",
     "DisplayToClipboard/AppendToClipboard/ClearClipboard use actor-owned bounded debug text, quoted printf formats, six numeric params, type-mismatch fallback and exact portable binary64 decimal rounding; browser debug snapshots are requested only while the panel is open; side-effecting expressions, native float32 arithmetic, version-specific formatting/clipboard row limits and native game timing parity remain incomplete or unverified",
     "Trans resolves default/none/add/addalpha/add1/sub and 0..256 alpha pairs into per-tick actor blend descriptors, including MUGEN 1.1 hitpause reset; AIR A/A1/S/ASnDm applies to fighters/helpers/projectiles/Explods; Canvas paints weighted additive and clamped subtractive RGB with cached alpha masks; partial-alpha/rotated-edge native parity, WinMUGEN pause exceptions, extended AIR metadata, CNS Explod transparency parameters and full palette/color effects remain incomplete or unverified",

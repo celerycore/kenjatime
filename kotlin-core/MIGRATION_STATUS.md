@@ -1,6 +1,81 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current palette effects continuation — November 17, 2026
+## Current afterimage continuation — November 17, 2026
+
+Continues published main source `59b7bd6`. AfterImage now keeps an actor-owned,
+bounded history of immutable sprite poses. Captures retain canonical world
+position, facing, animation/resource-bank metadata, frame offsets/flips, signed
+draw scale, AngleDraw rotation, display offsets and sprite priority. They do not
+retain mutable actors/animations or collision boxes. History advances only in
+the fight's 60 Hz tick, after controller/motion/contact phases, including actor
+hitpause. Skipped draws, hidden sprites and inspection cannot resample it.
+
+Time, length, timegap and framegap control duration and sampling. Defaults are
+1, 20, 1 and 4. Time -1 is indefinite; zero time or length clears the history.
+The length-slot ring follows MUGEN-style sampling: length 12/framegap 3 selects
+recorded-frame offsets 2, 5 and 8. Length 1 has no usable past slot. Capacity
+is at most 60 poses per actor and at most 59 visible trails; older poses drain
+through the ring after a finite duration. In this compatibility window, the
+default time 1 produces no visible trail at timegap 1. Requests replace all
+configuration and discard previous history atomically after validation.
+
+AfterImageTime accepts time or its value alias (time takes precedence), retimes
+an existing active history without discarding poses or its sampling phase, and
+cannot start an absent history. Zero or one stops it, matching the compatibility
+stop behavior. Normal persistent/ignorehitpause scheduling gates requests.
+State changes retain existing histories. Helpers have separate histories even
+when sharing a palette; destroying a helper removes its trails from the plan.
+Borrowed animations retain captured visual coordinates after SelfState.
+
+Palette parameters include palcolor, palinvertall, palbright, palcontrast,
+palpostbright, paladd and floating palmul. Base luminance/inversion/brightness/
+contrast/post-brightness is followed by repeated additive/multiplicative
+progression for the visible trail rank, then the current AllPalFX. Live local
+PalFX and Trans do not replace the trail's own color/blend. Repeated layers
+are compact descriptors rather than growing JSON arrays. Canvas preserves
+source alpha and uses existing normal/add/add1/sub painters and bounded caches.
+Historical world poses use the current camera and stage shake; Kotlin sorts
+them by captured priority, below the current actor, with older trails behind
+newer ones. ktCoreAfterImages exposes pure, on-demand clock/capacity metadata.
+
+Validation:
+
+- 1225 JVM and 1220 compiled-Wasm tests pass, including 34 new common cases for
+  defaults, ring bounds, sampling, wind-down, duration aliases, atomic failures,
+  captured expressions/poses/transforms, helpers/destruction, borrowed banks,
+  hitpause/persistence, palette progression, priority endpoints, live camera
+  projection and independence from combat/checksum/presentation cadence.
+- Exported Wasm checks 288 coordinate/side/gap/duration/blend histories across
+  320, 640 and 1008-wide banks, comparing historical transforms and AIR metadata
+  against earlier live poses. Six root/helper lifecycles verify independent
+  retiming, preserved sampling phase, stop semantics and pure inspection.
+- All 16 adapter/import/download tests and production Chromium checks pass.
+  Eleven RGBA cases cover post-brightness and 58 repeated floating color layers
+  in addition to prior palette math. Imported public KFM sprites verify ten
+  timed trail phases, visible history positions, mirroring, base/progressive/
+  global color, all four blend modes, zero/one stop, restart, finite expiry,
+  continued helper trails, stable paint order and cache bounds. Prior browser
+  scenarios pass.
+- Two 600-tick KFM replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and power 485/415.
+
+Measured controller-name coverage is 86 of 97 in the live legacy JavaScript
+registry (88.7%), up from 84 of 97 (86.6%); 11 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 80 of 89 (89.9%). Overall rewrite completion
+remains unmeasured: complete parameters, expressions, physics, effects, AI,
+teams, physical-phone performance and native behavior parity still need work.
+Native capture/pause/round phase parity and palette coefficient accumulation/
+rounding/invertblend, the documented nonunit-timegap retime bug, IKEMEN's newer
+length+1 ring, projectile/Explod afterimage.* parameters, shaders, shadows and
+reflections are not certified by these checks. Duration is bounded to
+-1..36000, length to 0..60, gaps to 1..32767, color to 0..256, additive channels
+to 0..255, contrast to 0..65536 and floating palmul to 0..64.
+
+Semantics use the [Elecbyte AfterImage reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#afterimage)
+and MUGEN compatibility sampling in [IKEMEN GO](https://github.com/ikemen-engine/Ikemen-GO/blob/master/src/char.go).
+Synthetic histories and actual Canvas pixels do not certify native frame parity.
+
+## Previous palette effects continuation — November 17, 2026
 
 Continues published main source `40a1a8c`. PalFX, AllPalFX and BGPalFX now
 capture finite numeric expressions for time, add, mul, color, invertall and

@@ -4512,6 +4512,149 @@ anim=0`;
 }
 console.log('Native Wasm PalFX/AllPalFX/BGPalFX / 108 coordinate-side-scope-duration-wave sequences / three retained helper-projectile-Explod palette families / ownpal isolation / resolved stage-HUD colors and pure reads: OK (synthetic)');
 
+const afterimageAir='[Begin Action 0]\n0,0,0,0,2\n0,1,3,-5,2,H';
+const afterimageBase={add:[10,20,30],mul:[128,256,512],color:128,invert:true,post:[5,0,10]};
+const afterimageGlobal={add:[3,0,0],mul:[256,256,256],color:256,invert:false};
+const afterimageTransforms=['x','y','axisX','axisY','displayOffsetX256','displayOffsetY256','transformA','transformB','transformC','transformD',
+  'rotationDegrees','angleDraw','flipX','flipY','spriteScaleX','spriteScaleY','pixelScaleX','pixelScaleY','facing','action','elem','elemTime','animTime','group','number'];
+for(const width of [320,640,1008])for(const side of [0,1])for(const timegap of [1,3])for(const framegap of [1,3,4])for(const duration of [3,-1])for(const trans of ['none','add','add1','sub']) {
+  const source=`${motionIdle}
+[State 0, history]
+type=AfterImage
+trigger1=Time=0
+time=${duration}
+length=12
+timegap=${timegap}
+framegap=${framegap}
+trans=${trans}
+palbright=10,20,30
+palcontrast=128,256,512
+palpostbright=5,0,10
+palcolor=128
+palinvertall=1
+paladd=2,4,6
+palmul=.5,1,2
+[State 0, movement]
+type=VelSet
+trigger1=Time=0
+x=${width/40}
+[State 0, turn]
+type=Turn
+trigger1=Time=8
+trigger2=Time=16
+[State 0, angle]
+type=AngleSet
+trigger1=1
+value=Time*7
+[State 0, draw]
+type=AngleDraw
+trigger1=1
+scale=ifelse(Time%2,-1.5,1),.5
+[State 0, offset]
+type=Offset
+trigger1=1
+x=Time*${width/320}
+y=-${width/320}
+[State 0, priority]
+type=SprPriority
+trigger1=1
+value=ifelse(Time%2,4,1)
+[State 0, local excluded from trails]
+type=PalFX
+trigger1=Time=0
+time=-1
+invertall=1
+[State 0, global included in trails]
+type=AllPalFX
+trigger1=Time=0
+time=-1
+add=3,0,0`;
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('trail first','trail second',afterimageAir,afterimageAir,
+    side===0?source:motionIdle,side===1?source:motionIdle,'','',side===0?def:'',side===1?def:'');
+  try {
+    api.ktCoreSetup(handle,-100*256,0,100*256,0);api.ktCoreDebugSetFacing(handle,side,side===0);
+    const poses=new Map();
+    for(let tick=1;tick<=42;tick++) {
+      api.ktCoreAdvance(handle,0,'',0,'');const plan=JSON.parse(api.ktCoreRenderPlan(handle,0));
+      const current=plan.draws.find(d=>d.kind==='fighter'&&d.side===side);poses.set(tick,current);
+      const expected=[],records=Math.floor((tick-1)/timegap)+1,alive=duration<0||tick<timegap*12+duration-1;
+      if(alive)for(let rank=0;rank<Math.floor(Math.min(records,11)/framegap);rank++) {
+        const distance=(rank+1)*framegap;
+        if(duration>0&&Math.floor(tick/timegap)-distance>=Math.trunc((duration-2)/timegap)+1)continue;
+        const captureFrame=1+(records-distance)*timegap,pose=poses.get(captureFrame);
+        const layers=[afterimageBase];
+        if(rank)layers.push({add:[2,4,6],mul:[128,256,512],color:256,invert:false,...(rank!==1?{repeat:rank}:{})});
+        layers.push(afterimageGlobal);
+        expected.push({captureFrame,rank,pose,layers,priority:Math.min(pose.sprpriority-2,current.sprpriority-2)-rank});
+      }
+      expected.sort((a,b)=>a.priority-b.priority||b.rank-a.rank);
+      const ghosts=plan.draws.filter(d=>d.kind==='afterimage');assert.equal(ghosts.length,expected.length,JSON.stringify({width,side,timegap,framegap,duration,trans,tick}));
+      for(const [index,ghost]of ghosts.entries()) {
+        const e=expected[index];assert.equal(ghost.side,side);assert.equal(ghost.captureFrame,e.captureFrame);assert.equal(ghost.historyIndex,e.rank);
+        assert.equal(ghost.afterimageOwnerId,side+1);assert.equal(ghost.sprpriority,e.priority);assert.deepEqual(ghost.palFX,e.layers);
+        assert.deepEqual(ghost.blend,trans==='none'?{mode:'normal',source:256,destination:0}:trans==='sub'?{mode:'sub',source:256,destination:256}:{mode:'add',source:256,destination:trans==='add1'?128:256});
+        for(const key of afterimageTransforms)assert.equal(ghost[key],e.pose[key],key);
+      }
+      const state=api.ktCoreAfterImages(handle),checksum=api.ktCoreChecksum(handle);
+      for(let read=0;read<3;read++){assert.equal(api.ktCoreAfterImages(handle),state);api.ktCoreRenderPlan(handle,12);}
+      assert.equal(api.ktCoreChecksum(handle),checksum);assert.equal(api.ktCoreIssues(handle),'');
+    }
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008])for(const side of [0,1]) {
+  const source=`${motionIdle}
+[State 0, root trail]
+type=AfterImage
+trigger1=Time=0
+time=5
+length=12
+timegap=3
+framegap=1
+[State 0, extend]
+type=AfterImageTime
+trigger1=Time=4
+value=-1
+[State 0, stop]
+type=AfterImageTime
+trigger1=Time=8
+time=0
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, own trail]
+type=AfterImage
+trigger1=Time=0
+time=-1
+framegap=1
+[State 700, own stop]
+type=AfterImageTime
+trigger1=Time=3
+time=1`;
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('retime first','retime second',afterimageAir,afterimageAir,
+    side===0?source:motionIdle,side===1?source:motionIdle,'','',side===0?def:'',side===1?def:'');
+  try {
+    api.ktCoreSetup(handle,-100*256,0,100*256,0);
+    for(let tick=1;tick<=12;tick++) {
+      api.ktCoreAdvance(handle,0,'',0,'');const rows=JSON.parse(api.ktCoreAfterImages(handle)),root=rows[side].trail,helper=rows[2].trail;
+      assert.equal(rows[1-side].trail,null);
+      if(tick>=9)assert.equal(root,null);else {
+        assert.equal(root.time,tick<5?5:-1);assert.equal(root.elapsed,tick<5?tick:tick-4);
+        assert.equal(root.records,Math.floor((tick-1)/3)+1);assert.equal(root.stored,root.records);
+      }
+      if(tick===1||tick>=5)assert.equal(helper,null);else {assert.equal(helper.time,-1);assert.equal(helper.records,tick-1);}
+      assert.equal(api.ktCoreIssues(handle),'');
+    }
+  } finally {api.ktCoreRelease(handle);}
+}
+console.log('Native Wasm AfterImage/AfterImageTime / 288 coordinate-side-gap-duration-blend histories / immutable transforms and AIR poses / six independent root-helper retimings / pure reads: OK (synthetic; native rendering parity unverified)');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

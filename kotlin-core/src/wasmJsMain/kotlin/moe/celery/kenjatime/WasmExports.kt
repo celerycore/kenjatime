@@ -256,6 +256,12 @@ private object Fights {
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreRelease(handle: Int): Unit { Fights.active.remove(handle) }
 @JsExport fun ktCoreEnvironment(handle: Int): String = Fights.get(handle).environment.json()
+@JsExport fun ktCoreAfterImages(handle: Int): String {
+    val fight=Fights.get(handle)
+    return (listOf(fight.p1,fight.p2)+fight.entities.helpers.map {it.actor}).joinToString(prefix="[",postfix="]",separator=",") {
+        "{\"id\":${it.id},\"trail\":${it.afterImages?.json() ?: "null"}}"
+    }
+}
 @JsExport fun ktCorePalettes(handle: Int): String {
     val fight=Fights.get(handle);val groups=mutableListOf<CorePaletteEffects>()
     fun group(value: CorePaletteEffects): Int {

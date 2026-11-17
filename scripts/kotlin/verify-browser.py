@@ -544,11 +544,12 @@ try:
         def palette_rgb(source,layers):
             rgb=list(source)
             for layer in layers:
+              for _ in range(layer.get("repeat",1)):
                 grey=(rgb[0]*299+rgb[1]*587+rgb[2]*114)/1000
                 mixed=[v*layer["color"]/256+grey*(256-layer["color"])/256 for v in rgb]
                 if layer["invert"]:
                     mixed=[255-v for v in mixed]
-                rgb=[max(0,min(255,(v+a)*m/256)) for v,a,m in zip(mixed,layer["add"],layer["mul"])]
+                rgb=[max(0,min(255,(v+a)*m/256+p)) for v,a,m,p in zip(mixed,layer["add"],layer["mul"],layer.get("post",[0,0,0]))]
             return [max(0,min(255,math.floor(v+1e-9))) for v in rgb]
         def palette_layer(add=(0,0,0),mul=(256,256,256),color=256,invert=False):
             return {"add":list(add),"mul":list(mul),"color":color,"invert":invert}
@@ -556,7 +557,9 @@ try:
             [palette_layer(color=0)],[palette_layer(invert=True)],[palette_layer(color=128)],
             [palette_layer(add=(10,0,-10),mul=(256,128,512),color=0,invert=True)],
             [palette_layer(add=(20,0,0)),palette_layer(mul=(128,256,256),invert=True)],
-            [palette_layer(mul=(128,256,256),invert=True),palette_layer(add=(20,0,0))]]
+            [palette_layer(mul=(128,256,256),invert=True),palette_layer(add=(20,0,0))],
+            [{**palette_layer(add=(10,20,30),mul=(128,256,512),color=128,invert=True),"post":[5,0,10]}],
+            [{**palette_layer(add=(10,0,20),mul=(166.4,192,128)),"repeat":58}]]
         palette_module="data:text/javascript;base64,"+base64.b64encode((ROOT/"src/kotlin/sprite-palette.js").read_bytes()).decode()
         palette_matrix=page.evaluate("""async({module,layers})=>{
           const {paletteRgba}=await import(module),source=new Uint8ClampedArray([100,30,50,255,250,0,200,128,0,0,0,0,17,88,240,255]);
@@ -628,6 +631,63 @@ try:
         assert not palette_errors,palette_errors
         result["paletteScopesOwnershipSineAndCanvasPixels"]="passed"
         palette_page.close()
+
+        trails=browser.new_page(viewport={"width":1000,"height":780})
+        trail_errors=[]
+        trails.on("pageerror",lambda error:trail_errors.append(str(error)))
+        trails.goto(base,wait_until="domcontentloaded",timeout=30000)
+        trails.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        trails.locator("#archive").set_input_files(str(ROOT/"test-output/kotlin-kfm-afterimage.zip"))
+        trails.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=trails.locator("#p1-select option").evaluate_all("options=>options.find(o=>o.value.startsWith('installed:')).value")
+        trails.locator("#p1-select").select_option(value=installed)
+        trails.locator("#cpu").uncheck();trails.locator("#start").click()
+        for phase in range(10):
+            stopped=phase in [5,7,9]
+            observed=trails.wait_for_function("""({phase,stopped,fixture})=>{
+              const qa=window.__kenjatimeKotlinQA,p=qa?.paintedRenderPlan;
+              if(!p||p.cameraY>-220||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
+              const root=p.draws.find(d=>d.kind==='fighter'&&d.side===0);
+              if(root?.action!==740||root.sprpriority!==phase-5)return false;
+              const rootGhosts=p.draws.filter(d=>d.kind==='afterimage'&&d.afterimageOwnerId===1);
+              if(!p.draws.some(d=>d.kind==='afterimage'&&d.afterimageOwnerId!==1))return false;
+              if(stopped)return rootGhosts.length===0?{stopped:true}:false;
+              const ghost=rootGhosts.find(d=>d.historyIndex===2);
+              if(!ghost||Math.abs(ghost.x-root.x)<60)return false;
+              const c=document.querySelector('#arena'),ctx=c.getContext('2d'),scale=c.width/960;
+              const read=(x,y)=>[...ctx.getImageData(Math.floor(x*scale),Math.floor(y*scale),1,1).data];
+              const pixels=fixture.samples.map(s=>{
+                const x=s.x-fixture.axisX+.5,y=s.y-fixture.axisY+.5;
+                return read(ghost.x+ghost.transformA*x+ghost.transformC*y,ghost.y+ghost.transformB*x+ghost.transformD*y);
+              });
+              return {frame:p.frame,ghost,pixels,backdrop:p.paletteColors.backdrop,painted:qa.lastSpritePaintOrder.draws,caches:qa.spriteCaches};
+            }""",arg={"phase":phase,"stopped":stopped,"fixture":samples},timeout=30000).json_value()
+            if stopped:continue
+            base_layer={**palette_layer(add=(20,0,0),mul=(128,256,0),color=0 if phase==4 else 256,invert=phase==4),"post":[5,10,0]}
+            layers=[base_layer,{**palette_layer(add=(10,0,0),mul=(128,256,256)),"repeat":2}]
+            if phase==4:layers.append(palette_layer(mul=(128,256,128)))
+            assert observed["ghost"]["palFX"]==layers,(phase,observed)
+            mode={1:"add",2:"add1",3:"sub"}.get(phase,"none")
+            expected_blend={"mode":"normal" if mode=="none" else "sub" if mode=="sub" else "add","source":256,"destination":0 if mode=="none" else 128 if mode=="add1" else 256}
+            assert observed["ghost"]["blend"]==expected_blend,(phase,observed)
+            for point,pixel in zip(samples["samples"],observed["pixels"]):
+                background=observed["backdrop"]
+                if not point["rgba"][3]:expected=background
+                else:
+                    source=palette_rgb(point["rgba"][:3],layers)
+                    expected=source if mode=="none" else [max(0,d-s) for s,d in zip(source,background)] if mode=="sub" else [min(255,s+d*(.5 if mode=="add1" else 1)) for s,d in zip(source,background)]
+                assert all(abs(a-b)<=2 for a,b in zip(pixel,expected+[255])),(phase,point,pixel,expected,observed)
+            priorities=[d["priority"] for d in observed["painted"]]
+            assert priorities==sorted(priorities),observed
+            assert all(c["bytes"]<=32*1024*1024 and c["entries"]<=256 for c in observed["caches"]),observed
+            if phase==8:
+                trails.wait_for_function("""()=>{
+                  const p=window.__kenjatimeKotlinQA?.paintedRenderPlan;
+                  return p?.frame%600>=515&&p.frame%600<540&&!p.draws.some(d=>d.kind==='afterimage'&&d.afterimageOwnerId===1);
+                }""",timeout=30000)
+        assert not trail_errors,trail_errors
+        result["afterimageHistoryPaletteBlendRetimingAndCanvasPixels"]="passed"
+        trails.close()
 
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})

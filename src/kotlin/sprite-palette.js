@@ -11,12 +11,14 @@ export function paletteRgba(source,layers){
     if(!rgb){
       rgb=[source[p],source[p+1],source[p+2]];
       for(const layer of layers){
+       for(let iteration=0;iteration<(layer.repeat??1);iteration++){
         const grey=.299*rgb[0]+.587*rgb[1]+.114*rgb[2];
         rgb=rgb.map((channel,i)=>{
           let n=layer.color===256?channel:grey+(channel-grey)*layer.color/256;
           if(layer.invert)n=255-n;
-          return Math.max(0,Math.min(255,(n+layer.add[i])*layer.mul[i]/256));
+          return Math.max(0,Math.min(255,(n+layer.add[i])*layer.mul[i]/256+(layer.post?.[i]??0)));
         });
+       }
       }
       rgb=rgb.map(n=>Math.max(0,Math.min(255,Math.floor(n+1e-9))));
       if(colors.size<4096)colors.set(key,rgb);

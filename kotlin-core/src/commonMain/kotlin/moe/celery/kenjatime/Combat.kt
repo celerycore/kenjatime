@@ -276,6 +276,7 @@ class FightingCharacter(
     internal var clipboardText = ""
     internal var ownPalette = true
     internal var paletteEffects = CorePaletteEffects()
+    internal var afterImages: CoreAfterImages? = null
     private val commandCache = mutableMapOf<String,Boolean>()
     fun commandActive(name: String): Boolean {
         val normalized = name.lowercase()
@@ -594,6 +595,7 @@ class FightingCharacter(
             "assertinput" -> CoreAssertedInputs.execute(this,c,errors)
             "trans" -> CoreTransparency.execute(this,c,errors)
             "palfx", "allpalfx", "bgpalfx" -> world?.palettes?.execute(this,c,errors)
+            "afterimage", "afterimagetime" -> CoreAfterImages.execute(this,c,errors)
             "displaytoclipboard", "appendtoclipboard", "clearclipboard" -> CoreClipboard.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
@@ -1269,6 +1271,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         entities.add(spawned, issues)
         if(allowCombat)for(shot in entities.projectiles)CoreGuardDistance.projectile(this,shot)
         effects.advance()
+        CoreAfterImages.finishTick(this)
         sequence?.step(p1,p2)
         frame++
     }

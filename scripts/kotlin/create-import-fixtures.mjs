@@ -681,6 +681,81 @@ paletteFiles['kfm/kfm.air']=encoder.encode(decoder.decode(paletteFiles['kfm/kfm.
 `).join(''));
 writeFileSync('test-output/kotlin-kfm-palette.zip',zipSync(paletteFiles));
 
+const afterimageFiles=Object.fromEntries(raw);
+const trailPhase=(phase,trans='none',duration=-1)=>`[State 0, trail phase ${phase}]
+type=AfterImage
+trigger1=Time%600=${phase*60}
+time=${duration}
+length=4
+timegap=4
+framegap=1
+trans=${trans}
+palbright=20,0,0
+palcontrast=128,256,0
+palpostbright=5,10,0
+palcolor=${phase===4?0:256}
+palinvertall=${phase===4?1:0}
+paladd=10,0,0
+palmul=.5,1,1
+`;
+afterimageFiles['kfm/kfm.cns']=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=740
+ctrl=0
+[State 0, phase]
+type=SprPriority
+trigger1=1
+value=floor((Time%600)/60)-5
+[State 0, separated historical positions]
+type=PosSet
+trigger1=1
+x=ifelse(Time%16<4,-220,ifelse(Time%16<8,-80,ifelse(Time%16<12,60,200)))
+[State 0, alternate facing]
+type=Turn
+triggerall=Time>0
+trigger1=Time%8=0
+`+[0,1,2,3,4,6,8].map(phase=>trailPhase(phase,({1:'add',2:'add1',3:'sub'})[phase]||'none',phase===8?8:-1)).join('')+`
+[State 0, current global palette]
+type=AllPalFX
+trigger1=Time%600=240
+time=60
+mul=128,256,128
+[State 0, stop zero]
+type=AfterImageTime
+trigger1=Time%600=300
+time=0
+[State 0, stop one]
+type=AfterImageTime
+trigger1=Time%600=420
+value=1
+[State 0, independent helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+pos=520,-80
+[Statedef 700]
+type=S
+physics=N
+anim=741
+ctrl=0
+[State 700, own history]
+type=AfterImage
+trigger1=Time=0
+time=-1
+length=8
+framegap=2
+palbright=0,0,0
+palcontrast=256,256,256
+paladd=0,0,0
+palmul=1,1,1
+`);
+afterimageFiles['kfm/kfm.air']=encoder.encode(decoder.decode(afterimageFiles['kfm/kfm.air'])+[740,741].map(n=>`
+[Begin Action ${n}]
+0,0,0,-340,-1
+`).join(''));
+writeFileSync('test-output/kotlin-kfm-afterimage.zip',zipSync(afterimageFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

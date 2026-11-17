@@ -5,9 +5,12 @@ import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.sin
 
-internal data class CorePaletteLayer(val add: List<Int>,val mul: List<Int>,val color: Int,val invert: Boolean) {
-    val identity: Boolean get()=add.all {it==0} && mul.all {it==256} && color==256 && !invert
-    fun json()="{\"add\":[${add.joinToString(",")}],\"mul\":[${mul.joinToString(",")}],\"color\":$color,\"invert\":$invert}"
+internal data class CorePaletteLayer(val add: List<Int>,val mul: List<Number>,val color: Int,val invert: Boolean,
+    val post: List<Int> = listOf(0,0,0),val repeat: Int=1) {
+    val identity: Boolean get()=repeat==0 || (add.all {it==0} && mul.all {it.toDouble()==256.0} && color==256 && !invert && post.all {it==0})
+    fun json()="{\"add\":[${add.joinToString(",")}],\"mul\":[${mul.joinToString(",")}],\"color\":$color,\"invert\":$invert"+
+        (if(post.any {it!=0})",\"post\":[${post.joinToString(",")}]" else "")+
+        (if(repeat!=1)",\"repeat\":$repeat" else "")+"}"
 }
 internal data class CorePaletteEffect(val remaining: Int,val add: List<Int>,val mul: List<Int>,
     val color: Int,val invert: Boolean,val amplitude: List<Int>,val period: Int,val age: Long=0) {
@@ -80,12 +83,14 @@ internal class CoreFightPalettes(private val fight: DeterministicFight) {
         fun rgb(source: List<Int>,layers: List<CorePaletteLayer>): List<Int> {
             var v=source.map {it.toDouble()}
             for(layer in layers) {
+              repeat(layer.repeat) {
                 val grey=.299*v[0]+.587*v[1]+.114*v[2]
                 v=v.indices.map {i ->
                     var n=if(layer.color==256)v[i] else grey+(v[i]-grey)*layer.color/256
                     if(layer.invert)n=255-n
-                    ((n+layer.add[i])*layer.mul[i]/256).coerceIn(0.0,255.0)
+                    ((n+layer.add[i])*layer.mul[i].toDouble()/256+layer.post[i]).coerceIn(0.0,255.0)
                 }
+              }
             }
             return v.map {floor(it+1e-9).toInt().coerceIn(0,255)}
         }
