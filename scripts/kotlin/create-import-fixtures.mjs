@@ -221,3 +221,46 @@ bodyFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(bodyFiles["kfm/kfm.air"])
 0,0,0,0,-1
 `);
 writeFileSync("test-output/kotlin-kfm-body-space.zip",zipSync(bodyFiles));
+
+for(const width of [320,640]) {
+ const f=width/320,files=Object.fromEntries(raw);
+ files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])
+  .replace(/^localcoord\s*=.*$/mi,`localcoord=${width},${width*3/4}`));
+ files["kfm/kfm.cns"]=encoder.encode(`[Size]
+draw.offset=${20*f},${-10*f}
+xscale=1.5
+yscale=.5
+[Statedef 0]
+type=S
+physics=N
+anim=707
+ctrl=0
+[Statedef -2]
+[State -2, face]
+type=Turn
+trigger1=(Time%120<30 && Facing<0)||(Time%120>=30 && Facing>0)
+[State -2, translation]
+type=Offset
+trigger1=Time%120<60
+x=ifelse(Time%120<30,${7.25*f},${-12.5*f})
+y=ifelse(Time%120<30,${-3.5*f},${6.25*f})
+[State -2, independent rotation]
+type=AngleDraw
+trigger1=1
+value=90
+scale=2,-.5
+[State -2, attached effect]
+type=Explod
+trigger1=NumExplod(707)=0
+id=707
+anim=0
+postype=p1
+bindtime=-1
+removetime=-1
+`);
+ files["kfm/kfm.air"]=encoder.encode(decoder.decode(files["kfm/kfm.air"])+`
+[Begin Action 707]
+0,0,8,-4,-1
+`);
+ writeFileSync(`test-output/kotlin-kfm-offset-${width}.zip`,zipSync(files));
+}

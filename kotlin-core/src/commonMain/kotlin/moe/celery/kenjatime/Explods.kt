@@ -53,8 +53,9 @@ class CoreExplods(private val fight: DeterministicFight) {
         require(c.postype != "p2" || effect.anchor?.destroyed == false) { "Explod P2 is unavailable" }
         val anchor=effect.anchor
         effect.facingRight=if(anchor == null) c.facing > 0 else (c.facing > 0) == anchor.facingRight
-        effect.x=bounded((anchor?.posX?.toLong() ?: 0L)+c.offsetX.toLong()*if(anchor?.facingRight != false)1 else -1)
-        effect.y=bounded((anchor?.posY?.toLong() ?: 0L)+c.offsetY)
+        effect.x=bounded((anchor?.posX?.toLong() ?: 0L)+(anchor?.displayOffsetX ?: 0L)+
+            c.offsetX.toLong()*if(anchor?.facingRight != false)1 else -1)
+        effect.y=bounded((anchor?.posY?.toLong() ?: 0L)+(anchor?.displayOffsetY ?: 0L)+c.offsetY)
         effect.bindLeft=if(anchor == null)0 else c.bindTime
         effect.initialPosition=anchor != null
     }
@@ -176,8 +177,8 @@ class CoreExplods(private val fight: DeterministicFight) {
             if(anchor?.destroyed == true) { e.anchor=null; e.bindLeft=0; e.initialPosition=false; anchor=null }
             val bound=anchor != null && (e.initialPosition || e.bindLeft != 0)
             if(bound) {
-                e.x=bounded(anchor.posX.toLong()+c.offsetX.toLong()*if(anchor.facingRight)1 else -1)
-                e.y=bounded(anchor.posY.toLong()+c.offsetY)
+                e.x=bounded(anchor.posX.toLong()+anchor.displayOffsetX+c.offsetX.toLong()*if(anchor.facingRight)1 else -1)
+                e.y=bounded(anchor.posY.toLong()+anchor.displayOffsetY+c.offsetY)
                 e.facingRight=(c.facing > 0) == anchor.facingRight
             }
             if(frozen) continue

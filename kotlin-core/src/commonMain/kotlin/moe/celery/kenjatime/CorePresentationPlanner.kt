@@ -81,8 +81,11 @@ object CorePresentationPlanner {
             val vf=effect?.config?.verticalFacing ?: 1
             val offsetX=(frame?.offsetX ?: 0)*spriteScaleX*face
             val offsetY=(frame?.offsetY ?: 0)*spriteScaleY*vf
-            val drawX=pixelX(x256,camera)+(c*offsetX+s*offsetY)*HORIZONTAL_SCALE*zoom
-            val drawY=pixelY(y256,camera)+(-s*offsetX+c*offsetY)*VERTICAL_SCALE*zoom
+            val axisX=pixelX(x256,camera);val axisY=pixelY(y256,camera)
+            val displayOffsetX=actor?.displayOffsetX ?: 0L
+            val displayOffsetY=actor?.displayOffsetY ?: 0L
+            val drawX=axisX+(displayOffsetX.toDouble()/Fixed.ONE+c*offsetX+s*offsetY)*HORIZONTAL_SCALE*zoom
+            val drawY=axisY+(displayOffsetY.toDouble()/Fixed.ONE-s*offsetX+c*offsetY)*VERTICAL_SCALE*zoom
             val flip=frame?.flip?.uppercase() ?: ""
             val flipX=if('H' in flip)-1 else 1
             val flipY=(if('V' in flip)-1 else 1)*vf
@@ -95,6 +98,10 @@ object CorePresentationPlanner {
                 .append(",\"kind\":\"").append(kind).append("\"")
                 .append(",\"x\":").append(drawX)
                 .append(",\"y\":").append(drawY)
+                .append(",\"axisX\":").append(axisX)
+                .append(",\"axisY\":").append(axisY)
+                .append(",\"displayOffsetX256\":").append(displayOffsetX)
+                .append(",\"displayOffsetY256\":").append(displayOffsetY)
                 .append(",\"transformA\":").append(matrixA)
                 .append(",\"transformB\":").append(matrixB)
                 .append(",\"transformC\":").append(matrixC)

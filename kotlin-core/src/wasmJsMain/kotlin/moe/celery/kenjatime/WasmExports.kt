@@ -128,6 +128,10 @@ private object Fights {
         ",\"angleDraw\":" + p.angleDrawEnabled +
         ",\"drawScaleX\":" + p.drawScaleX +
         ",\"drawScaleY\":" + p.drawScaleY +
+        ",\"drawOffsetX256\":" + p.drawOffsetX +
+        ",\"drawOffsetY256\":" + p.drawOffsetY +
+        ",\"displayOffsetX256\":" + p.displayOffsetX +
+        ",\"displayOffsetY256\":" + p.displayOffsetY +
         ",\"state\":" + p.stateNo + ",\"stateTime\":" + p.timeInState +
         ",\"stateOwner\":" + p.stateOwner.id +
         ",\"localCoordWidth\":" + p.coordinates.width +

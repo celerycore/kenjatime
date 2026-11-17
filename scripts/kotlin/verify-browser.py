@@ -214,6 +214,41 @@ try:
         result["playerPushWidthCanvasSpacing"]="passed"
         bodies.close()
 
+        for width in [320,640]:
+            offsets=browser.new_page(viewport={"width":1000,"height":780})
+            offset_errors=[]
+            offsets.on("pageerror",lambda error:offset_errors.append(str(error)))
+            offsets.goto(base,wait_until="domcontentloaded",timeout=30000)
+            offsets.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+            offsets.locator("#archive").set_input_files(str(ROOT / f"test-output/kotlin-kfm-offset-{width}.zip"))
+            offsets.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+            installed=offsets.locator("#p1-select option").evaluate_all(
+                "options=>options.find(o=>o.value.startsWith('installed:')).value")
+            offsets.locator("#p1-select").select_option(value=installed)
+            offsets.locator("#cpu").uncheck()
+            offsets.locator("#start").click()
+            for facing,dx,dy in [(1,27.25,-13.5),(-1,-32.5,-3.75),(-1,-20,-10)]:
+                observed=offsets.wait_for_function("""expected => {
+                  const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paint=qa?.lastActorTransformPaint;
+                  const draw=plan?.draws.find(d=>d.kind==='fighter'&&d.side===0);
+                  const effect=plan?.draws.find(d=>d.kind==='explod'&&d.effectId===707);
+                  return draw?.action===707&&draw.facing===expected.face&&effect&&paint?.frame===plan.frame&&
+                    draw.displayOffsetX256===expected.dx*256&&draw.displayOffsetY256===expected.dy*256 ?
+                    {plan,paint,draw,effect}:false;
+                }""",arg={"face":facing,"dx":dx,"dy":dy},timeout=30000).json_value()
+                plan,paint,draw,effect=[observed[k] for k in ["plan","paint","draw","effect"]]
+                z=plan["cameraZoom"]
+                c,s=math.cos(math.radians(90*facing)),math.sin(math.radians(90*facing))
+                fx,fy=8*3*320/width*facing,(-4)*(-.25)*320/width
+                x=draw["axisX"]+(dx+c*fx+s*fy)*1.4*z
+                y=draw["axisY"]+(dy-s*fx+c*fy)*1.1*z
+                assert abs(paint["x"]-x)<1e-4 and abs(paint["y"]-y)<1e-4,observed
+                assert abs(effect["axisX"]-draw["axisX"]-dx*1.4*z)<1e-6,observed
+                assert abs(effect["axisY"]-draw["axisY"]-dy*1.1*z)<1e-6,observed
+            assert not offset_errors,offset_errors
+            result[f"offsetCanvasTranslation{width}"]="passed"
+            offsets.close()
+
         high=browser.new_page(viewport={"width":1000,"height":780})
         high_errors=[]
         high.on("pageerror",lambda error:high_errors.append(str(error)))

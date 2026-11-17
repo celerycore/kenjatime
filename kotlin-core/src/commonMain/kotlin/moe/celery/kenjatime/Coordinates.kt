@@ -26,10 +26,14 @@ class MugenCoordinates(val width: Int) {
     /** Convert the whole AIR coordinate once, rather than truncating an
      * intermediate scale (e.g. 1008-wide sprites formerly used 81/256). */
     fun box(rect: MugenRect, x: Int, y: Int, right: Boolean,
+            xScale: Int=Fixed.ONE, yScale: Int=Fixed.ONE): MugenRect =
+        box(rect,x.toLong(),y.toLong(),right,xScale,yScale)
+    /** Keep translated axes wide until each complete vertex is saturated. */
+    internal fun box(rect: MugenRect, x: Long, y: Long, right: Boolean,
             xScale: Int=Fixed.ONE, yScale: Int=Fixed.ONE): MugenRect {
         val face=if(right)1 else -1
-        fun horizontal(v: Int)=x.toLong()+v.toLong()*xScale*320/width*face
-        fun vertical(v: Int)=y.toLong()+v.toLong()*yScale*320/width
+        fun horizontal(v: Int)=x+v.toLong()*xScale*320/width*face
+        fun vertical(v: Int)=y+v.toLong()*yScale*320/width
         val a=horizontal(rect.x1);val b=horizontal(rect.x2)
         val c=vertical(rect.y1);val d=vertical(rect.y2)
         return MugenRect(bounded(minOf(a,b)),bounded(minOf(c,d)),bounded(maxOf(a,b)),bounded(maxOf(c,d)))

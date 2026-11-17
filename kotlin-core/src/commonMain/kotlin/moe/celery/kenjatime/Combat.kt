@@ -89,7 +89,8 @@ data class MugenConstants(
     val maxPower: Int = 3000,
     val defence: Int = 100,
     val attack: Int = 100,
-    val airFront: Int = front,val airBack: Int = back
+    val airFront: Int = front,val airBack: Int = back,
+    val drawOffsetX: Int = 0,val drawOffsetY: Int = 0
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -109,7 +110,8 @@ data class FighterDefinition(
     val maxPower: Int = 3000,
     val defence: Int = 100,
     val attack: Int = 100,
-    val airFront: Int = groundFront,val airBack: Int = groundBack
+    val airFront: Int = groundFront,val airBack: Int = groundBack,
+    val drawOffsetX: Int = 0,val drawOffsetY: Int = 0
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -148,7 +150,7 @@ data class FighterDefinition(
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
                 if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack,
-                constants.airFront,constants.airBack
+                constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY
             )
         }
     }
@@ -184,7 +186,8 @@ object MugenCnsParser {
             defence = script.section("Data")?.int("defence",100)?.coerceIn(1,100000) ?: 100,
             attack = script.section("Data")?.int("attack",100)?.coerceIn(0,100000) ?: 100,
             airFront = size?.int("air.front",size.int("ground.front",15))?.coerceIn(0,200) ?: 15,
-            airBack = size?.int("air.back",size.int("ground.back",15))?.coerceIn(0,200) ?: 15
+            airBack = size?.int("air.back",size.int("ground.back",15))?.coerceIn(0,200) ?: 15,
+            drawOffsetX = point("draw.offset",0,0),drawOffsetY = point("draw.offset",1,0)
         )
     }
     private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
@@ -291,6 +294,12 @@ class FightingCharacter(
     internal var angleDrawEnabled = false
     internal var drawScaleX = 1.0
     internal var drawScaleY = 1.0
+    internal var drawOffsetX = 0
+    internal var drawOffsetY = 0
+    /** Own Size offsets follow facing; Offset controller axes stay world-aligned. */
+    internal val displayOffsetX: Long get() = definition.coordinates.fixedToWorld(definition.drawOffsetX).toLong()*
+        (if(facingRight)1 else -1)+drawOffsetX
+    internal val displayOffsetY: Long get() = definition.coordinates.fixedToWorld(definition.drawOffsetY).toLong()+drawOffsetY
     internal var spritePriority = 0
     internal var positionFrozen = false
     internal var playerPushOverride: Boolean? = null
@@ -514,10 +523,10 @@ class FightingCharacter(
     fun markHit(target: Int) { struck.add(target) }
     fun attackBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filter { it.attack }?.map { animationOwner.definition.let { d ->
-            d.coordinates.box(it.rect,posX,posY,facingRight,d.xScale,d.yScale) } } ?: emptyList()
+            d.coordinates.box(it.rect,posX.toLong()+displayOffsetX,posY.toLong()+displayOffsetY,facingRight,d.xScale,d.yScale) } } ?: emptyList()
     fun hurtBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filterNot { it.attack }?.map { animationOwner.definition.let { d ->
-            d.coordinates.box(it.rect,posX,posY,facingRight,d.xScale,d.yScale) } } ?: emptyList()
+            d.coordinates.box(it.rect,posX.toLong()+displayOffsetX,posY.toLong()+displayOffsetY,facingRight,d.xScale,d.yScale) } } ?: emptyList()
     private fun number(raw: String?, default: Int = 0): Int =
         raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(coordinates::toWorld) } ?: default
     private fun integer(raw: String?, default: Int = 0): Int =
@@ -542,6 +551,7 @@ class FightingCharacter(
             "playerpush", "width" -> CoreBodySpace.execute(this,c,errors)
             "sprpriority" -> CoreSpritePriority.execute(this,c,errors)
             "angleset", "angleadd", "anglemul", "angledraw" -> CoreAngleDrawing.execute(this,c,errors)
+            "offset" -> CoreDisplayOffset.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -935,6 +945,7 @@ class FightingCharacter(
         asserted.clear()
         positionFrozen=false
         angleDrawEnabled=false;drawScaleX=1.0;drawScaleY=1.0
+        drawOffsetX=0;drawOffsetY=0
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0

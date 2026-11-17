@@ -1,6 +1,64 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current body-space continuation — November 17, 2026
+## Current display-offset continuation — November 17, 2026
+
+Continues published main source `8c88f34`. CNS now executes Offset with optional
+x/y expressions. Each supplied axis replaces its current value; omitted axes
+retain earlier assertions in the same tick. Empty controllers are no-ops.
+Both transient axes reset every tick, including hitpause. Normal controllers
+stay gated in hitpause, while ignorehitpause=1 can reassert translation. Standard
+controller persistence and state-entry rearming apply. Invalid requests reject
+both axes together, preserving an earlier valid assertion. Inputs are bounded
+to -100000..100000 local pixels and converted once through the active state
+bank into canonical fixed-point coordinates, preserving fractional inputs.
+
+The importer also reads own Size.draw.offset, separately from borrowed state
+and animation resources. Its X component mirrors with facing; Offset controller
+X remains world-aligned. Y components add directly. The combined translation
+shifts sprite origins and body/helper AIR attack/hurt boxes without changing
+logical position, velocity, body widths, binding axes or camera tracking.
+Rotation, drawing scale and AIR frame offsets remain separate sprite transforms;
+they do not rotate/scale the display translation or collision rectangles.
+
+P1/P2 Explods now spawn and bind at the translated display origin. Unbound
+effects retain their captured position, and absolute effects/projectiles keep
+their independent origins. Collision conversion retains a Long origin until
+each complete vertex is saturated, avoiding early-clamp errors near Int limits.
+Snapshots expose drawOffsetX256/Y256 and combined displayOffsetX256/Y256.
+Render plans include projected axisX/Y and displayOffsetX256/Y256 for inspection;
+the Canvas host continues painting Kotlin's completed commands directly.
+
+Validation:
+
+- 929 JVM and 924 compiled-Wasm tests pass, including 28 new cases for authored
+  defaults, sparse axes, invalid/atomic requests, fractional units, both facings,
+  expiration, pause, persistence, borrowed animations, helper ownership, actual
+  attack/hurt contacts, logical bindings, attached/unbound effects, wide origins
+  and immutable presentation reads.
+- Exported Wasm checks 36 coordinate/facing/angle/offset combinations, attached
+  Explods, 20 translated body/helper/projectile contact scenarios, hitpause and
+  independent own metadata through a borrowed-animation/SelfState sequence.
+- All 16 adapter/import/download checks and production browser checks pass.
+  Imported public-KFM-art fixtures verify actual Canvas translation at localcoord
+  320/640, both facings, rotation, signed fractional offsets and expiration,
+  alongside translated effect anchors and all previous browser checks.
+- Two KFM 600-tick runs retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, the preceding physical checksum and matching power
+  traces ending at 485/415.
+
+Measured controller-name coverage is now 67 of 97 in the live legacy JavaScript
+registry (69.1%), up from 66 of 97 (68.0%); 30 names remain outside the Kotlin
+contract. The Elecbyte 1.1 reference overlap is 66 of 89 (74.2%). Name counts do
+not measure complete parameters, expressions, physics, effects, AI, teams or
+native behavior parity. Overall rewrite completion remains unquantified.
+
+Semantics follow the [Elecbyte Offset reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#offset)
+and the existing JavaScript/native-source translation conventions. Exact native
+collision/attachment phases, WinMUGEN hitpause exceptions, offset-dependent
+size-box/Clsn2 push eligibility and physical-phone performance remain unverified.
+Main CI verifies browser/APK Wasm identity and anonymous permanent downloads.
+
+## Body-space continuation — November 17, 2026
 
 Continues published main source `d9e5d46`. CNS now executes PlayerPush and Width.
 PlayerPush requires a numeric value; zero disables body pushing and nonzero

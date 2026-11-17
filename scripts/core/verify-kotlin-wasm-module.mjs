@@ -3358,6 +3358,201 @@ try {
 } finally { api.ktCoreRelease(borrowedWidth); }
 console.log("Native Wasm PlayerPush/Width / 32 localcoord-facing-width-push combinations / 8 edge-inset sequences / hitpause retention / helper opt-in and anchors / borrowed banks / active-tick expiry / pure reads: OK (synthetic)");
 
+const displayProfiles=[{x:0,y:0},{x:7.25,y:-3.5},{x:-12.5,y:6.25}];
+for(const width of [320,640,1008])for(const face of [false,true])
+for(const angle of [0,90])for(const offset of displayProfiles) {
+  const factor=width/320,sign=face?1:-1;
+  const offsetAir=`${air}\n[Begin Action 100]\nClsn2Default:1\nClsn2[0]=-10,-40,10,0\n0,0,8,-4,-1,HV`;
+  const display=api.ktCoreCreateWithDefinitions("display translation","opponent",offsetAir,air,
+    `[Size]\ndraw.offset=${20*factor},${-10*factor}\nxscale=1.5\nyscale=.5\n`+
+    `${motionIdle.replace("anim=0","anim=100")}
+[State 0, display translation]
+type=Offset
+trigger1=Time<2
+x=ifelse(1,${offset.x*factor},0)
+y=${offset.y*factor}
+[State 0, sparse replacement]
+type=Offset
+trigger1=Time=1
+y=${2.25*factor}
+[State 0, empty assertion]
+type=Offset
+trigger1=1
+[State 0, rotate independently]
+type=AngleDraw
+trigger1=1
+value=${angle}
+scale=2,-.5
+[State 0, attached display effect]
+type=Explod
+trigger1=Time=0
+id=991
+anim=0
+postype=p1
+pos=${2*factor},${3*factor}
+bindtime=-1
+removetime=-1`,motionIdle,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(display,0,0,100*256,0);api.ktCoreDebugSetFacing(display,0,face);
+    for(let tick=0;tick<3;tick++) {
+      api.ktCoreAdvance(display,0,"",0,"");const actor=JSON.parse(api.ktCoreSnapshot(display,0));
+      const dx=tick<2?offset.x:0,dy=tick===0?offset.y:tick===1?2.25:0;
+      assert.equal(actor.drawOffsetX256,dx*256||0);assert.equal(actor.drawOffsetY256,dy*256||0);
+      assert.equal(actor.displayOffsetX256,(20*sign+dx)*256);assert.equal(actor.displayOffsetY256,(-10+dy)*256);
+      assert.equal(actor.x256,0);assert.equal(actor.y256,0);assert.equal(actor.vx256,0);assert.equal(actor.vy256,0);
+      assert.equal(actor.life,1000);assert.equal(actor.power,0);assert.equal(actor.stateTime,tick+1);
+      const plan=JSON.parse(api.ktCoreRenderPlan(display,0)),d=plan.draws.find(d=>d.kind==="fighter"&&d.side===0);
+      const radians=angle*sign*Math.PI/180,c=Math.cos(radians),s=Math.sin(radians);
+      const sx=320/width*3,sy=320/width*(-.25),fx=8*sx*sign,fy=-4*sy;
+      const x=480+(20*sign+dx+c*fx+s*fy)*1.4,y=435+(-10+dy-s*fx+c*fy)*1.1;
+      assert.ok(Math.abs(d.x-x)<1e-8);assert.ok(Math.abs(d.y-y)<1e-8);
+      assert.equal(d.axisX,480);assert.equal(d.axisY,435);assert.equal(d.displayOffsetX256,actor.displayOffsetX256);
+      const effect=JSON.parse(api.ktCoreExplods(display)).find(e=>e.id===991);
+      assert.equal(effect.x256,actor.displayOffsetX256+2*sign*256);assert.equal(effect.y256,actor.displayOffsetY256+3*256);
+      assert.equal(plan.draws.find(d=>d.kind==="explod").displayOffsetX256,0);
+      const checksum=api.ktCoreChecksum(display);for(let i=0;i<3;i++)api.ktCoreRenderPlan(display,12);
+      assert.equal(api.ktCoreChecksum(display),checksum);assert.deepEqual(JSON.parse(api.ktCoreSnapshot(display,0)),actor);
+    }
+    assert.equal(api.ktCoreIssues(display),"");
+  } finally { api.ktCoreRelease(display); }
+}
+function translatedContactAir(width) {
+  const f=width/320;
+  return `[Begin Action 0]\nClsn2Default:1\nClsn2[0]=${-10*f},${-40*f},${10*f},0\n0,0,0,0,-1\n`+
+    `[Begin Action 200]\nClsn1Default:1\nClsn1[0]=0,${-40*f},${20*f},0\n0,0,0,0,-1`;
+}
+for(const kind of ["body","size","helper","victim","projectile"])for(const width of [320,640])for(const face of [false,true]) {
+  const f=width/320,sign=face?1:-1;
+  const hit=`[State 200, hit]\ntype=HitDef\ntrigger1=Time=0\ndamage=10\nground.velocity=0,0\ngetpower=0,0\ngivepower=0,0`;
+  const translated=`[State 200, translate]\ntype=Offset\ntrigger1=1\nx=${20*f*sign}`;
+  const source=kind==="projectile" ? `${motionIdle}
+[State 0, owner display only]
+type=Offset
+trigger1=1
+x=${100*f*sign}
+[State 0, shot]
+type=Projectile
+trigger1=Time=0
+projanim=200
+damage=10
+ground.velocity=0,0
+velocity=0,0
+getpower=0,0
+givepower=0,0` : `${kind==="size"?`[Size]\ndraw.offset=${20*f},0\n`:""}${motionIdle}`+
+    (kind==="helper"?`\n[State 0, independent root display]\ntype=Offset\ntrigger1=1\nx=${100*f*sign}\n`+
+      "[State 0, helper]\ntype=Helper\ntrigger1=Time=0\nstateno=200":"")+
+    `\n[Statedef 200]\ntype=S\nmovetype=A\nphysics=N\nanim=200\n`+
+    (["body","helper"].includes(kind)?translated+"\n":"")+hit;
+  const victim=motionIdle+(["victim","projectile"].includes(kind)?
+    `\n[State 0, translated hurtbox]\ntype=Offset\ntrigger1=1\nx=${-20*sign}`:"");
+  const contact=api.ktCoreCreateWithDefinitions("translated attack","translated target",translatedContactAir(width),translatedContactAir(320),
+    source,victim,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(contact,0,0,30*sign*256,0);api.ktCoreDebugSetFacing(contact,0,face);
+    if(!["helper","projectile"].includes(kind))api.ktCoreDebugForceState(contact,0,200);
+    let count=0;for(let tick=0;tick<2;tick++) { api.ktCoreAdvance(contact,0,"",0,"");count+=JSON.parse(api.ktCoreContacts(contact)).length; }
+    const a=JSON.parse(api.ktCoreSnapshot(contact,0)),b=JSON.parse(api.ktCoreSnapshot(contact,1));
+    assert.equal(count,1,kind);assert.equal(b.life,990,kind);assert.equal(a.x256,0);assert.equal(b.x256,30*sign*256);
+    assert.equal(a.power,0);assert.equal(b.power,0);assert.equal(api.ktCoreIssues(contact),"");
+  } finally { api.ktCoreRelease(contact); }
+}
+for(const ignore of [0,1]) {
+  const pausedDisplay=api.ktCoreCreate("paused display","attacker",air,projectileFacingAir,
+    `[Size]\ndraw.offset=4,-3\n${motionIdle}
+[State 0, display before hit]
+type=Offset
+trigger1=1
+x=30
+y=10
+[Statedef 5000]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 5000, opted in display]
+type=Offset
+trigger1=1
+ignorehitpause=${ignore}
+x=15
+y=2`,`${motionIdle}
+[Statedef 200]
+type=S
+movetype=A
+physics=N
+anim=200
+[State 200, pause defender]
+type=HitDef
+trigger1=Time=0
+damage=0
+getpower=0,0
+givepower=0,0
+ground.velocity=0,0
+pausetime=0,2`);
+  try {
+    api.ktCoreSetup(pausedDisplay,0,0,20*256,0);api.ktCoreDebugSetFacing(pausedDisplay,1,true);
+    api.ktCoreDebugForceState(pausedDisplay,1,200);api.ktCoreAdvance(pausedDisplay,0,"",0,"");
+    assert.equal(JSON.parse(api.ktCoreSnapshot(pausedDisplay,0)).state,5000);
+    for(let tick=1;tick<=3;tick++) {
+      api.ktCoreAdvance(pausedDisplay,0,"",0,"");const actor=JSON.parse(api.ktCoreSnapshot(pausedDisplay,0));
+      const active=ignore===1||tick===3;
+      assert.equal(actor.drawOffsetX256,active?15*256:0);assert.equal(actor.drawOffsetY256,active?2*256:0);
+      assert.equal(actor.displayOffsetX256,(active?19:4)*256);assert.equal(actor.displayOffsetY256,(active?-1:-3)*256);
+      assert.equal(actor.x256,0);assert.equal(actor.y256,0);assert.equal(actor.stateTime,Math.max(0,tick-2));
+      assert.equal(actor.hitPauseThisTick,tick<=2);
+    }
+    assert.equal(api.ktCoreIssues(pausedDisplay),"");
+  } finally { api.ktCoreRelease(pausedDisplay); }
+}
+const displayBankAir=`${translatedContactAir(640)}\n[Begin Action 100]\nClsn2Default:1\nClsn2[0]=-10,-40,10,0\n0,0,8,-4,-1`;
+const borrowedDisplay=api.ktCoreCreateWithDefinitions("display bank","own display metadata",displayBankAir,translatedContactAir(320),
+  `[Size]\ndraw.offset=80,0\n${motionIdle}
+[Statedef 200]
+type=S
+physics=N
+anim=200
+[State 200, transfer]
+type=HitDef
+trigger1=Time=0
+damage=0
+p2stateno=700
+[Statedef 700]
+type=S
+movetype=H
+physics=N
+anim=0
+[State 700, actor display]
+type=Offset
+trigger1=Time=0
+x=var(0)
+y=10
+[State 700, bank animation]
+type=ChangeAnim2
+trigger1=Time=0
+value=100
+[State 700, return]
+type=SelfState
+trigger1=Time=1
+value=0`,`[Size]\ndraw.offset=4,-3\n${motionIdle}
+[State 0, own variable]
+type=VarSet
+trigger1=1
+v=0
+value=20`,"","","[Info]\nlocalcoord=640,480","");
+try {
+  api.ktCoreSetup(borrowedDisplay,-40*256,0,5*256,0);api.ktCoreDebugSetFacing(borrowedDisplay,1,true);
+  api.ktCoreDebugForceState(borrowedDisplay,0,200);api.ktCoreAdvance(borrowedDisplay,0,"",0,"");
+  api.ktCoreAdvance(borrowedDisplay,0,"",0,"");const bank=JSON.parse(api.ktCoreSnapshot(borrowedDisplay,1));
+  assert.equal(bank.stateOwner,1);assert.equal(bank.animationOwner,1);assert.equal(bank.drawOffsetX256,10*256);
+  assert.equal(bank.displayOffsetX256,14*256);assert.equal(bank.displayOffsetY256,2*256);
+  const d=JSON.parse(api.ktCoreRenderPlan(borrowedDisplay,0)).draws.find(d=>d.kind==="fighter"&&d.side===1);
+  assert.ok(Math.abs(d.x-512.2)<1e-8);assert.equal(d.y,435);
+  api.ktCoreAdvance(borrowedDisplay,0,"",0,"");const own=JSON.parse(api.ktCoreSnapshot(borrowedDisplay,1));
+  assert.equal(own.stateOwner,2);assert.equal(own.animationOwner,2);assert.equal(own.drawOffsetX256,0);
+  assert.equal(own.displayOffsetX256,4*256);assert.equal(own.displayOffsetY256,-3*256);
+  assert.equal(api.ktCoreIssues(borrowedDisplay),"");
+} finally { api.ktCoreRelease(borrowedDisplay); }
+console.log("Native Wasm Offset / 36 coordinate-facing-angle-offset combinations / attached Explods / 20 translated body-helper-projectile contacts / hitpause / independent metadata and borrowed animation banks / expiry / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S
