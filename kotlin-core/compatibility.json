@@ -18,6 +18,9 @@
     "trans",
     "palfx",
     "remappal",
+    "pause",
+    "superpause",
+    "modifyplayer",
     "allpalfx",
     "bgpalfx",
     "afterimage",
@@ -99,6 +102,7 @@
     "stopsnd"
   ],
   "knownIncomplete": [
+    "Pause and SuperPause schedule global freeze windows, buffer late commands and track entity move allowances. SuperPause supports darkening, S-prefixed AIR and SND, power, owner invulnerability and temporary target defence. Shared fightfx/common.snd, native phase parity and ModifyPlayer fields beyond pause allowances remain incomplete.",
     "RemapPal resolves indexed SFF/ACT palettes, wildcard and individual resets, palette family sharing and history snapshots. Initial palette selection, per-entity remappal parameters, common fightfx palettes and native timing parity remain incomplete.",
     "VictoryQuote resolves authored winner text at the end of the single-round flow. Multi-round matches, team quote selection and native victory screen timing remain incomplete. HitCount sets the signed manual count. Automatic combo counts remain incomplete.",
     "PlaySnd/SndPan/StopSnd resolve actor-owned named/automatic voices, low priority, volume/pitch/loops, captured mixed-bank pan, finite sample clocks, global stop and hit channel-zero cleanup in Kotlin; browser/Android adapter plays actual imported PCM/float SND WAVs with bounded decode/cache and stale-generation protection; common F banks, compressed WAV codecs, full native channel counts/stealing, mixer attenuation/pan/gain/round/pause phases, hardware latency/audio focus and physical-phone parity remain incomplete or unverified",
@@ -153,7 +157,7 @@
     "HitDef/Projectile capture fall.recover and fall.recovertime; a bounded actor-owned unpaused fall clock drives CanRecover and HitFall for authored recovery, with scalar mixed-bank units and fresh-contact reset; automatic recovery and native guard/pause/reset phases remain incomplete or unverified",
     "HitVelSet/HitFallSet/HitFallVel/HitFallDamage use captured reaction data for MoveType H actors, with sparse axes, authored fall velocities, explicit fall gating and one-shot pending fall damage; native facing/phase quirks, complete hit-data reset, automatic landing damage, automatic recovery and common-state bouncing remain incomplete or unverified",
     "HitDef/Projectile p1stateno follows successful unguarded contacts in its captured state bank; deterministic trade/KO precedence and first-valid-follow-up ordering have synthetic coverage, not native contact-phase certification",
-    "Explod supports active-state coordinate conversion, AIR frame blending and captured ownpal ownership; common F animations, viewport postypes, CNS palette modifiers/remaps/blend/rotation and advanced pause parameters are diagnosed as unsupported",
+    "Explod supports active-state coordinate conversion, AIR frame blending, captured ownpal ownership and pause/superpause move allowances. Common F animations, viewport postypes, CNS palette modifiers/remaps/blend/rotation and other advanced pause parameters remain unsupported.",
     "Pause/superpause, complete effects/video, full sound format/mixer parity and AI decisions",
     "Original character timing parity and performance on physical mobile hardware",
     "KFM native 147-case parity and 16-interaction reference still failing in existing JS baseline"

@@ -5,7 +5,8 @@ sealed class EntityRequest {
     data class Helper(
         val owner: FightingCharacter, val helperId: Int, val state: Int,
         val offsetX: Int, val offsetY: Int, val face: Int, val keyControl: Boolean,
-        val bindTime: Int,val ownPalette: Boolean=false
+        val bindTime: Int,val ownPalette: Boolean=false,
+        val pauseMoves: CorePauseMoves = CorePauseMoves()
     ) : EntityRequest()
     data class Projectile(
         val owner: FightingCharacter, val projectileId: Int, val animation: Int,
@@ -19,7 +20,8 @@ sealed class EntityRequest {
         val removeOnHit: Boolean = true,val hits: Int = 1,val missTime: Int = 0,
         val priority: Int = 1,val scaleX: Double = 1.0,val scaleY: Double = 1.0,
         val attackMultiplier: Double = hit.capturedAttackMultiplier ?: owner.attackMultiplier,
-        val spritePriority: Int = 3,val ownPalette: Boolean=false
+        val spritePriority: Int = 3,val ownPalette: Boolean=false,
+        val pauseMoves: CorePauseMoves = CorePauseMoves()
     ) : EntityRequest()
 }
 
@@ -55,7 +57,8 @@ class CoreProjectile(
     val heightTop: Int = -240*Fixed.ONE,val heightBottom: Int = Fixed.ONE,
     val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0,priority: Int = 1,
     /** Captured effective scale: projscale, optionally multiplied by own Size. */
-    val scaleX: Double = 1.0,val scaleY: Double = 1.0,val spritePriority: Int = 3,val ownPalette: Boolean=false
+    val scaleX: Double = 1.0,val scaleY: Double = 1.0,val spritePriority: Int = 3,val ownPalette: Boolean=false,
+    val pauseMoves: CorePauseMoves = CorePauseMoves()
 ) {
     internal val paletteEffects=if(ownPalette)owner.paletteEffects.copyRemaps() else owner.paletteEffects
     val hit=hit.copy(capturedAttackMultiplier=hit.capturedAttackMultiplier ?: owner.attackMultiplier)
@@ -149,6 +152,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.rootActor().commands else emptyList())
                 actor.parent = owner
                 actor.ownPalette=request.ownPalette
+                actor.pauseMoves = request.pauseMoves
                 actor.paletteEffects = if (request.ownPalette) owner.paletteEffects.copyRemaps() else owner.paletteEffects
                 actor.world = match
                 actor.posX = owner.posX + request.offsetX * if (owner.facingRight) 1 else -1
@@ -194,13 +198,14 @@ class CoreEntities(private val match: DeterministicFight) {
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,
                     facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
                     request.stageBound,request.heightTop,request.heightBottom,
-                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY,request.spritePriority,request.ownPalette))
+                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY,request.spritePriority,request.ownPalette,request.pauseMoves))
             }
         }
     }
     fun clearHelperInputs() {
         for(helper in helpers) {
             helper.actor.pendingAssertedInput=InputFrame()
+            helper.actor.pauseCommands.clear()
             helper.actor.input.clear()
         }
     }
@@ -210,8 +215,7 @@ class CoreEntities(private val match: DeterministicFight) {
             if (helper.actor.destroyed) continue
             val physical=if(!helper.keyControl)InputFrame() else if(helper.actor.rootActor() === match.p1)p1Input else p2Input
             helper.actor.roundState=match.p1.roundState
-            CoreAssertedInputs.sample(helper.actor,physical)
-            helper.actor.tick(errors)
+            match.pauses.tickActor(helper.actor, physical, true, errors)
             if (!helper.actor.destroyed) pendingRequests.addAll(helper.actor.flushEntityRequests())
         }
     }
@@ -226,7 +230,7 @@ class CoreEntities(private val match: DeterministicFight) {
             targetHurt.getOrPut(target) { target.hurtBoxes() }
         val current = helpers.toList()
         for (helper in current) {
-            if (helper.actor.destroyed) continue
+            if (helper.actor.destroyed || helper.actor.globalPauseThisTick) continue
             val enemy = helper.actor.opponent ?: match.p2
             val hit = helper.actor.activeHitDef
             if (hit != null && !helper.actor.hitPauseThisTick && helper.actor.hitPauseLeft == 0 && enemy.canReceive(hit) &&
@@ -244,7 +248,7 @@ class CoreEntities(private val match: DeterministicFight) {
         }
         val phases=mutableListOf<ProjectilePhase>()
         for (projectile in projectiles) {
-            if (!projectile.alive) continue
+            if (!projectile.alive || match.pauses.entityFrozen(projectile.pauseMoves)) continue
             val arena=match.arena
             if(projectile.hitPauseLeft == 0 && arena != null && projectile.outside(arena)) {
                 projectile.ticksLeft=0

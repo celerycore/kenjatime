@@ -280,11 +280,15 @@ class FightingCharacter(
     internal var ownPalette = true
     internal var paletteEffects = CorePaletteEffects()
     internal var afterImages: CoreAfterImages? = null
+    internal var pauseMoves = CorePauseMoves()
+    internal var globalPauseThisTick = false
+    internal val pauseCommands = mutableSetOf<String>()
     private val commandCache = mutableMapOf<String,Boolean>()
     fun commandActive(name: String): Boolean {
         val normalized = name.lowercase()
         return commandCache.getOrPut(normalized) {
-            commands.any { it.name.equals(name,true) && input.matches(it,facingRight) }
+            (!hitPauseThisTick && normalized in pauseCommands) ||
+                commands.any { it.name.equals(name,true) && input.matches(it,facingRight) }
         }
     }
     private val entityRequests = mutableListOf<EntityRequest>()
@@ -628,6 +632,7 @@ class FightingCharacter(
             "trans" -> CoreTransparency.execute(this,c,errors)
             "palfx", "allpalfx", "bgpalfx" -> world?.palettes?.execute(this,c,errors)
             "remappal" -> world?.paletteBanks?.execute(this, c, errors)
+            "pause", "superpause", "modifyplayer" -> world?.pauses?.execute(this, c, errors)
             "afterimage", "afterimagetime" -> CoreAfterImages.execute(this,c,errors)
             "displaytoclipboard", "appendtoclipboard", "clearclipboard" -> CoreClipboard.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
@@ -800,6 +805,12 @@ class FightingCharacter(
             "helper" -> {
                 val offset = (args["pos"] ?: "0,0").split(',')
                 val ownPalette=args["ownpal"]?.let { (CoreExpression.number(it,this,errors) ?: return false)!=0.0 } ?: false
+                val pauseMoves = try {
+                    CorePauseMoves.read(args, this, errors)
+                } catch (e: IllegalArgumentException) {
+                    errors.add("Invalid Helper: ${e.message}")
+                    return false
+                }
                 entityRequests.add(EntityRequest.Helper(
                     this,
                     integer(args["id"]),
@@ -808,7 +819,7 @@ class FightingCharacter(
                     number(offset.getOrNull(1)),
                     integer(args["facing"], 1),
                     integer(args["keyctrl"]) != 0,
-                    integer(args["bindtime"]),ownPalette
+                    integer(args["bindtime"]),ownPalette,pauseMoves
                 ))
             }
             "projectile" -> try {
@@ -922,7 +933,8 @@ class FightingCharacter(
                     multiplierX=multiplier.first,multiplierY=multiplier.second,
                     stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
                     removeOnHit=removeOnHit,hits=hits,missTime=missTime,priority=projectilePriority,
-                    scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority,ownPalette=ownPalette
+                    scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority,ownPalette=ownPalette,
+                    pauseMoves=CorePauseMoves.read(args, this, errors)
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")
@@ -1092,7 +1104,7 @@ class FightingCharacter(
         }
     }
     fun canReceive(hit: HitDefinition): Boolean {
-        if (life <= 0) return false
+        if (life <= 0 || world?.pauses?.unhittable(this) == true) return false
         if (!hitFilters.allows(hit,world?.issues ?: evaluationIssues))return false
         try {
             if(hitOverrides.matching(hit) != null &&
@@ -1181,6 +1193,7 @@ data class CorePresentationEvent(
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     internal val environment=CoreEnvironmentEffects()
     internal val palettes=CoreFightPalettes(this)
+    internal val pauses = CorePauses()
     internal val paletteBanks = CoreFightPaletteBanks(this)
     internal val reversals=CoreReversals(this)
     internal val sounds=CoreSounds(this)
@@ -1247,19 +1260,17 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         p1.roundState = sequence?.roundState() ?: 2
         p2.roundState = sequence?.roundState() ?: 2
         if (sequence?.finished == true) { frame++; return }
-        environment.beginTick()
+        if (!pauses.backgroundFrozen) environment.beginTick()
         palettes.beginTick()
         val allowCombat = sequence == null || sequence.active
-        CoreAssertedInputs.sample(p1,a,allowCombat)
-        CoreAssertedInputs.sample(p2,b,allowCombat)
-        val p1Frozen = p1.hitPauseLeft > 0
-        val p2Frozen = p2.hitPauseLeft > 0
-        p1.tick(issues)
-        p2.tick(issues)
+        val p1Frozen = p1.hitPauseLeft > 0 || pauses.frozen(p1)
+        val p2Frozen = p2.hitPauseLeft > 0 || pauses.frozen(p2)
+        pauses.tickActor(p1, a, allowCombat, issues)
+        pauses.tickActor(p2, b, allowCombat, issues)
         if (allowCombat) entities.advanceHelpers(issues,a,b) else entities.clearHelperInputs()
         arena?.step(p1,p2,p1Frozen,p2Frozen,if(allowCombat)entities.helpers else emptyList())
         CoreBindings.resolve(p1,p2,if(allowCombat) entities.helpers else emptyList())
-        camera?.update(p1,p2,if(allowCombat)entities.helpers else emptyList())
+        if (!pauses.active) camera?.update(p1,p2,if(allowCombat)entities.helpers else emptyList())
         CoreGuardDistance.beginPhase(this,allowCombat)
         p1.beginContactPhase();p2.beginContactPhase()
         for(helper in entities.helpers)helper.actor.beginContactPhase()
@@ -1303,11 +1314,13 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         finishContactPhase()
         val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
-        if(allowCombat)for(shot in entities.projectiles)CoreGuardDistance.projectile(this,shot)
+        if(allowCombat)for(shot in entities.projectiles)if(!pauses.entityFrozen(shot.pauseMoves))
+            CoreGuardDistance.projectile(this,shot)
         effects.advance()
         CoreAfterImages.finishTick(this)
         sounds.finishTick()
-        sequence?.step(p1,p2)
+        if (!pauses.active) sequence?.step(p1,p2)
+        pauses.finishTick()
         frame++
     }
     private fun connects(attacker: FightingCharacter, defender: FightingCharacter): Boolean {

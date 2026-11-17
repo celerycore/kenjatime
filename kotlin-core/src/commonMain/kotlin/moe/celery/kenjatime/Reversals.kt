@@ -12,11 +12,13 @@ internal class CoreReversals(private val fight: DeterministicFight) {
     val contacts=mutableListOf<CoreReversalContact>()
     private fun actors()=listOf(fight.p1,fight.p2)+fight.entities.helpers.map {it.actor}
     private fun firstSide(actor: FightingCharacter)=actor===fight.p1 || actor.opponent===fight.p2
-    private fun ready(actor: FightingCharacter)=!actor.destroyed && actor.life>0 && !actor.hitPauseThisTick && actor.hitPauseLeft==0
+    private fun ready(actor: FightingCharacter)=!actor.destroyed && actor.life>0 &&
+        !actor.hitPauseThisTick && !actor.globalPauseThisTick && actor.hitPauseLeft==0
     private fun eligible(reverser: FightingCharacter,attacker: FightingCharacter): Boolean {
         val reversal=reverser.activeReversal ?: return false
         val hit=attacker.activeHitDef ?: return false
-        if(!ready(reverser) || !ready(attacker) || !reverser.canReverse(attacker.id) || !attacker.canHit(reverser.id))return false
+        if(!ready(reverser) || !ready(attacker) || fight.pauses.unhittable(attacker) ||
+            !reverser.canReverse(attacker.id) || !attacker.canHit(reverser.id))return false
         val attr=try {CoreHitAttribute.parse(hit.attr)} catch(e: IllegalArgumentException) {
             fight.issues.add("Invalid reversed attack attribute: ${e.message}");return false
         }

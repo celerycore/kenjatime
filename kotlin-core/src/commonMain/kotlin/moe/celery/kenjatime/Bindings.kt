@@ -16,7 +16,7 @@ object CoreBindings {
         val active = actors.toSet()
         val visited = mutableSetOf<FightingCharacter>()
         fun visit(actor: FightingCharacter) {
-            if (actor !in active || !visited.add(actor) || actor.destroyed) return
+            if (actor !in active || !visited.add(actor) || actor.destroyed || actor.globalPauseThisTick) return
             val binding = actor.binding ?: return
             val anchor = binding.anchor
             if (anchor.destroyed) { actor.releaseBinding(); return }

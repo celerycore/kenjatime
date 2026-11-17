@@ -67,7 +67,7 @@ internal class CoreAfterImages(val config: CoreAfterImageConfig) {
             for(actor in listOf(fight.p1,fight.p2)+fight.entities.helpers.map {it.actor}) {
                 val trail=actor.afterImages ?: continue
                 if(actor.destroyed || !trail.active)actor.afterImages=null
-                else trail.capture(actor,fight.frame+1)
+                else if (!actor.globalPauseThisTick) trail.capture(actor,fight.frame+1)
             }
         }
         fun execute(actor: FightingCharacter,controller: StateController,errors: MutableSet<String>) {

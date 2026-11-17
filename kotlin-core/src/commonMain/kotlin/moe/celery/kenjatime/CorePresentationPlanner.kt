@@ -57,6 +57,7 @@ object CorePresentationPlanner {
             .append(",\"cameraY\":").append(camera?.y ?: 0.0)
             .append(",\"stageOffsetY\":").append(stageOffsetY)
             .append(",\"environment\":").append(fight.environment.json())
+            .append(",\"pause\":").append(fight.pauses.json())
             .append(",\"paletteColors\":").append(fight.palettes.colors())
             .append(",\"helpers\":").append(fight.entities.helpers.size)
             .append(",\"projectiles\":").append(fight.entities.projectiles.size)
@@ -69,7 +70,7 @@ object CorePresentationPlanner {
                  facingRight: Boolean, action: AirAnimationPlayer?,
                  definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null,
                  pose: CoreActorPose?=actor?.let {CoreActorPose.capture(it,fight.frame)},trail: CoreAfterImageDraw?=null,ownerId: Int=0) {
-            if(fight.environment.color?.under == false && effect?.config?.onTop != true)return
+            if(fight.environment.color?.under == false && effect?.config?.onTop != true && kind != "superpause")return
             val frame = if(pose!=null)pose.frame else action?.frame
             val blend=trail?.blend ?: actor?.drawBlend ?: frame?.blend ?: SpriteBlend.NORMAL
             val face = if(facingRight) 1 else -1
@@ -145,9 +146,15 @@ object CorePresentationPlanner {
                     json.append(",\"remapPalette\":").append(it.json())
                 }
             }
+            val paletteLayers = when {
+                trail != null -> trail.layers
+                kind == "superpause" -> listOfNotNull(fight.palettes.all.layer())
+                else -> fight.palettes.layers(actor?.paletteEffects ?: projectile?.paletteEffects
+                    ?: effect?.paletteEffects ?: fight.p1.paletteEffects)
+            }
             json
                 .append(",\"blend\":").append(blend.json())
-                .append(",\"palFX\":").append((trail?.layers ?: fight.palettes.layers(actor?.paletteEffects ?: projectile?.paletteEffects ?: effect?.paletteEffects ?: fight.p1.paletteEffects))
+                .append(",\"palFX\":").append(paletteLayers
                     .joinToString(prefix="[",postfix="]",separator=",") {it.json()})
                 .append("},")
         }
@@ -174,6 +181,13 @@ object CorePresentationPlanner {
         for(effect in fight.effects.all)enqueue(effect.drawPriority) {
             draw(if(effect.owner.opponent === fight.p2)0 else 1,"explod",effect.x,effect.y,
                 effect.facingRight,effect.animation,effect.owner.definition,0,effect,priority=effect.drawPriority)
+        }
+        fight.pauses.flash?.let { flash ->
+            val priority = Int.MAX_VALUE.toLong() + 2
+            enqueue(priority) {
+                draw(if (flash.owner.rootActor() === fight.p1) 0 else 1, "superpause",
+                    flash.x, flash.y, flash.facingRight, flash.animation, flash.owner.definition, 0, priority = priority)
+            }
         }
         planned.sortWith(compareBy<PlannedDraw>{it.priority}.thenBy{it.order})
         for(item in planned)item.append()

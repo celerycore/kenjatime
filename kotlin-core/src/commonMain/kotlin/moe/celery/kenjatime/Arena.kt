@@ -26,7 +26,7 @@ data class ArenaRules(
         if(!frozen2) individual(p2)
         for(helper in helpers) {
             val p=helper.actor
-            if(!p.destroyed && !p.hitPauseThisTick && p.binding == null && p.screenBoundEnabled)clampHorizontal(p)
+            if(!p.destroyed && !p.hitPauseThisTick && !p.globalPauseThisTick && p.binding == null && p.screenBoundEnabled)clampHorizontal(p)
         }
         if(pushPlayers) {
             val pushers=(listOf(p1,p2)+helpers.map { it.actor }).filter {
@@ -40,8 +40,8 @@ data class ArenaRules(
             }
         }
         if(autoFaceIdle) {
-            if(p1.binding == null && p1.control && p1.stateType=="S")p1.facingRight=p1.posX<=p2.posX
-            if(p2.binding == null && p2.control && p2.stateType=="S")p2.facingRight=p2.posX<=p1.posX
+            if(!p1.globalPauseThisTick && p1.binding == null && p1.control && p1.stateType=="S")p1.facingRight=p1.posX<=p2.posX
+            if(!p2.globalPauseThisTick && p2.binding == null && p2.control && p2.stateType=="S")p2.facingRight=p2.posX<=p1.posX
         }
     }
     private fun individual(p:FightingCharacter) {
@@ -78,15 +78,15 @@ data class ArenaRules(
         if(abs(diff)>=minDistance)return
         val penetration=minDistance-abs(diff)
         val limits1=horizontalLimits(p1);val limits2=horizontalLimits(p2)
-        val room1=if(p1.positionFrozen)0L else (if(forward>0)p1.posX.toLong()-limits1.first
+        val room1=if(p1.positionFrozen || p1.globalPauseThisTick)0L else (if(forward>0)p1.posX.toLong()-limits1.first
             else limits1.second.toLong()-p1.posX).coerceAtLeast(0)
-        val room2=if(p2.positionFrozen)0L else (if(forward>0)limits2.second.toLong()-p2.posX
+        val room2=if(p2.positionFrozen || p2.globalPauseThisTick)0L else (if(forward>0)limits2.second.toLong()-p2.posX
             else p2.posX.toLong()-limits2.first).coerceAtLeast(0)
         var travel1=minOf(penetration/2,room1)
         val travel2=minOf(penetration-travel1,room2)
         // Give residual travel to the first actor when the second has less edge room.
         travel1=minOf(penetration-travel2,room1)
-        p1.posX=(p1.posX.toLong()-forward*travel1).coerceIn(limits1.first.toLong(),limits1.second.toLong()).toInt()
-        p2.posX=(p2.posX.toLong()+forward*travel2).coerceIn(limits2.first.toLong(),limits2.second.toLong()).toInt()
+        if (!p1.globalPauseThisTick) p1.posX=(p1.posX.toLong()-forward*travel1).coerceIn(limits1.first.toLong(),limits1.second.toLong()).toInt()
+        if (!p2.globalPauseThisTick) p2.posX=(p2.posX.toLong()+forward*travel2).coerceIn(limits2.first.toLong(),limits2.second.toLong()).toInt()
     }
 }

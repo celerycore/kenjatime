@@ -10,7 +10,8 @@ data class ExplodConfig(
     val facing: Int = 1, val verticalFacing: Int = 1,
     val scaleX: Double = 1.0, val scaleY: Double = 1.0,
     val priority: Int = 0, val onTop: Boolean = false,
-    val removeOnHit: Boolean = false, val ignoreHitPause: Boolean = true,val ownPalette: Boolean=false
+    val removeOnHit: Boolean = false, val ignoreHitPause: Boolean = true,val ownPalette: Boolean=false,
+    val pauseMoves: CorePauseMoves = CorePauseMoves()
 )
 
 /** Explods are visual entities. They never participate in Clsn contacts. */
@@ -108,7 +109,8 @@ class CoreExplods(private val fight: DeterministicFight) {
             onTop=integer("ontop",if(base.onTop)1 else 0) != 0,
             removeOnHit=integer("removeongethit",if(base.removeOnHit)1 else 0) != 0,
             ignoreHitPause=integer("ignorehitpause",if(base.ignoreHitPause)1 else 0) != 0,
-            ownPalette=args["ownpal"]?.let {number(it)!=0.0} ?: base.ownPalette)
+            ownPalette=args["ownpal"]?.let {number(it)!=0.0} ?: base.ownPalette,
+            pauseMoves=CorePauseMoves.read(args, actor, fight.issues, base.pauseMoves))
     }
     fun execute(actor: FightingCharacter, controller: StateController, source: FightingCharacter) {
         try {
@@ -122,7 +124,7 @@ class CoreExplods(private val fight: DeterministicFight) {
                 "removeexplod" -> common
                 "explodbindtime" -> common+setOf("time","value")
                 else -> common+setOf("anim","postype","pos","vel","velocity","accel","bindtime","removetime",
-                    "facing","vfacing","scale","sprpriority","ontop","removeongethit")+if(type=="explod")setOf("ownpal") else emptySet()
+                    "facing","vfacing","scale","sprpriority","ontop","removeongethit","pausemovetime","supermovetime")+if(type=="explod")setOf("ownpal") else emptySet()
             }
             require(args.keys.all { it in allowed }) { "Unsupported Explod parameter: ${args.keys.first { it !in allowed }}" }
             fun integer(raw: String) = CoreExpression.number(raw,actor,fight.issues)?.toInt()
@@ -173,6 +175,7 @@ class CoreExplods(private val fight: DeterministicFight) {
             val e=iterator.next()
             val c=e.config
             if(c.removeTime == 0) { iterator.remove(); continue }
+            if (fight.pauses.entityFrozen(c.pauseMoves)) continue
             val frozen=e.owner.hitPauseThisTick && !c.ignoreHitPause && !e.owner.destroyed
             val born=e.bornAt == fight.frame
             var anchor=e.anchor

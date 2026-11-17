@@ -81,6 +81,8 @@ object CoreExpression {
                 "animelem" -> f.animation?.index?.plus(1)?.toDouble() ?: 0.0
                 "animtime" -> f.animation?.remaining?.toDouble() ?: 0.0
                 "roundstate" -> f.roundState.toDouble()
+                "pausetime" -> (f.world?.pauses?.remaining ?: 0).toDouble()
+                "gametime" -> (f.world?.frame ?: 0L).toDouble()
                 "win", "lose" -> {
                     val fight = f.world
                     val winner = fight?.roundFlow?.winner ?: -1

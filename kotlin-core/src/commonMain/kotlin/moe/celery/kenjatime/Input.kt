@@ -76,16 +76,27 @@ object MugenCommandParser {
 /** Newest frame at index zero; this buffer belongs to exactly one fighter. */
 class InputBuffer(private val capacity: Int = 360) {
     private val history = ArrayList<InputFrame>()
+    private var usableSamples = 0
     init { require(capacity in 1..360) }
-    fun clear() = history.clear()
+    fun clear() {
+        history.clear()
+        usableSamples = 0
+    }
     fun latest(): InputFrame? = history.firstOrNull()
+    /** Preserve held-input edges while excluding paused samples from motion searches. */
+    internal fun discardMovesKeepLastSample() {
+        val previous = latest()
+        clear()
+        if (previous != null) history.add(previous)
+    }
     fun update(frame: InputFrame) {
         history.add(0, frame)
+        usableSamples = (usableSamples + 1).coerceAtMost(capacity)
         if (history.size > capacity) history.removeAt(history.lastIndex)
     }
     fun matches(command: MugenCommand, isFacingRight: Boolean): Boolean {
         if (command.steps.isEmpty() || history.isEmpty()) return false
-        val limit = minOf(history.size, command.timeBuffer.coerceAtLeast(1))
+        val limit = minOf(usableSamples, command.timeBuffer.coerceAtLeast(1))
         var cursor = 0
         var newerStep: CommandStep? = null
         for (step in command.steps.asReversed()) {

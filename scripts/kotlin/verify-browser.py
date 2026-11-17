@@ -682,6 +682,46 @@ try:
         result["paletteRemapSffPixelsAndSharedOwnership"] = "passed"
         remap.close()
 
+        paused = browser.new_page(viewport={"width": 1000, "height": 780})
+        pause_errors = []
+        paused.on("pageerror", lambda error: pause_errors.append(str(error)))
+        paused.goto(base, wait_until="domcontentloaded", timeout=30000)
+        paused.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)
+        paused.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-superpause.zip"))
+        paused.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0", timeout=45000)
+        installed = paused.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value"
+        )
+        for select in ["#p1-select", "#p2-select"]:
+            paused.locator(select).select_option(value=installed)
+        paused.locator("#cpu").uncheck()
+        paused.locator("#start").click()
+        frozen = paused.wait_for_function("""() => {
+          const qa = window.__kenjatimeKotlinQA, plan = qa?.paintedRenderPlan;
+          if (!plan || plan.frame < 4 || !plan.pause?.darken || qa.lastSpritePaintOrder?.frame !== plan.frame) return false;
+          const flash = plan.draws.find(d => d.kind === 'superpause');
+          if (flash?.action !== 772 || !qa.lastSpritePaintOrder.draws.some(d => d.kind === 'superpause')) return false;
+          const canvas = document.querySelector('#arena');
+          return {
+            positions: plan.draws.filter(d => d.kind === 'fighter').map(d => d.x),
+            pixel: [...canvas.getContext('2d').getImageData(10, 100, 1, 1).data],
+          };
+        }""", timeout=15000).json_value()
+        assert all(abs(a-b) <= 1 for a, b in zip(frozen["pixel"], [7, 16, 26, 255])), frozen
+        resumed = paused.wait_for_function("""() => {
+          const plan = window.__kenjatimeKotlinQA?.paintedRenderPlan;
+          if (!plan || plan.frame < 67 || plan.pause?.darken || plan.draws.some(d => d.kind === 'superpause')) return false;
+          const canvas = document.querySelector('#arena');
+          return {
+            positions: plan.draws.filter(d => d.kind === 'fighter').map(d => d.x),
+            pixel: [...canvas.getContext('2d').getImageData(10, 100, 1, 1).data],
+          };
+        }""", timeout=15000).json_value()
+        assert resumed["pixel"] == [16, 35, 56, 255] and resumed["positions"] != frozen["positions"], resumed
+        assert not pause_errors, pause_errors
+        result["superPauseDarkensAndRendersAuthoredFlash"] = "passed"
+        paused.close()
+
         trails=browser.new_page(viewport={"width":1000,"height":780})
         trail_errors=[]
         trails.on("pageerror",lambda error:trail_errors.append(str(error)))

@@ -1,6 +1,41 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current palette remapping continuation — November 18, 2026
+## Current global pause continuation — November 18, 2026
+
+Continues published main source `4757147`. Pause and SuperPause commit
+at the tick boundary. SuperPause suspends the normal pause clock, and a
+Pause requested during SuperPause becomes active after it expires. The
+owner's movetime and the other entities' move allowances count from the
+start of their respective pause. ModifyPlayer supports pausemovetime
+and supermovetime. Helper, Projectile and Explod accept both allowances,
+and ModifyExplod can update them.
+
+Frozen actors retain their state, animation, hitpause and binding clocks.
+Frozen projectiles and effects also hold their own clocks. Camera and round
+timers hold throughout the pause. The pausebg option controls environment
+and global palette clocks, while each local palette family advances if
+an entity sharing it remains active. Frozen actors can collect commands
+in the endcmdbuftime window for their first actionable tick.
+
+SuperPause darkens the arena and can play an S-prefixed AIR action or
+SND sample. Kotlin captures the flash position in world coordinates and
+the browser paints it above the darkened arena. SuperPause also supports
+power changes, owner invulnerability and temporary target defence. A
+zero p2defmul uses the engine fallback of 1.5. The native mugen.cfg
+setting and shared fightfx and common sound banks remain open.
+
+Verification passed on 1,317 JVM, 1,312 Wasm and 33 adapter tests.
+The Wasm checks exercise pause preemption, movement allowances, an
+authored flash and sound, and power on both sides. Chromium verifies
+darkened pixels, the painted flash and return to normal motion.
+Both 600-tick KFM replays retain the previous combat checksum.
+
+Controller-name coverage reaches 94 of 97 (96.9%), up from 91 of 97 (93.8%).
+MakeDust, GameMakeAnim and ForceFeedback remain (3.1%). The Elecbyte 1.1
+overlap is 86 of 89 (96.6%). Native tick phase parity, additional ModifyPlayer
+parameters, and broader engine compatibility remain separate work.
+
+## Previous palette remapping continuation — November 18, 2026
 
 Continues published main source `563af7c`. RemapPal resolves indexed sprite
 palettes in Kotlin from SFF and ACT metadata. Source and destination IDs

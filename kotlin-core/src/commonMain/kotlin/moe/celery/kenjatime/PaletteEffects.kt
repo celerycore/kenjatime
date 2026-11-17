@@ -35,10 +35,13 @@ internal class CorePaletteEffects {
 internal class CoreFightPalettes(private val fight: DeterministicFight) {
     val all=CorePaletteEffects();val background=CorePaletteEffects()
     fun beginTick() {
-        val groups=linkedSetOf(all,background,fight.p1.paletteEffects,fight.p2.paletteEffects)
-        for(h in fight.entities.helpers)groups.add(h.actor.paletteEffects)
-        for(p in fight.entities.projectiles)groups.add(p.paletteEffects)
-        for(e in fight.effects.all)groups.add(e.paletteEffects)
+        val groups=linkedSetOf<CorePaletteEffects>()
+        val pauses = fight.pauses
+        if (!pauses.backgroundFrozen) groups.addAll(listOf(all, background))
+        for (actor in listOf(fight.p1, fight.p2)) if (!pauses.frozen(actor)) groups.add(actor.paletteEffects)
+        for(h in fight.entities.helpers) if (!pauses.frozen(h.actor)) groups.add(h.actor.paletteEffects)
+        for(p in fight.entities.projectiles) if (!pauses.entityFrozen(p.pauseMoves)) groups.add(p.paletteEffects)
+        for(e in fight.effects.all) if (!pauses.entityFrozen(e.config.pauseMoves)) groups.add(e.paletteEffects)
         for(group in groups)group.beginTick()
     }
     fun layers(group: CorePaletteEffects): List<CorePaletteLayer> = listOfNotNull(group.layer(),all.layer())

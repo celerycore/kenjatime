@@ -735,6 +735,27 @@ anim = 733
 `);
 writeFileSync('test-output/kotlin-kfm-remappal.zip', zipSync(remapFiles));
 
+const pauseFiles = Object.fromEntries(raw);
+pauseFiles['kfm/kfm.air'] = encoder.encode(decoder.decode(pauseFiles['kfm/kfm.air']) + `
+[Begin Action 772]
+0,0,0,-280,-1
+`);
+pauseFiles['kfm/kfm.cns'] = encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=0
+velset=1,0
+[State 0, super freeze]
+type=SuperPause
+triggerall=ID=1
+trigger1=GameTime=0
+time=60
+anim=S772
+pos=70,0
+poweradd=140
+`);
+writeFileSync('test-output/kotlin-kfm-superpause.zip', zipSync(pauseFiles));
+
 const afterimageFiles=Object.fromEntries(raw);
 const trailPhase=(phase,trans='none',duration=-1)=>`[State 0, trail phase ${phase}]
 type=AfterImage

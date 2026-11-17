@@ -4987,6 +4987,59 @@ try {
 }
 console.log('Native Wasm RemapPal / original palette metadata, wildcard and reset, frozen and shared entity palettes, and historical trail colors: OK');
 
+for (const side of [0, 1]) {
+  const owner = `${motionIdle}
+[State 0, normal]
+type=Pause
+trigger1=GameTime=0
+time=3
+movetime=2
+pausebg=0
+[State 0, super]
+type=SuperPause
+trigger1=GameTime=1 && PauseTime=3
+time=2
+movetime=1
+poweradd=100
+anim=S10
+sound=S0,0
+`;
+  const rival = `${motionIdle}
+[State 0, move allowance]
+type=ModifyPlayer
+trigger1=GameTime=0
+pausemovetime=1
+`;
+  const flashAir = air + '\n[Begin Action 10]\n0,1,0,0,-1';
+  const handle = api.ktCoreCreateWithDefinitions('First', 'Second', flashAir, flashAir,
+    side === 0 ? owner : rival, side === 1 ? owner : rival, '', '', '', '');
+  try {
+    api.ktCoreSoundCatalog(handle, side, '0,0,800,8000');
+    const expected = [[3,0], [2,2], [2,1], [2,0], [1,0], [0,0]];
+    for (const [normal, superTime] of expected) {
+      api.ktCoreAdvance(handle, 0, '', 0, '');
+      const plan = JSON.parse(api.ktCoreRenderPlan(handle, 0));
+      assert.equal(plan.pause.pause, normal);
+      assert.equal(plan.pause.superPause, superTime);
+      assert.equal(plan.pause.darken, superTime > 0);
+      const flash = plan.draws.find(draw => draw.kind === 'superpause');
+      if (superTime > 0) {
+        assert.equal(flash?.side, side);
+        assert.equal(flash?.action, 10);
+        assert.equal(JSON.parse(api.ktCoreSnapshot(handle, side)).power, 100);
+        assert.equal(JSON.parse(api.ktCoreSounds(handle))[0].side, side);
+      } else assert.equal(flash, undefined);
+    }
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle, 1-side)).stateTime, 2);
+    api.ktCoreAdvance(handle, 0, '', 0, '');
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle, 1-side)).stateTime, 3);
+    assert.equal(api.ktCoreIssues(handle), '');
+  } finally {
+    api.ktCoreRelease(handle);
+  }
+}
+console.log('Native Wasm Pause/SuperPause/ModifyPlayer / timed preemption, both sides, authored flash and sound, power and movement allowances: OK');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

@@ -2,13 +2,13 @@ package moe.celery.kenjatime
 
 import kotlin.math.floor
 
-/** Base/runtime damage factors. Fall/super defence and native phase parity remain separate work. */
+/** Base and runtime damage factors, including active super-pause defence. */
 internal object CoreDamage {
     fun contact(hit: HitDefinition,attacker: FightingCharacter?,defender: FightingCharacter,guarded: Boolean): Int {
         val amount=(if(guarded)hit.guardDamage else hit.damage).coerceAtLeast(0)
         val attack=attacker?.definition?.attack ?: 100
         val attackMultiplier=hit.capturedAttackMultiplier ?: attacker?.attackMultiplier ?: 1.0
-        val defenceMultiplier=defender.defenceMultiplier
+        val defenceMultiplier=defender.defenceMultiplier / (defender.world?.pauses?.defence(defender) ?: 1.0)
         if(amount == 0 || attack == 0 || attackMultiplier == 0.0 || defenceMultiplier == 0.0)return 0
         val scaled=amount.toDouble()*attack*attackMultiplier*defenceMultiplier/defender.definition.defence
         // Positive half values round up; small but nonzero damage retains one.

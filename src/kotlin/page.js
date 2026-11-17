@@ -240,7 +240,15 @@ function render(){
   }
   const draws=latest.draws||[];
   const paintedDraws=[];
+  let darkened=false;
+  function darkenArena(){
+    if(darkened||!latest.pause?.darken)return;
+    ctx.fillStyle="#0008";
+    ctx.fillRect(0,0,960,540);
+    darkened=true;
+  }
   for(const fighter of draws){
+    if(fighter.kind==="superpause")darkenArena();
     const item=images[fighter.side]||images[0];
     const x=fighter.x;
     const y=fighter.y; // both projected by Kotlin's deterministic camera
@@ -297,6 +305,7 @@ function render(){
       placeholderCount++;
     }
   }
+  darkenArena();
   lastSpritePaintOrder=Object.freeze({frame:latest.frame,draws:Object.freeze(paintedDraws)});
   lastEnvironmentPaint=Object.freeze({frame:latest.frame,stageOffsetY:latest.stageOffsetY??0,
     color:environmentColor?Object.freeze({...environmentColor}):null});
