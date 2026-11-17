@@ -756,6 +756,69 @@ afterimageFiles['kfm/kfm.air']=encoder.encode(decoder.decode(afterimageFiles['kf
 `).join(''));
 writeFileSync('test-output/kotlin-kfm-afterimage.zip',zipSync(afterimageFiles));
 
+for(const side of [0,1]) {
+ const files=Object.fromEntries(raw),reverser=side+1;
+ files['kfm/kfm.cns']=encoder.encode(`[Statedef 0]
+type=S
+movetype=A
+physics=N
+anim=750
+ctrl=0
+[State 0, counter]
+type=ReversalDef
+triggerall=ID=${reverser}
+trigger1=Time=0
+reversal.attr=S,NA
+id=77
+pausetime=3,5
+p1stateno=910
+p2stateno=911
+[State 0, enemy attack]
+type=HitDef
+triggerall=ID!=${reverser}
+trigger1=Time=0
+attr=S,NA
+damage=900
+[Statedef 910]
+type=S
+movetype=A
+physics=N
+anim=751
+ctrl=0
+movehitpersist=1
+[State 910, counter evidence]
+type=DisplayToClipboard
+trigger1=1
+text="role=counter id=%d hit=%d reversed=%d custom=%d targets=%d"
+params=ID,MoveHit,MoveReversed,InCustomState,NumTarget
+[Statedef 911]
+type=S
+movetype=H
+physics=N
+anim=752
+ctrl=0
+movehitpersist=1
+[State 911, borrowed animation]
+type=ChangeAnim2
+trigger1=Time=0
+value=752
+[State 911, victim evidence]
+type=DisplayToClipboard
+trigger1=1
+text="role=victim id=%d hit=%d reversed=%d custom=%d targets=%d"
+params=ID,MoveHit,MoveReversed,InCustomState,NumTarget
+`);
+ files['kfm/kfm.air']=encoder.encode(decoder.decode(files['kfm/kfm.air'])+[750,751,752].map(n=>`
+[Begin Action ${n}]
+Clsn1Default:1
+Clsn1[0]=0,-80,200,0
+Clsn2Default:1
+Clsn2[0]=-10,-80,10,0
+0,0,0,${n===752?-340:-300},-1
+`).join(''));
+ writeFileSync(`test-output/kotlin-kfm-reversal-${side}.zip`,zipSync(files));
+}
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

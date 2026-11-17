@@ -4655,6 +4655,99 @@ time=1`;
 }
 console.log('Native Wasm AfterImage/AfterImageTime / 288 coordinate-side-gap-duration-blend histories / immutable transforms and AIR poses / six independent root-helper retimings / pure reads: OK (synthetic; native rendering parity unverified)');
 
+const reversalAir=(width,attack=true)=>{
+  const f=width/320;
+  return `[Begin Action 0]\nClsn2Default:1\nClsn2[0]=${-20*f},${-40*f},${20*f},0\n0,0,0,0,-1\n`+
+    `[Begin Action 200]\n${attack?`Clsn1Default:1\nClsn1[0]=0,${-40*f},${100*f},0\n`:''}Clsn2Default:1\nClsn2[0]=${-20*f},${-40*f},${20*f},0\n200,0,0,0,-1`;
+};
+for(const [width,enemyWidth]of [[320,1008],[640,320],[1008,640]])for(const side of [0,1])for(const attr of ['S,NA','C,SP','A,HT'])for(const match of [false,true])for(const geometry of ['attack','hurt','miss'])for(const route of ['none','borrowed','own']) {
+  const r=width/320,a=enemyWidth/320;
+  const source=`[Statedef 0]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=200
+[State 0, reversal]
+type=ReversalDef
+trigger1=1
+reversal.attr=${match?attr:'S,ST'}
+id=76+ID
+pausetime=2,4
+${route==='none'?'':`p1stateno=910\np2stateno=${route==='own'?912:911}\np2getp1state=${route==='own'?0:1}`}
+[Statedef 910]
+type=S
+movetype=A
+physics=N
+anim=0
+movehitpersist=1
+velset=${-2*r},0
+[Statedef 911]
+type=S
+movetype=H
+physics=N
+anim=0
+movehitpersist=1
+velset=${5*r},${-2*r}`;
+  const enemy=`[Statedef 0]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=200
+[State 0, attacking]
+type=HitDef
+trigger1=1
+attr=${attr}
+damage=123
+[Statedef 912]
+type=S
+movetype=H
+physics=N
+anim=0
+movehitpersist=1
+velset=${7*a},${-3*a}`;
+  const defs=[`[Info]\nlocalcoord=${width},${width*3/4}`,`[Info]\nlocalcoord=${enemyWidth},${enemyWidth*3/4}`];
+  const arts=[reversalAir(width,geometry!=='hurt'),reversalAir(enemyWidth)],scripts=[source,enemy];
+  if(side===1){defs.reverse();arts.reverse();scripts.reverse();}
+  const handle=api.ktCoreCreateWithDefinitions('counter first','counter second',...arts,...scripts,'','',...defs);
+  try {
+    api.ktCoreSetup(handle,-10*256,0,(geometry==='miss'?220:10)*256,0);
+    api.ktCoreAdvance(handle,0,'',0,'');
+    const result=JSON.parse(api.ktCoreReversals(handle)),hero=JSON.parse(api.ktCoreSnapshot(handle,side)),victim=JSON.parse(api.ktCoreSnapshot(handle,1-side));
+    const reversed=match&&geometry==='attack';
+    assert.deepEqual(result.contacts,reversed?[{reverser:side+1,attacker:2-side,id:77+side}]:[]);
+    assert.equal(hero.life,!reversed&&geometry!=='miss'?877:1000);assert.equal(victim.life,1000);
+    if(reversed){
+      assert.equal(hero.moveHitTime,1);assert.equal(victim.moveReversedTime,1);assert.equal(victim.moveContactTime,0);assert.equal(victim.moveHitTime,0);assert.equal(victim.moveGuardedTime,0);
+      assert.equal(hero.numTargets,1);assert.equal(hero.hitPause,2);assert.equal(victim.hitPause,4);assert.equal(hero.power,0);assert.equal(victim.power,0);
+      assert.equal(hero.state,route==='none'?0:910);assert.equal(victim.state,route==='none'?0:route==='own'?912:911);
+      assert.equal(victim.stateOwner,route==='borrowed'?side+1:2-side);
+      if(route!=='none'){
+        assert.equal(hero.vx256,-2*256);assert.equal(victim.vx256,(route==='own'?7:5)*256);assert.equal(victim.vy256,(route==='own'?-3:-2)*256);
+        assert.equal(victim.localCoordWidth,route==='own'?enemyWidth:width);
+      }
+      assert.deepEqual(JSON.parse(api.ktCoreContacts(handle)),[]);
+    }else assert.equal(JSON.parse(api.ktCoreContacts(handle)).length,geometry==='miss'?0:1);
+    const checksum=api.ktCoreChecksum(handle),inspection=api.ktCoreReversals(handle);
+    for(let read=0;read<4;read++){api.ktCoreRenderPlan(handle,read*4);assert.equal(api.ktCoreReversals(handle),inspection);}
+    assert.equal(api.ktCoreChecksum(handle),checksum);assert.equal(api.ktCoreIssues(handle),'');
+    if(reversed)for(let tick=0;tick<6;tick++){
+      api.ktCoreAdvance(handle,0,'',0,'');assert.deepEqual(JSON.parse(api.ktCoreReversals(handle)).contacts,[]);
+      assert.equal(JSON.parse(api.ktCoreSnapshot(handle,side)).life,1000);
+    }
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008])for(const side of [0,1])for(const role of ['reverser','attacker']) {
+  const head='[Statedef 0]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=200';
+  const reverse='type=ReversalDef\ntrigger1=1\nreversal.attr=SCA,AA,AP,AT\npausetime=2,3\nid=9';
+  const hit='type=HitDef\ntrigger1=Time>=1\nattr=S,NA\ndamage=200';
+  const spawn='type=Helper\ntrigger1=Time=0\nstateno=700';
+  const helper='[Statedef 700]\ntype=S\nmovetype=A\nphysics=N\nctrl=0\nanim=200';
+  const hero=head+'\n[State 0, counter]\n'+(role==='reverser'?spawn:reverse)+(role==='reverser'?'\n'+helper+'\n[State 700, counter]\n'+reverse:'');
+  const enemy=head+'\n[State 0, attack]\n'+(role==='attacker'?spawn:hit)+(role==='attacker'?'\n'+helper+'\n[State 700, attack]\n'+hit.replace('Time>=1','1'):'');
+  const scripts=side===0?[hero,enemy]:[enemy,hero],def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('helper counter','helper attack',reversalAir(width),reversalAir(width),...scripts,'','',def,def);
+  try {
+    api.ktCoreSetup(handle,-10*256,0,10*256,0);api.ktCoreAdvance(handle,0,'',0,'');api.ktCoreAdvance(handle,0,'',0,'');
+    const result=JSON.parse(api.ktCoreReversals(handle));
+    assert.deepEqual(result.contacts,[{reverser:role==='reverser'?3:side+1,attacker:role==='attacker'?3:2-side,id:9}]);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle,0)).life,1000);assert.equal(JSON.parse(api.ktCoreSnapshot(handle,1)).life,1000);
+    assert.equal(api.ktCoreIssues(handle),'');
+  } finally {api.ktCoreRelease(handle);}
+}
+console.log('Native Wasm ReversalDef / 324 mixed-coordinate-side-attribute-geometry-state routes / 12 root-helper contacts / attack neutralization / no damage or power / pure reads: OK (synthetic; native contact parity unverified)');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

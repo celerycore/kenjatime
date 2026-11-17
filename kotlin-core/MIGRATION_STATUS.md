@@ -1,6 +1,84 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current afterimage continuation — November 17, 2026
+## Current reversal continuation — November 18, 2026
+
+Continues published main source `47a31bc`. ReversalDef now captures a required
+reversal.attr state/attack mask and optional id, pausetime, p1stateno,
+p2stateno and p2getp1state. Requests validate finite expressions, attributes,
+supported keys and known state destinations before changing the attack window.
+Pause pairs use the existing nested-expression parser and 0..120 bounds.
+State IDs accept -1 to disable a route; target IDs are bounded nonnegative
+integers. Borrowed code evaluates the executing actor's variables and retains
+the bank that executed the definition for later custom-state ownership.
+
+Reversal contacts resolve before ordinary body/helper damage. They require
+opposing active attacks, matching captured HitDef attributes and intersecting
+Clsn1 boxes; hurtboxes do not participate. Existing canonical geometry includes
+facing, Size/localcoord and display offsets. HitBy/NotHitBy and HitOverride
+reaction routes do not prevent an attack from being reversed. Destroyed/dead
+actors, hitpaused actors and spent or already neutralized attacks are excluded.
+Candidates use deterministic distance/actor-ID order, with at most one success
+per reverser per tick. Real projectile entities are outside this subset.
+
+A success neutralizes the enemy attack, records MoveHit for the reverser and
+exclusive MoveReversed for the attacker, captures the target ID and applies
+independent pauses. It does not apply ordinary damage, power gains, hit stun,
+knockback or GetHitVar mutation. Optional p1/p2 state routes use captured bank
+ownership; p2getp1state=0 chooses the victim's own bank. Unknown victim-own
+destinations reject the contact before either window is consumed. Destination
+StateDef movehitpersist controls whether move results survive these transfers.
+Reversals can retain a non-gethit attacker as a target until its next state
+change, supporting the existing target binding/drop paths without inventing
+a hit reaction. Existing gethit-target lifetime rules remain in effect.
+
+HitDef and ReversalDef share an exclusive attack window. The current engine's
+state-window policy retains a spent/neutralized window across repeated controller
+evaluation; ordinary state entry resets it, hitdefpersist retains it, and a
+valid definition can replace a carried window. MoveHitReset clears MoveReversed
+with other move flags without rearming an attack. MoveReversed advances once
+per active actor tick and freezes in hitpause; normal contact clears it.
+The ID expression reads the executing actor's stable ID, including helpers in
+borrowed code. ktCoreReversals exposes pure per-tick contacts and actor/window/target metadata;
+root snapshots also expose the reversed flag and elapsed trigger value.
+
+Validation:
+
+- 1267 JVM and 1262 compiled-Wasm tests pass, including 42 new common cases for
+  attribute classes, attack-only/absent/edge/mirrored geometry, offsets, mixed
+  coordinates, pause pairs/clocks, atomic errors, exclusive windows, persistence,
+  custom banks, target binding/drop/cleanup, helpers, deterministic competition,
+  death, projectile exclusion, pure reads and independent fights.
+- Exported Wasm checks 324 mixed-coordinate/side/attribute/geometry/state-route
+  scenarios across 320, 640 and 1008-wide banks and 12 root/helper contacts.
+  Checks include cancelled damage/power, neutralized windows, captured state
+  ownership and canonical destination velocities, pause/result metadata,
+  preserved targets and unchanged checksums during inspection.
+- All 16 adapter/import/download tests and production Chromium checks pass.
+  Imported public KFM sprites exercise both reversal sides, cancelling a
+  900-damage enemy attack, painting both follow-up animations and retaining full
+  health. Authored clipboard messages verify MoveHit, MoveReversed, targets and
+  borrowed custom-state execution through the browser worker. Prior scenarios
+  pass.
+- Two 600-tick KFM replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and power 485/415.
+
+Measured controller-name coverage is 87 of 97 in the live legacy JavaScript
+registry (89.7%), up from 86 of 97 (88.7%); 10 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 81 of 89 (91.0%). Overall rewrite completion
+remains unmeasured: complete parameters, expressions, physics, effects, AI,
+teams, physical-phone performance and native behavior parity still need work.
+Projectile reversals, reversal-vs-reversal arbitration, native repeated-controller
+replacement/rearming, sparks/hitsound/sparkxy, temporary native invincibility,
+native GetHitVar side effects, juggling/teams and exact contact/state/pause
+ordering remain incomplete or unverified. Unsupported controller parameters
+are diagnosed atomically rather than silently accepted.
+
+Semantics use the [Elecbyte ReversalDef reference](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#reversaldef)
+and [MoveReversed reference](https://network.mugenguild.com/justnopoint/1.1docs/trigger.html#movereversed),
+with attack cancellation checked against IKEMEN GO sources. Synthetic contacts
+and browser evidence do not certify native frame-for-frame parity.
+
+## Previous afterimage continuation — November 17, 2026
 
 Continues published main source `59b7bd6`. AfterImage now keeps an actor-owned,
 bounded history of immutable sprite poses. Captures retain canonical world

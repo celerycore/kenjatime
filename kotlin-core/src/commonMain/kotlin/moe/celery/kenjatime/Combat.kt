@@ -296,18 +296,21 @@ class FightingCharacter(
     var moveContact = false
     var moveHit = false
     var moveGuarded = false
+    var moveReversed = false
     internal var moveContactTicks = 0
     val moveContactTime: Int get() = if(moveContact)moveContactTicks.coerceAtLeast(1) else 0
     val moveHitTime: Int get() = if(moveHit)moveContactTicks.coerceAtLeast(1) else 0
     val moveGuardedTime: Int get() = if(moveGuarded)moveContactTicks.coerceAtLeast(1) else 0
+    val moveReversedTime: Int get() = if(moveReversed)moveContactTicks.coerceAtLeast(1) else 0
     internal fun recordMoveContact(guarded: Boolean) {
-        moveContact=true;moveHit=!guarded;moveGuarded=guarded;moveContactTicks=1
+        moveContact=true;moveHit=!guarded;moveGuarded=guarded;moveReversed=false;moveContactTicks=1
     }
+    internal fun recordMoveReversed() {moveContact=false;moveHit=false;moveGuarded=false;moveReversed=true;moveContactTicks=1}
     internal fun clearMoveContact() {
-        moveContact=false;moveHit=false;moveGuarded=false;moveContactTicks=0
+        moveContact=false;moveHit=false;moveGuarded=false;moveReversed=false;moveContactTicks=0
     }
     private fun advanceMoveContact() {
-        if(moveContact && moveContactTicks < Int.MAX_VALUE)moveContactTicks=moveContactTicks.coerceAtLeast(1)+1
+        if((moveContact || moveReversed) && moveContactTicks < Int.MAX_VALUE)moveContactTicks=moveContactTicks.coerceAtLeast(1)+1
     }
     var parent: FightingCharacter? = null
     internal var drawAngleDegrees = 0.0
@@ -411,15 +414,24 @@ class FightingCharacter(
     private var scriptOwner: FightingCharacter = this
     val stateProgram: StateProgram? get() = stateOwner.definition.states[stateNo]
     private val capturedTargets = linkedMapOf<FightingCharacter, Int>()
+    private val reversalTargets = mutableMapOf<FightingCharacter, Long>()
+    private fun liveTarget(target: FightingCharacter)=!target.destroyed && target.life>0 &&
+        (target.moveType=="H" || reversalTargets[target]==target.stateRevision)
     fun targets(hitId: Int = -1): List<FightingCharacter> {
         return capturedTargets.filter { (target, id) ->
-            target !== this && !target.destroyed && target.life > 0 && target.moveType == "H" &&
+            target !== this && liveTarget(target) &&
                 (hitId == -1 || hitId == id)
         }.keys.toList()
     }
     fun captureTarget(target: FightingCharacter, hitId: Int) {
-        if (target !== this && !target.destroyed && target.life > 0 && target.moveType == "H")
-            capturedTargets[target] = hitId
+        if (target !== this && !target.destroyed && target.life > 0 && target.moveType == "H") {
+            capturedTargets[target] = hitId;reversalTargets.remove(target)
+        }
+    }
+    internal fun captureReversalTarget(target: FightingCharacter,hitId: Int) {
+        if(target!==this && !target.destroyed && target.life>0) {
+            capturedTargets[target]=hitId;reversalTargets[target]=target.stateRevision
+        }
     }
     var destroyed = false
     var hitCount = 0
@@ -489,6 +501,17 @@ class FightingCharacter(
     var control = true
     var activeHitDef: HitDefinition? = null
         private set
+    internal var activeReversal: CoreReversalDefinition? = null
+        private set
+    internal var hitDefReversed=false
+        private set
+    internal fun neutralizeAttack() {hitDefReversed=true}
+    internal fun canReverse(target: Int)=activeReversal!=null && target !in struck
+    internal fun installReversal(next: CoreReversalDefinition) {
+        if(activeReversal==null || carriedHitDef) {
+            activeHitDef=null;activeReversal=next;struck.clear();hitDefReversed=false;carriedHitDef=false
+        }
+    }
     internal var guardDistance=definition.coordinates.fixedToWorld(definition.attackDistance)
     internal var inGuardDistance=false
     internal fun replaceGuardDistance(distance: Int) { activeHitDef=activeHitDef?.copy(guardDistance=distance) }
@@ -514,11 +537,11 @@ class FightingCharacter(
         val persistence=CoreStatePersistence.read(program,this,errors)
         CoreSpritePriority.enter(this,program?.spritePriority,errors)
         if(!persistence.hitDef) {
-            activeHitDef=null
+            activeHitDef=null;activeReversal=null;hitDefReversed=false
             guardDistance=definition.coordinates.fixedToWorld(definition.attackDistance)
             struck.clear()
         }
-        carriedHitDef=persistence.hitDef && activeHitDef != null
+        carriedHitDef=persistence.hitDef && (activeHitDef != null || activeReversal != null)
         if(!persistence.moveHit)clearMoveContact()
         if(!persistence.hitCount)hitCount=0
         val neutralFallback = owner === this && state == 0 && program == null
@@ -554,7 +577,7 @@ class FightingCharacter(
         changeState(state, owner, controlOverride,errors)
         return true
     }
-    fun canHit(target: Int): Boolean = activeHitDef != null && !struck.contains(target)
+    fun canHit(target: Int): Boolean = activeHitDef != null && !hitDefReversed && !struck.contains(target)
     fun markHit(target: Int) { struck.add(target) }
     fun attackBoxes(): List<MugenRect> = animation?.frame?.boxes
         ?.filter { it.attack }?.map { animationOwner.definition.let { d ->
@@ -600,6 +623,7 @@ class FightingCharacter(
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
+            "reversaldef" -> CoreReversals.execute(this,c,scriptOwner,errors)
             "movehitreset" -> CoreMoveContacts.reset(this,c,errors)
             "hitvelset", "hitfallset", "hitfallvel", "hitfalldamage" -> CoreGetHitControllers.execute(this,c,errors)
             "changestate", "selfstate" -> {
@@ -640,6 +664,7 @@ class FightingCharacter(
                     listOf(candidates[(randomState ushr 1)%candidates.size])
                 }else candidates
                 capturedTargets.keys.retainAll(retained.toSet())
+                reversalTargets.keys.retainAll(capturedTargets.keys)
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid TargetDrop: ${e.message}")
             }
@@ -966,8 +991,9 @@ class FightingCharacter(
                 // A valid definition may replace a carried attack once. Repeated
                 // evaluation within a state must not reset its struck-target set.
                 if (activeHitDef == null || carriedHitDef) {
-                    if(carriedHitDef)struck.clear()
+                    if(carriedHitDef || activeReversal!=null)struck.clear()
                     activeHitDef=next
+                    activeReversal=null;hitDefReversed=false
                     guardDistance=next.guardDistance
                     carriedHitDef=false
                 }
@@ -997,7 +1023,8 @@ class FightingCharacter(
     }
     fun tick(errors: MutableSet<String>) {
         if (destroyed) return
-        capturedTargets.keys.removeAll { it.destroyed || it.life <= 0 || it.moveType != "H" }
+        capturedTargets.keys.removeAll { !liveTarget(it) }
+        reversalTargets.keys.retainAll(capturedTargets.keys)
         asserted.clear()
         positionFrozen=false
         angleDrawEnabled=false;drawScaleX=1.0;drawScaleY=1.0
@@ -1153,6 +1180,7 @@ data class CorePresentationEvent(
 class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     internal val environment=CoreEnvironmentEffects()
     internal val palettes=CoreFightPalettes(this)
+    internal val reversals=CoreReversals(this)
     var hitPowerRules=HitPowerRules.DEFAULT
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
@@ -1208,6 +1236,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     }
     fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame()) {
         contacts.clear()
+        reversals.contacts.clear()
         entities.clashes.clear()
         presentation.clear()
         val sequence = roundFlow
@@ -1232,6 +1261,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         for(helper in entities.helpers)helper.actor.beginContactPhase()
         hitStates.clear()
         resolvingContacts=true
+        if(allowCombat)reversals.resolve()
         // Contact candidates collected before mutating either fighter: genuine trades.
         var ab = allowCombat && !p1Frozen && p1.canHit(p2.id) && p2.canReceive(p1.activeHitDef!!) && connects(p1, p2)
         var ba = allowCombat && !p2Frozen && p2.canHit(p1.id) && p1.canReceive(p2.activeHitDef!!) && connects(p2, p1)

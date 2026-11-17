@@ -94,6 +94,8 @@ object CoreExpression {
                 "movecontact" -> f.moveContactTime.toDouble()
                 "movehit" -> f.moveHitTime.toDouble()
                 "moveguarded" -> f.moveGuardedTime.toDouble()
+                "movereversed" -> f.moveReversedTime.toDouble()
+                "id" -> f.id.toDouble()
                 "numhelper" -> f.world?.entities?.helpers?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numproj" -> f.world?.entities?.projectiles?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numexplod" -> f.world?.effects?.count(f)?.toDouble() ?: 0.0

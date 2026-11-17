@@ -70,6 +70,7 @@
     "helper",
     "projectile",
     "hitdef",
+    "reversaldef",
     "hitby",
     "nothitby",
     "hitoverride",
@@ -94,6 +95,7 @@
     "stopsnd"
   ],
   "knownIncomplete": [
+    "ReversalDef supports body/helper Clsn1-vs-Clsn1 attribute matching before normal contacts, captured id/pausetime/p1stateno/p2stateno/p2getp1state, shared attack-window persistence, attack neutralization, targets and MoveHit/MoveReversed clocks without damage/power/GetHitVar mutation; projectile entities, reversal-vs-reversal arbitration, native repeated-controller replacement/rearming, sparks/hitsound/sparkxy, native temporary invincibility/GetHitVar side effects, juggling/teams and exact contact/state/pause parity remain incomplete or unverified",
     "AfterImage/AfterImageTime use bounded actor-owned immutable sprite histories, MUGEN-style length-slot sampling and finite wind-down, duration/value retiming, documented palette progression and normal/add/add1/sub blending; exact native capture/pause/round phases, native palette coefficient accumulation/rounding/invertblend, the documented nonunit-timegap retime bug, IKEMEN's newer length+1 ring, projectile/Explod afterimage.* parameters, shaders, shadows and reflections remain incomplete or unverified",
     "PalFX/AllPalFX/BGPalFX resolve timed add/mul/color/invertall/sinadd layers with shared ownpal=0 and independent ownpal=1 helper/projectile/Explod families; clocks advance once per fight tick through hitpause, with local then global and background/HUD then global composition; native stacked shader/rounding, palette selection/remaps, HitDef/Projectile palfx.* impact effects, global Pause/SuperPause timing, extended hue/sinmul/sincolor/invertblend/redirectid and complete stage/motif/fallback visuals remain incomplete or unverified",
     "DisplayToClipboard/AppendToClipboard/ClearClipboard use actor-owned bounded debug text, quoted printf formats, six numeric params, type-mismatch fallback and exact portable binary64 decimal rounding; browser debug snapshots are requested only while the panel is open; side-effecting expressions, native float32 arithmetic, version-specific formatting/clipboard row limits and native game timing parity remain incomplete or unverified",
@@ -112,7 +114,7 @@
     "TargetDrop supports excludeID/keepone with actor-seeded selection; native random sequences, binding-release coupling and throw/contact-phase parity remain unverified",
     "SprPriority and StateDef sprpriority persist actor-owned visual priority; captured projsprpriority defaults to 3; Kotlin stably sorts fighters/helpers/projectiles/Explods with OnTop above signed Int priorities; native exact ties, HitDef p1/p2 sprite priorities and full visual effects remain unverified or unsupported",
     "PosFreeze holds velocity integration for one actor tick without freezing velocity, clocks, animation, explicit placement or bindings; configured arena pushing anchors frozen roots and opted-in helpers and displaces only movable opponents; native push/binding/pause phases, push eligibility and corner push remain unverified or unsupported",
-    "MoveHitReset clears body/helper move-result flags and elapsed clocks without rearming HitDefs or resetting manual HitCount/targets/projectile history; MoveContact/MoveHit/MoveGuarded advance after active controller phases and freeze in hitpause; native state/contact ordering and MoveReversed remain unverified or unsupported",
+    "MoveHitReset clears body/helper move-result flags including MoveReversed and elapsed clocks without rearming HitDefs/ReversalDefs or resetting manual HitCount/targets/projectile history; MoveContact/MoveHit/MoveGuarded/MoveReversed advance after active controller phases and freeze in hitpause; native state/contact ordering remains unverified",
     "StateDef hitdefpersist/movehitpersist/hitcountpersist preserve the body attack window, contact flags/elapsed timers and HitAdd-backed manual HitCount; automatic contact/unique/combo counts, numhits and exact native entry/replacement phases remain incomplete or unverified",
     "LifeAdd/TargetLifeAdd support kill/absolute and own Data.defence scaling, with bounded LifeSet; TargetLifeAdd also uses runtime defence while LifeAdd keeps its documented exception; native rounding/overflow/KO phases remain unverified",
     "Fighter/helper/projectile contacts scale nominal hit/guard damage by own base stats and runtime factors; projectiles capture attack at request creation and read live victim defence, keeping reports and GetHitVar consistent before life floors; fall/super defence, native accumulation/life bounds, helper inheritance, round resets and contact-phase parity remain incomplete or unverified",

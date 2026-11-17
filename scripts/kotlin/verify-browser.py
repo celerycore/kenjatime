@@ -1,7 +1,7 @@
 """Verify actual Kotlin/Wasm-combat browser UI, not a JavaScript fallback."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-import csv, io, functools, http.server, shutil, threading, json, math, base64
+import csv, io, functools, http.server, shutil, threading, json, math, base64, re
 
 ROOT=Path(__file__).resolve().parents[2]
 class Quiet(http.server.SimpleHTTPRequestHandler):
@@ -688,6 +688,36 @@ try:
         assert not trail_errors,trail_errors
         result["afterimageHistoryPaletteBlendRetimingAndCanvasPixels"]="passed"
         trails.close()
+
+        for side in [0,1]:
+            counter=browser.new_page(viewport={"width":1000,"height":780})
+            counter_errors=[]
+            counter.on("pageerror",lambda error:counter_errors.append(str(error)))
+            counter.goto(base,wait_until="domcontentloaded",timeout=30000)
+            counter.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+            counter.locator("#archive").set_input_files(str(ROOT/f"test-output/kotlin-kfm-reversal-{side}.zip"))
+            counter.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+            installed=counter.locator("#p1-select option").evaluate_all("options=>options.find(o=>o.value.startsWith('installed:')).value")
+            for select in ["#p1-select","#p2-select"]:counter.locator(select).select_option(value=installed)
+            counter.locator("#cpu").uncheck()
+            counter.locator("#cns-debug").evaluate("element=>element.open=true")
+            counter.locator("#start").click()
+            observed=counter.wait_for_function("""side=>{
+              const qa=window.__kenjatimeKotlinQA,p=qa?.paintedRenderPlan;
+              if(!p||p.frame<15||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
+              const a=p.draws.find(d=>d.kind==='fighter'&&d.side===side),b=p.draws.find(d=>d.kind==='fighter'&&d.side!==side);
+              const text=qa.clipboards?.rows;
+              if(a?.action!==751||b?.action!==752||!text?.every(row=>row.text))return false;
+              return {health:p.health,text,paints:qa.spritePaints};
+            }""",arg=side,timeout=30000).json_value()
+            assert observed["health"]==[376,376],observed
+            rows={row["id"]:row["text"] for row in observed["text"]}
+            assert re.fullmatch(rf"role=counter id={side+1} hit=[1-9]\d* reversed=0 custom=0 targets=1",rows[side+1]),observed
+            assert re.fullmatch(rf"role=victim id={2-side} hit=0 reversed=[1-9]\d* custom=1 targets=0",rows[2-side]),observed
+            assert observed["paints"]>2,observed
+            assert not counter_errors,counter_errors
+            result[f"reversalCustomStateAndCancelledDamage{side}"]="passed"
+            counter.close()
 
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
