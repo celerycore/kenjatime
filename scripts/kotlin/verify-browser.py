@@ -344,6 +344,49 @@ try:
         result["impactAndDeferredFallShakeCanvas"]="passed"
         fall_shake_page.close()
 
+        bounds_page=browser.new_page(viewport={"width":1000,"height":780})
+        bounds_errors=[]
+        bounds_page.on("pageerror",lambda error:bounds_errors.append(str(error)))
+        bounds_page.goto(base,wait_until="domcontentloaded",timeout=30000)
+        bounds_page.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        bounds_page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-screen-bound.zip"))
+        bounds_page.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=bounds_page.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value")
+        for select in ["#p1-select","#p2-select"]:
+            bounds_page.locator(select).select_option(value=installed)
+        bounds_page.locator("#cpu").uncheck()
+        bounds_page.locator("#start").click()
+        frozen=None
+        for mode in ["unbound","tracking","frozen"]:
+            observed=bounds_page.wait_for_function("""mode => {
+              const qa=window.__kenjatimeKotlinQA,plan=qa?.renderPlan,paint=qa?.lastActorTransformPaint;
+              if(!plan||plan.frame<1||!paint||paint.frame!==plan.frame)return false;
+              const actor=plan.draws.find(d=>d.kind==='fighter'&&d.side===0);
+              if(actor?.action!==({unbound:717,tracking:718,frozen:719}[mode]))return false;
+              if(mode==='tracking'&&plan.cameraY>=-250)return false;
+              return {plan,paint,actor};
+            }""",arg=mode,timeout=30000).json_value()
+            plan=observed["plan"]
+            assert plan["cameraX"]==0 and plan["cameraZoom"]==1,observed
+            expected_x=900 if mode=="unbound" else 830
+            assert abs(observed["paint"]["x"]-expected_x)<1e-4,observed
+            air_offset=0 if mode=="unbound" else -300
+            expected_y=435+(air_offset-plan["cameraY"])*1.1
+            assert abs(observed["paint"]["y"]-expected_y)<1e-4,observed
+            if mode=="unbound":
+                assert plan["cameraY"]==0,observed
+            if mode=="frozen":
+                frozen=plan
+        later=bounds_page.wait_for_function("""frame=>{
+          const p=window.__kenjatimeKotlinQA?.renderPlan;return p?.frame>frame+12?p:false;
+        }""",arg=frozen["frame"],timeout=10000).json_value()
+        assert later["cameraY"]==frozen["cameraY"] and later["cameraX"]==frozen["cameraX"],(frozen,later)
+        assert later["cameraZoom"]==frozen["cameraZoom"],(frozen,later)
+        assert not bounds_errors,bounds_errors
+        result["screenBoundEdgesAndCameraCanvas"]="passed"
+        bounds_page.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

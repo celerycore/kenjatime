@@ -53,6 +53,7 @@ object CorePresentationPlanner {
             .append(",\"targetFps\":").append(targetFps(backlog))
             .append(",\"backlog\":").append(backlog.coerceAtLeast(0))
             .append(",\"cameraZoom\":").append(camera?.zoom ?: 1.0)
+            .append(",\"cameraX\":").append(camera?.x ?: 0.0)
             .append(",\"cameraY\":").append(camera?.y ?: 0.0)
             .append(",\"stageOffsetY\":").append(stageOffsetY)
             .append(",\"environment\":").append(fight.environment.json())

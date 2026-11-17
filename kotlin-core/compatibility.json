@@ -13,6 +13,7 @@
     "posset",
     "posfreeze",
     "playerpush",
+    "screenbound",
     "width",
     "sprpriority",
     "angleset",
@@ -83,6 +84,7 @@
     "stopsnd"
   ],
   "knownIncomplete": [
+    "ScreenBound controls configured horizontal arena constraints and per-axis camera eligibility for roots and opted-in helpers; assertions survive hitpause and reset on the next active tick; untracked axes hold position and no tracked actors freeze zoom; native viewport margins, stage-version exceptions, camera tension/zoom phases, team modes and exact native frame parity remain incomplete or unverified",
     "EnvShake, EnvColor, HitDef/Projectile impact shake and one-shot FallEnvShake use per-fight visual clocks; fall.envshake fields retain captured canonical amplitude across state banks; automatic common-state landing execution, extended shake parameters, complete stage foreground/motif layers, global pause and native frame parity remain incomplete or unverified",
     "MapSet/MapAdd/RootMapSet/RootMapAdd support actor-owned finite float32 numeric stores, case-insensitive literal names, Map(name) reads and numeric Map defaults; helper root writes use the topmost real parent chain rather than borrowed banks; indexed/typed/dynamic-key maps, parent/team variants, assignment expressions and full native round-reset semantics remain unsupported or unverified",
     "AttackDist updates canonical current-HitDef guard distance without rearming contacts; InGuardDist is a previous-pass latch from directional body/helper/projectile threats with own Size defaults and active-bank explicit units; automatic common-state guard entry, affectteam/team modes, native phase ordering and complete projectile removal visual parity remain incomplete or unverified",

@@ -4038,6 +4038,79 @@ try {
 } finally {api.ktCoreRelease(fallShakeBank);}
 console.log("Native Wasm HitDef/Projectile impact shake + FallEnvShake / 48 coordinate-source-facing-guard-default sequences / borrowed queries and SelfState consumption / pure reads: OK (synthetic)");
 
+for(const width of [320,640,1008])for(const facing of [-1,1])for(const bounded of [false,true])for(const moveX of [false,true])for(const moveY of [false,true]) {
+  const f=width/320;
+  const script=`${motionIdle}
+[State 0, place]
+type=PosSet
+trigger1=Time=0
+x=${facing*3000*f}
+y=${-1000*f}
+[State 0, bounds and independent axes]
+type=ScreenBound
+trigger1=Time=0
+value=${bounded?1:0}
+movecamera=${moveX?1:0},${moveY?1:0}`;
+  const handle=api.ktCoreCreateWithDefinitions("bounds","untracked opponent",air,air,script,`${motionIdle}
+[State 0, exclude]
+type=ScreenBound
+trigger1=1`,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreConfigureArena(handle,-2000,2000,0,false,false);api.ktCoreSetup(handle,0,0,0,0);
+    api.ktCoreDebugSetFacing(handle,0,facing===1);api.ktCoreAdvance(handle,0,"",0,"");
+    const actor=JSON.parse(api.ktCoreSnapshot(handle,0)),plan=JSON.parse(api.ktCoreRenderPlan(handle,0));
+    assert.equal(actor.screenBound,bounded);assert.equal(actor.moveCameraX,moveX);assert.equal(actor.moveCameraY,moveY);
+    assert.equal(actor.x256,facing*(bounded?2000:3000)*256);assert.equal(actor.y256,-1000*256);
+    assert.equal(plan.cameraX,moveX?facing*204:0);assert.equal(plan.cameraY,moveY?-45:0);assert.equal(plan.cameraZoom,1);
+    const before=api.ktCoreChecksum(handle),snapshot=api.ktCoreSnapshot(handle,0);
+    for(let i=0;i<3;i++)assert.deepEqual(JSON.parse(api.ktCoreRenderPlan(handle,0)),plan);
+    assert.equal(api.ktCoreChecksum(handle),before);assert.equal(api.ktCoreSnapshot(handle,0),snapshot);
+    api.ktCoreAdvance(handle,0,"",0,"");const expired=JSON.parse(api.ktCoreSnapshot(handle,0));
+    assert.equal(expired.screenBound,true);assert.equal(expired.moveCameraX,true);assert.equal(expired.moveCameraY,true);
+    assert.equal(expired.x256,facing*2000*256);assert.equal(api.ktCoreIssues(handle),"");
+  } finally {api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008]) {
+  const f=width/320;
+  const script=`${motionIdle}
+[State 0, untracked root]
+type=ScreenBound
+trigger1=1
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+pos=${2500*f},0
+[Statedef 700]
+type=S
+physics=N
+anim=200
+velset=${10*f},0
+[State 700, helper opt-in]
+type=ScreenBound
+trigger1=Time=0
+value=1
+movecamera=1,0`;
+  const handle=api.ktCoreCreateWithDefinitions("helper camera","untracked root",projectileFacingAir,air,script,`${motionIdle}
+[State 0, untracked]
+type=ScreenBound
+trigger1=1`,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
+  try {
+    api.ktCoreSetup(handle,0,0,100*256,0);api.ktCoreConfigureArena(handle,-2000,2000,0,false,false);
+    api.ktCoreAdvance(handle,0,"",0,"");assert.equal(JSON.parse(api.ktCoreRenderPlan(handle,0)).cameraX,0);
+    api.ktCoreAdvance(handle,0,"",0,"");const tracked=JSON.parse(api.ktCoreRenderPlan(handle,0));
+    assert.equal(tracked.cameraX,204);assert.equal(tracked.cameraY,0);
+    const helper=tracked.draws.find(d=>d.kind==="helper");assert.ok(helper);
+    assert.ok(Math.abs((helper.axisX-480)/1.4+tracked.cameraX-2000)<1e-8);
+    assert.equal(JSON.parse(api.ktCoreSnapshot(handle,0)).screenBound,false);
+    api.ktCoreAdvance(handle,0,"",0,"");const expired=JSON.parse(api.ktCoreRenderPlan(handle,0));
+    assert.equal(expired.cameraX,204);assert.equal(expired.cameraZoom,tracked.cameraZoom);
+    assert.ok(Math.abs((expired.draws.find(d=>d.kind==="helper").axisX-480)/1.4+expired.cameraX-2010)<1e-8);
+    assert.equal(api.ktCoreIssues(handle),"");
+  } finally {api.ktCoreRelease(handle);}
+}
+console.log("Native Wasm ScreenBound / 48 coordinate-facing-bound-camera-axis sequences / three helper opt-in and expiry sequences / canonical edge clamps and frozen camera / pure reads: OK (synthetic)");
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

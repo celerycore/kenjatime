@@ -314,6 +314,10 @@ class FightingCharacter(
     internal var positionFrozen = false
     internal var playerPushOverride: Boolean? = null
     internal val playerPushEnabled: Boolean get() = playerPushOverride ?: (parent == null)
+    internal var screenBoundOverride: CoreScreenBound? = null
+    internal val screenBoundEnabled: Boolean get() = screenBoundOverride?.bound ?: (parent == null)
+    internal val moveCameraX: Boolean get() = screenBoundOverride?.moveX ?: (parent == null)
+    internal val moveCameraY: Boolean get() = screenBoundOverride?.moveY ?: (parent == null)
     internal var widthOffsets = CoreWidthOffsets.ZERO
     var binding: ActorBinding? = null
         private set
@@ -576,6 +580,7 @@ class FightingCharacter(
             "mapset", "mapadd", "rootmapset", "rootmapadd" -> CoreNamedMaps.execute(this,c,errors)
             "envshake", "envcolor" -> world?.environment?.execute(this,c,errors)
             "fallenvshake" -> CoreFallEnvShake.execute(this,c,errors)
+            "screenbound" -> CoreScreenBounds.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
             "hitby", "nothitby" -> hitFilters.execute(this,c,errors)
             "hitoverride" -> hitOverrides.execute(this,c,errors)
@@ -983,6 +988,7 @@ class FightingCharacter(
         evaluationIssues = errors
         val paused = hitPauseLeft > 0
         CoreBodySpace.beginTick(this,paused)
+        CoreScreenBounds.beginTick(this,paused)
         hitPauseThisTick = paused
         hitFilters.beginTick()
         hitOverrides.beginTick()
@@ -1199,7 +1205,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         if (allowCombat) entities.advanceHelpers(issues)
         arena?.step(p1,p2,p1Frozen,p2Frozen,if(allowCombat)entities.helpers else emptyList())
         CoreBindings.resolve(p1,p2,if(allowCombat) entities.helpers else emptyList())
-        camera?.update(p1,p2)
+        camera?.update(p1,p2,if(allowCombat)entities.helpers else emptyList())
         CoreGuardDistance.beginPhase(this,allowCombat)
         p1.beginContactPhase();p2.beginContactPhase()
         for(helper in entities.helpers)helper.actor.beginContactPhase()

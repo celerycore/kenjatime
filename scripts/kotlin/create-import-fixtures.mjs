@@ -430,6 +430,40 @@ Clsn1[0]=-500,-60,500,0
 `);
 writeFileSync("test-output/kotlin-kfm-fall-shake.zip",zipSync(fallShakeFiles));
 
+const boundsFiles=Object.fromEntries(raw);
+boundsFiles["kfm/kfm.cns"]=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=717
+ctrl=0
+[State 0, initially outside arena]
+type=PosSet
+trigger1=Time=0
+x=Facing*300
+[State 0, edge and camera policy]
+type=ScreenBound
+trigger1=1
+value=Time>=60
+movecamera=0,Time>=60 && Time<120
+[State 0, camera follows]
+type=ChangeAnim
+trigger1=Time=60
+value=718
+[State 0, camera frozen]
+type=ChangeAnim
+trigger1=Time=120
+value=719
+`);
+boundsFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(boundsFiles["kfm/kfm.air"])+`
+[Begin Action 717]
+0,0,0,0,-1
+[Begin Action 718]
+0,0,0,-300,-1
+[Begin Action 719]
+0,1,0,-300,-1
+`);
+writeFileSync("test-output/kotlin-kfm-screen-bound.zip",zipSync(boundsFiles));
+
 for(const width of [320,640]) {
  const f=width/320,files=Object.fromEntries(raw);
  files["kfm/kfm.def"]=encoder.encode(decoder.decode(files["kfm/kfm.def"])

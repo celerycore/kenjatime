@@ -122,6 +122,9 @@ private object Fights {
         ",\"guardDistance256\":" + p.guardDistance +
         ",\"inGuardDist\":" + p.inGuardDistance +
         ",\"playerPush\":" + p.playerPushEnabled +
+        ",\"screenBound\":" + p.screenBoundEnabled +
+        ",\"moveCameraX\":" + p.moveCameraX +
+        ",\"moveCameraY\":" + p.moveCameraY +
         ",\"widthPlayerFront256\":" + p.widthOffsets.playerFront +
         ",\"widthPlayerBack256\":" + p.widthOffsets.playerBack +
         ",\"widthEdgeFront256\":" + p.widthOffsets.edgeFront +

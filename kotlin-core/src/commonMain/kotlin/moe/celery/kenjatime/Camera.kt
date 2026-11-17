@@ -14,11 +14,19 @@ class MugenCamera(val config: CameraConfig = CameraConfig()) {
         private set
     var zoom: Double = 1.0
         private set
-    fun update(p1: FightingCharacter, p2: FightingCharacter) {
-        val a = Fixed.pixels(p1.posX); val b = Fixed.pixels(p2.posX)
-        val c = Fixed.pixels(p1.posY); val d = Fixed.pixels(p2.posY)
-        val zx = config.width / (kotlin.math.abs(a - b) + config.tension * 2.0)
-        val zy = config.height / (kotlin.math.abs(c - d) + 300.0)
+    fun update(p1: FightingCharacter, p2: FightingCharacter, helpers: List<HelperEntity> = emptyList()) {
+        val actors=listOf(p1,p2)+helpers.map { it.actor }.filter { !it.destroyed }
+        fun extent(horizontal: Boolean): Pair<Double,Double>? {
+            val values=actors.filter { if(horizontal)it.moveCameraX else it.moveCameraY }
+                .map { Fixed.pixels(if(horizontal)it.posX else it.posY) }
+            if(values.isEmpty())return null
+            return values.min() to values.max()
+        }
+        val horizontal=extent(true);val vertical=extent(false)
+        // No tracked axis means no camera drift or zoom easing this tick.
+        if(horizontal == null && vertical == null)return
+        val zx=horizontal?.let { config.width/(it.second-it.first+config.tension*2.0) } ?: Double.POSITIVE_INFINITY
+        val zy=vertical?.let { config.height/(it.second-it.first+300.0) } ?: Double.POSITIVE_INFINITY
         val min = minOf(config.minZoom, config.maxZoom)
         val max = maxOf(config.minZoom, config.maxZoom)
         zoom += (minOf(zx, zy).coerceIn(min, max) - zoom) * 0.1
@@ -26,8 +34,8 @@ class MugenCamera(val config: CameraConfig = CameraConfig()) {
         val hh = config.height / (2.0 * zoom)
         fun clampTarget(v: Double, lo: Double, hi: Double, half: Double): Double =
             if (hi - lo < 2.0 * half) (lo + hi) / 2.0 else v.coerceIn(lo + half, hi - half)
-        x += (clampTarget((a + b) / 2.0, config.left, config.right, hw) - x) * 0.15
-        y += (clampTarget((c + d) / 2.0, config.top, config.bottom, hh) - y) * 0.15
+        horizontal?.let { x += (clampTarget((it.first+it.second)/2.0,config.left,config.right,hw)-x)*0.15 }
+        vertical?.let { y += (clampTarget((it.first+it.second)/2.0,config.top,config.bottom,hh)-y)*0.15 }
     }
     fun worldToScreen(worldX: Double, worldY: Double): Pair<Double, Double> =
         Pair(config.width / 2.0 + (worldX - x) * zoom, config.height / 2.0 + (worldY - y) * zoom)

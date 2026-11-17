@@ -1,6 +1,62 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current attack/fall-shake continuation — November 17, 2026
+## Current ScreenBound continuation — November 17, 2026
+
+Continues published main source `9bdf2a2`. ScreenBound now controls configured
+horizontal arena constraints and independent X/Y camera eligibility. Omitted
+value and movecamera components default to false; one movecamera component sets
+X only. Finite numeric expressions use the executing actor's variables and
+nonzero boolean semantics. Invalid expressions, malformed component lists and
+unsupported parameters preserve the entire earlier assertion.
+
+Assertions last one active tick, survive actor hitpause and reset before the
+next active controller pass. Standard persistent and ignorehitpause gating
+applies. Roots normally constrain to the configured arena and track both axes;
+helpers normally do neither. Helper requests affect the helper, including when
+executed from a borrowed state bank. Dimensionless flags need no localcoord
+conversion. State changes do not prematurely clear the active-tick assertion.
+
+Disabling bounds bypasses configured horizontal limits and Width edge insets,
+including during body pushing. Body widths, contact geometry, velocity, gravity,
+landing and bindings retain their existing behavior. Opted-in helpers clamp
+against the same limits; destroyed, bound or hitpaused helpers skip direct
+clamping. No stage/camera is invented for unconfigured headless simulations.
+
+The existing camera follows eligible roots/helpers using per-axis extents for
+center and zoom. A single tracked actor excludes an untracked distant opponent;
+an untracked axis holds position. With neither axis tracked, position and zoom
+hold exactly. Default helpers are excluded, and destroyed helpers cannot affect
+tracking. Default two-root behavior retains the preceding camera calculation.
+Snapshots expose the three root flags and render plans expose cameraX alongside
+cameraY/zoom, without advancing camera or controller lifetimes during reads.
+
+This bounded subset uses existing arena edges. Native screen viewport margins,
+MUGEN-version-specific stage bounds, camera tension/zoom phase ordering, teams
+and exact native camera/binding behavior remain incomplete or unverified.
+
+Validation:
+
+- 1063 JVM and 1058 compiled-Wasm tests pass, including 30 new cases for defaults,
+  atomic invalid requests, expiry, pause, persistent gating, Width/push/binding
+  interaction, helper constraints, independent camera axes, zoom, borrowed banks,
+  offstage contacts and read-only inspection.
+- Exported Wasm checks 48 coordinate/facing/bounds/camera-axis sequences and
+  three helper coordinate sequences for opt-in clamping, camera eligibility and
+  next-tick expiry.
+- All 16 adapter/import/download tests and production Chromium checks pass.
+  Imported public KFM art with synthetic CNS verifies actual Canvas transforms
+  outside arena limits, re-enabled constraints, camera tracking and frozen
+  position/zoom after tracking is disabled. Prior browser scenarios still pass.
+- Two 600-tick KFM replays retain nine contacts, seven fallback recoveries, zero
+  unsupported diagnostics, matching physical checksums and power ending 485/415.
+
+Measured controller-name coverage is 76 of 97 in the live legacy JavaScript
+registry (78.4%), up from 75 of 97 (77.3%); 21 names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 71 of 89 (79.8%). Overall rewrite completion
+remains unmeasured: full parameters, expressions, physics, effects, AI, teams,
+physical-phone performance and native behavior parity still need further work.
+
+## Previous attack/fall-shake continuation — November 17, 2026
 
 Continues published main source `7f8be96`. HitDef and Projectile now capture
 envshake.time/freq/ampl/phase and fall.envshake.time/freq/ampl/phase as immutable

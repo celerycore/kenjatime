@@ -24,6 +24,10 @@ data class ArenaRules(
              helpers: List<HelperEntity> = emptyList()) {
         if(!frozen1) individual(p1)
         if(!frozen2) individual(p2)
+        for(helper in helpers) {
+            val p=helper.actor
+            if(!p.destroyed && !p.hitPauseThisTick && p.binding == null && p.screenBoundEnabled)clampHorizontal(p)
+        }
         if(pushPlayers) {
             val pushers=(listOf(p1,p2)+helpers.map { it.actor }).filter {
                 it.playerPushEnabled && it.life>0 && !it.destroyed && it.binding == null
@@ -42,8 +46,7 @@ data class ArenaRules(
     }
     private fun individual(p:FightingCharacter) {
         if(p.binding != null) return
-        val limits=horizontalLimits(p)
-        p.posX=p.posX.coerceIn(limits.first,limits.second)
+        clampHorizontal(p)
         if(p.advanceFallbackReaction(ground))return
         val physics=p.stateProgram?.physics?.uppercase()
         if(physics=="A" && p.stateType=="A")p.velY+=p.definition.coordinates.fixedToWorld(p.definition.airGravity)
@@ -56,9 +59,12 @@ data class ArenaRules(
             }
         }
     }
+    private fun clampHorizontal(p: FightingCharacter) {
+        val limits=horizontalLimits(p)
+        p.posX=p.posX.coerceIn(limits.first,limits.second)
+    }
     internal fun horizontalLimits(p: FightingCharacter): Pair<Int,Int> {
-        // Helpers are not screen-bound by default; ScreenBound remains separate work.
-        if(p.parent != null)return Int.MIN_VALUE to Int.MAX_VALUE
+        if(!p.screenBoundEnabled)return Int.MIN_VALUE to Int.MAX_VALUE
         val low=maxOf(left.toLong(),left.toLong()+p.edgeWidthWorld(-1))
         val high=minOf(right.toLong(),right.toLong()-p.edgeWidthWorld(1))
         if(low>high) { val center=((left.toLong()+right)/2).toInt();return center to center }
