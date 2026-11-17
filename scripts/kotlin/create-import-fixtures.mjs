@@ -756,6 +756,52 @@ afterimageFiles['kfm/kfm.air']=encoder.encode(decoder.decode(afterimageFiles['kf
 `).join(''));
 writeFileSync('test-output/kotlin-kfm-afterimage.zip',zipSync(afterimageFiles));
 
+const soundFiles=Object.fromEntries(raw);
+const soundControl=(name,type,time,params)=>`[State 0, ${name}]
+type=${type}
+triggerall=ID=1
+trigger1=Time%400=${time}
+${params}
+`;
+soundFiles['kfm/kfm.cns']=encoder.encode(`[Statedef 0]
+type=S
+physics=N
+anim=760
+ctrl=0
+[State 0, sound phase]
+type=SprPriority
+trigger1=1
+value=floor((Time%400)/40)-4
+`+soundControl('left loop','PlaySnd',0,'value=0,0\nchannel=3\nloop=1\nabspan=-160')+
+soundControl('right pan','SndPan',40,'channel=3\nabspan=160')+
+soundControl('low priority','PlaySnd',80,'value=0,1\nchannel=3\nloop=1\nlowpriority=1\nvolumescale=50')+
+soundControl('replace','PlaySnd',120,'value=0,1\nchannel=3\nloop=1\nvolumescale=50\nfreqmul=2\nabspan=0')+
+soundControl('stop own','StopSnd',160,'channel=3')+
+soundControl('root right','PlaySnd',200,'value=0,0\nchannel=3\nloop=1\nabspan=160')+
+soundControl('helper left','Helper',200,'stateno=700\npos=100,-100')+
+soundControl('stop root only','StopSnd',240,'channel=3')+
+soundControl('stop everyone','StopSnd',280,'channel=-1')+
+soundControl('finite sound','PlaySnd',320,'value=0,4\nchannel=4')+
+soundControl('restart loop','PlaySnd',360,'value=0,0\nchannel=3\nloop=1\nabspan=0')+`
+[Statedef 700]
+type=S
+physics=N
+anim=760
+ctrl=0
+[State 700, own channel]
+type=PlaySnd
+trigger1=Time=0
+value=0,0
+channel=3
+loop=1
+abspan=-160
+`);
+soundFiles['kfm/kfm.air']=encoder.encode(decoder.decode(soundFiles['kfm/kfm.air'])+`
+[Begin Action 760]
+0,0,0,-300,-1
+`);
+writeFileSync('test-output/kotlin-kfm-sound.zip',zipSync(soundFiles));
+
 for(const side of [0,1]) {
  const files=Object.fromEntries(raw),reverser=side+1;
  files['kfm/kfm.cns']=encoder.encode(`[Statedef 0]

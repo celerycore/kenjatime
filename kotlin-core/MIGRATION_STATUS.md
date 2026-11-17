@@ -1,6 +1,91 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current reversal continuation — November 18, 2026
+## Current sound channel continuation — November 18, 2026
+
+Continues published main source `0305157`. SndPan updates a playing actor's
+named sound channel. PlaySnd and StopSnd now control playback of samples from
+imported SND files. Kotlin resolves voice ownership, channel priority, volume,
+pitch, looping, duration and panning. The browser scans asset headers, decodes
+samples and plays them using the resolved Web Audio parameters.
+
+PlaySnd captures value, channel, volumescale or legacy volume, lowpriority,
+freqmul, loop, and pan or abspan. Own S-prefixed values and nested numeric
+expressions are supported. Explicit channels belong to individual actors. Automatic -1
+voices are independent and do not claim named channels. A lower-priority
+request cannot interrupt an occupied named channel. Invalid parameters preserve
+existing voices atomically. Missing registered samples are diagnosed without
+stopping an earlier channel owner. Helpers own separate channels and use their
+real root's SND resources, including while executing borrowed state banks.
+
+Relative pan captures actor position and facing plus one active-bank coordinate
+conversion, relative to the current camera center. Absolute pan is independent
+of actor position/facing/camera. Kotlin maps canonical +/-160 to the left/right
+speakers and clamps to -1..1. Scripts use SndPan to update a sound as an actor
+moves. StopSnd on a named channel stops that actor's voice. Channel -1 stops
+every voice in the fight. An unguarded hit stops the voice on channel zero.
+Destroying a helper cleans up its voices. Samples continue playing across state
+changes and hitpause. Persistent and ignorehitpause gate controller execution.
+
+Platforms register immutable original sample frame/rate catalogs before the
+first tick. Finite lifetimes use ceil(frames*60/rate/freqmul). Loops persist until
+stopped. Portable users without catalogs retain the original ktCoreEvents
+request metadata. ktCoreSounds and ktCoreSoundEvents expose pure voice/event
+inspection. The worker forwards events after every simulation tick, including
+ticks whose render snapshots are skipped. Kotlin advances audio on the simulation
+clock. Sound controllers leave combat checksums unchanged in the replay tests.
+
+The adapter reads the bundled KFM's twelve real PCM WAV samples, accepting both
+zero and EOF SND terminators and older unpadded final WAV chunks. Imported sound
+files remain optional. Decoding happens on demand with two concurrent decoders
+and at most 32 queued requests. Active buffers stay pinned within a shared
+32 MiB cache with up to 256 entries. Decoded output is limited to 16 MiB before
+decoding, accounting for resampling. Stop-before-decode and match-generation
+checks prevent late/stale playback. The Sound checkbox mutes the output without
+changing Kotlin voices, UI pause suspends the audio context with the fight,
+and reset releases hardware voices and cached buffers.
+
+Validation
+
+- 1301 JVM and 1296 compiled-Wasm tests pass, including 34 new common cases for
+  catalogs, durations, volume/pitch/loops, priority/replacement, captured pan,
+  mixed banks, helper ownership, stops, hit cleanup, hitpause/persistence,
+  destruction, resource bounds, pure inspection and physical independence.
+- Exported Wasm checks 288 coordinate/side/facing/pan/pitch/loop sequences,
+  six root/helper channel lifecycles and six borrowed-bank routes. Tests cover
+  low-priority preservation, ordered replacement/stop packets, original sample
+  lifetimes, correct resource banks and checksums unchanged by inspection.
+- All 32 adapter/import/download tests pass. Sixteen new cases cover original
+  KFM WAV metadata, PCM/float formats, odd data/pointers, malformed assets,
+  unchanged source bytes, pending-pan updates, stop/decode races, generation
+  isolation, shared buffers, decoder concurrency, pinned cache limits, oversized
+  decode rejection and mute/pause/natural hardware cleanup.
+- Production Chromium checks pass. Ten imported KFM audio phases measure actual
+  left/right output signals and resolved StereoPanner/Gain/PlaybackRate values,
+  testing panning, priority, pitch, volume, replacement, helper separation,
+  global stop and finite expiry. UI pause, mute/unmute and reset are verified.
+  Prior sprite/import/clipboard/CSV/mobile-layout scenarios pass.
+- Two 600-tick KFM replays retain nine contacts, seven fallback recoveries,
+  zero unsupported diagnostics, matching physical checksums and power 485/415.
+
+Measured controller-name coverage is 88 of 97 in the live legacy JavaScript
+registry (90.7%), up from 87 of 97 (89.7%). Nine names remain outside the Kotlin
+contract. Elecbyte 1.1 overlap is 82 of 89 (92.1%). Whole engine completion
+also requires work on parameters, expressions, physics, effects, AI, teams,
+physical phone performance and native behavior parity.
+Common F sound banks, compressed WAV codecs, full native channel counts/stealing,
+attenuation/pan/gain/round/pause phases, hardware latency/audio focus and physical
+phone output remain incomplete or unverified. Current limits are 32 voices per
+actor and 128 per fight, named channels 0..255, pitch .0625..16, volumescale
+0..100, legacy volume -256..256 and authored pan -100000..100000. Asset limits
+are 4096 samples and 32 MiB per SND bank. Supported WAVs use mono or stereo
+integer PCM at 8/16/24/32 bits or float32.
+
+Elecbyte controller references for this implementation are
+[PlaySnd](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#playsnd),
+[SndPan](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#sndpan) and
+[StopSnd](https://network.mugenguild.com/justnopoint/1.1docs/sctrls.html#stopsnd).
+
+## Previous reversal continuation — November 18, 2026
 
 Continues published main source `47a31bc`. ReversalDef now captures a required
 reversal.attr state/attack mask and optional id, pausetime, p1stateno,

@@ -4748,6 +4748,145 @@ for(const width of [320,640,1008])for(const side of [0,1])for(const role of ['re
 }
 console.log('Native Wasm ReversalDef / 324 mixed-coordinate-side-attribute-geometry-state routes / 12 root-helper contacts / attack neutralization / no damage or power / pure reads: OK (synthetic; native contact parity unverified)');
 
+for(const width of [320,640,1008])for(const side of [0,1])for(const face of [false,true])for(const absolute of [false,true])for(const offset of [-160,0,160])for(const frequency of [.5,2])for(const loop of [false,true]) {
+  const pan=absolute?'abspan':'pan',raw=offset*width/320;
+  const source=`${motionIdle}
+[State 0, play]
+type=PlaySnd
+trigger1=Time=0
+value=0,0
+channel=3
+volumescale=75
+freqmul=${frequency}
+loop=${loop?1:0}
+${pan}=${raw}
+[State 0, pan]
+type=SndPan
+trigger1=Time=1
+channel=3
+${pan}=${-raw}
+[State 0, low priority]
+type=PlaySnd
+trigger1=Time=2
+value=0,1
+channel=3
+lowpriority=1
+volumescale=1
+loop=1
+[State 0, replace]
+type=PlaySnd
+trigger1=Time=3
+value=0,1
+channel=3
+volumescale=50
+loop=1
+abspan=0
+[State 0, stop]
+type=StopSnd
+trigger1=Time=4
+channel=3`;
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('audio first','audio second',air,air,side===0?source:motionIdle,side===1?source:motionIdle,'','',side===0?def:'',side===1?def:'');
+  try{
+    for(const s of [0,1])api.ktCoreSoundCatalog(handle,s,'0,0,800,8000;0,1,1600,8000');
+    api.ktCoreSetup(handle,-80*256,0,80*256,0);api.ktCoreDebugSetFacing(handle,side,face);
+    for(let tick=1;tick<=5;tick++){
+      api.ktCoreAdvance(handle,0,'',0,'');const voices=JSON.parse(api.ktCoreSounds(handle)),events=JSON.parse(api.ktCoreSoundEvents(handle));
+      if(tick===5){assert.deepEqual(voices,[]);assert.deepEqual(events,[{type:'stop',voice:2}]);}
+      else {
+        assert.equal(voices.length,1);const v=voices[0];assert.equal(v.actor,side+1);assert.equal(v.side,side);assert.equal(v.channel,3);
+        if(tick<=3){
+          assert.equal(v.voice,1);assert.equal(v.number,0);assert.equal(v.gain,.75);assert.equal(v.frequency,frequency);assert.equal(v.loop,loop);
+          const p=tick===1?offset:-offset,normalized=(absolute?p:(side===0?-80:80)+p*(face?1:-1))/160;
+          const expectedPan=Math.max(-1,Math.min(1,normalized));
+          assert.equal(v.pan,expectedPan===0?0:expectedPan);assert.equal(v.age,tick-1);assert.equal(v.remaining,loop?-1:Math.ceil(6/frequency)-(tick-1));
+          assert.equal(events.length,tick===3?0:1);assert.equal(events[0]?.type,tick===1?'play':tick===2?'pan':undefined);
+        }else {
+          assert.equal(v.voice,2);assert.equal(v.number,1);assert.equal(v.gain,.5);assert.equal(v.pan,0);assert.equal(v.loop,true);
+          assert.deepEqual(events.map(e=>e.type),['stop','play']);
+        }
+      }
+      const checksum=api.ktCoreChecksum(handle),state=api.ktCoreSounds(handle),packet=api.ktCoreSoundEvents(handle);
+      for(let read=0;read<3;read++){api.ktCoreRenderPlan(handle,12);assert.equal(api.ktCoreSounds(handle),state);assert.equal(api.ktCoreSoundEvents(handle),packet);}
+      assert.equal(api.ktCoreChecksum(handle),checksum);assert.equal(api.ktCoreIssues(handle),'');
+    }
+  }finally{api.ktCoreRelease(handle);}
+}
+for(const width of [320,640,1008])for(const side of [0,1]){
+  const source=`${motionIdle}
+[State 0, helper]
+type=Helper
+trigger1=Time=0
+stateno=700
+[State 0, root play]
+type=PlaySnd
+trigger1=Time=0
+value=0,0
+channel=3
+loop=1
+[State 0, root pan]
+type=SndPan
+trigger1=Time=2
+channel=3
+abspan=${80*width/320}
+[State 0, root stop]
+type=StopSnd
+trigger1=Time=3
+channel=3
+[State 0, global stop]
+type=StopSnd
+trigger1=Time=4
+channel=-1
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, own channel]
+type=PlaySnd
+trigger1=Time=0
+value=0,0
+channel=3
+loop=1`;
+  const other=`${motionIdle}\n[State 0, rival channel]\ntype=PlaySnd\ntrigger1=Time=0\nvalue=0,0\nchannel=3\nloop=1`;
+  const def=`[Info]\nlocalcoord=${width},${width*3/4}`;
+  const handle=api.ktCoreCreateWithDefinitions('family first','family second',air,air,side===0?source:other,side===1?source:other,'','',side===0?def:'',side===1?def:'');
+  try{
+    for(const s of [0,1])api.ktCoreSoundCatalog(handle,s,'0,0,800,8000');api.ktCoreSetup(handle,-80*256,0,80*256,0);
+    for(let tick=1;tick<=5;tick++){
+      api.ktCoreAdvance(handle,0,'',0,'');const voices=JSON.parse(api.ktCoreSounds(handle));
+      assert.equal(voices.length,tick===1?2:tick<4?3:tick===4?2:0);
+      if(tick===3){assert.equal(voices.find(v=>v.actor===side+1).pan,.5);assert.equal(voices.find(v=>v.actor===3).pan,side===0?-.5:.5);}
+      if(tick===4)assert.ok(voices.every(v=>v.actor!==side+1));assert.equal(api.ktCoreIssues(handle),'');
+    }
+  }finally{api.ktCoreRelease(handle);}
+  const attack=`${motionIdle}\n[Statedef 200]\ntype=S\nphysics=N\nanim=200\n[State 200, transfer]\ntype=HitDef\ntrigger1=Time=0\np2stateno=700
+[Statedef 700]
+type=S
+physics=N
+anim=0
+[State 700, borrowed sound]
+type=PlaySnd
+trigger1=Time=0
+value=0,0
+channel=3
+abspan=${-80*width/320}
+[State 700, borrowed pan]
+type=SndPan
+trigger1=Time=1
+channel=3
+abspan=${80*width/320}`;
+  const borrowedArts=side===0?[reversalAir(width),reversalAir(320)]:[reversalAir(320),reversalAir(width)];
+  const borrowed=api.ktCoreCreateWithDefinitions('bank first','bank second',...borrowedArts,side===0?attack:motionIdle,side===1?attack:motionIdle,'','',side===0?def:'',side===1?def:'');
+  try{
+    api.ktCoreSoundCatalog(borrowed,0,'0,0,800,8000');api.ktCoreSoundCatalog(borrowed,1,'0,0,1600,8000');
+    api.ktCoreSetup(borrowed,-10*256,0,10*256,0);api.ktCoreDebugForceState(borrowed,side,200);
+    api.ktCoreAdvance(borrowed,0,'',0,'');api.ktCoreAdvance(borrowed,0,'',0,'');
+    let v=JSON.parse(api.ktCoreSounds(borrowed))[0];assert.equal(v.actor,2-side);assert.equal(v.side,1-side);assert.equal(v.pan,-.5);assert.equal(v.remaining,side===0?12:6);
+    api.ktCoreAdvance(borrowed,0,'',0,'');v=JSON.parse(api.ktCoreSounds(borrowed))[0];assert.equal(v.pan,.5);assert.equal(api.ktCoreIssues(borrowed),'');
+  }finally{api.ktCoreRelease(borrowed);}
+}
+console.log('Native Wasm PlaySnd/SndPan/StopSnd / 288 coordinate-side-facing-pan-pitch-loop sequences / six helper channel lifecycles / six borrowed sound-bank routes / pure reads: OK (synthetic; native mixer timing unverified)');
+
 const filterAttack=`[Statedef 0]
 anim=0
 type=S

@@ -717,18 +717,7 @@ class FightingCharacter(
             "assertspecial" -> {
                 args["flag"]?.lowercase()?.let { asserted.add(it) }
             }
-            "playsnd" -> {
-                val pair = (args["value"] ?: "-1,-1").split(',')
-                val group = integer(pair.getOrNull(0),-1)
-                val sound = integer(pair.getOrNull(1),-1)
-                if (group < -1 || sound < 0) errors.add("Invalid PlaySnd group/number")
-                else world?.presentation?.add(CorePresentationEvent("playsnd",group,sound,
-                    integer(args["channel"],-1)))
-            }
-            "stopsnd" -> {
-                world?.presentation?.add(CorePresentationEvent("stopsnd",
-                    channel=integer(args["channel"],-1)))
-            }
+            "playsnd", "stopsnd", "sndpan" -> world?.sounds?.execute(this,c,errors)
             "destroyself" -> {
                 if (parent == null) errors.add("DestroySelf ignored for a root fighter")
                 else {
@@ -1106,6 +1095,7 @@ class FightingCharacter(
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
                    attacker: FightingCharacter? = null) {
         if(!canReceive(hit))return
+        if(!guarded)world?.sounds?.stopChannel(this,0)
         val initialType=stateType
         val override=if(guarded)null else hitOverrides.matching(hit)
         val airborne=!guarded && (stateType == "A" || override?.forceAir == true)
@@ -1181,6 +1171,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     internal val environment=CoreEnvironmentEffects()
     internal val palettes=CoreFightPalettes(this)
     internal val reversals=CoreReversals(this)
+    internal val sounds=CoreSounds(this)
     var hitPowerRules=HitPowerRules.DEFAULT
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
@@ -1239,6 +1230,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         reversals.contacts.clear()
         entities.clashes.clear()
         presentation.clear()
+        sounds.beginTick()
         val sequence = roundFlow
         p1.roundState = sequence?.roundState() ?: 2
         p2.roundState = sequence?.roundState() ?: 2
@@ -1302,6 +1294,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         if(allowCombat)for(shot in entities.projectiles)CoreGuardDistance.projectile(this,shot)
         effects.advance()
         CoreAfterImages.finishTick(this)
+        sounds.finishTick()
         sequence?.step(p1,p2)
         frame++
     }

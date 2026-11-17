@@ -5,6 +5,7 @@
 let api=null,handle=0,clock=0,channel=null,working=false,paused=false;
 let gameMode="cpu",level=4,endless=true,controls=[{directions:0,buttons:""},{directions:0,buttons:""}];
 let debugEnabled=false;
+let matchToken=0;
 let lastSnapshot=-Infinity,lastStats=-Infinity,elapsedCpuMs=0,completedInWindow=0,
   lastBatchCpu=0,callbacks=0,backendVersion="";
 const emit=(type,data={})=>self.postMessage({type,...data});
@@ -41,6 +42,8 @@ function pump(){
       if(gameMode==="cpu")api.ktCoreAdvanceCpu(handle,level);
       else api.ktCoreAdvance(handle,controls[0].directions,controls[0].buttons,
         controls[1].directions,controls[1].buttons);
+      const audio=JSON.parse(api.ktCoreSoundEvents(handle));
+      if(audio.length)emit("audio",{events:audio,matchToken});
       api.ktCoreClockCompletedOne(clock);
       cpu+=performance.now()-start;
     }
@@ -106,9 +109,12 @@ self.onmessage=async({data})=>{
     }else if(data.type==="start"){
       await load();
       release();
+      matchToken=data.matchToken;
       const a=data.p1,b=data.p2;
       handle=api.ktCoreCreateWithDefinitions(a.name,b.name,
         a.air,b.air,a.cns,b.cns,a.cmd,b.cmd,a.defText,b.defText);
+      api.ktCoreSoundCatalog(handle,0,a.soundCatalog||"");
+      api.ktCoreSoundCatalog(handle,1,b.soundCatalog||"");
       api.ktCoreSetup(handle,-70*256,0,70*256,0);
       api.ktCoreConfigureArena(handle,-250,250,0,true,true);
       endless=data.endless!==false;

@@ -9,6 +9,8 @@ import {collectBenchmarkDeviceInfo,describeBenchmarkDevice} from "../core/benchm
 import {findBenchmarkFighters} from "../core/benchmark-roster.js";
 import {paintBlendedSprite} from "./sprite-blend.js";
 import {paletteRgba} from "./sprite-palette.js";
+import {readSoundBank} from "./sound-assets.js";
+import {KotlinAudio} from "./audio.js";
 
 /** Browser/Capacitor adapter only: input, archive IO, sprite decoding, display.
  * Simulation and deterministic CPU behavior are compiled Kotlin/WASM.
@@ -22,6 +24,9 @@ if(isAndroidShell)document.body.classList.add("android-shell");
 const canvas=byId("arena"),ctx=canvas.getContext("2d",{alpha:false});
 const status=message=>{byId("setup-status").textContent=message};
 const library=new ArchiveLibrary();
+const audio=new KotlinAudio();
+byId("sound").onchange=()=>audio.setEnabled(byId("sound").checked);
+window.addEventListener("pagehide",()=>audio.dispose());
 const fighters=new Map();
 const installedTables=new Map();
 let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0,paintedProjectileCount=0;
@@ -34,6 +39,7 @@ const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
 const worker=new Worker(new URL("./worker.js",import.meta.url),{type:"module"});
 let lastClipboards=null;
+let matchToken=0;
 byId("cns-debug").addEventListener("toggle",()=>{
   worker.postMessage({type:"debug",enabled:byId("cns-debug").open});
 });
@@ -385,12 +391,18 @@ function begin(){
   const p1=fighters.get(byId("p1-select").value),p2=fighters.get(byId("p2-select").value);
   if(!p1||!p2||!backend){status("Kotlin runtime or fighter missing.");return}
   setQuality();
+  const soundBanks=[p1,p2].map(item=>{
+    try{return item.soundBank||(item.soundBank=readSoundBank(item.soundBytes))}
+    catch(error){return {samples:new Map(),catalog:"",warnings:[error.message]}}
+  });
+  audio.configure(soundBanks);audio.setEnabled(byId("sound").checked);audio.setPaused(false);audio.prepare();
   images=[p1,p2];activeNames=[p1.name,p2.name];
   startedAt=performance.now();previousTime=0;previousTick=0;workerStats=null;latest=null;
   lastClipboards=null;byId("clipboard-output").textContent="Waiting for authored debug messages…";
   worker.postMessage({type:"start",
-    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||""},
-    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||""},
+    matchToken:++matchToken,
+    p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||"",soundCatalog:soundBanks[0].catalog},
+    p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||"",soundCatalog:soundBanks[1].catalog},
     cpu:byId("cpu").checked,endless:byId("endless").checked,
     level:+byId("ai-level").value
   });
@@ -399,10 +411,13 @@ function begin(){
 byId("start").onclick=()=>{if(running)worker.postMessage({type:"stop"});begin()};
 byId("pause").onclick=()=>{
   paused=!paused;worker.postMessage({type:"pause",value:paused});
+  audio.setPaused(paused);
   byId("pause").textContent=paused?"Resume":"Pause";
 };
 byId("reset").onclick=()=>{
+  matchToken++;
   worker.postMessage({type:"stop"});
+  audio.reset();audio.setPaused(false);
   running=false;paused=false;latest=null;workerStats=null;
   lastClipboards=null;byId("clipboard-output").textContent="Match stopped.";
   byId("pause").disabled=true;
@@ -474,6 +489,8 @@ worker.onmessage=({data})=>{
     latest=data.visuals;
     byId("entities").textContent=latest.helpers+" / "+latest.projectiles;
     byId("debt").textContent=Number(data.debt).toFixed(0)+" ticks";
+  }else if(data.type==="audio"){
+    if(running&&data.matchToken===matchToken)audio.handle(data.events);
   }else if(data.type==="clipboards"){
     if(running&&byId("cns-debug").open){
       lastClipboards=data;
@@ -488,10 +505,12 @@ worker.onmessage=({data})=>{
   }else if(data.type==="paused"){
     byId("banner").textContent=data.value?"Paused · Kotlin fight frozen":"Kotlin/WASM · 60 Hz combat";
   }else if(data.type==="complete"){
+    audio.reset();
     running=false;paused=false;byId("pause").disabled=true;
     byId("reset").disabled=true;byId("record").disabled=true;
     byId("banner").textContent="Match complete";
   }else if(data.type==="error"){
+    audio.reset();
     running=false;paused=false;byId("pause").disabled=true;byId("record").disabled=true;
     byId("reset").disabled=true;
     byId("banner").textContent="Kotlin/WASM ERROR";
@@ -502,7 +521,7 @@ worker.onmessage=({data})=>{
     byId("reset").disabled=true;
   }
 };
-worker.onerror=event=>{running=false;status("Kotlin worker could not start: "+event.message)};
+worker.onerror=event=>{audio.reset();running=false;status("Kotlin worker could not start: "+event.message)};
 window.__kenjatimeKotlinQA=Object.freeze({
   get explodPaints(){return paintedExplodCount},
   get lastExplodPaint(){return lastExplodPaint},
@@ -518,6 +537,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get lastVisualFrame(){return latest?.frame??0},
   get renderPlan(){return latest},
   get clipboards(){return lastClipboards},
+  get audio(){return audio.snapshot()},
   get paintedRenderPlan(){return lastPaintedRenderPlan},
   get spriteCaches(){return images.map(item=>({bytes:item?.decodedBytes||0,entries:item?.imageCache?.size||0}))},
   get warning(){return images.find(x=>x?.warning)?.warning||""}

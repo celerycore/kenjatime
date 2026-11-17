@@ -719,6 +719,67 @@ try:
             result[f"reversalCustomStateAndCancelledDamage{side}"]="passed"
             counter.close()
 
+        sound=browser.new_page(viewport={"width":1000,"height":780})
+        sound_errors=[]
+        sound.on("pageerror",lambda error:sound_errors.append(str(error)))
+        sound.goto(base,wait_until="domcontentloaded",timeout=30000)
+        sound.wait_for_function("!document.querySelector('#start')?.disabled",timeout=120000)
+        sound.locator("#archive").set_input_files(str(ROOT/"test-output/kotlin-kfm-sound.zip"))
+        sound.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0",timeout=45000)
+        installed=sound.locator("#p1-select option").evaluate_all("options=>options.find(o=>o.value.startsWith('installed:')).value")
+        sound.locator("#p1-select").select_option(value=installed)
+        sound.locator("#cpu").uncheck();sound.locator("#start").click()
+        original_voice=None
+        for phase in range(10):
+            observed=sound.wait_for_function("""phase=>{
+              const q=window.__kenjatimeKotlinQA,p=q?.paintedRenderPlan,a=q?.audio;
+              const actor=p?.draws.find(d=>d.kind==='fighter'&&d.side===0);
+              if(actor?.action!==760||actor.sprpriority!==phase-4||a?.state!=='running')return false;
+              const active=a.voices.filter(v=>v.started),root=active.find(v=>v.actor===1),helper=active.find(v=>v.actor!==1);
+              const left=a.rms[0],right=a.rms[1],audible=Math.max(left,right)>.001;
+              if([0,1,2,3,9].includes(phase)&&(!root||active.length!==1||!audible))return false;
+              if(phase===0&&(root.nodePan!==-1||left<=.001||right>.0001))return false;
+              if([1,2].includes(phase)&&(root.nodePan!==1||right<=.001||left>.0001))return false;
+              if([3,9].includes(phase)&&(root.nodePan!==0||left<=.001||right<=.001))return false;
+              if([4,7].includes(phase)&&(a.voices.length||left>.0001||right>.0001))return false;
+              if(phase===5&&(!root||!helper||active.length!==2||root.nodePan!==1||helper.nodePan!==-1||left<=.001||right<=.001))return false;
+              if(phase===6&&(root||!helper||active.length!==1||helper.nodePan!==-1||left<=.001||right>.0001))return false;
+              if(phase===8&&(!root||root.channel!==4||root.loop||!audible))return false;
+              return a;
+            }""",arg=phase,timeout=30000).json_value()
+            assert observed["bytes"]<=32*1024*1024 and observed["entries"]<=256,observed
+            assert observed["decoding"]<=2 and observed["pending"]<=32,observed
+            assert not observed["warnings"],observed
+            if phase==0:original_voice=observed["voices"][0]["voice"]
+            if phase==2:
+                assert observed["voices"][0]["voice"]==original_voice,observed
+                assert observed["voices"][0]["number"]==0 and observed["voices"][0]["nodeGain"]==1,observed
+            if phase==3:
+                v=observed["voices"][0]
+                assert v["voice"]!=original_voice and v["number"]==1 and v["nodeGain"]==.5 and v["nodeFrequency"]==2,observed
+            if phase==8:
+                sound.wait_for_function("""()=>{
+                  const q=window.__kenjatimeKotlinQA,p=q.paintedRenderPlan,a=q.audio;
+                  return p.frame%400>=345&&p.frame%400<=360&&!a.voices.length&&a.rms.every(n=>n<.0001);
+                }""",timeout=30000)
+        sound.locator("#pause").click()
+        sound.wait_for_function("window.__kenjatimeKotlinQA.audio.state==='suspended'&&document.querySelector('#banner').textContent.includes('Paused')",timeout=10000)
+        frozen=sound.evaluate("window.__kenjatimeKotlinQA.paintedRenderPlan.frame")
+        sound.wait_for_timeout(150)
+        assert sound.evaluate("window.__kenjatimeKotlinQA.paintedRenderPlan.frame")==frozen
+        sound.locator("#pause").click()
+        sound.wait_for_function("window.__kenjatimeKotlinQA.audio.state==='running'",timeout=10000)
+        sound.locator("#sound").uncheck()
+        sound.wait_for_function("!window.__kenjatimeKotlinQA.audio.enabled&&window.__kenjatimeKotlinQA.audio.rms.every(n=>n<.0001)",timeout=10000)
+        assert sound.evaluate("window.__kenjatimeKotlinQA.audio.voices.length")>0
+        sound.locator("#sound").check()
+        sound.wait_for_function("window.__kenjatimeKotlinQA.audio.enabled&&window.__kenjatimeKotlinQA.audio.rms.some(n=>n>.001)",timeout=10000)
+        sound.locator("#reset").click()
+        sound.wait_for_function("!window.__kenjatimeKotlinQA.audio.voices.length&&!window.__kenjatimeKotlinQA.audio.entries",timeout=10000)
+        assert not sound_errors,sound_errors
+        result["sndChannelsStereoSignalPriorityPitchExpiryPauseMuteAndReset"]="passed"
+        sound.close()
+
         for width in [320,640]:
             offsets=browser.new_page(viewport={"width":1000,"height":780})
             offset_errors=[]

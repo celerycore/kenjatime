@@ -101,6 +101,7 @@ export function availableKotlinFighters(files,source){
       cns:[...new Set(scripts)].map(p=>decodeText(files[p])).join("\n"),
       cmd:path("cmd")?decodeText(files[path("cmd")]):"",
       spriteBytes:sprites,
+      soundBytes:path("sound")?files[path("sound")]:null,
       imageCache:new Map(),decodedBytes:0,bank:null,index:null,
       unavailable:false,warning:null,
     });

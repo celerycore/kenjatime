@@ -8,7 +8,7 @@
     "test": "npm run test:kotlin",
     "test:kotlin": "npm run test:kotlin:portable && npm run test:kotlin:adapter && npm run test:kotlin:abi",
     "test:kotlin:portable": "./android/gradlew -p kotlin-core jvmTest wasmJsNodeTest wasmJsBrowserProductionWebpack",
-    "test:kotlin:adapter": "node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js test/core/kotlin-archive-import.test.js test/core/kotlin-downloads.test.js",
+    "test:kotlin:adapter": "node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js test/core/kotlin-archive-import.test.js test/core/kotlin-downloads.test.js test/core/kotlin-sound.test.js",
     "test:kotlin:abi": "node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs && node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs",
     "test:kotlin:browser": "node scripts/kotlin/create-import-fixtures.mjs && python scripts/kotlin/verify-browser.py",
     "compatibility": "npm run test:core && npm run verify:core:interactions && npm run verify:core:movesets",
