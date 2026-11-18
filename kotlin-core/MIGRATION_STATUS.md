@@ -1,6 +1,41 @@
 # Kenjatime Kotlin/Wasm combat migration
 
-## Current global pause continuation — November 18, 2026
+## Legacy controller vocabulary milestone — November 18, 2026
+
+Continues published main source `8524c54`. Kotlin now registers all 97
+legacy JavaScript controller names (100%, up from 94 of 97 or 96.9%).
+The 60 names in the Rare Akuma inventory also have Kotlin handlers.
+Complete parameter behavior, native timing, shared F sound, and multi-round
+and team behavior remain separate compatibility work.
+
+MakeDust uses shared AIR action 120 with independent spacing per authored
+controller and up to two facing-relative positions. GameMakeAnim supports
+facing-relative position, independent deterministic X/Y jitter and authored
+foreground or background ordering. Both capture their position at creation.
+Finite effects retire after their last AIR frame, explicit loops persist
+until the effect limit, and global pause freezes their animation clocks.
+Kotlin reports a missing shared AIR action. The browser skips absent shared
+sprites and paints the imported fightfx SFF for available sprites.
+
+Import an archive containing a matching fightfx.air and fightfx.sff pair.
+Wrapped installation directories and fight.def scale metadata are supported.
+The active match retains the bank selected at start. Shared fightfx for
+Explod, hit sparks and SuperPause remains open.
+
+ForceFeedback validates constant CNS arguments, resolves self/opponent
+routing and computes the timed polynomial amplitude in Kotlin. The host
+applies the resulting motor values to automatically assigned Gamepad API
+devices. Browser
+testing uses simulated actuators; physical Android and browser haptics
+remain unverified.
+
+Verification passed on 1,323 JVM tests, 1,318 Wasm tests and 33 adapter
+tests. Production Chromium drew three effects with a sprite group unique
+to the imported bank and verified the rumble envelope on a simulated
+opponent's controller. Both 600-tick KFM replays retain the previous
+combat checksum.
+
+## Previous global pause continuation — November 18, 2026
 
 Continues published main source `4757147`. Pause and SuperPause commit
 at the tick boundary. SuperPause suspends the normal pause clock, and a

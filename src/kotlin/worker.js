@@ -44,6 +44,8 @@ function pump(){
         controls[1].directions,controls[1].buttons);
       const audio=JSON.parse(api.ktCoreSoundEvents(handle));
       if(audio.length)emit("audio",{events:audio,matchToken});
+      const rumble=api.ktCoreForceFeedback(handle);
+      if(rumble!=="[]")emit("rumble",{motors:JSON.parse(rumble),matchToken});
       api.ktCoreClockCompletedOne(clock);
       cpu+=performance.now()-start;
     }
@@ -117,6 +119,7 @@ self.onmessage=async({data})=>{
       api.ktCoreSoundCatalog(handle,1,b.soundCatalog||"");
       api.ktCorePaletteCatalog(handle,0,a.paletteCatalog?.palettes||"",a.paletteCatalog?.sprites||"");
       api.ktCorePaletteCatalog(handle,1,b.paletteCatalog?.palettes||"",b.paletteCatalog?.sprites||"");
+      if(data.fightFx)api.ktCoreCommonAnimations(handle,data.fightFx.air,data.fightFx.scale);
       api.ktCoreSetup(handle,-70*256,0,70*256,0);
       api.ktCoreConfigureArena(handle,-250,250,0,true,true);
       endless=data.endless!==false;

@@ -444,6 +444,7 @@ class FightingCharacter(
     var hitCount = 0
     internal var victoryQuoteIndex = -1
     private var randomState = 0x6d2b79f5 xor id
+    internal val dustTicks = mutableMapOf<Pair<Int, Int>, Long>()
     val asserted: MutableSet<String> = linkedSetOf()
     var life = definition.maxLife
     var attackMultiplier=1.0
@@ -546,6 +547,7 @@ class FightingCharacter(
         stateNo = state
         timeInState = 0
         controllerActivation.clear()
+        dustTicks.clear()
         val program = stateProgram
         val persistence=CoreStatePersistence.read(program,this,errors)
         CoreSpritePriority.enter(this,program?.spritePriority,errors)
@@ -602,7 +604,7 @@ class FightingCharacter(
         raw?.let { CoreExpression.number(it, this, evaluationIssues)?.let(coordinates::toWorld) } ?: default
     private fun integer(raw: String?, default: Int = 0): Int =
         raw?.let { CoreExpression.number(it, this, evaluationIssues)?.toInt() } ?: default
-    private fun runController(c: StateController, errors: MutableSet<String>): Boolean {
+    private fun runController(c: StateController, key: Pair<Int, Int>, errors: MutableSet<String>): Boolean {
         val args = c.params
         when (c.type.lowercase()) {
             "null" -> {}
@@ -633,6 +635,8 @@ class FightingCharacter(
             "palfx", "allpalfx", "bgpalfx" -> world?.palettes?.execute(this,c,errors)
             "remappal" -> world?.paletteBanks?.execute(this, c, errors)
             "pause", "superpause", "modifyplayer" -> world?.pauses?.execute(this, c, errors)
+            "makedust", "gamemakeanim" -> world?.commonAnimations?.execute(this, c, key, errors)
+            "forcefeedback" -> world?.forceFeedback?.execute(this, c, errors)
             "afterimage", "afterimagetime" -> CoreAfterImages.execute(this,c,errors)
             "displaytoclipboard", "appendtoclipboard", "clearclipboard" -> CoreClipboard.execute(this,c,errors)
             "ctrlset" -> control = integer(args["value"]) != 0
@@ -1029,7 +1033,7 @@ class FightingCharacter(
             val allow = persistence != 0 || activations == 0
             controllerActivation[key] = activations + 1
             if (!allow || persistence > 1 && activations % persistence != 0) continue
-            if (runController(controller, errors)) return true
+            if (runController(controller, key, errors)) return true
         }
         return false
     }
@@ -1197,6 +1201,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     internal val paletteBanks = CoreFightPaletteBanks(this)
     internal val reversals=CoreReversals(this)
     internal val sounds=CoreSounds(this)
+    internal val commonAnimations = CoreCommonAnimations(this)
+    internal val forceFeedback = CoreForceFeedback(this)
     var hitPowerRules=HitPowerRules.DEFAULT
     val issues: MutableSet<String> = linkedSetOf()
     val contacts: MutableList<FightContact> = ArrayList()
@@ -1256,6 +1262,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         entities.clashes.clear()
         presentation.clear()
         sounds.beginTick()
+        forceFeedback.beginTick()
         val sequence = roundFlow
         p1.roundState = sequence?.roundState() ?: 2
         p2.roundState = sequence?.roundState() ?: 2
@@ -1317,6 +1324,7 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         if(allowCombat)for(shot in entities.projectiles)if(!pauses.entityFrozen(shot.pauseMoves))
             CoreGuardDistance.projectile(this,shot)
         effects.advance()
+        commonAnimations.advance()
         CoreAfterImages.finishTick(this)
         sounds.finishTick()
         if (!pauses.active) sequence?.step(p1,p2)

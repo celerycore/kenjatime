@@ -24,17 +24,42 @@ export function feedbackMotors(effect){
   return{strongMagnitude:effect.waveform==='sine'||effect.waveform==='sinesquare'?amplitude:0,weakMagnitude:effect.waveform==='square'||effect.waveform==='sinesquare'?amplitude:0};
 }
 
-export class ForceFeedbackState{
-  constructor({getGamepads=()=>globalThis.navigator?.getGamepads?.()||[],onIssue=()=>{}}={}){this.getGamepads=getGamepads;this.onIssue=onIssue;this.effects=new Map();this.issues=new Set();}
+export class GamepadRumble {
+  constructor({getGamepads=()=>globalThis.navigator?.getGamepads?.()||[],onIssue=()=>{}}={}){
+    this.getGamepads=getGamepads;this.onIssue=onIssue;this.issues=new Set();this.active=new Map();
+  }
   report(message){if(!this.issues.has(message)){this.issues.add(message);this.onIssue(message);}}
   actuator(pad){try{const device=this.getGamepads()[pad];return device?.vibrationActuator||device?.hapticActuators?.[0];}catch(error){this.report(`Gamepad feedback: ${error.message}`);return null;}}
   invoke(fn){try{const pending=fn();pending?.catch?.(error=>this.report(`Gamepad feedback: ${error.message}`));}catch(error){this.report(`Gamepad feedback: ${error.message}`);}}
-  reset(pad){const actuator=this.actuator(pad);if(!actuator)return;this.invoke(()=>actuator.reset?actuator.reset():actuator.playEffect?actuator.playEffect('dual-rumble',{duration:0,strongMagnitude:0,weakMagnitude:0}):actuator.pulse?.(0,0));}
-  write(pad,effect){
-    const actuator=this.actuator(pad);if(!actuator)return;const motors=feedbackMotors(effect);
-    if(actuator.playEffect)this.invoke(()=>actuator.playEffect('dual-rumble',{duration:34,startDelay:0,...motors}));
-    else if(actuator.pulse){this.report('This gamepad exposes one haptic motor; sine and square feedback share that motor.');this.invoke(()=>actuator.pulse(Math.max(motors.strongMagnitude,motors.weakMagnitude),34));}
+  resetActuator(actuator){
+    if(!actuator)return;
+    this.invoke(()=>actuator.reset?actuator.reset():actuator.playEffect?actuator.playEffect('dual-rumble',{duration:0,strongMagnitude:0,weakMagnitude:0}):actuator.pulse?.(0,0));
   }
+  reset(pad){
+    this.resetActuator(this.active.get(pad)||this.actuator(pad));
+    this.active.delete(pad);
+  }
+  writeMotors(pad,{strongMagnitude,weakMagnitude}){
+    const actuator=this.actuator(pad);
+    const previous=this.active.get(pad);
+    if(previous&&previous!==actuator){
+      this.resetActuator(previous);
+      this.active.delete(pad);
+    }
+    if(!actuator)return;
+    this.active.set(pad,actuator);
+    if(actuator.playEffect)this.invoke(()=>actuator.playEffect('dual-rumble',{duration:34,startDelay:0,strongMagnitude,weakMagnitude}));
+    else if(actuator.pulse){
+      this.report('This gamepad exposes one haptic motor; sine and square feedback share that motor.');
+      this.invoke(()=>actuator.pulse(Math.max(strongMagnitude,weakMagnitude),34));
+    }
+  }
+  stop(){for(const pad of this.active.keys())this.reset(pad);}
+}
+
+export class ForceFeedbackState extends GamepadRumble {
+  constructor(options){super(options);this.effects=new Map();}
+  write(pad,effect){this.writeMotors(pad,feedbackMotors(effect));}
   consume(events,{entity}={}){
     for(const event of events||[])if(event.type==='forcefeedback'){
       const side=entity?.root?.teamSide??entity?.teamSide??1,pad=(event.self?side:3-side)-1;
@@ -43,5 +68,5 @@ export class ForceFeedbackState{
     }
   }
   advance(){for(const [pad,effect]of this.effects){if(++effect.age>=effect.time){this.effects.delete(pad);this.reset(pad);}else this.write(pad,effect);}}
-  stop(){for(const pad of this.effects.keys())this.reset(pad);this.effects.clear();}
+  stop(){super.stop();this.effects.clear();}
 }

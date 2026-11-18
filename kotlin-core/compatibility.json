@@ -21,6 +21,9 @@
     "pause",
     "superpause",
     "modifyplayer",
+    "makedust",
+    "gamemakeanim",
+    "forcefeedback",
     "allpalfx",
     "bgpalfx",
     "afterimage",
@@ -102,7 +105,8 @@
     "stopsnd"
   ],
   "knownIncomplete": [
-    "Pause and SuperPause schedule global freeze windows, buffer late commands and track entity move allowances. SuperPause supports darkening, S-prefixed AIR and SND, power, owner invulnerability and temporary target defence. Shared fightfx/common.snd, native phase parity and ModifyPlayer fields beyond pause allowances remain incomplete.",
+    "MakeDust and GameMakeAnim use a complete imported fightfx AIR/SFF pair for finite and looping shared effects. Native effect phase and lifetime parity remain unverified. ForceFeedback resolves timed motor envelopes in Kotlin and uses the browser Gamepad vibration API. Physical controller and Android WebView haptics remain unverified.",
+    "Pause and SuperPause schedule global freeze windows, buffer late commands and track entity move allowances. SuperPause supports darkening, S-prefixed AIR and SND, power, owner invulnerability and temporary target defence. Shared fightfx and common.snd for SuperPause, native phase parity and ModifyPlayer fields beyond pause allowances remain incomplete.",
     "RemapPal resolves indexed SFF/ACT palettes, wildcard and individual resets, palette family sharing and history snapshots. Initial palette selection, per-entity remappal parameters, common fightfx palettes and native timing parity remain incomplete.",
     "VictoryQuote resolves authored winner text at the end of the single-round flow. Multi-round matches, team quote selection and native victory screen timing remain incomplete. HitCount sets the signed manual count. Automatic combo counts remain incomplete.",
     "PlaySnd/SndPan/StopSnd resolve actor-owned named/automatic voices, low priority, volume/pitch/loops, captured mixed-bank pan, finite sample clocks, global stop and hit channel-zero cleanup in Kotlin; browser/Android adapter plays actual imported PCM/float SND WAVs with bounded decode/cache and stale-generation protection; common F banks, compressed WAV codecs, full native channel counts/stealing, mixer attenuation/pan/gain/round/pause phases, hardware latency/audio focus and physical-phone parity remain incomplete or unverified",

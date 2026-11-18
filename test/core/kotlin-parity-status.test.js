@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { supportedControllers } from "../../src/runtime.js";
 
 const read = path => JSON.parse(readFileSync(new URL(path, import.meta.url)));
 const manifest = read("../../kotlin-core/compatibility.json");
@@ -19,19 +20,16 @@ test("Kotlin main source keeps deployed-site status and native parity evidence s
   assert.equal(manifest.characterEvidence.rareAkuma.archiveInRepository, false);
 });
 
-test("Rare Akuma 60-controller inventory exposes unsupported Kotlin gap", () => {
+test("Kotlin registers every legacy controller name and covers the Rare Akuma inventory", () => {
   assert.equal(rare.controllerTypes.length, 60);
-  const vocabulary = new Set(rare.controllerTypes);
-  assert.equal(new Set(manifest.controllerSubset).size, manifest.controllerSubset.length);
+  const kotlinControllers = new Set(manifest.controllerSubset);
+  assert.equal(kotlinControllers.size, manifest.controllerSubset.length);
+  assert.deepEqual([...supportedControllers].filter(type => !kotlinControllers.has(type)), []);
+  assert.deepEqual(rare.controllerTypes.filter(type => !kotlinControllers.has(type)), []);
   for (const type of manifest.controllerSubset) {
     assert.ok(combat.includes('"' + type + '"'), type + " absent from Kotlin controller execution");
   }
-  const matching = manifest.controllerSubset.filter(type => vocabulary.has(type));
-  const missing = rare.controllerTypes.filter(type => !matching.includes(type));
-  assert.ok(matching.length > 0 && missing.length > 0,
-    "The interpreter must identify its real Rare Akuma overlap and gap");
-  console.log("Rare Akuma Kotlin basic controller vocabulary overlap: " + matching.length +
-    "/60; " + missing.length + " absent, plus partial semantics on some overlaps.");
+
 });
 
 test("native KFM regression corpus remains immutable, Kotlin parity stays explicitly unverified", () => {

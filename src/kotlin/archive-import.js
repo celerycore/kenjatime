@@ -1,4 +1,5 @@
 import {charactersFromFiles,decodeText,sff} from "../formats.js";
+import {loadCommonEffects} from "../core/common-effects.js";
 import {readExternalPalettes} from "../palettes.js";
 import {unpackArchive,readArchiveFile} from "../uploads.js";
 
@@ -110,4 +111,24 @@ export function availableKotlinFighters(files,source){
     });
   }
   return {ready,missing};
+}
+
+/** Keep the AIR and SFF in the same imported installation, including ZIPs
+ * with a top-level directory. Kotlin consumes the original AIR text. */
+export function availableKotlinFightFx(files) {
+  const roots=new Set([""]);
+  for(const path of Object.keys(files)){
+    const match=/(?:^|\/)(?:data\/)?(?:fightfx\.air|fight\.def)$/.exec(path);
+    if(match)roots.add(path.slice(0,match.index)+(match.index>0?"/":""));
+  }
+  for(const root of roots){
+    const scoped=root?Object.fromEntries(Object.entries(files)
+      .filter(([path])=>path.startsWith(root))
+      .map(([path,bytes])=>[path.slice(root.length),bytes])):files;
+    const effects=loadCommonEffects(scoped);
+    if(!effects.resource)continue;
+    return {air:decodeText(scoped[effects.paths.air]),spriteBytes:scoped[effects.paths.sff],
+      scale:effects.scale,imageCache:new Map(),decodedBytes:0};
+  }
+  return null;
 }

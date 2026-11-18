@@ -256,6 +256,15 @@ private object Fights {
     ",\"number\":" + e.number + ",\"channel\":" + e.channel + "}"
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
+@JsExport fun ktCoreCommonAnimations(handle: Int, air: String, scale: Double) {
+    val fight = Fights.get(handle)
+    try {
+        fight.commonAnimations.catalog(air, scale)
+    } catch (e: IllegalArgumentException) {
+        fight.issues.add("Invalid fightfx catalog: ${e.message}")
+    }
+}
+@JsExport fun ktCoreForceFeedback(handle: Int): String = Fights.get(handle).forceFeedback.json()
 @JsExport fun ktCoreSoundCatalog(handle: Int,side: Int,catalog: String): Unit = Fights.get(handle).sounds.catalog(side,catalog)
 @JsExport fun ktCorePaletteCatalog(handle: Int, side: Int, palettes: String, sprites: String): Unit =
     Fights.get(handle).paletteBanks.catalog(side, palettes, sprites)

@@ -1009,3 +1009,42 @@ removetime=-1
 `);
  writeFileSync(`test-output/kotlin-kfm-offset-${width}.zip`,zipSync(files));
 }
+
+// Give the authored common effect a sprite group absent from the fighter SFF.
+const fightFxBytes=all["kfm/kfm.sff"].slice();
+const fightFxTable=new DataView(fightFxBytes.buffer,fightFxBytes.byteOffset,fightFxBytes.byteLength);
+const fightFxSprite=sff(fightFxBytes).sprites.findIndex(sprite=>sprite.group===0&&sprite.number===0);
+if(fightFxBytes[15]!==2||fightFxSprite<0)throw Error("Shared effect fixture requires the KFM SFF v2 sprite");
+fightFxTable.setUint16(fightFxTable.getUint32(36,true)+fightFxSprite*28,777,true);
+writeFileSync("test-output/kotlin-fightfx.zip",zipSync({
+  "installation/data/fight.def":encoder.encode("[Info]\nlocalcoord=640,480\n[FightFx]\nscale=1\n"),
+  "installation/data/fightfx.sff":fightFxBytes,
+  "installation/data/fightfx.air":encoder.encode("[Begin Action 52]\n777,0,0,0,55\n[Begin Action 120]\n777,0,0,0,12\n")
+}));
+const sharedEffectFiles=Object.fromEntries(raw);
+sharedEffectFiles["kfm/kfm.cns"]=encoder.encode(`
+[Statedef 0]
+type=S
+physics=N
+anim=0
+ctrl=0
+[State 0, shared foreground]
+type=GameMakeAnim
+trigger1=Time=0 && Facing=1
+value=52
+pos=25,-25
+[State 0, shared background]
+type=MakeDust
+trigger1=Time<35 && Facing=1
+pos=20,-25
+pos2=-20,-25
+spacing=18
+[State 0, opponent rumble]
+type=ForceFeedback
+trigger1=Time=0 && Facing=1
+waveform=sinesquare
+ampl=140,5
+time=20
+self=0
+`);
+writeFileSync("test-output/kotlin-kfm-shared-effects.zip",zipSync(sharedEffectFiles));

@@ -1,7 +1,7 @@
 import "./app.css";
 import {unpackArchiveBytes} from "../archive-reader.js";
 import {sff} from "../formats.js";
-import {readInstalledArchive,joinImportedResources,availableKotlinFighters}
+import {readInstalledArchive,joinImportedResources,availableKotlinFighters,availableKotlinFightFx}
   from "./archive-import.js";
 import {archiveAccept} from "../uploads.js";
 import {ArchiveLibrary} from "../mobile-library.js";
@@ -11,6 +11,8 @@ import {paintBlendedSprite} from "./sprite-blend.js";
 import {paletteCatalog,paletteRgba} from "./sprite-palette.js";
 import {readSoundBank} from "./sound-assets.js";
 import {KotlinAudio} from "./audio.js";
+import {GamepadRumble} from "../haptics.js";
+import {ControllerManager} from "../gamepads.js";
 
 /** Browser/Capacitor adapter only: input, archive IO, sprite decoding, display.
  * Simulation and deterministic CPU behavior are compiled Kotlin/WASM.
@@ -25,10 +27,13 @@ const canvas=byId("arena"),ctx=canvas.getContext("2d",{alpha:false});
 const status=message=>{byId("setup-status").textContent=message};
 const library=new ArchiveLibrary();
 const audio=new KotlinAudio();
+const controllers=new ControllerManager();
+const rumble=new GamepadRumble({getGamepads:()=>controllers.poll()});
 byId("sound").onchange=()=>audio.setEnabled(byId("sound").checked);
-window.addEventListener("pagehide",()=>audio.dispose());
+window.addEventListener("pagehide",()=>{audio.dispose();rumble.stop();});
 const fighters=new Map();
 const installedTables=new Map();
+let importedFightFx=null,matchFightFx=null;
 let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0,paintedProjectileCount=0;
 let lastExplodPaint=null,lastProjectilePaint=null;
 let lastSpritePaintOrder=null,lastActorTransformPaint=null;
@@ -83,14 +88,17 @@ function installedStatus(){
     fighters.set(stableId,fighter);
   }
   refreshRoster();
+  const effectsStatus=importedFightFx?" Common fightfx artwork is available.":"";
   if(result.ready.length){
     status("Installed "+result.ready.map(f=>f.name).join(", ")+
-      " with actual AIR/CNS and SFF sprites. Kotlin MUGEN 1.1 parity is still incomplete.");
+      " with actual AIR/CNS and SFF sprites. Kotlin MUGEN 1.1 parity is still incomplete."+effectsStatus);
   }else if(result.missing.length){
     const pending=result.missing[0];
     status(pending.name+" is incomplete. Required resource(s): "+
       pending.files.slice(0,5).join(", ")+
-      ". Select its companion RAR/SFF archive; already extracted files are retained.");
+      ". Select its companion RAR/SFF archive; already extracted files are retained."+effectsStatus);
+  }else if(importedFightFx){
+    status("Installed common fightfx artwork for the next fight.");
   }else{
     status("Archive extracted, but no complete MUGEN character DEF was found. Add the character archive.");
   }
@@ -249,7 +257,8 @@ function render(){
   }
   for(const fighter of draws){
     if(fighter.kind==="superpause")darkenArena();
-    const item=images[fighter.side]||images[0];
+    const common=fighter.kind==="gameanim";
+    const item=common?matchFightFx:images[fighter.side]||images[0];
     const x=fighter.x;
     const y=fighter.y; // both projected by Kotlin's deterministic camera
     const img=spriteImage(item,fighter.group,fighter.number,fighter.remapPalette);
@@ -296,7 +305,7 @@ function render(){
       paintedSpriteCount++;
       if(fighter.kind==="explod"&&sx!==0&&sy!==0)paintedExplodCount++;
       if(fighter.kind==="projectile"&&sx!==0&&sy!==0)paintedProjectileCount++;
-    }else{
+    }else if(!common){
       // When huge SFF sprites cannot be decoded on this phone, show a
       // visible placeholder without inventing artwork or blocking combat.
       ctx.fillStyle=fighter.side?"#8cc4ea":"#a6dd84";
@@ -340,7 +349,7 @@ window.addEventListener("keyup",event=>{
   if(!KB_KEYS.has(event.code))return;
   inputs.pressed.delete(event.code);updateInput();
 });
-window.addEventListener("blur",()=>{inputs.pressed.clear();updateInput();});
+window.addEventListener("blur",()=>{inputs.pressed.clear();updateInput();rumble.stop();});
 document.addEventListener("visibilitychange",()=>{
   if(running&&document.hidden&&!paused)byId("pause").click();
 });
@@ -358,6 +367,8 @@ async function importFiles(files,{save=true}={}){
       status("Extracting "+file.name+" with the bundled RAR/7z Wasm decoder…");
       const files=await readInstalledArchive(file,message=>
         status(file.name+": "+message));
+      const fightFx=availableKotlinFightFx(files);
+      if(fightFx)importedFightFx=fightFx;
       installedTables.set(id,{name:file.name,files});
       installed.push(file);
     }
@@ -413,6 +424,8 @@ function begin(){
     if(!item.bank)return {palettes:"",sprites:""};
     return item.paletteCatalog??=(paletteCatalog(item.bank));
   });
+  rumble.stop();
+  matchFightFx=importedFightFx;
   audio.configure(soundBanks);audio.setEnabled(byId("sound").checked);audio.setPaused(false);audio.prepare();
   images=[p1,p2];activeNames=[p1.name,p2.name];
   startedAt=performance.now();previousTime=0;previousTick=0;workerStats=null;latest=null;
@@ -421,6 +434,7 @@ function begin(){
     matchToken:++matchToken,
     p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||"",soundCatalog:soundBanks[0].catalog,paletteCatalog:paletteBanks[0]},
     p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||"",soundCatalog:soundBanks[1].catalog,paletteCatalog:paletteBanks[1]},
+    fightFx:matchFightFx&&{air:matchFightFx.air,scale:matchFightFx.scale},
     cpu:byId("cpu").checked,endless:byId("endless").checked,
     level:+byId("ai-level").value
   });
@@ -430,13 +444,14 @@ byId("start").onclick=()=>{if(running)worker.postMessage({type:"stop"});begin()}
 byId("pause").onclick=()=>{
   paused=!paused;worker.postMessage({type:"pause",value:paused});
   audio.setPaused(paused);
+  if(paused)rumble.stop();
   byId("pause").textContent=paused?"Resume":"Pause";
 };
 byId("reset").onclick=()=>{
   matchToken++;
   setVictoryQuote();
   worker.postMessage({type:"stop"});
-  audio.reset();audio.setPaused(false);
+  audio.reset();audio.setPaused(false);rumble.stop();
   running=false;paused=false;latest=null;workerStats=null;
   lastClipboards=null;byId("clipboard-output").textContent="Match stopped.";
   byId("pause").disabled=true;
@@ -510,6 +525,13 @@ worker.onmessage=({data})=>{
     byId("debt").textContent=Number(data.debt).toFixed(0)+" ticks";
   }else if(data.type==="audio"){
     if(running&&data.matchToken===matchToken)audio.handle(data.events);
+  }else if(data.type==="rumble"){
+    if(running&&!paused&&data.matchToken===matchToken&&!document.hidden&&document.hasFocus()){
+      for(const motor of data.motors){
+        if(motor.reset)rumble.reset(motor.side);
+        else rumble.writeMotors(motor.side,motor);
+      }
+    }
   }else if(data.type==="clipboards"){
     if(running&&byId("cns-debug").open){
       lastClipboards=data;
@@ -525,7 +547,7 @@ worker.onmessage=({data})=>{
     byId("banner").textContent=data.value?"Paused · Kotlin fight frozen":"Kotlin/WASM · 60 Hz combat";
   }else if(data.type==="complete"){
     if(data.matchToken!==matchToken)return;
-    audio.reset();
+    audio.reset();rumble.stop();
     running=false;paused=false;byId("pause").disabled=true;
     byId("reset").disabled=true;byId("record").disabled=true;
     const winner=data.round.winner;
@@ -533,7 +555,7 @@ worker.onmessage=({data})=>{
       `${activeNames[winner-1]} wins · Player ${winner}`;
     setVictoryQuote(data.round.victoryQuote??"");
   }else if(data.type==="error"){
-    audio.reset();
+    audio.reset();rumble.stop();
     running=false;paused=false;byId("pause").disabled=true;byId("record").disabled=true;
     byId("reset").disabled=true;
     byId("banner").textContent="Kotlin/WASM ERROR";
@@ -544,7 +566,7 @@ worker.onmessage=({data})=>{
     byId("reset").disabled=true;
   }
 };
-worker.onerror=event=>{audio.reset();running=false;status("Kotlin worker could not start: "+event.message)};
+worker.onerror=event=>{audio.reset();rumble.stop();running=false;status("Kotlin worker could not start: "+event.message)};
 window.__kenjatimeKotlinQA=Object.freeze({
   get explodPaints(){return paintedExplodCount},
   get lastExplodPaint(){return lastExplodPaint},

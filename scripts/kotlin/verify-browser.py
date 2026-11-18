@@ -722,6 +722,57 @@ try:
         result["superPauseDarkensAndRendersAuthoredFlash"] = "passed"
         paused.close()
 
+        shared = browser.new_page(viewport={"width": 1000, "height": 780})
+        shared_errors = []
+        shared.on("pageerror", lambda error: shared_errors.append(str(error)))
+        shared.add_init_script("""(() => {
+          const calls = window.rumbleCalls = [];
+          const pad = index => ({index, connected: true, mapping: "standard", vibrationActuator: {
+            playEffect: (type, motors) => {calls.push({index, type, ...motors}); return Promise.resolve("complete");},
+            reset: () => {calls.push({index, reset: true}); return Promise.resolve("complete");}
+          }});
+          const first = pad(2), second = pad(5);
+          Object.defineProperty(navigator, "getGamepads", {value: () => [null, null, first, null, null, second]});
+        })()""")
+        shared.goto(base, wait_until="domcontentloaded", timeout=30000)
+        shared.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-fightfx.zip"))
+        shared.wait_for_function("""() => !document.querySelector("#archive").disabled &&
+          document.querySelector("#setup-status")?.textContent.includes("Installed common fightfx")""", timeout=45000)
+        shared.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-shared-effects.zip"))
+        shared.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0", timeout=45000)
+        installed = shared.locator("#p1-select option").evaluate_all(
+            "options=>options.find(o=>o.value.startsWith('installed:')).value"
+        )
+        shared.locator("#p1-select").select_option(value=installed)
+        shared.locator("#cpu").uncheck()
+        shared.bring_to_front()
+        shared.locator("#start").click()
+        shared.wait_for_function("""() => {
+          const qa = window.__kenjatimeKotlinQA, plan = qa?.paintedRenderPlan;
+          const draw = qa?.lastSpritePaintOrder;
+          if (!plan || draw?.frame !== plan.frame) return false;
+          const effects = plan.draws.filter(d => d.kind === "gameanim");
+          if (effects.length !== 3 || effects.some(d => d.group !== 777 || d.spriteScaleX !== 0.5)) return false;
+          return draw.draws.map(d => d.kind).join(",") === "gameanim,gameanim,fighter,fighter,gameanim" &&
+            effects.map(d => d.action).join(",") === "120,120,52";
+        }""", timeout=15000)
+        recorded = shared.wait_for_function("""() => {
+          const calls = window.rumbleCalls;
+          return calls.some(c => c.reset) && calls;
+        }""", timeout=15000).json_value()
+        assert all(event["index"] == 5 for event in recorded), recorded
+        strengths = [event["strongMagnitude"] for event in recorded if not event.get("reset")]
+        assert len(strengths) == 20 and abs(strengths[0] - 140/255) < 1e-10, recorded
+        assert abs(strengths[-1] - 235/255) < 1e-10 and recorded[-1]["reset"], recorded
+        assert all(event["strongMagnitude"] == event["weakMagnitude"] for event in recorded if not event.get("reset")), recorded
+        shared.wait_for_function("""() => {
+          const plan = window.__kenjatimeKotlinQA?.paintedRenderPlan;
+          return plan?.frame >= 60 && plan.draws.every(d => d.kind !== "gameanim");
+        }""", timeout=15000)
+        assert not shared_errors, shared_errors
+        result["commonFightFxDrawingAndForceFeedback"] = "passed"
+        shared.close()
+
         trails=browser.new_page(viewport={"width":1000,"height":780})
         trail_errors=[]
         trails.on("pageerror",lambda error:trail_errors.append(str(error)))
