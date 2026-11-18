@@ -1,7 +1,7 @@
 {
   "engine": "Kotlin/WASM",
   "channel": "kotlin-standard",
-  "sourceCommit": "2ca67da26e39fd3019dbadf6956e378c20d07d3d",
+  "sourceCommit": "ad0c847d8a7d73b71e7315f647e94679ca0d7946",
   "browserAndAndroidUseSameWasm": true,
   "nativeMugen11ParityCertified": false,
   "physicalAndroidPerformanceVerified": false,
@@ -20,11 +20,11 @@
     },
     {
       "name": "kenjatime-kotlin-core.wasm",
-      "bytes": 1364986
+      "bytes": 1366771
     },
     {
       "name": "kenjatime-kotlin-core.wasm.map",
-      "bytes": 174387
+      "bytes": 175114
     }
   ]
 }
