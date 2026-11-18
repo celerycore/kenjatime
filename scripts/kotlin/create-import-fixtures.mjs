@@ -59,6 +59,33 @@ function presetFixture(folder, characterName, displayName) {
  delete files[folder+"/kfm.sff"];
  return files;
 }
+const pcxFiles=presetFixture("pcx-prefix","PCX prefix fixture","PCX prefix fixture");
+const pcx=new Uint8Array(128+3+769);
+// A two-row, indexed 3-by-2 image containing only the first row's visible pixels.
+pcx.set([10,5,1,8]);
+pcx[8]=2;
+pcx[10]=1;
+pcx[65]=1;
+pcx[66]=4;
+pcx.set([1,2,3,12],128);
+pcx.set([240,75,90,70,180,210,190,230,100],132+3);
+const pcxEntry=512;
+const pcxBank=new Uint8Array(pcxEntry+32+pcx.length);
+const pcxHeader=new DataView(pcxBank.buffer);
+pcxBank.set(encoder.encode("ElecbyteSpr"));
+pcxBank[15]=1;
+pcxHeader.setUint32(16,1,true);
+pcxHeader.setUint32(20,1,true);
+pcxHeader.setUint32(24,pcxEntry,true);
+pcxHeader.setUint32(28,32,true);
+pcxHeader.setUint32(pcxEntry+4,pcx.length,true);
+pcxBank.set(pcx,pcxEntry+32);
+pcxFiles["pcx-prefix/pcx-prefix.sff"]=pcxBank;
+pcxFiles["pcx-prefix/kfm.cmd"]=encoder.encode("");
+pcxFiles["pcx-prefix/kfm.cns"]=encoder.encode("[Statedef 0]\nanim=0\nctrl=0\n");
+pcxFiles["pcx-prefix/kfm.air"]=encoder.encode("[Begin Action 0]\n0,0,0,0,-1\n");
+writeFileSync("test-output/kotlin-pcx-prefix.zip",zipSync(pcxFiles));
+
 const helperLoopFiles=presetFixture("helper-loop","Helper loop fixture","Helper loop fixture");
 helperLoopFiles["helper-loop/kfm.cmd"]=encoder.encode("");
 helperLoopFiles["helper-loop/kfm.air"]=encoder.encode(

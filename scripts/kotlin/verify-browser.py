@@ -171,6 +171,24 @@ try:
         result["idleScaleResetsAcrossCycles"] = "passed"
         idle.close()
 
+        pcx = browser.new_page(viewport={"width": 390, "height": 844})
+        pcx.goto(base, wait_until="domcontentloaded", timeout=30000)
+        pcx.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)
+        pcx.locator("#archive").set_input_files(str(fixture_dir / "kotlin-pcx-prefix.zip"))
+        pcx.wait_for_function("window.__kenjatimeKotlinQA?.importedCount===1", timeout=45000)
+        for side in (1, 2):
+            pcx.locator(f"#p{side}-select").select_option("installed:pcx-prefix/pcx-prefix.def")
+        pcx.locator("#cpu").uncheck()
+        pcx.locator("#start").click()
+        pcx.wait_for_function("""() => {
+          const qa = window.__kenjatimeKotlinQA;
+          const draws = qa?.lastSpritePaintOrder?.draws ?? [];
+          return qa?.paintedRenderPlan?.frame > 5 && draws.filter(d => d.kind === 'fighter').length === 2;
+        }""", timeout=10000)
+        assert pcx.evaluate("window.__kenjatimeKotlinQA.missingSpriteDraws") == 0
+        result["incompletePcxPrefixPainted"] = "passed"
+        pcx.close()
+
         helpers = browser.new_page(viewport={"width": 1000, "height": 780}, accept_downloads=True)
         helpers.goto(base, wait_until="domcontentloaded", timeout=30000)
         helpers.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)

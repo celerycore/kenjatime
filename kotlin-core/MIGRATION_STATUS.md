@@ -20,6 +20,9 @@ including the first active projectile element. Per-element AIR collision
 overrides apply independently to each box type. Body push uses both authored
 body height and overlapping hurt boxes. AIR scale, angle, and interpolation
 affect the drawn sprite and afterimages independently of collision geometry.
+The browser displays the valid pixel data from Nu-13's incomplete SFF v1
+PCX effects with transparent trailing pixels. The sampled mirror also requests
+helper sprites absent from its SFF, which the renderer skips.
 
 The compiled Kotlin/Wasm replay imports both stock character variants from
 the supplied ZIP. Both pass the jump-start, airborne, landing, and idle

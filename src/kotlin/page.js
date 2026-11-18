@@ -177,7 +177,7 @@ function spriteImage(item,group,number,remapPalette){
   const index=item.index.get(spriteKey);
   if(index===undefined)return null;
   try{
-    let sprite=item.bank.decode(index);
+    let sprite=item.bank.decodeForDisplay?.(index) ?? item.bank.decode(index);
     if(remapPalette){
       try{sprite=item.bank.decodeWithPalette(index,...remapPalette)}
       catch{/* Preserve authored art if the target palette data is corrupt. */}
