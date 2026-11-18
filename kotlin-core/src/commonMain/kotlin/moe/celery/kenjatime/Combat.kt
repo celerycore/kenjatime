@@ -875,11 +875,10 @@ class FightingCharacter(
                 val projectilePriority=allowance("projpriority",1)
                 require(projectilePriority >= 1) { "Projectile projpriority must be positive" }
                 val removeOnHit=(args["projremove"]?.let(::value) ?: 1.0) != 0.0
-                val damage = (args["damage"] ?: args["projdamage"] ?: "0,0").split(',')
                 val pauses=CoreHitPauses.parse(args,this,errors,true) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hitFlags=CoreHitFlags.parse(args["hitflag"] ?: args["projhitflag"],errors) ?: return false
-                val hitDamage=integer(damage.getOrNull(0))
+                val (hitDamage, guardDamage) = CoreDamage.hitValues(args, this, errors, projectile = true) ?: return false
                 val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
                 val fallVelocities=CoreFallVelocities.parse(args,this,errors) ?: return false
                 val fallDamage=CoreFallDamage.parse(args,this,errors) ?: return false
@@ -901,7 +900,7 @@ class FightingCharacter(
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
                     damage = hitDamage,
-                    guardDamage = integer(damage.getOrNull(1)),
+                    guardDamage = guardDamage,
                     guardFlag = (args["guardflag"] ?: args["projguardflag"] ?: "HL").uppercase(),
                     hitFlag = hitFlags,
                     hitPause = pauses.hit.first,
@@ -957,7 +956,7 @@ class FightingCharacter(
                 val pauses=CoreHitPauses.parse(args,this,errors) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hitFlags=CoreHitFlags.parse(args["hitflag"],errors) ?: return false
-                val hitDamage=integer(args["damage"]?.substringBefore(','))
+                val (hitDamage, guardDamage) = CoreDamage.hitValues(args, this, errors) ?: return false
                 val powers=CoreHitPowers.parse(args,this,hitDamage,errors) ?: return false
                 val fallVelocities=CoreFallVelocities.parse(args,this,errors) ?: return false
                 val fallDamage=CoreFallDamage.parse(args,this,errors) ?: return false
@@ -980,7 +979,7 @@ class FightingCharacter(
                     hitPause = pauses.hit.first,
                     velocityX = hitVelocities.ground.x,
                     velocityY = hitVelocities.ground.y,
-                    guardDamage = integer(args["guard.damage"] ?: args["damage"]?.substringAfter(',',"0")),
+                    guardDamage = guardDamage,
                     guardFlag = (args["guardflag"] ?: "").uppercase().replace(" ", ""),
                     hitFlag = hitFlags,
                     priority = integer(priority.getOrNull(0), 4).coerceIn(1, 7),

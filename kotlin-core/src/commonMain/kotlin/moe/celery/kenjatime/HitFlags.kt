@@ -4,8 +4,10 @@ package moe.celery.kenjatime
 internal object CoreHitFlags {
     fun parse(raw: String?,errors: MutableSet<String>): String? {
         val flags=(raw ?: "MAF").filterNot { it.isWhitespace() }.uppercase()
-        if(flags.none { it in "HLMAFD" } || flags.any { it !in "HLMAFD+-" } || '+' in flags && '-' in flags) {
-            errors.add("Invalid hitflag: expected HLMAFD flags with at most one of + or -")
+        // P is a projectile-target flag. It can accompany ordinary fighter
+        // postures without changing fighter eligibility.
+        if(flags.none { it in "HLMAFDP" } || flags.any { it !in "HLMAFDP+-" } || '+' in flags && '-' in flags) {
+            errors.add("Invalid hitflag: expected HLMAFDP flags with at most one of + or -")
             return null
         }
         return flags

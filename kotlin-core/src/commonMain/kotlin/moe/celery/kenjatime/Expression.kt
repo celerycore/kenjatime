@@ -170,6 +170,10 @@ object CoreExpression {
                 val value=args.getOrNull(i)?.read(f) ?: throw IllegalArgumentException("Missing argument for "+name)
                 floating=floating || value.floating;return value.number()
             }
+            if (name == "cond") {
+                require(args.size == 3) { "Cond requires three arguments" }
+                return args[if (args[0].read(f).bool()) 1 else 2].read(f)
+            }
             if(name=="ifelse") {
                 val selected=args.getOrNull(if(a(0)!=0.0)1 else 2)?.read(f)
                     ?: throw IllegalArgumentException("Missing argument for ifelse")
@@ -485,7 +489,7 @@ object CoreExpression {
             is Literal -> n.v.n!=null
             is Unary -> constant(n.x)
             is Binary -> constant(n.x)&&constant(n.y)
-            is FunctionCall -> n.name in setOf("abs","floor","ceil","sin","cos","min","max","ifelse")&&n.args.all{constant(it)}
+            is FunctionCall -> n.name in setOf("abs","floor","ceil","sin","cos","min","max","ifelse","cond")&&n.args.all{constant(it)}
             else -> false
         }
         require(constant(node)) { "Map default requires a numeric constant expression" }

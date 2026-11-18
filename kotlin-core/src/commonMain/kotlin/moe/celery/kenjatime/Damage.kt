@@ -4,6 +4,22 @@ import kotlin.math.floor
 
 /** Base and runtime damage factors, including active super-pause defence. */
 internal object CoreDamage {
+    fun hitValues(args: Map<String, String>, actor: FightingCharacter, errors: MutableSet<String>,
+                  projectile: Boolean = false): Pair<Int, Int>? = try {
+        val raw = args["damage"] ?: if (projectile) args["projdamage"] else null
+        val values = raw?.let(CnsArguments::split).orEmpty()
+        require(values.size <= 2) { "Damage requires one or two components" }
+        fun evaluate(value: String?): Int = value?.let {
+            CoreExpression.numericValue(it, actor, errors, "damage")?.toInt()
+                ?: throw IllegalArgumentException("Invalid damage expression")
+        } ?: 0
+        val guardOverride = if (projectile) null else args["guard.damage"]
+        evaluate(values.firstOrNull()) to evaluate(guardOverride ?: values.getOrNull(1))
+    } catch (e: IllegalArgumentException) {
+        errors.add("Invalid damage: ${e.message}")
+        null
+    }
+
     fun contact(hit: HitDefinition,attacker: FightingCharacter?,defender: FightingCharacter,guarded: Boolean): Int {
         val amount=(if(guarded)hit.guardDamage else hit.damage).coerceAtLeast(0)
         val attack=attacker?.definition?.attack ?: 100

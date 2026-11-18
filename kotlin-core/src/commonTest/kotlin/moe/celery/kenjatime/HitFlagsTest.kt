@@ -94,6 +94,29 @@ class HitFlagsTest {
         val w=fight(extra=shot("hitflag=m-\nprojhitflag=unknown"));w.step();w.step()
         assertEquals(990,w.p2.life);assertTrue(w.issues.isEmpty(),w.issues.joinToString())
     }
+    @Test fun hitAndProjectileControllersKeepNestedDamageAndRecoveryExpressionsIntact() {
+        val params = """
+            hitflag=MAFDP
+            damage=Ceil(Cond(EnemyNear,Life=1000,22.25,90)),Cond(0,1/0,6)
+            fall.recovertime=14+(EnemyNear,MoveType=A)*3-Cond(Var(5)<10,Var(5),10)
+        """.trimIndent()
+        val strike = fight(params)
+        strike.p1.vars[5] = 4
+        strike.p1.changeState(200)
+        strike.step()
+        assertEquals(23, strike.contacts.single().damage)
+        assertEquals(977, strike.p2.life)
+        assertEquals(10, strike.p1.activeHitDef?.fallRecoverTime)
+        assertTrue(strike.issues.isEmpty(), strike.issues.toString())
+
+        val projectile = fight(extra = shot(params))
+        projectile.step()
+        projectile.step(b = InputFrame(Directions.R))
+        assertTrue(projectile.contacts.single().guarded)
+        assertEquals(994, projectile.p2.life)
+        assertTrue(projectile.issues.isEmpty(), projectile.issues.toString())
+        assertFalse(accepts(projectile, "P"))
+    }
     @Test fun rejectedComboHitKeepsItsWindowAndHasNoContactSideEffects() {
         val w=fight("hitflag=M+\npausetime=2,3\nid=71\np1stateno=800")
         w.p1.changeState(200);w.step()
