@@ -15,6 +15,13 @@ object CoreExpression {
         fun string() = s ?: (n?.toString() ?: "")
         companion object { fun num(d: Double,floating: Boolean=d%1.0!=0.0) = Value(n=d,floating=floating); fun str(s: String) = Value(s=s) }
     }
+    private data class Redirect(val root: Boolean, val value: Node) : Node {
+        override fun read(f: FightingCharacter): Value {
+            val actor = if (root) f.rootActor() else f.parent
+            require(actor != null && !actor.destroyed) { "Unavailable ${if (root) "Root" else "Parent"} redirect" }
+            return value.read(actor)
+        }
+    }
     private data class Literal(val v: Value): Node { override fun read(f: FightingCharacter) = v }
     private fun numeric(node: Node,f: FightingCharacter,label: String): Double {
         val n=node.read(f).n ?: throw IllegalArgumentException("$label requires a numeric expression")
@@ -105,7 +112,7 @@ object CoreExpression {
                 "moveguarded" -> f.moveGuardedTime.toDouble()
                 "movereversed" -> f.moveReversedTime.toDouble()
                 "id" -> f.id.toDouble()
-                "numhelper" -> f.world?.entities?.helpers?.count { it.owner===f }?.toDouble() ?: 0.0
+                "numhelper" -> f.world?.entities?.countHelpers(f)?.toDouble() ?: 0.0
                 "numproj" -> f.world?.entities?.projectiles?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numexplod" -> f.world?.effects?.count(f)?.toDouble() ?: 0.0
                 "inguarddist" -> if(f.inGuardDistance)1.0 else 0.0
@@ -187,9 +194,17 @@ object CoreExpression {
                         }
                     }
                 }
-                "numhelper" -> f.world?.entities?.helpers?.count {
-                    it.owner===f && (args.isEmpty() || it.helperId==idx(0))
-                }?.toDouble() ?: 0.0
+                "numhelper" -> {
+                    require(args.size <= 1) { "NumHelper requires zero or one argument" }
+                    val id = if (args.isEmpty()) 0 else numeric(args[0], f, name).toInt()
+                    f.world?.entities?.countHelpers(f, id)?.toDouble() ?: 0.0
+                }
+                "ishelper" -> {
+                    require(args.size <= 1) { "IsHelper requires zero or one argument" }
+                    val matches = if (args.isEmpty()) f.parent != null
+                        else f.world?.entities?.isHelper(f, numeric(args[0], f, name).toInt()) == true
+                    if (matches) 1.0 else 0.0
+                }
                 "numprojid" -> f.world?.entities?.projectiles?.count {
                     it.owner===f && it.projectileId==idx(0)
                 }?.toDouble() ?: 0.0
@@ -303,6 +318,12 @@ object CoreExpression {
             if(t.type=='s')return Literal(Value.str(t.value))
             if(t.type!='i')throw IllegalArgumentException("Invalid token "+t.value)
             var name=t.value.lowercase()
+            if ((name == "parent" || name == "root") && accept(",")) {
+                require(++depth <= 32) { "Expression nesting limit" }
+                val value = unary()
+                depth--
+                return Redirect(name == "root", value)
+            }
             val projectile=projectilePredicate.matchEntire(name)
             if(projectile != null && (accept("=") || accept("=="))) {
                 val suffix=projectile.groupValues[2]

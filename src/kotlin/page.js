@@ -53,6 +53,7 @@ let matchToken=0;
 byId("cns-debug").addEventListener("toggle",()=>{
   worker.postMessage({type:"debug",enabled:byId("cns-debug").open});
 });
+let sourceCommit="";
 let backend="",running=false,paused=false,latest=null,lastDraw=0;
 let frameSamples=0,drawn=0,measureStart=performance.now(),renderFps=0;
 let startedAt=0,recording=false,rows=[],previousTick=0,previousTime=0;
@@ -447,6 +448,7 @@ function begin(){
   if(!p1||!p2||!backend){status("Kotlin runtime or fighter missing.");return}
   finishRecording();
   running=false;paused=false;
+  showHelperLimit(null);
   byId("pause").disabled=true;
   byId("reset").disabled=true;
   byId("record").disabled=true;
@@ -501,6 +503,7 @@ byId("reset").onclick=()=>{
   worker.postMessage({type:"stop",matchToken});
   audio.reset();audio.setPaused(false);rumble.stop();
   running=false;paused=false;latest=null;workerStats=null;
+  showHelperLimit(null);
   lastPaintedRenderPlan=null;
   inputs.pressed.clear();
   updateInput();
@@ -519,6 +522,15 @@ byId("reset").onclick=()=>{
 function rowToCsv(data){
   return data.map(cell=>'"'+String(cell??"").replaceAll('"','""')+'"').join(",");
 }
+function showHelperLimit(diagnostics){
+  const message=byId("helper-status");
+  const blocked=diagnostics?.lastBlocked;
+  message.hidden=!blocked;
+  if(blocked){
+    const text=`Helper limit hit (${diagnostics.limit}). Player ${blocked.side}, state ${blocked.controllerState}, tried to spawn helper ${blocked.id} in state ${blocked.startState}.`;
+    if(message.textContent!==text)message.textContent=text;
+  }
+}
 const fields=[
   "timestamp","elapsed_seconds","engine_backend","engine_version",
   "p1_character","p2_character","cpu_mode","cpu_level","endless_mode",
@@ -527,7 +539,8 @@ const fields=[
   "projectiles_alive","worker_callbacks",
   "device_model","device_os","device_os_version","browser_name",
   "browser_version","browser_user_agent","device_memory_gib",
-  "device_cpu_logical_cores","screen_width_px","screen_height_px","device_pixel_ratio"
+  "device_cpu_logical_cores","screen_width_px","screen_height_px","device_pixel_ratio",
+  "source_commit","helper_diagnostics","engine_issues"
 ];
 function record(stats){
   if(!recording)return;
@@ -544,7 +557,8 @@ function record(stats){
     dev.deviceModel||"Unknown",dev.osName||"Unknown",dev.osVersion||"",
     dev.browserName||"Unknown",dev.browserVersion||"",dev.userAgent||"",
     dev.deviceMemoryGiB??"",dev.hardwareConcurrency??"",
-    dev.screenWidth??"",dev.screenHeight??"",dev.pixelRatio??""
+    dev.screenWidth??"",dev.screenHeight??"",dev.pixelRatio??"",
+    sourceCommit,stats.helperDiagnostics?JSON.stringify(stats.helperDiagnostics):"",JSON.stringify(stats.issues)
   ]);
   byId("record-status").textContent="Recording "+rows.length+" samples • "+elapsed.toFixed(0)+" seconds. No data sent to a server.";
 }
@@ -604,6 +618,7 @@ worker.onmessage=({data})=>{
     }
   }else if(data.type==="stats"){
     workerStats=data;
+    showHelperLimit(data.helperDiagnostics);
     byId("hz").textContent=(data.windowMs?data.ticks*1000/data.windowMs:0).toFixed(1)+" Hz";
     byId("tickcpu").textContent=data.averageTickCpuMs.toFixed(2)+" ms";
     record(data);
@@ -657,6 +672,11 @@ window.__kenjatimeKotlinQA=Object.freeze({
 });
 async function initialize(){
   setQuality();
+  if(!import.meta.env.DEV){
+    void fetch(new URL("../build-info.json",location.href),{cache:"no-cache"})
+      .then(response=>response.ok?response.json():null)
+      .then(info=>{sourceCommit=info?.sourceCommit||"";}).catch(()=>{});
+  }
   requestAnimationFrame(render);
   collectBenchmarkDeviceInfo().then(info=>{
     deviceInfo=info;byId("device").textContent=describeBenchmarkDevice(info);

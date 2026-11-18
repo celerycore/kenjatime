@@ -741,8 +741,10 @@ class FightingCharacter(
             "destroyself" -> {
                 if (parent == null) errors.add("DestroySelf ignored for a root fighter")
                 else {
-                    if(integer(args["removeexplods"]) != 0) world?.effects?.remove(this)
-                    destroyed = true; return true
+                    val entities = world?.entities
+                    if (entities == null) destroyed = true
+                    else entities.destroyHelper(this, integer(args["recursive"]) != 0, integer(args["removeexplods"]) != 0)
+                    return true
                 }
             }
             "poweradd", "powerset", "targetpoweradd" -> CorePowerControllers.execute(this,c,errors)
@@ -806,25 +808,23 @@ class FightingCharacter(
                     }
                 }
             }
-            "helper" -> {
-                val offset = (args["pos"] ?: "0,0").split(',')
-                val ownPalette=args["ownpal"]?.let { (CoreExpression.number(it,this,errors) ?: return false)!=0.0 } ?: false
-                val pauseMoves = try {
-                    CorePauseMoves.read(args, this, errors)
-                } catch (e: IllegalArgumentException) {
-                    errors.add("Invalid Helper: ${e.message}")
-                    return false
-                }
+            "helper" -> try {
+                fun number(raw: String): Double = CoreExpression.numericValue(raw, this, errors, "Helper")
+                    ?: throw IllegalArgumentException("Invalid Helper parameter")
+                fun integer(name: String, default: Int = 0) = args[name]?.let { number(it).toInt() } ?: default
+                val position = CnsArguments.split(args["pos"] ?: "0,0")
+                require(position.size <= 2) { "Helper pos requires up to two coordinates" }
+                val offsetX = coordinates.toWorld(number(position[0]))
+                val offsetY = coordinates.toWorld(number(position.getOrElse(1) { "0" }))
+                val ownPalette = args["ownpal"]?.let { number(it) != 0.0 } ?: false
+                val pauseMoves = CorePauseMoves.read(args, this, errors)
                 entityRequests.add(EntityRequest.Helper(
-                    this,
-                    integer(args["id"]),
-                    integer(args["stateno"]),
-                    number(offset.getOrNull(0)),
-                    number(offset.getOrNull(1)),
-                    integer(args["facing"], 1),
-                    integer(args["keyctrl"]) != 0,
-                    integer(args["bindtime"]),ownPalette,pauseMoves
+                    this, integer("id"), integer("stateno"), offsetX, offsetY, integer("facing", 1),
+                    integer("keyctrl") != 0, integer("bindtime"), ownPalette, pauseMoves,
+                    controllerState = key.first
                 ))
+            } catch (e: IllegalArgumentException) {
+                errors.add("Invalid Helper: ${e.message}")
             }
             "projectile" -> try {
                 fun value(raw: String): Double = CoreExpression.number(raw,this,errors)

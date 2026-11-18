@@ -6,7 +6,8 @@ sealed class EntityRequest {
         val owner: FightingCharacter, val helperId: Int, val state: Int,
         val offsetX: Int, val offsetY: Int, val face: Int, val keyControl: Boolean,
         val bindTime: Int,val ownPalette: Boolean=false,
-        val pauseMoves: CorePauseMoves = CorePauseMoves()
+        val pauseMoves: CorePauseMoves = CorePauseMoves(),
+        val controllerState: Int = owner.stateNo
     ) : EntityRequest()
     data class Projectile(
         val owner: FightingCharacter, val projectileId: Int, val animation: Int,
@@ -31,7 +32,9 @@ data class HelperEntity(
     val actor: FightingCharacter,
     val helperId: Int,
     val keyControl: Boolean
-)
+) {
+    internal val root = owner.rootActor()
+}
 
 data class ProjectileClash(
     val first: Int,val second: Int,val firstCancelled: Boolean,val secondCancelled: Boolean
@@ -140,15 +143,61 @@ class CoreEntities(private val match: DeterministicFight) {
     var maxHelpers = 56
     var maxProjectiles = 256
     private val pendingRequests = mutableListOf<EntityRequest>()
+    private data class BlockedHelper(val side: Int, val actor: Int, val controllerState: Int, val id: Int, val startState: Int)
+    private var blockedHelperSpawns = 0L
+    private var lastBlockedHelper: BlockedHelper? = null
+
+    internal fun countHelpers(actor: FightingCharacter, id: Int = 0): Int {
+        val root = actor.rootActor()
+        return helpers.count { it.root === root && !it.actor.destroyed && (id <= 0 || it.helperId == id) }
+    }
+
+    internal fun isHelper(actor: FightingCharacter, id: Int): Boolean =
+        helpers.any { it.actor === actor && !it.actor.destroyed && it.helperId == id }
+
+    internal fun destroyHelper(actor: FightingCharacter, recursive: Boolean, removeExplods: Boolean) {
+        actor.destroyed = true
+        if (removeExplods) match.effects.remove(actor)
+        if (!recursive) return
+        for (helper in helpers) {
+            val descendants = generateSequence(helper.owner) { it.parent }.take(helpers.size + 1)
+            if (descendants.any { it === actor }) {
+                helper.actor.destroyed = true
+                if (removeExplods) match.effects.remove(helper.actor)
+            }
+        }
+    }
+
+    internal fun helperDiagnosticsJson(): String {
+        val groups = helpers.filterNot { it.actor.destroyed }
+            .groupingBy { Triple(it.root.id, it.helperId, it.actor.stateNo) }.eachCount()
+        val active = groups.entries.joinToString(prefix = "[", postfix = "]") { (group, count) ->
+            val (side, id, state) = group
+            "{\"side\":$side,\"id\":$id,\"state\":$state,\"count\":$count}"
+        }
+        val blocked = lastBlockedHelper?.let {
+            "{\"side\":${it.side},\"actor\":${it.actor}," +
+                "\"controllerState\":${it.controllerState},\"id\":${it.id},\"startState\":${it.startState}}"
+        } ?: "null"
+        return "{\"limit\":$maxHelpers,\"blockedSpawns\":$blockedHelperSpawns,\"lastBlocked\":$blocked,\"active\":$active}"
+    }
 
     fun add(requests: List<EntityRequest>, errors: MutableSet<String>) {
         for (request in requests) when (request) {
             is EntityRequest.Helper -> {
-                if (helpers.size >= maxHelpers) {
-                    errors.add("Helper resource limit exceeded")
+                val owner = request.owner
+                if (owner.destroyed) continue
+                if (request.state < 0 || request.state != 0 && request.state !in owner.definition.states) {
+                    errors.add("Missing Helper start state: ${request.state}")
                     continue
                 }
-                val owner = request.owner
+                if (helpers.size >= maxHelpers) {
+                    errors.add("Helper resource limit exceeded")
+                    blockedHelperSpawns++
+                    lastBlockedHelper = BlockedHelper(owner.rootActor().id, owner.id, request.controllerState,
+                        request.helperId, request.state)
+                    continue
+                }
                 val actor = FightingCharacter(owner.definition, nextId++, if (request.keyControl) owner.rootActor().commands else emptyList())
                 actor.parent = owner
                 actor.ownPalette=request.ownPalette

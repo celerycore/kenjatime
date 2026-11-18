@@ -315,6 +315,7 @@ select {
 .import-help summary, .device summary { color: var(--muted); }
 .import-help p { color: var(--muted); margin-top: 4px; }
 .preset { width: 100%; text-align: left; overflow-wrap: anywhere; }
+#helper-status { margin-top: 9px; color: #f1c27b; font-size: .78rem; overflow-wrap: anywhere; }
 #setup-status, #preset-status, #record-status, #device { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
 
 .benchmark-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }

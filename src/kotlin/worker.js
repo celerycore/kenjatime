@@ -64,12 +64,15 @@ function pump(){
     }
     if(now-lastStats>=500){
       if(debugEnabled)emit("clipboards",{rows:JSON.parse(api.ktCoreClipboards(handle)),frame:api.ktCoreClockTicks(clock)});
+      const issues=api.ktCoreIssues(handle).split("\n").filter(Boolean);
+      const helperDiagnostics=api.ktCoreHelperDiagnostics?.(handle);
       emit("stats",{completed:api.ktCoreClockTicks(clock),backlog:debt,
         ticks:completedInWindow,windowMs:lastStats===-Infinity?500:now-lastStats,
         cpuMs:elapsedCpuMs,averageTickCpuMs:completedInWindow?
           elapsedCpuMs/completedInWindow:0,
         lastTickCpuMs:lastBatchCpu,callbacks,
-        helperIssues:api.ktCoreIssues(handle).split("\n").filter(Boolean).length,
+        issues:issues.slice(0,16),
+        helperDiagnostics:helperDiagnostics?JSON.parse(helperDiagnostics):null,
         backend:backendVersion});
       lastStats=now;completedInWindow=0;elapsedCpuMs=0;
     }

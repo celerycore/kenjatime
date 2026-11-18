@@ -165,6 +165,12 @@ try:
         helper_rows = list(csv.DictReader(io.StringIO(Path(helper_csv.value.path()).read_text())))
         assert len(helper_rows) >= 2 and all(row["helpers_alive"] == "2" for row in helper_rows)
         assert int(helper_rows[-1]["simulation_ticks"]) > int(helper_rows[0]["simulation_ticks"])
+        for row in helper_rows:
+            diagnostics = json.loads(row["helper_diagnostics"])
+            assert diagnostics["blockedSpawns"] == 0, diagnostics
+            assert {item["id"] for item in diagnostics["active"]} == {71, 72}, diagnostics
+            assert isinstance(json.loads(row["engine_issues"]), list)
+            assert row["source_commit"]
         helpers.locator("#pause").click()
         helpers.wait_for_function("""() =>
           document.querySelector('#banner').dataset.phase === 'paused' &&

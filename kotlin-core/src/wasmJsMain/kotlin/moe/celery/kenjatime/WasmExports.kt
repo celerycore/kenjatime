@@ -255,6 +255,7 @@ private object Fights {
     "{\"type\":\"" + e.type + "\",\"group\":" + e.group +
     ",\"number\":" + e.number + ",\"channel\":" + e.channel + (if (e.common) ",\"common\":true" else "") + "}"
 }
+@JsExport fun ktCoreHelperDiagnostics(handle: Int): String = Fights.get(handle).entities.helperDiagnosticsJson()
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreCommonAnimations(handle: Int, air: String, scale: Double) {
     val fight = Fights.get(handle)

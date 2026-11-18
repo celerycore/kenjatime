@@ -69,7 +69,7 @@ ctrl=0
 [Statedef -3]
 [State -3, root watcher]
 type=Helper
-trigger1=NumHelper(71)=0
+trigger1=NumHelper(0)=0
 id=71
 stateno=700
 pos=22,-15
