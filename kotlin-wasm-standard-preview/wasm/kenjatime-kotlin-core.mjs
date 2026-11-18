@@ -88,6 +88,7 @@ export const {
     ktCoreDebugSetFacing,
     ktCoreDebugSetStats,
     ktCoreEnableRoundFlow,
+    ktCoreEnableEndlessRounds,
     ktCoreRoundState,
     ktCoreCamera,
     ktCoreAdvance,
