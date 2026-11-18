@@ -1,5 +1,43 @@
 # Kenjatime Kotlin/Wasm combat migration
 
+## MUGEN 1.1b1 reference distribution
+
+The supplied `mugen-11b1.zip` passed ZIP integrity checks. Its 195 files
+include the 32-bit Windows engine, KFM and KFM720 reference characters,
+shared CNS states, stage and motif data, AIR/SFF/SND assets, and format
+documentation covering 89 state controllers and 127 triggers. The archive
+contains no engine source. Its SHA-256 is
+`67f55cafa49107f29e4317a245e35b17a718044de8e88ee824ad64862667b356`.
+
+Archive fighters enter their own jump-start state from Up when they have
+control. Authored commands retain priority. `Const(velocity.jump.y)` and
+its air-jump counterpart resolve the neutral launch speed from CNS. A
+fighter's StateDef and controllers replace a shared definition together.
+
+Archive CNS controllers, contacts, and rendering use the same active AIR
+element. Attack boxes with one tick of lifetime remain eligible for contact,
+including the first active projectile element. Per-element AIR collision
+overrides apply independently to each box type. Body push uses both authored
+body height and overlapping hurt boxes. AIR scale, angle, and interpolation
+affect the drawn sprite and afterimages independently of collision geometry.
+
+The compiled Kotlin/Wasm replay imports both stock character variants from
+the supplied ZIP. Both pass the jump-start, airborne, landing, and idle
+sequence and deal 23 damage with the authored light punch. The Nu-13 mirror
+also jumps with manual and CPU input and records contact damage on both sides.
+The stock replay below requires a built `dist-kotlin` directory.
+
+```sh
+node --experimental-wasm-modules scripts/kotlin/verify-mugen11-reference.mjs /path/to/mugen-11b1.zip
+```
+
+These checks use the original scripts and assets in Kotlin/Wasm. The native
+Windows executable still needs direct trace comparisons. The existing native
+KFM and interaction captures come from IKEMEN GO 1.0.0. The controller-name
+tally measures registered names only. Full common-state timing, stage and
+motif behavior, team and round rules, and remaining controller and trigger
+semantics are tracked in `compatibility.json`.
+
 ## Shared AIR and SND banks — November 18, 2026
 
 Continues published main source `5be0fbc`. PlaySnd resolves F-prefixed

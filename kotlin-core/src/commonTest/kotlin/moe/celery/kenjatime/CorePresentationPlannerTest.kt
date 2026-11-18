@@ -97,6 +97,17 @@ class CorePresentationPlannerTest {
         assertTrue(plan.contains("\"group\":820"), plan)
     }
 
+    @Test fun airSpriteRotationKeepsItsShiftedOriginAndLeavesHurtBoxesAtTheActor() {
+        val air = "[Begin Action 0]\nClsn2:1\nClsn2[0]=-5,-10,5,0\n0,0,10,-8,-1,,,2,.5,90"
+        val definition = FighterDefinition.fromScript("AIR transforms", air, "")
+        val fight = DeterministicFight(FightingCharacter(definition,1), FightingCharacter(definition,2))
+        val snapshot = CorePresentationPlanner.snapshot(fight, 0)
+        assertTrue(snapshot.contains("\"x\":508.0"), snapshot)
+        assertTrue(snapshot.contains("\"y\":430.6"), snapshot)
+        assertTrue(snapshot.contains("\"rotationDegrees\":90.0"), snapshot)
+        assertEquals(listOf(MugenRect(-1280,-2560,1280,0)), fight.p1.hurtBoxes())
+    }
+
     @Test fun groundLevelActorsStayInsideTheArenaAfterCameraSettles() {
         val definition = FighterDefinition("fighter")
         val fight = DeterministicFight(FightingCharacter(definition,1),FightingCharacter(definition,2))

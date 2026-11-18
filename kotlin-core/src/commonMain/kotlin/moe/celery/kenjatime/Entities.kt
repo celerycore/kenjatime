@@ -83,6 +83,7 @@ class CoreProjectile(
         private set
     var hitPauseLeft = 0
         private set
+    private var advancedOnce = false
     val alive: Boolean get() = ticksLeft != 0
     /** False for every frozen tick, including the last one. An active final
      * lifetime update may still contact before the collection retires it. */
@@ -97,7 +98,8 @@ class CoreProjectile(
         // the next tick. Conversion back to fixed point happens once.
         vx=((vx.toLong()+accelerationX).toDouble()*multiplierX).toInt()
         vy=((vy.toLong()+accelerationY).toDouble()*multiplierY).toInt()
-        action.advance()
+        if (!owner.definition.authoredCns || advancedOnce) action.advance()
+        advancedOnce = true
         if(ticksLeft > 0)ticksLeft--
         return true
     }

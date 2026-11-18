@@ -35,6 +35,60 @@ class CoreTest {
         assertTrue(buf.matches(MugenCommand("release", MugenCommandParser.parseCommandString("~a")), true))
         assertFalse(buf.matches(MugenCommand("pressed", MugenCommandParser.parseCommandString("a")), true))
     }
+    @Test fun airDefaultsAndOverridesAreIndependentForEachCollisionType() {
+        val action = MugenAirParser.parse("""
+            [Begin Action 0]
+            Clsn1Default: 1
+            Clsn1[0] = 0,-5,10,0
+            Clsn1: 1
+            Clsn1[0] = 5,-5,15,0
+            Clsn2Default : 1
+            Clsn2 [ 0 ] = -10,-30,10,0
+            Clsn2[1] = -99,-99,99,99
+            0,0,0,0,1
+            Clsn2: 0
+            0,1,0,0,1
+            0,2,0,0,-1
+        """.trimIndent()).getValue(0)
+        val defaultAttack = AirBox(true, MugenRect(0,-5,10,0))
+        val temporaryAttack = AirBox(true, MugenRect(5,-5,15,0))
+        val defaultHurt = AirBox(false, MugenRect(-10,-30,10,0))
+        assertEquals(listOf(temporaryAttack,defaultHurt), action.frames[0].boxes)
+        assertEquals(listOf(defaultAttack), action.frames[1].boxes)
+        assertEquals(listOf(defaultAttack,defaultHurt), action.frames[2].boxes)
+    }
+
+    @Test fun airInterpolationUsesTheActiveElementAndKeepsCollisionBoxesUnchanged() {
+        val action = MugenAirParser.parse("""
+            [Begin Action 0]
+            Interpolate Offset
+            Clsn2Default: 1
+            Clsn2[0] = -5,-10,5,0
+            0,0,0,0,4,,AS256D0,1,1,0
+            Interpolate Offset
+            Interpolate Scale
+            Interpolate Angle
+            Interpolate Blend
+            0,1,20,-8,4,,AS128D128,2,.5,90
+        """.trimIndent()).getValue(0)
+        val player = AirAnimationPlayer(action)
+        repeat(2) { player.advance() }
+        val sample = player.visualFrame()!!
+        assertEquals(0, sample.sprite)
+        assertEquals(10.0, sample.offsetX)
+        assertEquals(-4.0, sample.offsetY)
+        assertEquals(1.5, sample.scaleX)
+        assertEquals(.75, sample.scaleY)
+        assertEquals(45.0, sample.angle)
+        assertEquals(SpriteBlend("add",192,64), sample.blend)
+        assertEquals(listOf(AirBox(false, MugenRect(-5,-10,5,0))), player.frame!!.boxes)
+        repeat(4) { player.advance() }
+        val closing = player.visualFrame()!!
+        assertEquals(1, closing.sprite)
+        assertEquals(10.0, closing.offsetX)
+        assertEquals(2.0, closing.scaleX)
+    }
+
     @Test fun airParsesHitboxesAndFrameTiming() {
         val air = MugenAirParser.parse("[Begin Action 200]\nClsn2Default: 1\nClsn2[0] = -10,-50,10,0\nClsn1: 1\nClsn1[0] = 0,-40,40,-20\n200,0,0,0,3\n200,1,0,0,-1")
         val a = assertNotNull(air[200])

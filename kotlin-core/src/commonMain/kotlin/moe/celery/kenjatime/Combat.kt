@@ -188,6 +188,10 @@ object MugenCnsParser {
                     }
                 }
             }
+            for (jump in listOf("jump", "airjump")) {
+                val vertical = get("velocity.$jump.neu.y") ?: continue
+                if ("velocity.$jump.y" !in this) put("velocity.$jump.y", vertical)
+            }
         }
     }
     /** Read fighter base constants without coupling actors to script text. */
@@ -240,7 +244,10 @@ object MugenCnsParser {
             if (d != null) {
                 current = d.groupValues[1].toInt()
                 metadata[current] = MugenSection(section.name,section.entries.map { (k,v) -> k to v.removeSurrounding("\"").removeSurrounding("'") })
-                controllers.getOrPut(current) { mutableListOf() }
+                // A character may replace a standard state supplied by stcommon.
+                // Keep the entire winning StateDef and its own controllers together.
+                if (useAuthoredStateDefs && current >= 0) controllers[current] = mutableListOf()
+                else controllers.getOrPut(current) { mutableListOf() }
                 continue
             }
             if (!controllerSection.matches(section.name)) continue
@@ -568,6 +575,9 @@ class FightingCharacter(
     private var evaluationIssues: MutableSet<String> = initializationIssues
     var animation: AirAnimationPlayer? = null
         private set
+    // Keep the active element through combat and rendering. Authored triggers
+    // and hitboxes must sample the same element, including single-tick boxes.
+    private var advanceAnimationOnNextTick = false
     init {
         initializationIssues.addAll(definition.initialMapIssues)
         initializationIssues.addAll(definition.victoryQuoteIssues)
@@ -617,6 +627,7 @@ class FightingCharacter(
         if (element !in 1..action.frames.size) return false
         animation = AirAnimationPlayer(action).also { it.selectElement(element) }
         animationOwner = owner
+        advanceAnimationOnNextTick = false
         return true
     }
     /** State ownership changes the script unit system. Existing physical
@@ -1087,6 +1098,15 @@ class FightingCharacter(
         }
         return false
     }
+    private fun startGroundJump(): Boolean {
+        if (!definition.authoredCns || life <= 0 || !control || stateOwner !== this || roundState != 2 ||
+            moveType == "H" || (stateType != "S" && stateType != "C") || stateNo == 40 ||
+            40 !in definition.states || "nojump" in asserted) return false
+        val directions = input.latest()?.directions ?: 0
+        if (directions and (Directions.U or Directions.D) != Directions.U) return false
+        changeState(40, this)
+        return true
+    }
     fun tick(errors: MutableSet<String>, helperKeyControl: Boolean = false) {
         if (destroyed) return
         capturedTargets.keys.removeAll { !liveTarget(it) }
@@ -1099,6 +1119,10 @@ class FightingCharacter(
         commandCache.clear()
         evaluationIssues = errors
         val paused = hitPauseLeft > 0
+        if (!paused && advanceAnimationOnNextTick) {
+            animation?.advance()
+            advanceAnimationOnNextTick = false
+        }
         CoreBodySpace.beginTick(this,paused)
         CoreScreenBounds.beginTick(this,paused)
         hitPauseThisTick = paused
@@ -1115,6 +1139,7 @@ class FightingCharacter(
         val changed = (root && ownState && executeState(-3, errors, paused)) ||
             (root && executeState(-2, errors, paused)) ||
             ((root || helperKeyControl) && stateOwner === this && executeState(-1, errors, paused)) ||
+            (root && !paused && startGroundJump()) ||
             executeState(stateNo, errors, paused, stateOwner)
         // CNS observes 1 through hitpause and the first active controller phase.
         // Advance afterward, independently of State Time and state transitions.
@@ -1122,7 +1147,7 @@ class FightingCharacter(
         if (changed || paused) return
         if(!positionFrozen) { posX += velX;posY += velY }
         timeInState++
-        animation?.advance()
+        if (definition.authoredCns) advanceAnimationOnNextTick = true else animation?.advance()
         if (hitStunLeft == 0 && (stateNo == 5000 || stateNo in 150..152) &&
             stateNo !in stateOwner.definition.states && life > 0)
             if(!fallbackHitReaction || world?.arena == null)changeState(0, this)

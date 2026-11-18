@@ -4,6 +4,61 @@ import kotlin.math.abs
 import kotlin.test.*
 
 class ArenaSimulationTest {
+    @Test fun heldUpUsesTheAuthoredJumpVelocityAndReturnsToTheLandingState() {
+        val cns = """
+            [Velocity]
+            jump.neu=0,-31
+            [Movement]
+            yaccel=1.5
+            [Statedef 0]
+            type=S
+            ctrl=1
+            anim=0
+            [Statedef 40]
+            type=S
+            ctrl=0
+            anim=40
+            [State launch]
+            type=VelSet
+            trigger1=AnimTime=0
+            y=Const(velocity.jump.y)
+            [State airborne]
+            type=ChangeState
+            trigger1=AnimTime=0
+            value=50
+            [Statedef 50]
+            type=A
+            physics=A
+            anim=41
+            ctrl=1
+            [Statedef 52]
+            type=S
+            ctrl=0
+            anim=47
+        """.trimIndent()
+        val air = "[Begin Action 0]\n0,0,0,0,-1\n[Begin Action 40]\n40,0,0,0,4\n" +
+            "[Begin Action 41]\n41,0,0,0,-1\n[Begin Action 47]\n47,0,0,0,-1"
+        val definition = FighterDefinition.fromScript("jump", air, cns,
+            defText="[Info]\nlocalcoord=1008,756", useAuthoredStateDefs=true)
+        val fight = DeterministicFight(FightingCharacter(definition,1), FightingCharacter(definition,2))
+        fight.configureArena(-150,150,0,push=false)
+        repeat(90) { tick ->
+            fight.step(if (tick == 0) InputFrame(Directions.U) else InputFrame())
+            when (tick) {
+                0 -> assertEquals(40, fight.p1.stateNo)
+                6 -> {
+                    assertEquals(50, fight.p1.stateNo)
+                    assertTrue(fight.p1.posY < 0)
+                    assertEquals(41, fight.p1.animation?.action?.number)
+                }
+            }
+        }
+        assertEquals(52, fight.p1.stateNo)
+        assertEquals(0, fight.p1.posY)
+        assertEquals(47, fight.p1.animation?.action?.number)
+        assertTrue(fight.issues.isEmpty(), fight.issues.toString())
+    }
+
     @Test fun archiveMotionAndKnockbackMirrorAtBothBackEdges() {
         val cns = """
             [Movement]
@@ -74,6 +129,31 @@ class ArenaSimulationTest {
             assertTrue(fight.issues.isEmpty(), fight.issues.toString())
         }
     }
+
+    @Test fun authoredBodyPushRequiresBothSizeAndHurtBoxOverlap() {
+        val air = """
+            [Begin Action 0]
+            Clsn2Default: 1
+            Clsn2[0] = -12,-90,12,0
+            0,0,0,0,-1
+            [Begin Action 1]
+            Clsn2Default: 1
+            Clsn2[0] = -12,-20,12,0
+            0,0,0,0,-1
+        """.trimIndent()
+        for ((height, action, expectedGap) in listOf(Triple(90, 0, 30), Triple(50, 0, 6), Triple(90, 1, 6))) {
+            val cns = "[Size]\nheight=$height\n[Statedef 0]\ntype=S\nphysics=N\nanim=$action"
+            val definition = FighterDefinition.fromScript("body space", air, cns, useAuthoredStateDefs = true)
+            val fight = DeterministicFight(FightingCharacter(definition, 1), FightingCharacter(definition, 2))
+            fight.configureArena(-100, 100)
+            fight.p1.posX = -3 * Fixed.ONE
+            fight.p2.posX = 3 * Fixed.ONE
+            fight.p1.posY = -70 * Fixed.ONE
+            fight.step()
+            assertEquals(expectedGap * Fixed.ONE, fight.p2.posX - fight.p1.posX, "height $height, action $action")
+        }
+    }
+
     private val airStates = MugenCnsParser.parse("""
         [Statedef 0]
         type=S

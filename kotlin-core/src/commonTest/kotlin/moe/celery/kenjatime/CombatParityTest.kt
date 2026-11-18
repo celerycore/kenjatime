@@ -23,6 +23,31 @@ class CombatParityTest {
         Clsn2[0] = -20,-70,20,0
         0,0,0,0,-1
     """.trimIndent()
+
+    @Test fun authoredHitsAndProjectilesUseTheirOneTickCollisionElement() {
+        val air = hurtAir + "\n" + attackAir.replace("200,0,0,0,-1", "200,0,0,0,1\n200,1,0,0,-1")
+        val idle = "[Statedef 0]\nanim=0"
+        val attack = "[Statedef 200]\nanim=200\nmovetype=A\n[State attack]\ntype=HitDef\ntrigger1=AnimElem=1\ndamage=25"
+        val shot = "[State projectile]\ntype=Projectile\ntrigger1=Time=0\nprojanim=200\ndamage=30"
+        for (projectile in listOf(false,true)) {
+            val script = idle + "\n" + if (projectile) shot else attack
+            val source = FighterDefinition.fromScript("attacker", air, script, useAuthoredStateDefs=true)
+            val target = FighterDefinition.fromScript("target", hurtAir, idle, useAuthoredStateDefs=true)
+            val fight = DeterministicFight(FightingCharacter(source,1), FightingCharacter(target,2))
+            fight.p2.posX = 35 * Fixed.ONE
+            if (projectile) fight.step() else fight.p1.changeState(200)
+            fight.step()
+            assertEquals(if (projectile) 970 else 975, fight.p2.life)
+            assertEquals(1, fight.contacts.size)
+            if (!projectile) {
+                assertEquals(0, fight.p1.animation?.index)
+                assertTrue(fight.p1.attackBoxes().isNotEmpty())
+                fight.step()
+                assertEquals(1, fight.p1.animation?.index)
+                assertTrue(fight.p1.attackBoxes().isEmpty())
+            }
+        }
+    }
     private fun fighter(
         id: Int,
         damage: Int = 70,

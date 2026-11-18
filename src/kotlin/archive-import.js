@@ -104,7 +104,7 @@ export function availableKotlinFighters(files,source){
       characterName:copyLabel(fighter.def.info?.name),
       name,source,
       air:decodeText(files[path("anim")]),
-      cns:[...new Set(scripts)].map(p=>decodeText(files[p])).join("\n"),
+      cns:[...new Set([path("stcommon"),...scripts].filter(Boolean))].map(p=>decodeText(files[p])).join("\n"),
       cmd:path("cmd")?decodeText(files[path("cmd")]):"",
       spriteBytes:sprites,
       externalPalettes,

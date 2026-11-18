@@ -115,7 +115,7 @@ class AfterImagesTest {
         val w=fight(c("time=-1\nlength=8\nframegap=2"));w.p1.velX=256;w.step()
         val old=CoreActorPose.capture(w.p1,1);w.p1.facingRight=false;w.p1.posY=-20*256;w.step()
         val pose=draws(w).single().pose
-        assertEquals(old,pose);assertTrue(pose.frame!!.boxes.isEmpty());assertEquals(0,pose.frame.sprite);assertEquals(1,pose.element)
+        assertEquals(old,pose);assertEquals(0,pose.frame!!.sprite);assertEquals(1,pose.element)
         assertFalse(w.p1.facingRight);assertEquals(1,w.p1.animation!!.frame!!.sprite)
     }
     @Test fun angleDrawAndSignedScaleAreCapturedRatherThanReadFromCurrentActor() {

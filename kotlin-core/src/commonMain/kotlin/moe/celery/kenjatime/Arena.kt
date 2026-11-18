@@ -81,11 +81,19 @@ data class ArenaRules(
         return low.toInt() to high.toInt()
     }
     private fun separate(p1:FightingCharacter,p2:FightingCharacter) {
-        if(abs(p1.posY.toLong()-p2.posY.toLong())>50L*Fixed.ONE)return
         val diff=p2.posX.toLong()-p1.posX.toLong()
         val forward=if(diff>=0)1 else -1
         val minDistance=p1.playerWidthWorld(forward).toLong()+p2.playerWidthWorld(-forward)
         if(abs(diff)>=minDistance)return
+        if (p1.definition.authoredCns && p2.definition.authoredCns) {
+            fun top(actor: FightingCharacter): Long {
+                val height = actor.definition.scriptConstants["size.height"] ?: 60.0
+                return actor.posY.toLong() - actor.definition.coordinates.toWorld(height.coerceAtLeast(0.0))
+            }
+            if (top(p1) >= p2.posY || top(p2) >= p1.posY) return
+            val opponentBoxes = p2.hurtBoxes()
+            if (p1.hurtBoxes().none { a -> opponentBoxes.any(a::intersects) }) return
+        } else if(abs(p1.posY.toLong()-p2.posY.toLong())>50L*Fixed.ONE)return
         val penetration=minDistance-abs(diff)
         val limits1=horizontalLimits(p1);val limits2=horizontalLimits(p2)
         val room1=if(p1.positionFrozen || p1.globalPauseThisTick || p1.definition.authoredCns && p1.hitPauseThisTick)0L else (if(forward>0)p1.posX.toLong()-limits1.first

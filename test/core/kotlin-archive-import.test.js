@@ -23,6 +23,21 @@ test("palette metadata respects linked SFF v2 palettes and excludes true-color a
 });
 
 const kfm=packageFiles(new Uint8Array(readFileSync("public/kfm.zip")));
+test("a full installation supplies common states before the character's own overrides",()=>{
+ const encoder=new TextEncoder(),decoder=new TextDecoder("windows-1252");
+ const files=Object.fromEntries(Object.entries(kfm).map(([file,data])=>[`reference/chars/${file}`,data]));
+ const cns=Object.keys(files).find(file=>file.endsWith("/kfm.cns"));
+ const def=Object.keys(files).find(file=>file.endsWith("/kfm.def"));
+ const text=decoder.decode(files[def]);
+ if(!/^stcommon\s*=/mi.test(text))files[def]=encoder.encode(text.replace("[Files]","[Files]\nstcommon=common1.cns"));
+ files[cns]=encoder.encode(decoder.decode(files[cns])+"\n[Statedef 170]\n; character override\n");
+ files["reference/data/common1.cns"]=encoder.encode("[Statedef 170]\n; shared default\n");
+ const item=availableKotlinFighters(files,"reference").ready.find(f=>f.definitionName==="kfm");
+ assert.ok(item);
+ assert.ok(item.cns.includes("; shared default"));
+ assert.ok(item.cns.indexOf("; shared default") < item.cns.indexOf("; character override"));
+});
+
 test("bundled KFM has a complete playable SFF/AIR/CNS source",()=>{
  const parsed=availableKotlinFighters(kfm,"builtin");
  const item=parsed.ready.find(x=>/Kung Fu Man/i.test(x.name));

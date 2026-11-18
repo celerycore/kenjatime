@@ -3,7 +3,7 @@ package moe.celery.kenjatime
 /** Immutable sprite data only: history never retains a mutable actor/animation or collision boxes. */
 internal data class CoreActorPose(
     val x: Int,val y: Int,val facingRight: Boolean,val definition: FighterDefinition,
-    val frame: AirFrame?,val action: Int,val element: Int,val elementTime: Int,val animTime: Long,
+    val frame: AirVisualFrame?,val action: Int,val element: Int,val elementTime: Int,val animTime: Long,
     val scaleX: Double,val scaleY: Double,val offsetX: Long,val offsetY: Long,
     val angleDraw: Boolean,val angle: Double,val priority: Int,val capturedAt: Long,
     val paletteRemaps: CorePaletteRemap
@@ -12,7 +12,7 @@ internal data class CoreActorPose(
         fun capture(actor: FightingCharacter,at: Long): CoreActorPose {
             val animation=actor.animation
             return CoreActorPose(actor.posX,actor.posY,actor.facingRight,actor.animationOwner.definition,
-                animation?.frame?.copy(boxes=emptyList()),animation?.action?.number ?: -1,
+                animation?.visualFrame(),animation?.action?.number ?: -1,
                 (animation?.index ?: 0)+1,animation?.tick ?: 0,animation?.remaining ?: 0,
                 actor.drawScaleX,actor.drawScaleY,actor.displayOffsetX,actor.displayOffsetY,
                 actor.angleDrawEnabled,actor.drawAngleDegrees,actor.spritePriority,at,actor.paletteEffects.remaps)

@@ -325,6 +325,8 @@ edge=20,5
 `);
 bodyFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(bodyFiles["kfm/kfm.air"])+`
 [Begin Action 706]
+Clsn2Default: 1
+Clsn2[0] = -12,-60,12,0
 0,0,0,0,-1
 `);
 writeFileSync("test-output/kotlin-kfm-body-space.zip",zipSync(bodyFiles));

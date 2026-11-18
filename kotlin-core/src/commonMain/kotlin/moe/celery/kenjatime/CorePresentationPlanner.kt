@@ -72,31 +72,38 @@ object CorePresentationPlanner {
                  definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null,
                  pose: CoreActorPose?=actor?.let {CoreActorPose.capture(it,fight.frame)},trail: CoreAfterImageDraw?=null,ownerId: Int=0,commonScale: Double?=null) {
             if(fight.environment.color?.under == false && effect?.config?.onTop != true && kind != "superpause")return
-            val frame = if(pose!=null)pose.frame else action?.frame
+            val frame = if(pose!=null)pose.frame else action?.visualFrame()
             val blend=trail?.blend ?: actor?.drawBlend ?: frame?.blend ?: SpriteBlend.NORMAL
             val face = if(facingRight) 1 else -1
             val zoom=camera?.zoom ?: 1.0
             val effectScaleX=effect?.config?.scaleX ?: 1.0
             val effectScaleY=effect?.config?.scaleY ?: 1.0
-            val spriteScaleX=commonScale?.times(effectScaleX) ?: definition.coordinates.scale*(projectile?.scaleX ?:
+            val baseScaleX=commonScale?.times(effectScaleX) ?: definition.coordinates.scale*(projectile?.scaleX ?:
                 (effectScaleX*if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0))*(pose?.scaleX ?: 1.0)
-            val spriteScaleY=commonScale?.times(effectScaleY) ?: definition.coordinates.scale*(projectile?.scaleY ?:
+            val baseScaleY=commonScale?.times(effectScaleY) ?: definition.coordinates.scale*(projectile?.scaleY ?:
                 (effectScaleY*if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0))*(pose?.scaleY ?: 1.0)
+            val spriteScaleX = baseScaleX * (frame?.scaleX ?: 1.0)
+            val spriteScaleY = baseScaleY * (frame?.scaleY ?: 1.0)
             val pixelScaleX=spriteScaleX*HORIZONTAL_SCALE*zoom
             val pixelScaleY=spriteScaleY*VERTICAL_SCALE*zoom
             // Rotate in canonical stage space, then project each pixel axis. This preserves
             // a rigid stage rotation despite the viewport's unequal X/Y pixel scales.
-            val rotation=if(pose?.angleDraw == true)(pose.angle%360)*face else 0.0
+            val angleDrawRotation = if (pose?.angleDraw == true) (pose.angle % 360) * face else 0.0
+            val rotation = angleDrawRotation + ((frame?.angle ?: 0.0) % 360) * face
             val radians=rotation*PI/180
             val c=cos(radians);val s=sin(radians)
             val vf=effect?.config?.verticalFacing ?: 1
-            val offsetX=(frame?.offsetX ?: 0)*spriteScaleX*face
-            val offsetY=(frame?.offsetY ?: 0)*spriteScaleY*vf
+            val offsetX=(frame?.offsetX ?: 0.0)*spriteScaleX*face
+            val offsetY=(frame?.offsetY ?: 0.0)*spriteScaleY*vf
             val axisX=pixelX(x256,camera);val axisY=pixelY(y256,camera)+stageOffsetY
             val displayOffsetX=pose?.offsetX ?: 0L
             val displayOffsetY=pose?.offsetY ?: 0L
-            val drawX=axisX+(displayOffsetX.toDouble()/Fixed.ONE+c*offsetX+s*offsetY)*HORIZONTAL_SCALE*zoom
-            val drawY=axisY+(displayOffsetY.toDouble()/Fixed.ONE-s*offsetX+c*offsetY)*VERTICAL_SCALE*zoom
+            // The AIR element angle rotates the sprite about its shifted axis.
+            val shiftRadians = angleDrawRotation * PI / 180
+            val shiftCos = cos(shiftRadians)
+            val shiftSin = sin(shiftRadians)
+            val drawX=axisX+(displayOffsetX.toDouble()/Fixed.ONE+shiftCos*offsetX+shiftSin*offsetY)*HORIZONTAL_SCALE*zoom
+            val drawY=axisY+(displayOffsetY.toDouble()/Fixed.ONE-shiftSin*offsetX+shiftCos*offsetY)*VERTICAL_SCALE*zoom
             val flip=frame?.flip?.uppercase() ?: ""
             val flipX=if('H' in flip)-1 else 1
             val flipY=(if('V' in flip)-1 else 1)*vf

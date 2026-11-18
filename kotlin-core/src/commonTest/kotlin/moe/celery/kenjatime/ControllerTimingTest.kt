@@ -3,6 +3,13 @@ package moe.celery.kenjatime
 import kotlin.test.*
 
 class ControllerTimingTest {
+    @Test fun aLaterAuthoredStateReplacesTheCommonDefinitionAsAUnit() {
+        val common = "[Statedef 170]\nanim=0\n[State common]\ntype=VarSet\ntrigger1=1\nv=1\nvalue=5000"
+        val custom = "[Statedef 170]\nanim=170\n[State custom]\ntype=VarSet\ntrigger1=1\nv=1\nvalue=170"
+        val state = MugenCnsParser.parse("$common\n$custom", useAuthoredStateDefs=true).getValue(170)
+        assertEquals(170, state.animation)
+        assertEquals("170", state.controllers.single().params["value"])
+    }
     @Test fun temporaryGrowthControllerStaysWithItsStateDefEvenWithAGlobalLabel() {
         val source = """
             [Statedef -2]
