@@ -179,7 +179,10 @@ try:
         helpers.locator("#p1-select").select_option("installed:helper-loop/helper-loop.def")
         helpers.locator("#start").click()
         helpers.wait_for_function("window.__kenjatimeKotlinQA?.renderPlan?.frame>=45", timeout=15000)
-        assert helpers.evaluate("window.__kenjatimeKotlinQA.renderPlan.helpers") == 2
+        helper_plan = helpers.evaluate("window.__kenjatimeKotlinQA.renderPlan")
+        assert helper_plan["helpers"] == 2
+        assert all(d["spriteScaleX"] == 1 for d in helper_plan["draws"] if d["kind"] == "fighter"), helper_plan
+        assert sum(d["spriteScaleX"] > 2 for d in helper_plan["draws"] if d["kind"] == "helper") == 2, helper_plan
         helpers.locator("#record").click()
         helpers.wait_for_function("""() =>
           /Recording [2-9] samples/.test(document.querySelector('#record-status').textContent)

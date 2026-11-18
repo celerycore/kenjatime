@@ -140,7 +140,7 @@ data class FighterDefinition(
         get() = coordinates.fixedToWorld(yScale)
     companion object {
         fun fromScript(name: String, air: String, cns: String, cmd: String = "",
-                       defText: String = ""): FighterDefinition {
+                       defText: String = "", useAuthoredStateDefs: Boolean = false): FighterDefinition {
             val constants = MugenCnsParser.constants(cns)
             val maps=CoreNamedMaps.defaults(cns)
             val quotes = CoreVictoryQuotes.read(cns)
@@ -158,7 +158,7 @@ data class FighterDefinition(
             val version=info?.get("mugenversion")?.trim()?.trim('"','\'') ?: ""
             val modern=Regex("^1\\.(\\d+)").find(version)?.groupValues?.get(1)?.toIntOrNull()?.let { it >= 1 } ?: false
             return FighterDefinition(
-                name, MugenAirParser.parse(air), MugenCnsParser.parse(allStates),
+                name, MugenAirParser.parse(air), MugenCnsParser.parse(allStates, useAuthoredStateDefs),
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
@@ -207,10 +207,12 @@ object MugenCnsParser {
             projectileAttackDistance = point("proj.attack.dist",0,90*Fixed.ONE).coerceAtLeast(0)
         )
     }
-    private val state = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
+    private val controllerSection = Regex("state(?:\\s+.*)?", RegexOption.IGNORE_CASE)
+    private val numberedController = Regex("state\\s+(-?\\d+)(?:\\s*,.*)?", RegexOption.IGNORE_CASE)
     private val statedef = Regex("statedef\\s+(-?\\d+)", RegexOption.IGNORE_CASE)
-    /** Preserve the authored order. A [State] with no triggers never activates. */
-    fun parse(source: String): Map<Int, StateProgram> {
+    /** Archive controllers belong to the enclosing StateDef. The fragment format
+     * used by existing engine callers can also address a state by numeric label. */
+    fun parse(source: String, useAuthoredStateDefs: Boolean = false): Map<Int, StateProgram> {
         val sections = MugenDefParser.parse(source,preserveQuotes=true).sections
         val controllers = linkedMapOf<Int, MutableList<StateController>>()
         val metadata = mutableMapOf<Int, MugenSection>()
@@ -223,9 +225,10 @@ object MugenCnsParser {
                 controllers.getOrPut(current) { mutableListOf() }
                 continue
             }
-            val s = state.matchEntire(section.name) ?: continue
-            val stateNo = s.groupValues[1].toInt()
-            if (stateNo != current && stateNo !in controllers) controllers[stateNo] = mutableListOf()
+            if (!controllerSection.matches(section.name)) continue
+            val stateNo = if (useAuthoredStateDefs) current else numberedController.matchEntire(section.name)
+                ?.groupValues?.get(1)?.toIntOrNull()
+            if (stateNo == null) continue
             val grouped = linkedMapOf<Int, MutableList<String>>()
             val all = mutableListOf<String>()
             val params = linkedMapOf<String, String>()
@@ -1264,6 +1267,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     }
     var frame: Long = 0
         private set
+    internal var cpuLevel = 0
+        private set
     init {
         require(p1.id != p2.id)
         issues.addAll(p1.initializationIssues);issues.addAll(p2.initializationIssues)
@@ -1272,7 +1277,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         p1.world = this
         p2.world = this
     }
-    fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame()) {
+    fun step(a: InputFrame = InputFrame(), b: InputFrame = InputFrame(), cpuLevel: Int = 0) {
+        this.cpuLevel = cpuLevel.coerceIn(0, 8)
         contacts.clear()
         reversals.contacts.clear()
         entities.clashes.clear()

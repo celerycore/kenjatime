@@ -22,6 +22,8 @@ class HelperLifecycleTest {
             trigger1=NumHelper(0)=0
             id=71
             stateno=700
+            pausemovetime=99999999
+            supermovetime=99999999
             [Statedef 700]
             physics=N
             anim=0
@@ -39,12 +41,18 @@ class HelperLifecycleTest {
         fun eval(actor: FightingCharacter, expression: String) =
             CoreExpression.number(expression, actor, match.issues)
         val child = match.entities.helpers.last().actor
+        match.entities.helpers.first().actor.let {
+            assertEquals(CorePauseMoves(99999999, 99999999), it.pauseMoves)
+            it.vars[0] = 4
+        }
         assertEquals(2.0, eval(match.p1, "NumHelper"))
         assertEquals(2.0, eval(child, "NumHelper(-1)"))
         assertEquals(1.0, eval(match.p1, "NumHelper(72)"))
         assertEquals(1.0, eval(child, "IsHelper(72)"))
+        assertEquals(1.0, eval(match.p1, "Command = \"missing\" || Helper(71), Var(0)>0"))
         assertEquals(0.0, eval(match.p2, "NumHelper(0)"))
         assertTrue(match.issues.isEmpty(), match.issues.toString())
+        assertEquals(null, eval(match.p2, "Helper(71), Var(0)"))
     }
 
     @Test fun parentAndRootConditionsAllowRecursiveHelperCleanup() {

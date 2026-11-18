@@ -7,7 +7,8 @@ data class CorePauseMoves(val pause: Int = 0, val superPause: Int = 0) {
                  previous: CorePauseMoves = CorePauseMoves()): CorePauseMoves {
             fun readTime(key: String, fallback: Int): Int {
                 val raw = args[key] ?: return fallback
-                return pauseInt(raw, actor, issues, 0..360000)
+                // An allowance is compared with elapsed time and has no scheduling cost.
+                return pauseInt(raw, actor, issues, 0..Int.MAX_VALUE)
             }
             return CorePauseMoves(readTime("pausemovetime", previous.pause),
                 readTime("supermovetime", previous.superPause))

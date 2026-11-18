@@ -87,6 +87,21 @@ class ExpressionParityTest {
         assertTrue(check("PrevStateNo=1023", f, issues))
     }
 
+    @Test fun cpuDifficultyAndOpponentTriggersReadTheCurrentFight() {
+        val a = fighter(1)
+        val b = fighter(2)
+        val fight = DeterministicFight(a, b)
+        fight.configureArena(-250, 250)
+        a.posX = 100 * Fixed.ONE
+        b.vars[2] = 17
+        fight.step(cpuLevel = 4)
+        assertTrue(check("AILevel=4 && NumEnemy=1 && EnemyNear, Var(2)=17", a, fight.issues))
+        assertTrue(check("FrontEdgeDist=150 && BackEdgeBodyDist=350", a, fight.issues))
+        fight.step()
+        assertTrue(check("AILevel=0", a, fight.issues))
+        assertTrue(fight.issues.isEmpty(), fight.issues.toString())
+    }
+
     @Test fun commandExpressionRespectsFacingAndButtonEdge() {
         val command = MugenCommand("QCF_A", MugenCommandParser.parseCommandString("D, DF, F, a"))
         val fighter = FightingCharacter(FighterDefinition("command probe"),1, listOf(command))

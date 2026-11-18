@@ -21,13 +21,21 @@ object CoreExpression {
         }
         companion object { fun num(d: Double,floating: Boolean=d%1.0!=0.0) = Value(n=d,floating=floating); fun str(s: String) = Value(s=s) }
     }
-    private data class Redirect(val root: Boolean, val value: Node) : Node {
+    private data class Redirect(val name: String, val argument: Node?, val value: Node) : Node {
         override fun read(f: FightingCharacter): Value {
-            val actor = if (root) f.rootActor() else f.parent
-            require(actor != null && !actor.destroyed) { "Unavailable ${if (root) "Root" else "Parent"} redirect" }
+            val index = argument?.let { numeric(it, f, "Redirect argument").toInt() } ?: 0
+            val actor = when (name) {
+                "root" -> f.rootActor()
+                "parent" -> f.parent
+                "helper" -> f.world?.entities?.findHelper(f, index)
+                "enemy", "enemynear" -> f.opponent.takeIf { index == 0 }
+                else -> null
+            }
+            require(actor != null && !actor.destroyed) { "Unavailable $name redirect" }
             return value.read(actor)
         }
     }
+    private val redirects = setOf("parent", "root", "helper", "enemy", "enemynear")
     private data class Literal(val v: Value): Node { override fun read(f: FightingCharacter) = v }
     private fun numeric(node: Node,f: FightingCharacter,label: String): Double {
         val n=node.read(f).n ?: throw IllegalArgumentException("$label requires a numeric expression")
@@ -72,6 +80,8 @@ object CoreExpression {
                 "stateno" -> f.stateNo.toDouble()
                 "prevstateno" -> f.previousStateNo.toDouble()
                 "random" -> f.nextRandom(1000).toDouble()
+                "ailevel" -> (f.world?.cpuLevel ?: 0).toDouble()
+                "numenemy" -> if (p != null && !p.destroyed) 1.0 else 0.0
                 "life" -> f.life.toDouble()
                 "lifemax" -> f.definition.maxLife.toDouble()
                 "power" -> f.power.toDouble()
@@ -119,10 +129,24 @@ object CoreExpression {
                 "movehit" -> f.moveHitTime.toDouble()
                 "moveguarded" -> f.moveGuardedTime.toDouble()
                 "movereversed" -> f.moveReversedTime.toDouble()
+                "hitpausetime" -> f.hitPauseLeft.toDouble()
                 "id" -> f.id.toDouble()
                 "numhelper" -> f.world?.entities?.countHelpers(f)?.toDouble() ?: 0.0
                 "numproj" -> f.world?.entities?.projectiles?.count { it.owner===f }?.toDouble() ?: 0.0
                 "numexplod" -> f.world?.effects?.count(f)?.toDouble() ?: 0.0
+                "frontedgedist", "backedgedist", "frontedgebodydist", "backedgebodydist" -> {
+                    val direction = if (key.startsWith("front") == f.facingRight) 1 else -1
+                    val arena = f.world?.arena
+                    val viewEdge = f.world?.camera?.let { camera ->
+                        Fixed.of(camera.x + direction * camera.config.width / (2.0 * camera.zoom))
+                    }
+                    val edge = if (direction > 0) minOf(arena?.right ?: 160 * Fixed.ONE,
+                        viewEdge ?: Int.MAX_VALUE)
+                    else maxOf(arena?.left ?: -160 * Fixed.ONE,
+                        viewEdge ?: Int.MIN_VALUE)
+                    val body = if ("body" in key) f.edgeWidthWorld(direction) else 0
+                    return Value.num(f.coordinates.toLocal((edge.toLong() - f.posX) * direction - body), true)
+                }
                 "inguarddist" -> if(f.inGuardDistance)1.0 else 0.0
                 "true" -> 1.0
                 "false" -> 0.0
@@ -335,12 +359,6 @@ object CoreExpression {
             if(t.type=='s')return Literal(Value.str(t.value))
             if(t.type!='i')throw IllegalArgumentException("Invalid token "+t.value)
             var name=t.value.lowercase()
-            if ((name == "parent" || name == "root") && accept(",")) {
-                require(++depth <= 32) { "Expression nesting limit" }
-                val value = unary()
-                depth--
-                return Redirect(name == "root", value)
-            }
             val projectile=projectilePredicate.matchEntire(name)
             if(projectile != null && (accept("=") || accept("=="))) {
                 val suffix=projectile.groupValues[2]
@@ -378,7 +396,21 @@ object CoreExpression {
                     do { args.add(or()) } while(accept(","))
                     expect(")")
                 }
+                if (name in redirects && accept(",")) {
+                    require(name != "parent" && name != "root" && args.size <= 1) {
+                        "Invalid $name redirect arguments"
+                    }
+                    val value = unary()
+                    depth--
+                    return Redirect(name, args.firstOrNull(), value)
+                }
                 depth--;return FunctionCall(name,args)
+            }
+            if (name in redirects && accept(",")) {
+                require(++depth <= 32) { "Expression nesting limit" }
+                val value = unary()
+                depth--
+                return Redirect(name, null, value)
             }
             return Variable(name)
         }

@@ -3,6 +3,48 @@ package moe.celery.kenjatime
 import kotlin.test.*
 
 class ControllerTimingTest {
+    @Test fun temporaryGrowthControllerStaysWithItsStateDefEvenWithAGlobalLabel() {
+        val source = """
+            [Statedef -2]
+            [State startup]
+            type=Helper
+            trigger1=GameTime=0
+            id=60
+            stateno=600
+            [Statedef 0]
+            anim=0
+            [State idle counter]
+            type=VarAdd
+            trigger1=1
+            v=0
+            value=1
+            [Statedef 600]
+            anim=0
+            [State -2, grow the effect]
+            type=AngleDraw
+            trigger1=1
+            scale=2+Time*.01,2+Time*.01
+            [State cleanup]
+            type=DestroySelf
+            trigger1=Time=4
+        """.trimIndent()
+        val air = "[Begin Action 0]\n0,0,0,0,-1"
+        val definition = FighterDefinition.fromScript("growth probe", air, source, useAuthoredStateDefs = true)
+        val actor = FightingCharacter(definition, 1)
+        val fight = DeterministicFight(actor, FightingCharacter(FighterDefinition("dummy"), 2))
+        repeat(2) { fight.step() }
+        assertEquals(2.0, fight.entities.helpers.single().actor.drawScaleX)
+        assertEquals(1.0, actor.drawScaleX)
+        repeat(598) {
+            fight.step()
+            assertEquals(1.0, actor.drawScaleX)
+            assertEquals(0, actor.stateNo)
+        }
+        assertEquals(600, actor.vars[0])
+        assertTrue(fight.entities.helpers.isEmpty())
+        assertTrue(fight.issues.isEmpty(), fight.issues.toString())
+    }
+
     @Test fun persistentZeroFiresOncePerStateAndResetsOnReentry() {
         val source = """
             [Statedef 0]

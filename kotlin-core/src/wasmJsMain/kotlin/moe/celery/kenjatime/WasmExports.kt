@@ -28,10 +28,23 @@ private object Fights {
     name1: String, name2: String, air1: String, air2: String,
     cns1: String, cns2: String, cmd1: String, cmd2: String,
     def1: String, def2: String
+): Int = createFight(name1,name2,air1,air2,cns1,cns2,cmd1,cmd2,def1,def2,false)
+
+/** Whole character files use StateDef ownership for every controller label. */
+@JsExport fun ktCoreCreateFromArchives(
+    name1: String, name2: String, air1: String, air2: String,
+    cns1: String, cns2: String, cmd1: String, cmd2: String,
+    def1: String, def2: String
+): Int = createFight(name1,name2,air1,air2,cns1,cns2,cmd1,cmd2,def1,def2,true)
+
+private fun createFight(
+    name1: String, name2: String, air1: String, air2: String,
+    cns1: String, cns2: String, cmd1: String, cmd2: String,
+    def1: String, def2: String, useAuthoredStateDefs: Boolean
 ): Int {
     require(Fights.active.size < 8) { "Too many active fights" }
-    val a = FighterDefinition.fromScript(name1, air1, cns1, cmd1,def1)
-    val b = FighterDefinition.fromScript(name2, air2, cns2, cmd2,def2)
+    val a = FighterDefinition.fromScript(name1, air1, cns1, cmd1, def1, useAuthoredStateDefs)
+    val b = FighterDefinition.fromScript(name2, air2, cns2, cmd2, def2, useAuthoredStateDefs)
     val id = Fights.next++
     val left = FightingCharacter(a, 1, MugenCommandParser.parseFile(cmd1))
     val right = FightingCharacter(b, 2, MugenCommandParser.parseFile(cmd2))
@@ -100,7 +113,7 @@ private object Fights {
     val fight=Fights.get(handle)
     val sample=CoreCpu.input(fight.p1, fight.p2, fight.frame, level)
     val rival=CoreCpu.input(fight.p2, fight.p1, fight.frame, level)
-    fight.step(sample,rival)
+    fight.step(sample,rival,cpuLevel = level.coerceIn(1, 8))
 }
 
 @JsExport fun ktCoreChecksum(handle: Int): String = Fights.get(handle).checksum()

@@ -73,6 +73,8 @@ trigger1=NumHelper(0)=0
 id=71
 stateno=700
 pos=22,-15
+pausemovetime=99999999
+supermovetime=99999999
 [Statedef -2]
 [State -2, root watcher]
 type=Helper
@@ -83,6 +85,10 @@ pos=-22,-15
 [Statedef 700]
 physics=N
 anim=0
+[State -2, grow only the helper]
+type=AngleDraw
+trigger1=1
+scale=2+Time*.01,2+Time*.01
 `);
 writeFileSync("test-output/kotlin-helper-loop.zip",zipSync(helperLoopFiles));
 const idleScaleFiles=presetFixture("idle-scale","Idle scale fixture","Idle scale fixture");

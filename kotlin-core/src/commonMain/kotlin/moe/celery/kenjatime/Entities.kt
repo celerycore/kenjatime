@@ -155,6 +155,11 @@ class CoreEntities(private val match: DeterministicFight) {
     internal fun isHelper(actor: FightingCharacter, id: Int): Boolean =
         helpers.any { it.actor === actor && !it.actor.destroyed && it.helperId == id }
 
+    internal fun findHelper(actor: FightingCharacter, id: Int): FightingCharacter? {
+        val root = actor.rootActor()
+        return helpers.firstOrNull { it.root === root && !it.actor.destroyed && (id <= 0 || it.helperId == id) }?.actor
+    }
+
     internal fun destroyHelper(actor: FightingCharacter, recursive: Boolean, removeExplods: Boolean) {
         actor.destroyed = true
         if (removeExplods) match.effects.remove(actor)

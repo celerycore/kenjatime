@@ -96,7 +96,7 @@ async function load(){
   const produced=typeof imported.default==="function"?
     await imported.default():imported.default;
   const found=[produced,imported,produced?.exports].find(v=>
-    v&&typeof v.ktCoreCreateWithDefinitions==="function"&&
+    v&&typeof v.ktCoreCreateFromArchives==="function"&&
     typeof v.ktCoreAdvanceCpu==="function"&&
     typeof v.ktCoreClockClaim==="function"&&
     typeof v.ktCoreRenderPlan==="function"&&
@@ -116,7 +116,7 @@ self.onmessage=async({data})=>{
       release();
       matchToken=data.matchToken;
       const a=data.p1,b=data.p2;
-      handle=api.ktCoreCreateWithDefinitions(a.name,b.name,
+      handle=api.ktCoreCreateFromArchives(a.name,b.name,
         a.air,b.air,a.cns,b.cns,a.cmd,b.cmd,a.defText,b.defText);
       api.ktCoreSoundCatalog(handle,0,a.soundCatalog||"");
       api.ktCoreSoundCatalog(handle,1,b.soundCatalog||"");
