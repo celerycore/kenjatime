@@ -134,6 +134,7 @@ object CorePresentationPlanner {
                 .append(",\"number\":").append(frame?.sprite ?: -1)
                 .append(",\"life\":").append(life)
                 .append(",\"sprpriority\":").append(priority)
+            if(actor != null)json.append(",\"stateNo\":").append(actor.stateNo)
             if (commonScale != null) json.append(",\"common\":true")
             if(effect != null)json.append(",\"effectId\":").append(effect.id)
                 .append(",\"effectSequence\":").append(effect.sequence)
@@ -163,6 +164,7 @@ object CorePresentationPlanner {
         val planned=ArrayList<PlannedDraw>()
         fun enqueue(priority: Long,append: () -> Unit) { planned.add(PlannedDraw(priority,planned.size,append)) }
         fun actorDraw(side: Int,kind: String,actor: FightingCharacter) {
+            if("invisible" in actor.asserted)return
             val priority=actor.spritePriority.toLong()
             for(trail in actor.afterImages?.draws(actor,fight.palettes.all.layer()).orEmpty().asReversed())enqueue(trail.priority) {
                 val pose=trail.pose

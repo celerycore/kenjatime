@@ -444,6 +444,10 @@ class FightingCharacter(
     var hitCount = 0
     internal var victoryQuoteIndex = -1
     private var randomState = 0x6d2b79f5 xor id
+    internal fun nextRandom(bound: Int): Int {
+        randomState = randomState * 1664525 + 1013904223
+        return (randomState ushr 1) % bound
+    }
     internal val dustTicks = mutableMapOf<Pair<Int, Int>, Long>()
     val asserted: MutableSet<String> = linkedSetOf()
     var life = definition.maxLife
@@ -482,6 +486,8 @@ class FightingCharacter(
     var velY = 0
     var facingRight = true
     var stateNo = 0
+        private set
+    internal var previousStateNo = 0
         private set
     internal var stateRevision = 0L
         private set
@@ -544,6 +550,7 @@ class FightingCharacter(
         fallbackHitReaction = false
         stateRevision++
         stateOwner = owner
+        previousStateNo = stateNo
         stateNo = state
         timeInState = 0
         controllerActivation.clear()
@@ -679,8 +686,7 @@ class FightingCharacter(
                 val retained=if(keepOne && candidates.size > 1) {
                     // Use the actor's existing seeded random stream, never a
                     // host RNG or a render-time decision.
-                    randomState=randomState*1664525+1013904223
-                    listOf(candidates[(randomState ushr 1)%candidates.size])
+                    listOf(candidates[nextRandom(candidates.size)])
                 }else candidates
                 capturedTargets.keys.retainAll(retained.toSet())
                 reversalTargets.keys.retainAll(capturedTargets.keys)
@@ -735,7 +741,9 @@ class FightingCharacter(
             "hitadd", "hitcount" -> CoreHitCounts.execute(this,c,errors)
             "victoryquote" -> CoreVictoryQuotes.execute(this,c,errors)
             "assertspecial" -> {
-                args["flag"]?.lowercase()?.let { asserted.add(it) }
+                for (key in listOf("flag", "flag2", "flag3")) {
+                    args[key]?.lowercase()?.let { asserted.add(it) }
+                }
             }
             "playsnd", "stopsnd", "sndpan" -> world?.sounds?.execute(this,c,errors)
             "destroyself" -> {
@@ -751,9 +759,8 @@ class FightingCharacter(
             "varrandom" -> {
                 val index = integer(args["v"], -1)
                 if (index in vars.indices) {
-                    randomState = randomState * 1664525 + 1013904223
                     val upper = integer(args["range"], 1000).coerceIn(0, 1_000_000)
-                    vars[index] = (randomState ushr 1) % (upper + 1)
+                    vars[index] = nextRandom(upper + 1)
                 } else errors.add("Unsupported VarRandom slot")
             }
             "varrangeset" -> {

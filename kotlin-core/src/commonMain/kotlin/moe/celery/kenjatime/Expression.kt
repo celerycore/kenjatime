@@ -13,6 +13,12 @@ object CoreExpression {
         fun number(): Double = n ?: s?.toDoubleOrNull() ?: 0.0
         fun bool() = number() != 0.0
         fun string() = s ?: (n?.toString() ?: "")
+        fun bitwiseInteger(): Int {
+            require(!floating && n != null && n in Int.MIN_VALUE.toDouble()..Int.MAX_VALUE.toDouble()) {
+                "Bitwise operators require 32-bit integers"
+            }
+            return n.toInt()
+        }
         companion object { fun num(d: Double,floating: Boolean=d%1.0!=0.0) = Value(n=d,floating=floating); fun str(s: String) = Value(s=s) }
     }
     private data class Redirect(val root: Boolean, val value: Node) : Node {
@@ -64,6 +70,8 @@ object CoreExpression {
             val v = when (key) {
                 "time" -> f.timeInState.toDouble()
                 "stateno" -> f.stateNo.toDouble()
+                "prevstateno" -> f.previousStateNo.toDouble()
+                "random" -> f.nextRandom(1000).toDouble()
                 "life" -> f.life.toDouble()
                 "lifemax" -> f.definition.maxLife.toDouble()
                 "power" -> f.power.toDouble()
@@ -228,6 +236,7 @@ object CoreExpression {
     private data class Unary(val op:String,val x:Node): Node {
         override fun read(f:FightingCharacter):Value {
             val value=x.read(f);val n=value.number()
+            if(op == "~")return Value.num(value.bitwiseInteger().inv().toDouble())
             return Value.num(when(op) { "-"->-n; "+"->n; "!"->if(n==0.0)1.0 else 0.0
                 else -> throw IllegalArgumentException("Bad unary operator") },op!="!" && value.floating)
         }
@@ -242,6 +251,7 @@ object CoreExpression {
             val comparison:Boolean?=when(op) {
                 "&&"->a.bool()&&b.bool()
                 "||"->a.bool()||b.bool()
+                "^^"->a.bool()!=b.bool()
                 "=","=="-> if(b.range!=null) left>=b.range.first && left<=b.range.second
                     else if(a.s=="@command")
                     f.commandActive(b.string())
@@ -263,6 +273,9 @@ object CoreExpression {
                 "*"->left*right
                 "/"->if(right==0.0)throw IllegalArgumentException("Divide by zero") else left/right
                 "%"->if(right==0.0)throw IllegalArgumentException("Modulo by zero") else left%right
+                "&"->(a.bitwiseInteger() and b.bitwiseInteger()).toDouble()
+                "|"->(a.bitwiseInteger() or b.bitwiseInteger()).toDouble()
+                "^"->(a.bitwiseInteger() xor b.bitwiseInteger()).toDouble()
                 else->throw IllegalArgumentException("Unsupported operator: "+op)
             }
             return Value.num(result,a.floating || b.floating || result%1.0!=0.0)
@@ -291,8 +304,12 @@ object CoreExpression {
             if(cursor!=tokens.size)throw IllegalArgumentException("Trailing token "+peek())
             return node
         }
-        fun or():Node{var n=and();while(accept("||")||accept("or"))n=Binary("||",n,and());return n}
-        fun and():Node{var n=compare();while(accept("&&")||accept("and"))n=Binary("&&",n,compare());return n}
+        fun or():Node{var n=logicalXor();while(accept("||")||accept("or"))n=Binary("||",n,logicalXor());return n}
+        fun logicalXor():Node{var n=and();while(accept("^^"))n=Binary("^^",n,and());return n}
+        fun and():Node{var n=bitOr();while(accept("&&")||accept("and"))n=Binary("&&",n,bitOr());return n}
+        fun bitOr():Node{var n=bitXor();while(accept("|"))n=Binary("|",n,bitXor());return n}
+        fun bitXor():Node{var n=bitAnd();while(accept("^"))n=Binary("^",n,bitAnd());return n}
+        fun bitAnd():Node{var n=compare();while(accept("&"))n=Binary("&",n,compare());return n}
         fun compare():Node{
             var n=plus()
             while(peek() in setOf("=","==","!=","<>","<",">","<=",">=")){
@@ -302,7 +319,7 @@ object CoreExpression {
         }
         fun plus():Node{var n=mul();while(peek()=="+"||peek()=="-")n=Binary(consume().value,n,mul());return n}
         fun mul():Node{var n=unary();while(peek()=="*"||peek()=="/"||peek()=="%")n=Binary(consume().value,n,unary());return n}
-        fun unary():Node=if(peek() in setOf("+","-","!"))Unary(consume().value,unary())else primary()
+        fun unary():Node=if(peek() in setOf("+","-","!","~"))Unary(consume().value,unary())else primary()
         fun primary():Node{
             if(accept("[")){
                 val low=or();expect(",")
@@ -395,8 +412,8 @@ object CoreExpression {
                 result.add(Token(source.substring(start,i),'i'))
             }else{
                 val pair=source.substring(i,min(source.length,i+2))
-                val op=if(pair in setOf("&&","||","!=","==","<=",">=","<>")){i+=2;pair}
-                    else {require(c in "[]()+-*/%,=<>!"){"Unsupported character"};i++;c.toString()}
+                val op=if(pair in setOf("&&","||","^^","!=","==","<=",">=","<>")){i+=2;pair}
+                    else {require(c in "[]()+-*/%,=<>!~&|^"){"Unsupported character"};i++;c.toString()}
                 result.add(Token(op,'o'))
             }
             require(result.size<=256){"Too many expression tokens"}

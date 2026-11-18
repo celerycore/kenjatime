@@ -45,6 +45,48 @@ class ExpressionParityTest {
         assertTrue(errors.isEmpty(),errors.joinToString())
     }
 
+    @Test fun flagMasksUseIntegerOperatorsWithMugenPrecedence() {
+        val f = fighter()
+        val issues = linkedSetOf<String>()
+        f.vars[1] = 6
+        assertTrue(check("!(var(1)&1)", f, issues))
+        assertTrue(check("(~0 & (4 ^ 2 | 1)) = 7 && 0 ^^ 1", f, issues))
+        assertTrue(check("4 | 0 && 0 ^^ 1", f, issues))
+        assertFalse(check("0 && 1 | 2", f, issues))
+        assertTrue(issues.isEmpty(), issues.joinToString())
+        assertFalse(check("1.0 & 1", f, issues))
+        assertFalse(check("fvar(0) & 1", f, issues))
+        assertEquals(2, issues.size)
+    }
+
+    @Test fun randomIsSeededPerActorAndLogicalShortCircuitDoesNotAdvanceIt() {
+        val a = fighter()
+        val b = fighter()
+        val issues = linkedSetOf<String>()
+        val samples = mutableSetOf<Double>()
+        repeat(32) {
+            assertTrue(check("1 || Random", a, issues))
+            val next = CoreExpression.number("Random", a, issues)!!
+            assertTrue(next in 0.0..999.0)
+            assertEquals(next, CoreExpression.number("Random", b, issues))
+            samples.add(next)
+        }
+        assertTrue(samples.size > 1)
+        assertTrue(issues.isEmpty(), issues.joinToString())
+    }
+
+    @Test fun previousStateTracksEachAcceptedTransition() {
+        val f = fighter()
+        val issues = linkedSetOf<String>()
+        assertTrue(check("PrevStateNo=0", f, issues))
+        f.changeState(1023)
+        assertTrue(check("StateNo=1023 && PrevStateNo=0", f, issues))
+        f.changeState(0)
+        assertTrue(check("StateNo=0 && PrevStateNo=1023", f, issues))
+        assertFalse(f.enterAuthoredState(9999, f, issues))
+        assertTrue(check("PrevStateNo=1023", f, issues))
+    }
+
     @Test fun commandExpressionRespectsFacingAndButtonEdge() {
         val command = MugenCommand("QCF_A", MugenCommandParser.parseCommandString("D, DF, F, a"))
         val fighter = FightingCharacter(FighterDefinition("command probe"),1, listOf(command))

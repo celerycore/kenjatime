@@ -96,6 +96,27 @@ class CorePresentationPlannerTest {
         assertEquals(435.0,CorePresentationPlanner.pixelY(fight.p1.posY,fight.camera))
     }
 
+    @Test fun assertedInvisibilityHidesOnlyTheAuthoredFramesWithoutAffectingTheActor() {
+        val hidden = FighterDefinition.fromScript("invisible probe", "[Begin Action 0]\n0,0,0,0,-1", """
+            [Statedef 0]
+            anim=0
+            [State 0, invisible for one tick]
+            type=AssertSpecial
+            trigger1=Time=0
+            flag=noshadow
+            flag2=invisible
+        """.trimIndent())
+        val p1 = FightingCharacter(hidden, 1)
+        val fight = DeterministicFight(p1, FightingCharacter(FighterDefinition("B"), 2))
+        val fighterDraw = "\"side\":0,\"kind\":\"fighter\""
+        fight.step()
+        assertTrue(fighterDraw !in CorePresentationPlanner.snapshot(fight, 0))
+        assertEquals(1, p1.timeInState)
+        assertEquals(1000, p1.life)
+        fight.step()
+        assertTrue(fighterDraw in CorePresentationPlanner.snapshot(fight, 0))
+    }
+
     @Test fun KotlinCameraAndSpriteAxesDriveVisualPosition() {
         val a=FightingCharacter(FighterDefinition("A"),1)
         val b=FightingCharacter(FighterDefinition("B"),2)

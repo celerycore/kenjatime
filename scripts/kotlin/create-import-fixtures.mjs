@@ -85,6 +85,54 @@ physics=N
 anim=0
 `);
 writeFileSync("test-output/kotlin-helper-loop.zip",zipSync(helperLoopFiles));
+const idleScaleFiles=presetFixture("idle-scale","Idle scale fixture","Idle scale fixture");
+idleScaleFiles["idle-scale/idle-scale.def"]=encoder.encode(decoder.decode(idleScaleFiles["idle-scale/idle-scale.def"])
+ .replace(/^localcoord\s*=.*$/mi,"localcoord=1008,756"));
+idleScaleFiles["idle-scale/kfm.cmd"]=encoder.encode("");
+idleScaleFiles["idle-scale/kfm.air"]=encoder.encode("[Begin Action 0]\n0,0,0,0,-1\n");
+idleScaleFiles["idle-scale/kfm.cns"]=encoder.encode(`
+[Statedef 0]
+type=S
+movetype=I
+physics=N
+anim=0
+ctrl=0
+[State 0, reset scale when the animation cycles]
+type=VarSet
+trigger1=Time=0
+trigger1=PrevStateNo=1023
+trigger1=!(var(1)&1)
+fv=0
+value=0
+[State 0, grow for one cycle]
+type=VarAdd
+trigger1=1
+fv=0
+value=.02
+[State 0, draw the current scale]
+type=AngleDraw
+trigger1=1
+value=0
+scale=1+fvar(0),1+fvar(0)
+[State 0, restart idle]
+type=ChangeState
+trigger1=Time=20
+value=1023
+[Statedef 1023]
+type=S
+movetype=I
+physics=N
+anim=0
+[State 1023, authored angle expression]
+type=AngleSet
+trigger1=1
+value=Random%360
+[State 1023, return to idle]
+type=ChangeState
+trigger1=1
+value=0
+`);
+writeFileSync("test-output/kotlin-idle-scale.zip",zipSync(idleScaleFiles));
 const nu13Preset=presetFixture("nu13","Nu-13","Nu-13");
 const tomokaPreset=presetFixture("tomoka","Tomoka Minato","Tomoka training fixture");
 const tomokaCompanion={"tomoka/tomoka.sff":tomokaPreset["tomoka/tomoka.sff"]};

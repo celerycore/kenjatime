@@ -81,6 +81,12 @@ try:
         assert all(row["device_os"]!="Unknown" for row in data)
         assert all(row["browser_name"]!="Unknown" for row in data)
         assert all(row["p1_character"]==row["p2_character"] for row in data)
+        visuals = [json.loads(row["visual_diagnostics"]) for row in data if row["visual_diagnostics"]]
+        assert visuals and all(0 < v["frame"] and 0 < v["cameraZoom"] <= 1 for v in visuals), visuals
+        assert any(len(v["fighters"]) == 2 and all(
+            f["width"] > 0 and f["height"] > 0 and isinstance(f["state"], int)
+            for f in v["fighters"]
+        ) for v in visuals), visuals
         assert not errors,errors
         # Exercise the REAL Wasm-backed RAR decoder, including split Nu-13-style
         # script and SFF archives; avoid a mock-file shortcut that cannot catch
@@ -145,6 +151,25 @@ try:
         preset.wait_for_function("window.__kenjatimeKotlinQA?.lastVisualFrame>30", timeout=15000)
         result["presetMissingArchiveThenAuthoredIdentity"] = "passed"
         preset.close()
+
+        idle = browser.new_page(viewport={"width": 390, "height": 844})
+        idle.goto(base, wait_until="domcontentloaded", timeout=30000)
+        idle.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)
+        idle.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-idle-scale.zip"))
+        idle.wait_for_function("window.__kenjatimeKotlinQA?.importedCount===1", timeout=45000)
+        idle.locator("#p1-select").select_option("installed:idle-scale/idle-scale.def")
+        idle.locator("#cpu").uncheck()
+        idle.locator("#start").click()
+        idle.wait_for_function("window.__kenjatimeKotlinQA?.paintedRenderPlan?.frame >= 220", timeout=20000)
+        painted = idle.evaluate("""() => {
+          const qa = window.__kenjatimeKotlinQA;
+          return {draw: qa.paintedRenderPlan.draws.find(d => d.side === 0 && d.kind === 'fighter'),
+            transform: qa.lastActorTransformPaint};
+        }""")
+        assert painted["draw"]["spriteScaleX"] <= 1.42 * (320 / 1008) + 1e-9, painted
+        assert math.isclose(painted["transform"]["a"], painted["draw"]["transformA"], abs_tol=1e-6), painted
+        result["idleScaleResetsAcrossCycles"] = "passed"
+        idle.close()
 
         helpers = browser.new_page(viewport={"width": 1000, "height": 780}, accept_downloads=True)
         helpers.goto(base, wait_until="domcontentloaded", timeout=30000)

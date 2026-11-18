@@ -44,6 +44,7 @@ let lastExplodPaint=null,lastProjectilePaint=null;
 let lastSpritePaintOrder=null,lastActorTransformPaint=null;
 let lastEnvironmentPaint=null;
 let lastPaintedRenderPlan=null;
+let lastVisualDiagnostics=null;
 const debugWarning=new Set();
 const initialArchiveStatus="";
 const inputs={pressed:new Set(),directions:0,buttons:""};
@@ -280,6 +281,9 @@ function render(){
   }
   const draws=latest.draws||[];
   const paintedDraws=[];
+  const visual=recording?{frame:latest.frame,cameraZoom:latest.cameraZoom,
+    explods:latest.explods,fighters:[],largestEffect:null}:null;
+  let largestEffectExtent=0;
   let darkened=false;
   function darkenArena(){
     if(darkened||!latest.pause?.darken)return;
@@ -289,6 +293,8 @@ function render(){
   }
   for(const fighter of draws){
     if(fighter.kind==="superpause")darkenArena();
+    // AIR uses negative sprite indices to suppress drawing for that frame.
+    if(fighter.group<0||fighter.number<0)continue;
     const common=fighter.common===true;
     const item=common?matchFightFx:images[fighter.side]||images[0];
     const x=fighter.x;
@@ -329,6 +335,20 @@ function render(){
           scaleY:transform.d/scale,plannedScaleX:sx,plannedScaleY:sy,
           facing:fighter.facing,flipX:fighter.flipX||1,flipY:fighter.flipY||1});
       }
+      if(visual){
+        const transform=ctx.getTransform();
+        const width=(Math.abs(transform.a)*img.w+Math.abs(transform.c)*img.h)/scale;
+        const height=(Math.abs(transform.b)*img.w+Math.abs(transform.d)*img.h)/scale;
+        const extent=Math.max(width,height);
+        const root=fighter.kind==="fighter";
+        if(root||extent>largestEffectExtent){
+          const sample={side:fighter.side+1,kind:fighter.kind,state:fighter.stateNo,
+            action:fighter.action,group:fighter.group,number:fighter.number,
+            scaleX:sx,scaleY:sy,width,height};
+          if(root)visual.fighters.push(sample);
+          else{visual.largestEffect=sample;largestEffectExtent=extent;}
+        }
+      }
       const paintedImage=paletteSpriteImage(item,img,fighter.palFX);
       const blendPasses=paintBlendedSprite(ctx,paintedImage.image,-img.x,-img.y,fighter.blend,()=>whiteSpriteMask(item,img));
       paintedDraws.push(Object.freeze({side:fighter.side,kind:fighter.kind,priority:fighter.sprpriority??0,
@@ -351,6 +371,7 @@ function render(){
   lastEnvironmentPaint=Object.freeze({frame:latest.frame,stageOffsetY:latest.stageOffsetY??0,
     color:environmentColor?Object.freeze({...environmentColor}):null});
   lastPaintedRenderPlan=latest;
+  if(visual)lastVisualDiagnostics=visual;
   if(!arenaBox.classList.contains("has-frame"))arenaBox.classList.add("has-frame");
   const life=latest.health||[0,0]; // correct authored maxLife from Kotlin
   ctx.fillStyle=color("hud","#0b1521");ctx.fillRect(22,20,382,31);ctx.fillRect(556,20,382,31);
@@ -540,7 +561,7 @@ const fields=[
   "device_model","device_os","device_os_version","browser_name",
   "browser_version","browser_user_agent","device_memory_gib",
   "device_cpu_logical_cores","screen_width_px","screen_height_px","device_pixel_ratio",
-  "source_commit","helper_diagnostics","engine_issues"
+  "source_commit","helper_diagnostics","engine_issues","visual_diagnostics"
 ];
 function record(stats){
   if(!recording)return;
@@ -558,12 +579,13 @@ function record(stats){
     dev.browserName||"Unknown",dev.browserVersion||"",dev.userAgent||"",
     dev.deviceMemoryGiB??"",dev.hardwareConcurrency??"",
     dev.screenWidth??"",dev.screenHeight??"",dev.pixelRatio??"",
-    sourceCommit,stats.helperDiagnostics?JSON.stringify(stats.helperDiagnostics):"",JSON.stringify(stats.issues)
+    sourceCommit,stats.helperDiagnostics?JSON.stringify(stats.helperDiagnostics):"",JSON.stringify(stats.issues),
+    lastVisualDiagnostics?JSON.stringify(lastVisualDiagnostics):""
   ]);
   byId("record-status").textContent="Recording "+rows.length+" samples • "+elapsed.toFixed(0)+" seconds. No data sent to a server.";
 }
 byId("record").onclick=()=>{
-  rows=[];recording=true;byId("record").disabled=true;
+  rows=[];lastVisualDiagnostics=null;recording=true;byId("record").disabled=true;
   byId("stop-record").disabled=false;byId("csv").disabled=true;
   byId("record-status").textContent="Recording Kotlin engine and device information every 500 ms.";
 };
