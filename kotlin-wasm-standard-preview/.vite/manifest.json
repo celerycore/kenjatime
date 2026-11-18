@@ -8,8 +8,8 @@
     "file": "assets/_commonjsHelpers-Bx2EM-6T.js",
     "name": "_commonjsHelpers"
   },
-  "_archive-reader-D9skj2xN.js": {
-    "file": "assets/archive-reader-D9skj2xN.js",
+  "_archive-reader-DC9yZmR6.js": {
+    "file": "assets/archive-reader-DC9yZmR6.js",
     "name": "archive-reader",
     "isDynamicEntry": true,
     "imports": [
@@ -24,12 +24,12 @@
     ]
   },
   "kotlin/index.html": {
-    "file": "assets/kotlin-bG5hYimK.js",
+    "file": "assets/kotlin-pfe_JWV8.js",
     "name": "kotlin",
     "src": "kotlin/index.html",
     "isEntry": true,
     "dynamicImports": [
-      "_archive-reader-D9skj2xN.js"
+      "_archive-reader-DC9yZmR6.js"
     ],
     "css": [
       "assets/kotlin-CdKv6MC2.css"
@@ -47,7 +47,7 @@
     "src": "public/kfm.zip"
   },
   "src/multi-archive.js": {
-    "file": "assets/multi-archive-DV4TGDc6.js",
+    "file": "assets/multi-archive-DwgiZwXC.js",
     "name": "multi-archive",
     "src": "src/multi-archive.js",
     "isDynamicEntry": true,
@@ -58,7 +58,7 @@
     ]
   },
   "src/rar-reader.js": {
-    "file": "assets/rar-reader-Ccu-Lvjf.js",
+    "file": "assets/rar-reader-COnFqkaI.js",
     "name": "rar-reader",
     "src": "src/rar-reader.js",
     "isDynamicEntry": true,
@@ -67,13 +67,13 @@
     ]
   },
   "src/seven-archive.js": {
-    "file": "assets/seven-archive-CnFOIMpQ.js",
+    "file": "assets/seven-archive-DbxtFdiR.js",
     "name": "seven-archive",
     "src": "src/seven-archive.js",
     "isDynamicEntry": true,
     "imports": [
       "kotlin/index.html",
-      "_archive-reader-D9skj2xN.js"
+      "_archive-reader-DC9yZmR6.js"
     ],
     "dynamicImports": [
       "___vite-browser-external-D7Ct-6yo.js"
@@ -83,7 +83,7 @@
     ]
   },
   "src/zip-encrypted.js": {
-    "file": "assets/zip-encrypted-GUV89g5t.js",
+    "file": "assets/zip-encrypted-Xn3xwBRl.js",
     "name": "zip-encrypted",
     "src": "src/zip-encrypted.js",
     "isDynamicEntry": true,
@@ -92,7 +92,7 @@
     ]
   },
   "src/zip-lzma.js": {
-    "file": "assets/zip-lzma-CXaeGMZu.js",
+    "file": "assets/zip-lzma-BBa6GfS1.js",
     "name": "zip-lzma",
     "src": "src/zip-lzma.js",
     "isDynamicEntry": true,
