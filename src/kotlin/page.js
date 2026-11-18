@@ -87,7 +87,7 @@ function installedStatus(){
   const result=availableKotlinFighters(combined,
     pieces.length>1?"Imported combined character archives":pieces[0].name);
   for(const fighter of result.ready){
-    const stableId="installed:"+fighter.name.toLowerCase().replace(/\\s+/g,"-");
+    const stableId="installed:"+fighter.definitionPath;
     const previous=fighters.get(stableId);
     if(previous?.spriteBytes===fighter.spriteBytes)continue;
     fighter.id=stableId;
@@ -96,20 +96,26 @@ function installedStatus(){
   refreshRoster();
   const effectsStatus=(importedFightFx?" Common fightfx artwork is available.":"")+
     (importedCommonSound?" Common sound is available.":"");
-  if(result.ready.length){
-    status("Installed "+result.ready.map(f=>f.name).join(", ")+
-      " with actual AIR/CNS and SFF sprites. Kotlin MUGEN 1.1 parity is still incomplete."+effectsStatus);
-  }else if(result.missing.length){
-    const pending=result.missing[0];
-    status(pending.name+" is incomplete. Required resource(s): "+
-      pending.files.slice(0,5).join(", ")+
-      ". Select its companion RAR/SFF archive; already extracted files are retained."+effectsStatus);
+  const messages=[];
+  if(result.ready.length)messages.push("Installed: "+result.ready.map(f=>f.name).join(", ")+".");
+  for(const pending of result.missing){
+    const files=pending.files.slice(0,5).join(", ");
+    messages.push(pending.name+" is incomplete. Required: "+files+".");
+  }
+  if(messages.length){
+    status(messages.join(" ")+effectsStatus);
   }else if(importedFightFx||importedCommonSound){
     const label=[importedFightFx&&"fightfx artwork",importedCommonSound&&"sound"].filter(Boolean).join(" and ");
     status("Installed common "+label+" for the next fight.");
   }else{
     status("Archive extracted, but no complete MUGEN character DEF was found. Add the character archive.");
   }
+}
+
+function benchmarkFighters(){
+  return findBenchmarkFighters([...fighters.values()].map(fighter=>({
+    ...fighter,sprite:fighter.spriteBytes,anim:fighter.air
+  })));
 }
 
 function refreshRoster(){
@@ -123,14 +129,13 @@ function refreshRoster(){
     }
     selector.value=fighters.has(old)?old:"kfm";
   }
-  const candidates=Array.from(fighters.values()).map(x=>({
-    id:x.id,name:x.name,sprite:x.spriteBytes,anim:x.air
-  }));
-  const found=findBenchmarkFighters(candidates);
+  const found=benchmarkFighters();
   byId("preset").disabled=!found.ready;
-  byId("preset").textContent=found.ready?
-    "Tomoka vs Nu-13 · CPU level 4":
-    "Tomoka vs Nu-13 · import both";
+  const hint=byId("preset-status");
+  const message=found.ready?
+    "Ready to select. Uses CPU level 4 and Endless mode.":
+    "Import "+found.missing.join(" and ")+" to enable this preset.";
+  if(hint.textContent!==message)hint.textContent=message;
   byId("start").disabled=!backend||fighters.size===0;
   previewMatchup();
 }
@@ -423,17 +428,14 @@ byId("archive").multiple=true;
 byId("archive").onchange=async()=>importFiles(byId("archive").files);
 
 byId("preset").onclick=()=>{
-  const entries=Array.from(fighters.values());
-  const found=findBenchmarkFighters(entries.map(x=>({
-    id:x.id,name:x.name,sprite:x.spriteBytes,anim:x.air
-  })));
+  const found=benchmarkFighters();
   if(!found.ready)return;
   byId("p1-select").value=found.tomoka.id;
   byId("p2-select").value=found.nu13.id;
   byId("ai-level").value="4";byId("cpu").checked=true;byId("endless").checked=true;
   byId("quality").value="performance";
   previewMatchup();
-  status("Kotlin CPU-versus-CPU benchmark preset selected. Imported character scripts will run with Kotlin's currently supported controller subset.");
+  status("Benchmark preset selected. Choose Start match to run it.");
 };
 function setVictoryQuote(text = ""){
   const quote=byId("victory-quote");

@@ -14,10 +14,15 @@ export const BENCHMARK_MATCHUP=Object.freeze({
 export function findBenchmarkFighters(characters=[]){
   const available=(Array.isArray(characters)?characters:[]).filter(c=>c&&
     typeof c.id==="string"&&c.sprite&&c.anim);
-  const find=(patterns,preferred)=>available.find(c=>normalize(c.name)===preferred)||
-    available.find(c=>patterns.some(p=>p.test(normalize(c.name))));
+  const names=c=>[c.name,c.characterName,c.definitionName].map(normalize);
+  const find=(patterns,preferred,excludedId)=>{
+    const candidates=available.filter(character=>character.id!==excludedId);
+    return candidates.find(c=>normalize(c.name)===preferred)||
+      candidates.find(c=>names(c).includes(preferred))||
+      candidates.find(c=>names(c).some(name=>patterns.some(pattern=>pattern.test(name))));
+  };
   const tomoka=find([/^tomokaminato$/, /^tomoka$/],"tomokaminato")||null;
-  const nu13=find([/^nu13$/, /^nu013$/, /^nyu13$/],"nu13")||null;
+  const nu13=find([/^nu13$/, /^nu013$/, /^nyu13$/],"nu13",tomoka?.id)||null;
   return {tomoka,nu13,ready:!!(tomoka&&nu13),
     missing:[!tomoka?"Tomoka Minato":null,!nu13?"Nu-13":null].filter(Boolean)};
 }

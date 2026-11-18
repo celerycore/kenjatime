@@ -95,3 +95,16 @@ test('missing or malformed fighter archives never get marked installed or added 
  ]);
  assert.equal(alias.ready,true);
 });
+
+
+test('preset recognition uses authored identities with custom display names and requires two distinct definitions',()=>{
+ const tomoka={id:'t',name:'Alternate name',characterName:'Tomoka Minato',sprite:'t.sff',anim:'t.air'};
+ const nu13={id:'n',name:'ニュー',definitionName:'nu13',sprite:'n.sff',anim:'n.air'};
+ const found=findBenchmarkFighters([tomoka,nu13]);
+ assert.equal(found.ready,true);
+ assert.equal(found.tomoka.id,'t');
+ assert.equal(found.nu13.id,'n');
+ const overlap=findBenchmarkFighters([{...tomoka,definitionName:'nu13'}]);
+ assert.equal(overlap.ready,false);
+ assert.deepEqual(overlap.missing,['Nu-13']);
+});

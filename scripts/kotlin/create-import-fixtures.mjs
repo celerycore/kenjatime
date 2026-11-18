@@ -45,6 +45,30 @@ writeFileSync("test-output/kotlin-kfm-explod.zip",zipSync(effectFiles));
 // art lets Chromium verify that complete pixel transforms come from Kotlin.
 const highFiles=Object.fromEntries(raw);
 const decoder=new TextDecoder("iso-8859-1"), encoder=new TextEncoder();
+
+// Preset import fixtures use the project's existing KFM test art and scripts.
+function presetFixture(folder, characterName, displayName) {
+ const files=Object.fromEntries(raw.map(([path,bytes])=>[path.replace(/^kfm\//,folder+"/"),bytes]));
+ const definition=decoder.decode(files[folder+"/kfm.def"])
+  .replace(/^name\s*=.*$/mi,`name="${characterName}"`)
+  .replace(/^displayname\s*=.*$/mi,`displayname="${displayName}"`)
+  .replace(/^sprite\s*=.*$/mi,`sprite=${folder}.sff`);
+ files[folder+"/"+folder+".def"]=encoder.encode(definition);
+ files[folder+"/"+folder+".sff"]=files[folder+"/kfm.sff"];
+ delete files[folder+"/kfm.def"];
+ delete files[folder+"/kfm.sff"];
+ return files;
+}
+const nu13Preset=presetFixture("nu13","Nu-13","Nu-13");
+const tomokaPreset=presetFixture("tomoka","Tomoka Minato","Tomoka training fixture");
+const tomokaCompanion={"tomoka/tomoka.sff":tomokaPreset["tomoka/tomoka.sff"]};
+delete tomokaPreset["tomoka/tomoka.sff"];
+for(const [name,files] of [
+ ["nu13-preset",nu13Preset],["tomoka-preset-scripts",tomokaPreset],["tomoka-preset-sff",tomokaCompanion]
+]){
+ writeFileSync(`test-output/kotlin-${name}.zip`,zipSync(files));
+}
+
 highFiles["kfm/kfm.def"]=encoder.encode(decoder.decode(highFiles["kfm/kfm.def"])
   .replace(/^localcoord\s*=.*$/mi,"localcoord=1008,756"));
 highFiles["kfm/kfm.cns"]=encoder.encode(decoder.decode(highFiles["kfm/kfm.cns"])

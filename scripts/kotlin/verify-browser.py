@@ -115,6 +115,37 @@ try:
         assert imported_plan["draws"][0]["spriteScaleY"]>0
         result["kotlinRenderPlan"]=True
 
+        preset = browser.new_page(viewport={"width": 1000, "height": 780})
+        preset.goto(base, wait_until="domcontentloaded", timeout=30000)
+        preset.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)
+        fixture_dir = ROOT / "test-output"
+        preset.locator("#archive").set_input_files(str(fixture_dir / "kotlin-nu13-preset.zip"))
+        preset.wait_for_function("""() => !document.querySelector('#archive').disabled &&
+          document.querySelector('#setup-status').textContent.includes('Installed: Nu-13')""", timeout=45000)
+        assert preset.locator("#preset").is_disabled()
+        assert preset.locator("#preset-status").inner_text() == "Import Tomoka Minato to enable this preset."
+        preset.locator("#p2-select").select_option("installed:nu13/nu13.def")
+
+        preset.locator("#archive").set_input_files(str(fixture_dir / "kotlin-tomoka-preset-scripts.zip"))
+        preset.wait_for_function("""() => !document.querySelector('#archive').disabled &&
+          document.querySelector('#setup-status').textContent.includes('Tomoka training fixture is incomplete')""",
+          timeout=45000)
+        assert preset.locator("#preset").is_disabled()
+        assert "tomoka.sff" in preset.locator("#setup-status").inner_text()
+
+        preset.locator("#archive").set_input_files(str(fixture_dir / "kotlin-tomoka-preset-sff.zip"))
+        preset.wait_for_function("!document.querySelector('#preset')?.disabled", timeout=45000)
+        preset.locator("#endless").uncheck()
+        preset.locator("#cpu").uncheck()
+        preset.locator("#preset").click()
+        assert preset.locator("#p1-select").input_value() == "installed:tomoka/tomoka.def"
+        assert preset.locator("#p2-select").input_value() == "installed:nu13/nu13.def"
+        assert preset.locator("#endless").is_checked() and preset.locator("#cpu").is_checked()
+        preset.locator("#start").click()
+        preset.wait_for_function("window.__kenjatimeKotlinQA?.lastVisualFrame>30", timeout=15000)
+        result["presetMissingArchiveThenAuthoredIdentity"] = "passed"
+        preset.close()
+
         # A separate context imports public KFM art with a synthetic Explod
         # controller, then requires decoded effect sprites to reach Canvas.
         effects=browser.new_page(viewport={"width":1000,"height":780})
