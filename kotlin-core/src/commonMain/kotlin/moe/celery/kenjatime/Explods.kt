@@ -11,7 +11,7 @@ data class ExplodConfig(
     val scaleX: Double = 1.0, val scaleY: Double = 1.0,
     val priority: Int = 0, val onTop: Boolean = false,
     val removeOnHit: Boolean = false, val ignoreHitPause: Boolean = true,val ownPalette: Boolean=false,
-    val pauseMoves: CorePauseMoves = CorePauseMoves()
+    val pauseMoves: CorePauseMoves = CorePauseMoves(), val commonAnimation: Boolean = false
 )
 
 /** Explods are visual entities. They never participate in Clsn contacts. */
@@ -61,6 +61,14 @@ class CoreExplods(private val fight: DeterministicFight) {
         effect.bindLeft=if(anchor == null)0 else c.bindTime
         effect.initialPosition=anchor != null
     }
+    private fun action(actor: FightingCharacter, id: Int, common: Boolean): AirAction {
+        val action = if (common) fight.commonAnimations.action(id) else actor.definition.animations[id]
+        require(action != null && action.frames.isNotEmpty()) {
+            "Explod animation missing: ${if (common) "F" else ""}$id"
+        }
+        return action
+    }
+
     private fun config(actor: FightingCharacter, args: Map<String,String>, old: ExplodConfig?): ExplodConfig {
         fun number(raw: String): Double = CoreExpression.number(raw,actor,fight.issues)
             ?: throw IllegalArgumentException("Invalid Explod expression: $raw")
@@ -76,15 +84,12 @@ class CoreExplods(private val fight: DeterministicFight) {
             val local=vector(key,0.0 to 0.0)
             return actor.coordinates.toWorld(local.first) to actor.coordinates.toWorld(local.second)
         }
-        args["anim"]?.let {
-            require(!Regex("(?i)^f(?=\\s|[\\d(+.-])").containsMatchIn(it.trim())) {
-                "Common F animation sources are not implemented for Explod"
-            }
-        }
-        val anim=args["anim"]?.let { number(it).toInt() } ?: old?.animation
+        val ref = args["anim"]?.let { CnsResourceExpression.read(it) }
+        val anim = ref?.let { number(it.expression).toInt() } ?: old?.animation
             ?: throw IllegalArgumentException("Explod requires anim")
-        require(actor.definition.animations[anim]?.frames?.isNotEmpty() == true) { "Explod animation missing: $anim" }
-        val base=old ?: ExplodConfig(anim,postype=actor.definition.defaultExplodPostype)
+        val common = ref?.common ?: old?.commonAnimation ?: false
+        action(actor, anim, common)
+        val base = old ?: ExplodConfig(anim, postype = actor.definition.defaultExplodPostype, ownPalette = common)
         val postype=args["postype"]?.trim()?.trim('"','\'')?.lowercase() ?: base.postype
         require(postype in setOf("p1","p2","none")) { "Unsupported Explod postype: $postype" }
         require(postype != "p2" || actor.opponent?.destroyed == false) { "Explod P2 is unavailable" }
@@ -101,7 +106,7 @@ class CoreExplods(private val fight: DeterministicFight) {
         val facing=integer("facing",base.facing)
         val vertical=integer("vfacing",base.verticalFacing)
         require(facing in listOf(-1,1) && vertical in listOf(-1,1)) { "Explod facing/vfacing must be -1 or 1" }
-        return base.copy(animation=anim,postype=postype,offsetX=pos.first,offsetY=pos.second,
+        return base.copy(animation=anim,commonAnimation=common,postype=postype,offsetX=pos.first,offsetY=pos.second,
             velocityX=velocity.first,velocityY=velocity.second,
             accelerationX=accel.first,accelerationY=accel.second,
             bindTime=bind,removeTime=remove,facing=facing,verticalFacing=vertical,
@@ -145,7 +150,7 @@ class CoreExplods(private val fight: DeterministicFight) {
                 for((e,c) in changes) {
                     e.config=c
                     if("anim" in args) {
-                        e.animation=AirAnimationPlayer(actor.definition.animations.getValue(c.animation))
+                        e.animation=AirAnimationPlayer(action(actor, c.animation, c.commonAnimation))
                         e.animationResetAt=fight.frame
                     }
                     if("vel" in args || "velocity" in args) { e.velocityX=c.velocityX; e.velocityY=c.velocityY }
@@ -158,7 +163,7 @@ class CoreExplods(private val fight: DeterministicFight) {
             } else {
                 val c=config(actor,args,null)
                 require(effects.size < maximum.coerceIn(0,512)) { "Explod resource limit exceeded" }
-                val e=CoreExplod(actor,id,nextSequence++,c,fight.frame,actor.definition.animations.getValue(c.animation))
+                val e=CoreExplod(actor,id,nextSequence++,c,fight.frame,action(actor, c.animation, c.commonAnimation))
                 position(e)
                 effects.add(e)
             }

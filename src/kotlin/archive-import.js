@@ -115,20 +115,24 @@ export function availableKotlinFighters(files,source){
 
 /** Keep the AIR and SFF in the same imported installation, including ZIPs
  * with a top-level directory. Kotlin consumes the original AIR text. */
-export function availableKotlinFightFx(files) {
+export function availableKotlinSharedAssets(files) {
   const roots=new Set([""]);
   for(const path of Object.keys(files)){
-    const match=/(?:^|\/)(?:data\/)?(?:fightfx\.air|fight\.def)$/.exec(path);
+    const match=/(?:^|\/)(?:data\/)?(?:fightfx\.air|common\.snd|fight\.def)$/.exec(path);
     if(match)roots.add(path.slice(0,match.index)+(match.index>0?"/":""));
   }
+  let soundOnly=null;
   for(const root of roots){
     const scoped=root?Object.fromEntries(Object.entries(files)
       .filter(([path])=>path.startsWith(root))
       .map(([path,bytes])=>[path.slice(root.length),bytes])):files;
-    const effects=loadCommonEffects(scoped);
-    if(!effects.resource)continue;
-    return {air:decodeText(scoped[effects.paths.air]),spriteBytes:scoped[effects.paths.sff],
-      scale:effects.scale,imageCache:new Map(),decodedBytes:0};
+    const effects=loadCommonEffects(scoped,{allowSoundOnly:true});
+    const soundBytes=effects.soundPath?scoped[effects.soundPath]:null;
+    if(effects.resource){
+      return {fightFx:{air:decodeText(scoped[effects.paths.air]),spriteBytes:scoped[effects.paths.sff],
+        scale:effects.scale,imageCache:new Map(),decodedBytes:0},soundBytes};
+    }
+    if(soundBytes)soundOnly??=soundBytes;
   }
-  return null;
+  return {fightFx:null,soundBytes:soundOnly};
 }

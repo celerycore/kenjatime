@@ -1,5 +1,45 @@
 # Kenjatime Kotlin/Wasm combat migration
 
+## Shared AIR and SND banks — November 18, 2026
+
+Continues published main source `5be0fbc`. PlaySnd resolves F-prefixed
+samples from imported common.snd. Voices still belong to the executing actor
+for channel replacement, SndPan, StopSnd and helper cleanup. The adapter
+caches by bank so a fighter and common sample with the same ID stay distinct.
+Kotlin supports a sound-only archive and can also resolve a custom common
+SND path from fight.def alongside a matching AIR/SFF pair.
+
+Explod and ModifyExplod can select F-prefixed fightfx actions, using the
+shared artwork's scale and the controller's authored scale. The actor's
+state coordinates still determine its offsets and motion. A sparse
+ModifyExplod preserves the current bank and animation clock.
+
+SuperPause uses shared fightfx action 30 when anim is omitted and plays
+unprefixed sound from common.snd. S-prefixed values use fighter assets, and
+-1 disables the corresponding effect. A missing explicit sample or action
+is reported while the pause, power change and other valid effects proceed.
+
+Verification passed on 1,328 JVM, 1,323 Wasm and 34 adapter tests.
+Production Chromium verified shared Explod artwork, a default super flash,
+and audio playback from an independently imported SND bank. Both 600-tick
+KFM replays keep the previous combat checksum.
+
+The existing JavaScript Core reference checks matched 1 of 147 KFM cases
+and 1 of 16 interaction cases exactly. They exercise the JavaScript runner.
+Kotlin still needs its own runner against those captured traces.
+
+The legacy controller-name tally remains 97 of 97. The following gaps
+have separate compatibility and verification work:
+
+| Area | Remaining work |
+| --- | --- |
+| Contact presentation | Route authored hit/guard sparks, spark offsets and sounds from HitDef, Projectile and ReversalDef through the shared or fighter banks. |
+| Match flow | Add multi-round reset and carry-over rules and team formats. Kotlin currently runs a single round with two roots. |
+| Native gameplay | Compare Kotlin against captured native traces for guard, fall, combos, throws and exact frame order. The existing 147-case KFM comparison runner drives the JavaScript Core. |
+| State language and AI | Fill CNS parameter and trigger gaps, add ZSS, and verify native character-specific AI decisions. The Kotlin importer currently rejects ZSS. |
+| Rendering and audio | Complete stage and motif behavior, palette and contact effects, compressed sound formats and native mixer behavior. |
+| Device validation | Measure actual phone performance and verify audio and haptics on physical devices. |
+
 ## Legacy controller vocabulary milestone — November 18, 2026
 
 Continues published main source `8524c54`. Kotlin now registers all 97

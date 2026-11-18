@@ -22,12 +22,14 @@ internal class CoreCommonAnimations(private val fight: DeterministicFight) {
     private var jitterState = 0x6d2b79f5
     val all: List<CoreCommonAnimation> get() = effects
 
+    fun action(number: Int): AirAction? = actions[number]
+
     fun catalog(air: String, scale: Double) {
+        require(fight.frame == 0L && effects.isEmpty()) { "Load fightfx before stepping" }
         require(scale.isFinite() && scale > 0 && scale <= 1000) { "Invalid fightfx scale" }
         val parsed = MugenAirParser.parse(air)
         this.scale = scale
         actions = parsed
-        effects.clear()
     }
 
     fun execute(

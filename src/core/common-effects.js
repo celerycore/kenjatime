@@ -16,7 +16,7 @@ const empty=(issues,paths=null,soundPath=null)=>({
 });
 
 /** Select a complete AIR/SFF pair from a single namespace, with optional SND. */
-export function loadCommonEffects(files,{fightDef,character,stage,effectsPackage}={}){
+export function loadCommonEffects(files,{fightDef,character,stage,effectsPackage,allowSoundOnly=false}={}){
   const issues=[];
   const explicit=effectsPackage?namespace(effectsPackage):null;
   const selectedFightDef=normalize(fightDef);
@@ -24,7 +24,7 @@ export function loadCommonEffects(files,{fightDef,character,stage,effectsPackage
     selectedFightDef?namespace(selectedFightDef):null,
     namespace(stage)||null,namespace(character)||null,'',
   ].filter(x=>x!==null))];
-  let incomplete=null;
+  let incomplete=null,soundOnly=null;
   for(const scope of scopes){
     const preferredDef=selectedFightDef&&files[selectedFightDef]&&
       namespace(selectedFightDef)===scope?selectedFightDef:null;
@@ -48,7 +48,10 @@ export function loadCommonEffects(files,{fightDef,character,stage,effectsPackage
     const air=resource(def?.files?.['fightfx.air'],'fightfx.air');
     const sff=resource(def?.files?.['fightfx.sff'],'fightfx.sff');
     const snd=resource(def?.files?.['common.snd'],'common.snd');
-    if(!air&&!sff)continue;
+    if(!air&&!sff){
+      if(allowSoundOnly&&snd)soundOnly??={snd,definition:defPath||null,scope};
+      continue;
+    }
     if(!air||!sff){incomplete??={air,sff,snd,defPath,scope};continue;}
     let actions;
     try{actions=animations(decodeText(files[air]));}
@@ -76,6 +79,7 @@ export function loadCommonEffects(files,{fightDef,character,stage,effectsPackage
     return empty(issues,{air:incomplete.air,sff:incomplete.sff,
       definition:incomplete.defPath,scope:incomplete.scope},incomplete.snd);
   }
+  if(soundOnly)return empty(issues,soundOnly,soundOnly.snd);
   if(explicit!==null)issues.push({type:'fightfx-missing',
     message:'Selected common-effects pack '+explicit+
       ' contains no fightfx.air/fightfx.sff pair.'});

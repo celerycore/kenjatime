@@ -22,7 +22,7 @@ self.onmessage=async({data})=>{
     self.postMessage({progress:'Checking character and stage definitions…'});
     const characters=charactersFromFiles(files),stages=stageDefinitions(files);
     if(!characters.length&&!stages.length&&!hasCommonEffects(files)&&
-      !(data.allowAssetOnly&&Object.keys(files).some(p=>/\.(sff|air|cns|cmd|def|act)$/i.test(p))))
+      !(data.allowAssetOnly&&Object.keys(files).some(p=>/\.(sff|snd|air|cns|cmd|def|act)$/i.test(p))))
       throw Error('No character, stage, or complete fightfx AIR/SFF resource set found in the archive.');
     const prepared=data.prepareStageData===false?[]:prepareStageSprites(stages,{onProgress:progress=>self.postMessage({progress})});
     const buffers=[...new Set([...Object.values(files).map(file=>file.buffer),...prepared])];

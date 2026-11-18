@@ -77,9 +77,9 @@ object CorePresentationPlanner {
             val zoom=camera?.zoom ?: 1.0
             val effectScaleX=effect?.config?.scaleX ?: 1.0
             val effectScaleY=effect?.config?.scaleY ?: 1.0
-            val spriteScaleX=commonScale ?: definition.coordinates.scale*(projectile?.scaleX ?:
+            val spriteScaleX=commonScale?.times(effectScaleX) ?: definition.coordinates.scale*(projectile?.scaleX ?:
                 (effectScaleX*if(effect == null)definition.xScale.toDouble()/Fixed.ONE else 1.0))*(pose?.scaleX ?: 1.0)
-            val spriteScaleY=commonScale ?: definition.coordinates.scale*(projectile?.scaleY ?:
+            val spriteScaleY=commonScale?.times(effectScaleY) ?: definition.coordinates.scale*(projectile?.scaleY ?:
                 (effectScaleY*if(effect == null)definition.yScale.toDouble()/Fixed.ONE else 1.0))*(pose?.scaleY ?: 1.0)
             val pixelScaleX=spriteScaleX*HORIZONTAL_SCALE*zoom
             val pixelScaleY=spriteScaleY*VERTICAL_SCALE*zoom
@@ -134,6 +134,7 @@ object CorePresentationPlanner {
                 .append(",\"number\":").append(frame?.sprite ?: -1)
                 .append(",\"life\":").append(life)
                 .append(",\"sprpriority\":").append(priority)
+            if (commonScale != null) json.append(",\"common\":true")
             if(effect != null)json.append(",\"effectId\":").append(effect.id)
                 .append(",\"effectSequence\":").append(effect.sequence)
             if(trail != null)json.append(",\"afterimageOwnerId\":").append(ownerId)
@@ -148,7 +149,7 @@ object CorePresentationPlanner {
             }
             val paletteLayers = when {
                 trail != null -> trail.layers
-                kind == "superpause" || commonScale != null -> listOfNotNull(fight.palettes.all.layer())
+                kind == "superpause" || kind == "gameanim" -> listOfNotNull(fight.palettes.all.layer())
                 else -> fight.palettes.layers(actor?.paletteEffects ?: projectile?.paletteEffects
                     ?: effect?.paletteEffects ?: fight.p1.paletteEffects)
             }
@@ -180,7 +181,8 @@ object CorePresentationPlanner {
         }
         for(effect in fight.effects.all)enqueue(effect.drawPriority) {
             draw(if(effect.owner.opponent === fight.p2)0 else 1,"explod",effect.x,effect.y,
-                effect.facingRight,effect.animation,effect.owner.definition,0,effect,priority=effect.drawPriority)
+                effect.facingRight,effect.animation,effect.owner.definition,0,effect,priority=effect.drawPriority,
+                commonScale=fight.commonAnimations.scale.takeIf { effect.config.commonAnimation })
         }
         for (effect in fight.commonAnimations.all) {
             val priority = if (effect.under) Int.MIN_VALUE.toLong() - 2 else Int.MAX_VALUE.toLong()
@@ -194,7 +196,8 @@ object CorePresentationPlanner {
             val priority = Int.MAX_VALUE.toLong() + 2
             enqueue(priority) {
                 draw(if (flash.owner.rootActor() === fight.p1) 0 else 1, "superpause",
-                    flash.x, flash.y, flash.facingRight, flash.animation, flash.owner.definition, 0, priority = priority)
+                    flash.x, flash.y, flash.facingRight, flash.animation, flash.owner.definition, 0, priority = priority,
+                    commonScale = fight.commonAnimations.scale.takeIf { flash.common })
             }
         }
         planned.sortWith(compareBy<PlannedDraw>{it.priority}.thenBy{it.order})

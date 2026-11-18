@@ -117,6 +117,7 @@ self.onmessage=async({data})=>{
         a.air,b.air,a.cns,b.cns,a.cmd,b.cmd,a.defText,b.defText);
       api.ktCoreSoundCatalog(handle,0,a.soundCatalog||"");
       api.ktCoreSoundCatalog(handle,1,b.soundCatalog||"");
+      api.ktCoreCommonSoundCatalog(handle,data.commonSoundCatalog||"");
       api.ktCorePaletteCatalog(handle,0,a.paletteCatalog?.palettes||"",a.paletteCatalog?.sprites||"");
       api.ktCorePaletteCatalog(handle,1,b.paletteCatalog?.palettes||"",b.paletteCatalog?.sprites||"");
       if(data.fightFx)api.ktCoreCommonAnimations(handle,data.fightFx.air,data.fightFx.scale);

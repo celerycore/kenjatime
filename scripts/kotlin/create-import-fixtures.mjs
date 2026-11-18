@@ -1019,8 +1019,12 @@ fightFxTable.setUint16(fightFxTable.getUint32(36,true)+fightFxSprite*28,777,true
 writeFileSync("test-output/kotlin-fightfx.zip",zipSync({
   "installation/data/fight.def":encoder.encode("[Info]\nlocalcoord=640,480\n[FightFx]\nscale=1\n"),
   "installation/data/fightfx.sff":fightFxBytes,
-  "installation/data/fightfx.air":encoder.encode("[Begin Action 52]\n777,0,0,0,55\n[Begin Action 120]\n777,0,0,0,12\n")
+  "installation/data/fightfx.air":encoder.encode("[Begin Action 30]\n777,0,0,0,-1\n[Begin Action 52]\n777,0,0,0,55\n[Begin Action 120]\n777,0,0,0,12\n")
 }));
+const sharedSoundBank=all["kfm/kfm.snd"].slice();
+const sharedSoundHeader=new DataView(sharedSoundBank.buffer,sharedSoundBank.byteOffset,sharedSoundBank.byteLength);
+sharedSoundHeader.setInt32(sharedSoundHeader.getUint32(20,true)+8,777,true);
+writeFileSync("test-output/kotlin-common-sound.zip",zipSync({"installation/data/common.snd":sharedSoundBank}));
 const sharedEffectFiles=Object.fromEntries(raw);
 sharedEffectFiles["kfm/kfm.cns"]=encoder.encode(`
 [Statedef 0]
@@ -1046,5 +1050,25 @@ waveform=sinesquare
 ampl=140,5
 time=20
 self=0
+[State 0, common Explod]
+type=Explod
+trigger1=GameTime=65
+id=777
+anim=F52
+pos=18,-25
+scale=1.5,2
+removetime=-1
+[State 0, common voice]
+type=PlaySnd
+trigger1=GameTime=65
+value=F777,0
+channel=7
+loop=1
+[State 0, common super flash and sound]
+type=SuperPause
+trigger1=GameTime=90
+time=35
+sound=777,0
+pos=25,-50
 `);
 writeFileSync("test-output/kotlin-kfm-shared-effects.zip",zipSync(sharedEffectFiles));

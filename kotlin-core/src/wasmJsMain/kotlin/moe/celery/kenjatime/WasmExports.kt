@@ -253,7 +253,7 @@ private object Fights {
     prefix = "[", postfix = "]", separator = ","
 ) { e ->
     "{\"type\":\"" + e.type + "\",\"group\":" + e.group +
-    ",\"number\":" + e.number + ",\"channel\":" + e.channel + "}"
+    ",\"number\":" + e.number + ",\"channel\":" + e.channel + (if (e.common) ",\"common\":true" else "") + "}"
 }
 @JsExport fun ktCoreIssues(handle: Int): String = Fights.get(handle).issues.joinToString("\n")
 @JsExport fun ktCoreCommonAnimations(handle: Int, air: String, scale: Double) {
@@ -266,6 +266,8 @@ private object Fights {
 }
 @JsExport fun ktCoreForceFeedback(handle: Int): String = Fights.get(handle).forceFeedback.json()
 @JsExport fun ktCoreSoundCatalog(handle: Int,side: Int,catalog: String): Unit = Fights.get(handle).sounds.catalog(side,catalog)
+@JsExport fun ktCoreCommonSoundCatalog(handle: Int, catalog: String): Unit =
+    Fights.get(handle).sounds.catalog(COMMON_SOUND_BANK, catalog)
 @JsExport fun ktCorePaletteCatalog(handle: Int, side: Int, palettes: String, sprites: String): Unit =
     Fights.get(handle).paletteBanks.catalog(side, palettes, sprites)
 @JsExport fun ktCoreSounds(handle: Int): String = Fights.get(handle).sounds.json()

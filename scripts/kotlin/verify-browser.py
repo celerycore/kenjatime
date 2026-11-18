@@ -738,6 +738,9 @@ try:
         shared.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-fightfx.zip"))
         shared.wait_for_function("""() => !document.querySelector("#archive").disabled &&
           document.querySelector("#setup-status")?.textContent.includes("Installed common fightfx")""", timeout=45000)
+        shared.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-common-sound.zip"))
+        shared.wait_for_function("""() => !document.querySelector("#archive").disabled &&
+          document.querySelector("#setup-status")?.textContent.includes("fightfx artwork and sound")""", timeout=45000)
         shared.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-shared-effects.zip"))
         shared.wait_for_function("window.__kenjatimeKotlinQA?.importedCount>0", timeout=45000)
         installed = shared.locator("#p1-select option").evaluate_all(
@@ -745,6 +748,7 @@ try:
         )
         shared.locator("#p1-select").select_option(value=installed)
         shared.locator("#cpu").uncheck()
+        shared.locator("#sound").check()
         shared.bring_to_front()
         shared.locator("#start").click()
         shared.wait_for_function("""() => {
@@ -769,8 +773,27 @@ try:
           const plan = window.__kenjatimeKotlinQA?.paintedRenderPlan;
           return plan?.frame >= 60 && plan.draws.every(d => d.kind !== "gameanim");
         }""", timeout=15000)
+        shared.wait_for_function("""() => {
+          const qa = window.__kenjatimeKotlinQA, plan = qa?.paintedRenderPlan;
+          const draw = qa?.lastSpritePaintOrder;
+          if (!plan || draw?.frame !== plan.frame) return false;
+          const explod = plan.draws.find(d => d.kind === "explod" && d.effectId === 777);
+          return explod?.common && explod.group === 777 &&
+            explod.spriteScaleX === 0.75 && explod.spriteScaleY === 1 &&
+            draw.draws.some(d => d.kind === "explod") &&
+            qa.audio.voices.some(v => v.common && v.group === 777 && v.channel === 7 && v.started);
+        }""", timeout=15000)
+        shared.wait_for_function("""() => {
+          const qa = window.__kenjatimeKotlinQA, plan = qa?.paintedRenderPlan;
+          const draw = qa?.lastSpritePaintOrder;
+          if (!plan?.pause?.darken || draw?.frame !== plan.frame) return false;
+          const flash = plan.draws.find(d => d.kind === "superpause");
+          return flash?.action === 30 && flash.common && flash.group === 777 &&
+            draw.draws.at(-1)?.kind === "superpause" && qa.audio.counts.started >= 2;
+        }""", timeout=15000)
         assert not shared_errors, shared_errors
         result["commonFightFxDrawingAndForceFeedback"] = "passed"
+        result["commonExplodAndSuperPauseWithImportedSound"] = "passed"
         shared.close()
 
         trails=browser.new_page(viewport={"width":1000,"height":780})

@@ -22,3 +22,18 @@ internal object CnsArguments {
         return result
     }
 }
+
+internal data class CnsResourceExpression(val expression: String, val common: Boolean) {
+    companion object {
+        private val prefix = Regex("^[sSfF](?=\\s|[\\d(+.\\-])")
+
+        // F selects the common bank and S selects the fighter's bank.
+        // Leave expression names such as FVar and Sin intact.
+        fun read(raw: String, defaultCommon: Boolean = false): CnsResourceExpression {
+            val value = raw.trim()
+            val bank = prefix.find(value)?.value?.lowercase()
+            return if (bank == null) CnsResourceExpression(value, defaultCommon)
+            else CnsResourceExpression(value.drop(1).trimStart(), bank == "f")
+        }
+    }
+}

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {packageFiles,sff} from "../../src/formats.js";
-import {joinImportedResources,availableKotlinFighters} from "../../src/kotlin/archive-import.js";
+import {joinImportedResources,availableKotlinFighters,availableKotlinSharedAssets} from "../../src/kotlin/archive-import.js";
 import {paletteCatalog} from "../../src/kotlin/sprite-palette.js";
 
 test("palette metadata respects linked SFF v2 palettes and excludes true-color and cyclic sprites",()=>{
@@ -74,4 +74,25 @@ test("identical source paths are deduplicated but conflicting archive entries re
  assert.deepEqual([...files["same.sff"]],[5]);
  assert.throws(()=>joinImportedResources([{files:{"same.sff":new Uint8Array([5])}},
    {files:{"same.sff":new Uint8Array([9])}}]),/Conflicting/);
+});
+
+
+test("shared banks resolve a wrapped sound-only archive and keep optional sounds scoped to the selected art",()=>{
+ const encode=text=>new TextEncoder().encode(text);
+ const sound=kfm["kfm/kfm.snd"],sprite=kfm["kfm/kfm.sff"];
+ const audioOnly=availableKotlinSharedAssets({"wrap/data/common.snd":sound});
+ assert.equal(audioOnly.fightFx,null);
+ assert.strictEqual(audioOnly.soundBytes,sound);
+ const combined={
+  "other/data/common.snd":sound,
+  "wrap/data/fightfx.air":encode("[Begin Action 30]\n0,0,0,0,-1"),
+  "wrap/data/fightfx.sff":sprite,
+  "wrap/data/fight.def":encode("[Info]\nlocalcoord=640,480\n[Files]\ncommon.snd=custom.snd"),
+ };
+ const alone=availableKotlinSharedAssets(combined);
+ assert.strictEqual(alone.fightFx.spriteBytes,sprite);
+ assert.equal(alone.fightFx.scale,0.5);
+ assert.equal(alone.soundBytes,null);
+ const withSound=availableKotlinSharedAssets({...combined,"wrap/data/custom.snd":sound});
+ assert.strictEqual(withSound.soundBytes,sound);
 });

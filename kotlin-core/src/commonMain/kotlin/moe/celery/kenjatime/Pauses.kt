@@ -24,7 +24,7 @@ private fun pauseInt(raw: String, actor: FightingCharacter, issues: MutableSet<S
 
 internal data class CoreSuperFlash(
     val owner: FightingCharacter, val x: Int, val y: Int, val facingRight: Boolean,
-    val animation: AirAnimationPlayer
+    val animation: AirAnimationPlayer, val common: Boolean
 )
 
 internal class CorePauses {
@@ -134,34 +134,38 @@ internal class CorePauses {
             val factor = args["p2defmul"]?.let(::num) ?: 0.0
             require(factor == 0.0 || factor in .0001..10000.0) { "Invalid target defence multiplier" }
             val power = int("poweradd", 0, Int.MIN_VALUE..Int.MAX_VALUE)
-            val flash = args["anim"]?.let { raw ->
-                if (!raw.startsWith("S", true)) {
-                    require(num(raw) == -1.0) { "Common super animations are unavailable. Use an S-prefixed AIR action." }
-                    null
-                } else {
-                    val id = pauseInt(raw.drop(1).trim(), actor, issues, 0..Int.MAX_VALUE)
-                    val action = actor.definition.animations[id]
-                        ?: throw IllegalArgumentException("Super animation $id is missing from the fighter's AIR")
-                    val pos = args["pos"]?.let(CnsArguments::split).orEmpty()
-                    require(pos.size <= 2) { "Super position requires up to two values" }
-                    val x = pos.getOrNull(0)?.let { actor.coordinates.toWorld(num(it)) } ?: 0
-                    val y = pos.getOrNull(1)?.let { actor.coordinates.toWorld(num(it)) } ?: 0
-                    fun bounded(value: Long) = value.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
-                    CoreSuperFlash(actor, bounded(actor.posX.toLong() + x.toLong() * if (actor.facingRight) 1 else -1),
-                        bounded(actor.posY.toLong() + y), actor.facingRight, AirAnimationPlayer(action))
+            val flash = if (superPause) {
+                val ref = CnsResourceExpression.read(args["anim"] ?: "30", defaultCommon = true)
+                val id = pauseInt(ref.expression, actor, issues, -1..Int.MAX_VALUE)
+                val pos = args["pos"]?.let(CnsArguments::split).orEmpty()
+                require(pos.size <= 2) { "Super position requires up to two values" }
+                val x = pos.getOrNull(0)?.let { actor.coordinates.toWorld(num(it)) } ?: 0
+                val y = pos.getOrNull(1)?.let { actor.coordinates.toWorld(num(it)) } ?: 0
+                val action = when {
+                    id < 0 -> null
+                    ref.common -> actor.world?.commonAnimations?.action(id)
+                    else -> actor.definition.animations[id]
                 }
-            }
+                if (action == null && id >= 0 && "anim" in args) {
+                    val source = if (ref.common) "fightfx AIR" else "the fighter's AIR"
+                    issues.add("Super animation $id is missing from $source")
+                }
+                action?.let {
+                    fun bounded(value: Long) = value.coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
+                    val facing = if (actor.facingRight) 1 else -1
+                    CoreSuperFlash(actor, bounded(actor.posX.toLong() + x.toLong() * facing),
+                        bounded(actor.posY.toLong() + y), actor.facingRight, AirAnimationPlayer(it), ref.common)
+                }
+            } else null
             val sound = args["sound"]?.let { raw ->
                 val parts = CnsArguments.split(raw)
-                val group = parts.first()
-                if (group.startsWith("S", true)) {
-                    require(parts.size == 2) { "Super sound needs a group and number" }
-                    val id = pauseInt(group.drop(1).trim(), actor, issues, 0..Int.MAX_VALUE)
+                val ref = CnsResourceExpression.read(parts.first(), defaultCommon = true)
+                val group = pauseInt(ref.expression, actor, issues, -1..Int.MAX_VALUE)
+                require(parts.size <= 2 && (group == -1 || parts.size == 2)) { "Super sound needs a group and number" }
+                if (group == -1) null else {
                     val number = pauseInt(parts[1], actor, issues, 0..Int.MAX_VALUE)
-                    "$id,$number"
-                } else {
-                    require(num(group) == -1.0 && parts.size <= 2) { "Common super sounds are unavailable. Use an S-prefixed sound." }
-                    null
+                    val prefix = if (ref.common) "F" else "S"
+                    "$prefix$group,$number"
                 }
             }
             val window = Window(actor, time, move, buffer, flag("pausebg", true), superPause,

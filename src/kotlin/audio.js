@@ -60,11 +60,12 @@ export class KotlinAudio {
     this.buffers.delete(entry.key);this.buffers.set(entry.key,entry);entry.refs++;return entry;
   }
   buffer(voice){
-    const key=[this.generation,voice.side,voice.group,voice.number].join(':');
+    const bank=voice.common?2:voice.side;
+    const key=[this.generation,bank,voice.group,voice.number].join(':');
     const cached=this.buffers.get(key);if(cached)return Promise.resolve(cached);
     if(this.loading.has(key))return this.loading.get(key);
     if(this.queue.length>=32)return Promise.reject(Error('Too many pending audio decodes'));
-    const sample=this.banks[voice.side]?.samples.get(voice.group+':'+voice.number);
+    const sample=this.banks[bank]?.samples.get(voice.group+':'+voice.number);
     if(!sample)return Promise.reject(Error('Sound sample is unavailable'));
     const decodedBytes=Math.ceil(sample.frames*this.context.sampleRate/sample.rate)*sample.channels*4;
     if(decodedBytes>16*MiB)return Promise.reject(Error('Decoded sample exceeds 16 MiB'));
@@ -114,7 +115,7 @@ export class KotlinAudio {
     const rms=this.analysers?.map(node=>{const data=new Float32Array(node.fftSize);node.getFloatTimeDomainData(data);return Math.sqrt(data.reduce((sum,n)=>sum+n*n,0)/data.length)})||[0,0];
     return {state:this.context?.state||'unavailable',enabled:this.enabled,paused:this.paused,rms,bytes:this.bytes,entries:this.buffers.size,
       decoding:this.decoders,pending:this.queue.length,counts:{...this.counts},warnings:[...this.warnings],
-      voices:[...this.voices.values()].map(v=>({voice:v.voice,actor:v.actor,side:v.side,channel:v.channel,group:v.group,number:v.number,
+      voices:[...this.voices.values()].map(v=>({voice:v.voice,actor:v.actor,side:v.side,common:!!v.common,channel:v.channel,group:v.group,number:v.number,
         gain:v.gain,frequency:v.frequency,pan:v.pan,loop:v.loop,started:v.started,
         nodeGain:v.gainNode?.gain.value??null,nodePan:v.panNode?.pan.value??null,nodeFrequency:v.source?.playbackRate.value??null}))};
   }

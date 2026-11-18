@@ -1190,7 +1190,8 @@ class FightingCharacter(
 
 data class FightContact(val attacker: Int, val defender: Int, val guarded: Boolean, val damage: Int)
 data class CorePresentationEvent(
-    val type: String, val group: Int = -1, val number: Int = -1, val channel: Int = -1
+    val type: String, val group: Int = -1, val number: Int = -1, val channel: Int = -1,
+    val common: Boolean = false
 )
 
 /** Two-actor deterministic subset, not a full MUGEN contact phase. */

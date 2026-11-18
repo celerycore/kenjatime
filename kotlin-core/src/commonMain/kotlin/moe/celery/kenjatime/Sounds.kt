@@ -2,21 +2,23 @@ package moe.celery.kenjatime
 
 import kotlin.math.ceil
 
+internal const val COMMON_SOUND_BANK = 2
+
 internal data class CoreSoundSample(val group: Int,val number: Int,val frames: Long,val rate: Int)
 internal data class CoreSoundVoice(val id: Long,val actor: FightingCharacter,val side: Int,val sample: CoreSoundSample,
-    val channel: Int,val gain: Double,val frequency: Double,val loop: Boolean,var pan: Double,var remaining: Int,var age: Long=0) {
+    val common: Boolean,val channel: Int,val gain: Double,val frequency: Double,val loop: Boolean,var pan: Double,var remaining: Int,var age: Long=0) {
     fun json()="{\"voice\":$id,\"actor\":${actor.id},\"side\":$side,\"group\":${sample.group},\"number\":${sample.number},"+
-        "\"channel\":$channel,\"gain\":$gain,\"frequency\":$frequency,\"loop\":$loop,\"pan\":$pan,\"remaining\":$remaining,\"age\":$age}"
+        (if (common) "\"common\":true," else "") + "\"channel\":$channel,\"gain\":$gain,\"frequency\":$frequency,\"loop\":$loop,\"pan\":$pan,\"remaining\":$remaining,\"age\":$age}"
 }
 
 /** Logical audio belongs to Kotlin; platform decoders supply immutable sample frame/rate metadata. */
 internal class CoreSounds(private val fight: DeterministicFight) {
-    private val banks=arrayOfNulls<Map<Pair<Int,Int>,CoreSoundSample>>(2)
+    private val banks=arrayOfNulls<Map<Pair<Int,Int>,CoreSoundSample>>(COMMON_SOUND_BANK + 1)
     val voices=mutableListOf<CoreSoundVoice>()
     val events=mutableListOf<String>()
     private var nextVoice=1L
     fun catalog(side: Int,text: String) {
-        require(side in 0..1 && fight.frame==0L && voices.isEmpty()) {"Sound catalogs must be loaded before stepping"}
+        require(side in banks.indices && fight.frame==0L && voices.isEmpty()) {"Sound catalogs must be loaded before stepping"}
         require(text.length<=512*1024) {"Sound catalog is too large"}
         val samples=linkedMapOf<Pair<Int,Int>,CoreSoundSample>()
         if(text.isNotEmpty())for(row in text.split(';')) {
@@ -81,9 +83,8 @@ internal class CoreSounds(private val fight: DeterministicFight) {
             }
             val pair=args["value"]?.let(CnsArguments::split) ?: throw IllegalArgumentException("Missing value")
             require(pair.size==2) {"PlaySnd value requires two components"}
-            val prefix=Regex("^[sSfF](?=\\s|[\\d(+.\\-])").find(pair[0].trim())?.value
-            require(prefix?.lowercase()!="f") {"Common F sound bank is not available"}
-            val group=integer(if(prefix!=null)pair[0].trim().drop(1) else pair[0],0,Int.MAX_VALUE)
+            val ref = CnsResourceExpression.read(pair[0])
+            val group = integer(ref.expression, 0, Int.MAX_VALUE)
             val sound=integer(pair[1],0,Int.MAX_VALUE)
             require(!("volume" in args && "volumescale" in args)) {"volume and volumescale are mutually exclusive"}
             val gain=if("volume" in args)(integer(args.getValue("volume"),-256,256)+256)/256.0 else args["volumescale"]?.let {
@@ -93,16 +94,21 @@ internal class CoreSounds(private val fight: DeterministicFight) {
             val loop=args["loop"]?.let {number(it)!=0.0} ?: false
             val low=args["lowpriority"]?.let {number(it)!=0.0} ?: false
             // Preserve the original public metadata queue independently of asset availability.
-            fight.presentation.add(CorePresentationEvent(type,group,sound,channel))
+            fight.presentation.add(CorePresentationEvent(type,group,sound,channel,ref.common))
             val side=if(actor.rootActor()===fight.p1)0 else 1
-            val bank=banks[side] ?: return
-            val sample=bank[group to sound] ?: run {errors.add("Missing sound $group,$sound for player ${side+1}");return}
+            val bank = banks[if (ref.common) COMMON_SOUND_BANK else side]
+            if (bank == null && !ref.common) return
+            val sample = bank?.get(group to sound) ?: run {
+                val source = if (ref.common) "in common.snd" else "for player ${side + 1}"
+                errors.add("Missing sound $group,$sound $source")
+                return
+            }
             val old=if(channel>=0)voices.firstOrNull {it.actor===actor && it.channel==channel} else null
             if(old!=null && low)return
             require(voices.size-(if(old!=null)1 else 0)<128 && voices.count {it.actor===actor}-(if(old!=null)1 else 0)<32) {"Sound voice limit exceeded"}
             old?.let(::stop)
             val ticks=ceil(sample.frames*60.0/sample.rate/frequency-1e-10).toInt().coerceAtLeast(1)
-            val voice=CoreSoundVoice(nextVoice++,actor,side,sample,channel,gain,frequency,loop,pan,if(loop)-1 else ticks)
+            val voice=CoreSoundVoice(nextVoice++,actor,side,sample,ref.common,channel,gain,frequency,loop,pan,if(loop)-1 else ticks)
             voices.add(voice);events.add("{\"type\":\"play\",\"data\":${voice.json()}}")
         }catch(e: IllegalArgumentException) {errors.add("Invalid ${controller.type}: ${e.message}")}
     }

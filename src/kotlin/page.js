@@ -1,7 +1,7 @@
 import "./app.css";
 import {unpackArchiveBytes} from "../archive-reader.js";
 import {sff} from "../formats.js";
-import {readInstalledArchive,joinImportedResources,availableKotlinFighters,availableKotlinFightFx}
+import {readInstalledArchive,joinImportedResources,availableKotlinFighters,availableKotlinSharedAssets}
   from "./archive-import.js";
 import {archiveAccept} from "../uploads.js";
 import {ArchiveLibrary} from "../mobile-library.js";
@@ -33,7 +33,7 @@ byId("sound").onchange=()=>audio.setEnabled(byId("sound").checked);
 window.addEventListener("pagehide",()=>{audio.dispose();rumble.stop();});
 const fighters=new Map();
 const installedTables=new Map();
-let importedFightFx=null,matchFightFx=null;
+let importedFightFx=null,matchFightFx=null,importedCommonSound=null;
 let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0,paintedProjectileCount=0;
 let lastExplodPaint=null,lastProjectilePaint=null;
 let lastSpritePaintOrder=null,lastActorTransformPaint=null;
@@ -88,7 +88,8 @@ function installedStatus(){
     fighters.set(stableId,fighter);
   }
   refreshRoster();
-  const effectsStatus=importedFightFx?" Common fightfx artwork is available.":"";
+  const effectsStatus=(importedFightFx?" Common fightfx artwork is available.":"")+
+    (importedCommonSound?" Common sound is available.":"");
   if(result.ready.length){
     status("Installed "+result.ready.map(f=>f.name).join(", ")+
       " with actual AIR/CNS and SFF sprites. Kotlin MUGEN 1.1 parity is still incomplete."+effectsStatus);
@@ -97,8 +98,9 @@ function installedStatus(){
     status(pending.name+" is incomplete. Required resource(s): "+
       pending.files.slice(0,5).join(", ")+
       ". Select its companion RAR/SFF archive; already extracted files are retained."+effectsStatus);
-  }else if(importedFightFx){
-    status("Installed common fightfx artwork for the next fight.");
+  }else if(importedFightFx||importedCommonSound){
+    const label=[importedFightFx&&"fightfx artwork",importedCommonSound&&"sound"].filter(Boolean).join(" and ");
+    status("Installed common "+label+" for the next fight.");
   }else{
     status("Archive extracted, but no complete MUGEN character DEF was found. Add the character archive.");
   }
@@ -257,7 +259,7 @@ function render(){
   }
   for(const fighter of draws){
     if(fighter.kind==="superpause")darkenArena();
-    const common=fighter.kind==="gameanim";
+    const common=fighter.common===true;
     const item=common?matchFightFx:images[fighter.side]||images[0];
     const x=fighter.x;
     const y=fighter.y; // both projected by Kotlin's deterministic camera
@@ -367,8 +369,9 @@ async function importFiles(files,{save=true}={}){
       status("Extracting "+file.name+" with the bundled RAR/7z Wasm decoder…");
       const files=await readInstalledArchive(file,message=>
         status(file.name+": "+message));
-      const fightFx=availableKotlinFightFx(files);
+      const {fightFx,soundBytes}=availableKotlinSharedAssets(files);
       if(fightFx)importedFightFx=fightFx;
+      if(soundBytes)importedCommonSound=soundBytes;
       installedTables.set(id,{name:file.name,files});
       installed.push(file);
     }
@@ -415,8 +418,8 @@ function begin(){
   if(!p1||!p2||!backend){status("Kotlin runtime or fighter missing.");return}
   setQuality();
   setVictoryQuote();
-  const soundBanks=[p1,p2].map(item=>{
-    try{return item.soundBank||(item.soundBank=readSoundBank(item.soundBytes))}
+  const soundBanks=[p1,p2,{soundBytes:importedCommonSound}].map(item=>{
+    try{return item.soundBank??=(readSoundBank(item.soundBytes))}
     catch(error){return {samples:new Map(),catalog:"",warnings:[error.message]}}
   });
   const paletteBanks=[p1,p2].map(item=>{
@@ -434,6 +437,7 @@ function begin(){
     matchToken:++matchToken,
     p1:{name:p1.name,air:p1.air,cns:p1.cns,cmd:p1.cmd,defText:p1.defText||"",soundCatalog:soundBanks[0].catalog,paletteCatalog:paletteBanks[0]},
     p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||"",soundCatalog:soundBanks[1].catalog,paletteCatalog:paletteBanks[1]},
+    commonSoundCatalog:soundBanks[2].catalog,
     fightFx:matchFightFx&&{air:matchFightFx.air,scale:matchFightFx.scale},
     cpu:byId("cpu").checked,endless:byId("endless").checked,
     level:+byId("ai-level").value
