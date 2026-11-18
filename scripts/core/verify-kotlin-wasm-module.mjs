@@ -4061,7 +4061,7 @@ trigger1=1`,"","",`[Info]\nlocalcoord=${width},${width*3/4}`,"");
     const actor=JSON.parse(api.ktCoreSnapshot(handle,0)),plan=JSON.parse(api.ktCoreRenderPlan(handle,0));
     assert.equal(actor.screenBound,bounded);assert.equal(actor.moveCameraX,moveX);assert.equal(actor.moveCameraY,moveY);
     assert.equal(actor.x256,facing*(bounded?2000:3000)*256);assert.equal(actor.y256,-1000*256);
-    assert.equal(plan.cameraX,moveX?facing*204:0);assert.equal(plan.cameraY,moveY?-45:0);assert.equal(plan.cameraZoom,1);
+    assert.equal(plan.cameraX,moveX?facing*204:0);assert.equal(plan.cameraY,moveY?-36:0);assert.equal(plan.cameraZoom,1);
     const before=api.ktCoreChecksum(handle),snapshot=api.ktCoreSnapshot(handle,0);
     for(let i=0;i<3;i++)assert.deepEqual(JSON.parse(api.ktCoreRenderPlan(handle,0)),plan);
     assert.equal(api.ktCoreChecksum(handle),before);assert.equal(api.ktCoreSnapshot(handle,0),snapshot);

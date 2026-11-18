@@ -24,6 +24,11 @@ const isAndroidShell=/Android/i.test(navigator.userAgent||"") &&
     matchMedia("(display-mode: standalone)").matches);
 if(isAndroidShell)document.body.classList.add("android-shell");
 const canvas=byId("arena"),ctx=canvas.getContext("2d",{alpha:false});
+const arenaBox=byId("arena-box"),banner=byId("banner");
+function setBanner(phase,message){
+  banner.dataset.phase=phase;
+  banner.textContent=message;
+}
 const status=message=>{byId("setup-status").textContent=message};
 const library=new ArchiveLibrary();
 const audio=new KotlinAudio();
@@ -50,8 +55,9 @@ byId("cns-debug").addEventListener("toggle",()=>{
 });
 let backend="",running=false,paused=false,latest=null,lastDraw=0;
 let frameSamples=0,drawn=0,measureStart=performance.now(),renderFps=0;
-let startedAt=0,recording=false,rows=[],lastSample=0,previousTick=0,previousTime=0;
+let startedAt=0,recording=false,rows=[],previousTick=0,previousTime=0;
 let workerStats=null,deviceInfo=null,images=[null,null],activeNames=["",""];
+let activeOptions={cpu:true,endless:true,level:"4"};
 const KB_KEYS=new Set(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","KeyZ","KeyX","KeyC","KeyA","KeyS","KeyD"]);
 const inputKeys={KeyZ:"a",KeyX:"b",KeyC:"c",KeyA:"x",KeyS:"y",KeyD:"z"};
 const KFM_URL=new URL("../../public/kfm.zip",import.meta.url);
@@ -123,9 +129,10 @@ function refreshRoster(){
   const found=findBenchmarkFighters(candidates);
   byId("preset").disabled=!found.ready;
   byId("preset").textContent=found.ready?
-    "Select Tomoka vs Nu-13 · CPU level 4":
-    "Tomoka vs Nu-13 preset · import missing archives";
+    "Tomoka vs Nu-13 · CPU level 4":
+    "Tomoka vs Nu-13 · import both";
   byId("start").disabled=!backend||fighters.size===0;
+  previewMatchup();
 }
 function initialiseSpriteArt(item){
   if(item.bank||item.unavailable)return;
@@ -194,6 +201,23 @@ function spriteImage(item,group,number,remapPalette){
     return null;
   }
 }
+function previewMatchup(){
+  if(running)return;
+  for(const side of [1,2]){
+    const fighter=fighters.get(byId("p"+side+"-select").value);
+    const preview=byId("preview-p"+side),previewCtx=preview.getContext("2d");
+    previewCtx.clearRect(0,0,preview.width,preview.height);
+    byId("preview-name-"+side).textContent=fighter?.name||"";
+    const sprite=spriteImage(fighter,0,0)||spriteImage(fighter,9000,0);
+    if(!sprite)continue;
+    const scale=Math.min(2.5,preview.width/sprite.w,(preview.height-10)/sprite.h);
+    const width=Math.round(sprite.w*scale),height=Math.round(sprite.h*scale);
+    previewCtx.imageSmoothingEnabled=false;
+    previewCtx.drawImage(sprite.image,Math.round((preview.width-width)/2),preview.height-height,width,height);
+  }
+}
+for(const id of ["p1-select","p2-select"])byId(id).addEventListener("change",previewMatchup);
+
 function paletteSpriteImage(item,base,layers){
   if(!layers?.length)return base;
   const key=base.key+"@fx:"+JSON.stringify(layers),existing=item.imageCache.get(key);
@@ -321,6 +345,7 @@ function render(){
   lastEnvironmentPaint=Object.freeze({frame:latest.frame,stageOffsetY:latest.stageOffsetY??0,
     color:environmentColor?Object.freeze({...environmentColor}):null});
   lastPaintedRenderPlan=latest;
+  if(!arenaBox.classList.contains("has-frame"))arenaBox.classList.add("has-frame");
   const life=latest.health||[0,0]; // correct authored maxLife from Kotlin
   ctx.fillStyle=color("hud","#0b1521");ctx.fillRect(22,20,382,31);ctx.fillRect(556,20,382,31);
   ctx.fillStyle=color("life1","#95d78f");ctx.fillRect(25,23,life[0],25);
@@ -342,9 +367,10 @@ function updateInput(){
   worker.postMessage({type:"input",side:0,directions:dir,buttons});
 }
 window.addEventListener("keydown",event=>{
-  if(!KB_KEYS.has(event.code)||document.activeElement?.tagName==="INPUT")return;
+  if(!running||paused||activeOptions.cpu||!KB_KEYS.has(event.code)||
+     event.target.closest?.("input,select,textarea,button,a,summary,[contenteditable]"))return;
+  event.preventDefault();
   inputs.pressed.add(event.code);
-  if(running&&!byId("cpu").checked)event.preventDefault();
   updateInput();
 });
 window.addEventListener("keyup",event=>{
@@ -406,6 +432,7 @@ byId("preset").onclick=()=>{
   byId("p2-select").value=found.nu13.id;
   byId("ai-level").value="4";byId("cpu").checked=true;byId("endless").checked=true;
   byId("quality").value="performance";
+  previewMatchup();
   status("Kotlin CPU-versus-CPU benchmark preset selected. Imported character scripts will run with Kotlin's currently supported controller subset.");
 };
 function setVictoryQuote(text = ""){
@@ -416,6 +443,17 @@ function setVictoryQuote(text = ""){
 function begin(){
   const p1=fighters.get(byId("p1-select").value),p2=fighters.get(byId("p2-select").value);
   if(!p1||!p2||!backend){status("Kotlin runtime or fighter missing.");return}
+  finishRecording();
+  running=false;paused=false;
+  byId("pause").disabled=true;
+  byId("reset").disabled=true;
+  byId("record").disabled=true;
+  previewMatchup();
+  arenaBox.classList.remove("has-frame");
+  activeOptions={cpu:byId("cpu").checked,endless:byId("endless").checked,level:byId("ai-level").value};
+  inputs.pressed.clear();
+  updateInput();
+  if(!activeOptions.cpu)canvas.focus({preventScroll:true});
   setQuality();
   setVictoryQuote();
   const soundBanks=[p1,p2,{soundBytes:importedCommonSound}].map(item=>{
@@ -439,14 +477,16 @@ function begin(){
     p2:{name:p2.name,air:p2.air,cns:p2.cns,cmd:p2.cmd,defText:p2.defText||"",soundCatalog:soundBanks[1].catalog,paletteCatalog:paletteBanks[1]},
     commonSoundCatalog:soundBanks[2].catalog,
     fightFx:matchFightFx&&{air:matchFightFx.air,scale:matchFightFx.scale},
-    cpu:byId("cpu").checked,endless:byId("endless").checked,
-    level:+byId("ai-level").value
+    cpu:activeOptions.cpu,endless:activeOptions.endless,level:+activeOptions.level
   });
-  byId("banner").textContent="Kotlin/WASM · Preparing authored scripts";
+  setBanner("loading","Preparing match…");
 }
-byId("start").onclick=()=>{if(running)worker.postMessage({type:"stop"});begin()};
+byId("start").onclick=begin;
 byId("pause").onclick=()=>{
-  paused=!paused;worker.postMessage({type:"pause",value:paused});
+  paused=!paused;
+  if(paused){inputs.pressed.clear();updateInput();}
+  else if(!activeOptions.cpu)canvas.focus({preventScroll:true});
+  worker.postMessage({type:"pause",value:paused});
   audio.setPaused(paused);
   if(paused)rumble.stop();
   byId("pause").textContent=paused?"Resume":"Pause";
@@ -454,15 +494,21 @@ byId("pause").onclick=()=>{
 byId("reset").onclick=()=>{
   matchToken++;
   setVictoryQuote();
-  worker.postMessage({type:"stop"});
+  worker.postMessage({type:"stop",matchToken});
   audio.reset();audio.setPaused(false);rumble.stop();
   running=false;paused=false;latest=null;workerStats=null;
+  inputs.pressed.clear();
+  updateInput();
+  finishRecording();
+  previewMatchup();
+  arenaBox.classList.remove("has-frame");
   lastClipboards=null;byId("clipboard-output").textContent="Match stopped.";
   byId("pause").disabled=true;
   byId("pause").textContent="Pause";
   byId("reset").disabled=true;
   byId("record").disabled=true;
-  byId("banner").textContent="Kotlin/WASM · Ready";
+  byId("start").textContent="Start match";
+  setBanner("ready","Ready to fight");
   status("Match stopped. Kotlin engine resources released; imported fighters remain installed.");
 };
 function rowToCsv(data){
@@ -484,8 +530,8 @@ function record(stats){
   const elapsed=(performance.now()-startedAt)/1000;
   rows.push([
     new Date().toISOString(),elapsed.toFixed(3),"Kotlin/WASM",backend,
-    activeNames[0],activeNames[1],byId("cpu").checked?1:0,
-    byId("ai-level").value,byId("endless").checked?1:0,
+    activeNames[0],activeNames[1],activeOptions.cpu?1:0,
+    activeOptions.level,activeOptions.endless?1:0,
     renderFps.toFixed(2),stats.completed,
     stats.windowMs? (stats.ticks*1000/stats.windowMs).toFixed(3):"",
     stats.backlog,stats.averageTickCpuMs.toFixed(3),
@@ -502,11 +548,13 @@ byId("record").onclick=()=>{
   byId("stop-record").disabled=false;byId("csv").disabled=true;
   byId("record-status").textContent="Recording Kotlin engine and device information every 500 ms.";
 };
-byId("stop-record").onclick=()=>{
+function finishRecording(){
+  if(!recording)return;
   recording=false;byId("record").disabled=!running;
   byId("stop-record").disabled=true;byId("csv").disabled=rows.length===0;
   byId("record-status").textContent="Stopped: "+rows.length+" samples ready to export.";
-};
+}
+byId("stop-record").onclick=finishRecording;
 byId("csv").onclick=()=>{
   const csv=[fields,...rows].map(rowToCsv).join("\r\n")+"\r\n";
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
@@ -516,21 +564,28 @@ byId("csv").onclick=()=>{
   setTimeout(()=>URL.revokeObjectURL(url),10000);
 };
 worker.onmessage=({data})=>{
+  if(data.matchToken!==matchToken)return;
   if(data.type==="ready"){
-    backend=data.version;byId("version").textContent=backend;refreshRoster();
+    backend=data.version;
+    byId("version").textContent=backend;
+    byId("runtime-indicator").classList.add("ready");
+    setBanner("ready","Ready to fight");
+    refreshRoster();
   }else if(data.type==="started"){
     running=true;paused=false;byId("pause").disabled=false;byId("record").disabled=false;
     byId("reset").disabled=false;
-    byId("pause").textContent="Pause";byId("banner").textContent="Kotlin/WASM · 60 Hz combat";
-    status("Kotlin/WASM fight running. Special move frames can be skipped, but Kotlin simulation continues.");
+    byId("pause").textContent="Pause";
+    byId("start").textContent="Restart match";
+    setBanner("running",activeOptions.endless?"Endless · 60 Hz combat":"60 Hz combat");
+    status(activeOptions.endless?"Endless match running.":"Match running.");
   }else if(data.type==="frame"){
     latest=data.visuals;
     byId("entities").textContent=latest.helpers+" / "+latest.projectiles;
     byId("debt").textContent=Number(data.debt).toFixed(0)+" ticks";
   }else if(data.type==="audio"){
-    if(running&&data.matchToken===matchToken)audio.handle(data.events);
+    if(running)audio.handle(data.events);
   }else if(data.type==="rumble"){
-    if(running&&!paused&&data.matchToken===matchToken&&!document.hidden&&document.hasFocus()){
+    if(running&&!paused&&!document.hidden&&document.hasFocus()){
       for(const motor of data.motors){
         if(motor.reset)rumble.reset(motor.side);
         else rumble.writeMotors(motor.side,motor);
@@ -548,21 +603,24 @@ worker.onmessage=({data})=>{
     byId("tickcpu").textContent=data.averageTickCpuMs.toFixed(2)+" ms";
     record(data);
   }else if(data.type==="paused"){
-    byId("banner").textContent=data.value?"Paused · Kotlin fight frozen":"Kotlin/WASM · 60 Hz combat";
+    setBanner(data.value?"paused":"running",data.value?"Paused":
+      activeOptions.endless?"Endless · 60 Hz combat":"60 Hz combat");
   }else if(data.type==="complete"){
-    if(data.matchToken!==matchToken)return;
     audio.reset();rumble.stop();
     running=false;paused=false;byId("pause").disabled=true;
     byId("reset").disabled=true;byId("record").disabled=true;
+    finishRecording();
+    byId("start").textContent="Start match";
     const winner=data.round.winner;
-    byId("banner").textContent=winner===0?"Match drawn":
-      `${activeNames[winner-1]} wins · Player ${winner}`;
+    setBanner("complete",winner===0?"Match drawn":`${activeNames[winner-1]} wins · Player ${winner}`);
     setVictoryQuote(data.round.victoryQuote??"");
   }else if(data.type==="error"){
     audio.reset();rumble.stop();
     running=false;paused=false;byId("pause").disabled=true;byId("record").disabled=true;
     byId("reset").disabled=true;
-    byId("banner").textContent="Kotlin/WASM ERROR";
+    finishRecording();
+    byId("start").textContent="Start match";
+    setBanner("error","Kotlin/WASM error");
     status("Kotlin runtime error: "+data.message+". The engine will not silently switch to JavaScript.");
   }else if(data.type==="stopped"){
     running=false;byId("pause").disabled=true;
@@ -600,7 +658,7 @@ async function initialize(){
   const response=await fetch(KFM_URL);
   if(!response.ok)throw Error("Included KFM asset missing: "+response.status);
   const sample=await readFighter(new Uint8Array(await response.arrayBuffer()),"Bundled Kung Fu Man");
-  sample.id="kfm";fighters.set("kfm",sample);refreshRoster();
+  sample.id="kfm";sample.source="Included";fighters.set("kfm",sample);refreshRoster();
   worker.postMessage({type:"init"});
   // Local-only archive library: on another device archives must be reimported.
   try{
@@ -613,8 +671,8 @@ async function initialize(){
       }catch(error){console.warn("Skipping incompatible installed archive",error.message)}
     }
   }catch{}
-  status("Bundled Kung Fu Man ready. Waiting for the Kotlin/WASM module...");
+  if(!installedTables.size)status("Kung Fu Man is included. Import archives for more fighters.");
 }
 initialize().catch(error=>{
-  status(error.message);byId("banner").textContent="Kotlin/WASM unavailable";
+  status(error.message);setBanner("error","Kotlin/WASM unavailable");
 });

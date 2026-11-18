@@ -1,36 +1,144 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#111b27"><title>Kenjatime · Kotlin/WASM Standard</title></head>
-<body><main id="app">
-  <header><div><strong class="eyebrow">KENJATIME · KOTLIN/WASM</strong><h1>Play the Kotlin engine<span>.</span></h1><p>Deterministic 60 Hz combat in Kotlin/WASM. Rendering can skip frames without skipping authored simulation ticks.</p></div><span id="version">Loading Kotlin/WASM...</span></header>
-  <section class="panel" aria-label="Fighter setup">
-    <h2>Match setup</h2>
-    <div class="controls">
-      <label>Player 1 <select id="p1-select"><option value="kfm">Kung Fu Man · Included</option></select></label>
-      <label>Player 2 <select id="p2-select"><option value="kfm">Kung Fu Man · Included</option></select></label>
-      <label>CPU Level <select id="ai-level"><option value="2">2</option><option value="4" selected>4</option><option value="6">6</option><option value="8">8</option></select></label>
-      <label>Render quality <select id="quality"><option value="performance" selected>Performance</option><option value="balanced">Balanced</option><option value="full">Full</option></select></label>
-      <label class="check"><input id="endless" type="checkbox" checked> Endless benchmark</label>
-      <label class="check"><input id="cpu" type="checkbox" checked> CPU vs CPU</label>
-      <label class="check"><input id="sound" type="checkbox" checked> Sound</label>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#141612">
+  <meta name="description" content="Play and benchmark Kenjatime's Kotlin/Wasm fighting engine.">
+  <title>Kenjatime Core · Kotlin/Wasm</title>
+</head>
+<body>
+  <main id="app" class="workspace">
+    <header class="masthead">
+      <a class="wordmark" href="#battle" aria-label="Kenjatime Core arena">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Kenjatime<span class="wordmark-core">Core</span></span>
+      </a>
+      <nav class="section-nav" aria-label="Workspace">
+        <a href="#battle">Arena</a>
+        <a href="#benchmark">Benchmark</a>
+      </nav>
+      <div class="runtime">
+        <span id="runtime-indicator" aria-hidden="true"></span>
+        <span id="version">Loading Kotlin/WASM…</span>
+      </div>
+    </header>
+
+    <div class="workbench">
+      <section id="battle" class="arena-panel" aria-labelledby="arena-heading">
+        <div class="arena-heading">
+          <h1 id="arena-heading">Battle arena</h1>
+          <span id="banner" role="status">Loading Kotlin/WASM…</span>
+        </div>
+        <div id="arena-box" class="arena-box">
+          <canvas id="arena" width="960" height="540" tabindex="0" aria-label="Kotlin/Wasm fighting arena. Use the arrow keys and Z, X, C, A, S, D in manual mode."></canvas>
+          <div class="arena-preview" aria-hidden="true">
+            <div class="preview-floor"></div>
+            <div class="preview-matchup">
+              <div class="preview-fighter preview-left">
+                <canvas id="preview-p1" width="192" height="160"></canvas>
+                <span id="preview-name-1"></span>
+              </div>
+              <span class="versus">VS</span>
+              <div class="preview-fighter preview-right">
+                <canvas id="preview-p2" width="192" height="160"></canvas>
+                <span id="preview-name-2"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="transport" aria-label="Match controls">
+          <button id="start" class="primary" type="button" disabled>Start match</button>
+          <button id="pause" type="button" disabled>Pause</button>
+          <button id="reset" type="button" disabled>Stop</button>
+          <details class="shortcuts">
+            <summary>Controls</summary>
+            <div>
+              <p><strong>Manual mode</strong></p>
+              <p><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> Move</p>
+              <p><kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> Attack</p>
+            </div>
+          </details>
+        </div>
+        <blockquote id="victory-quote" aria-live="polite" hidden></blockquote>
+      </section>
+
+      <section id="match-setup" class="panel setup-panel" aria-labelledby="setup-heading">
+        <h2 id="setup-heading">Match setup</h2>
+        <div class="players">
+          <label class="player player-one">Player 1
+            <select id="p1-select"><option value="kfm">Kung Fu Man · Included</option></select>
+          </label>
+          <label class="player player-two">Player 2
+            <select id="p2-select"><option value="kfm">Kung Fu Man · Included</option></select>
+          </label>
+        </div>
+        <div class="options">
+          <label>CPU level
+            <select id="ai-level"><option value="2">2</option><option value="4" selected>4</option><option value="6">6</option><option value="8">8</option></select>
+          </label>
+          <label>Render quality
+            <select id="quality"><option value="performance" selected>Performance</option><option value="balanced">Balanced</option><option value="full">Full</option></select>
+          </label>
+        </div>
+        <div class="switch-list">
+          <label class="switch"><span>Endless mode</span><input id="endless" type="checkbox" checked></label>
+          <label class="switch"><span>CPU vs CPU</span><input id="cpu" type="checkbox" checked></label>
+          <label class="switch"><span>Sound</span><input id="sound" type="checkbox" checked></label>
+        </div>
+        <div class="library">
+          <h3>Fighter library</h3>
+          <label class="import">
+            <span>Import archives <small>ZIP / RAR / 7z</small></span>
+            <input id="archive" type="file" multiple accept=".zip,.rar,.7z,.tar,.gz,.xz,.tgz,.zst">
+          </label>
+          <details class="import-help">
+            <summary>Split archives</summary>
+            <p>Import the scripts and SFF archives together or one at a time. Files stay on this device.</p>
+          </details>
+          <button id="preset" class="preset" type="button" disabled>Tomoka vs Nu-13 preset</button>
+          <p id="setup-status" role="status">Loading the bundled Kung Fu Man and Kotlin runtime.</p>
+        </div>
+      </section>
+
+      <section id="benchmark" class="panel benchmark-panel" aria-labelledby="benchmark-heading">
+        <div class="benchmark-heading">
+          <h2 id="benchmark-heading">Benchmark</h2>
+          <div class="record-buttons" aria-label="Benchmark recording">
+            <button id="record" type="button" disabled>Record</button>
+            <button id="stop-record" type="button" disabled>Stop recording</button>
+            <button id="csv" type="button" disabled>Export CSV</button>
+          </div>
+        </div>
+        <div class="stats">
+          <div><span>Simulation</span><b id="hz">—</b></div>
+          <div><span>Rendered FPS</span><b id="fps">—</b></div>
+          <div><span>Tick CPU</span><b id="tickcpu">—</b></div>
+          <div><span>Backlog</span><b id="debt">—</b></div>
+          <div><span>Helpers / projectiles</span><b id="entities">—</b></div>
+          <div><span>Engine</span><b id="backend">Kotlin/WASM</b></div>
+        </div>
+        <div class="benchmark-meta">
+          <p id="record-status">Record a match to export a CSV. No data is uploaded.</p>
+          <details class="device">
+            <summary>Device info</summary>
+            <p id="device">Detecting device and browser…</p>
+          </details>
+        </div>
+      </section>
+
+      <details id="cns-debug" class="panel debug-panel">
+        <summary>CNS debug output</summary>
+        <pre id="clipboard-output" aria-label="Actor debug clipboards">Start a match to inspect authored debug messages.</pre>
+      </details>
     </div>
-    <div class="buttons"><label class="import">Import ZIP / RAR / 7z <input id="archive" type="file" multiple accept=".zip,.rar,.7z,.tar,.gz,.xz,.tgz,.zst"></label><button id="preset" type="button" disabled>Tomoka vs Nu-13 preset (install both)</button><button id="start" type="button" disabled>Start Kotlin match</button><button id="pause" type="button" disabled>Pause</button><button id="reset" type="button" disabled>Stop / Reset match</button></div><p class="fine">For split characters such as Nu-13, select the scripts RAR and the SFF RAR together, or import them one after another. Both files stay on this device.</p>
-    <p id="setup-status" role="status">Loading the bundled Kung Fu Man test character and Kotlin runtime.</p>
-  </section>
-  <section class="panel arena-panel" aria-label="Fighting arena">
-    <div class="arena-box"><canvas id="arena" width="960" height="540" aria-label="Kotlin/WASM fighting game"></canvas><div id="banner" role="status">KOTLIN/WASM · NOW LOADING</div></div>
-    <blockquote id="victory-quote" aria-live="polite" hidden></blockquote>
-    <p class="fine">Keyboard in manual mode: arrows to move, Z / X / C and A / S / D for attacks. CPU mode replays Kotlin-authored deterministic motions. When visual frames are skipped, the authoritative Kotlin combat clock continues.</p>
-  </section>
-  <section class="panel" aria-label="Kotlin benchmark">
-    <h2>Performance benchmark</h2>
-    <div class="stats"><div><span>Simulation</span><b id="hz">—</b></div><div><span>Rendered FPS</span><b id="fps">—</b></div><div><span>Simulation debt</span><b id="debt">—</b></div><div><span>Helpers / Projectiles</span><b id="entities">—</b></div><div><span>Last tick CPU</span><b id="tickcpu">—</b></div><div><span>Engine</span><b id="backend">Kotlin/WASM</b></div></div>
-    <p id="device">Detecting device and browser…</p>
-    <div class="buttons"><button id="record" disabled>Start recording</button><button id="stop-record" disabled>Stop recording</button><button id="csv" disabled>Export CSV</button></div>
-    <p id="record-status">CSV records the Kotlin engine version, device/browser, 60 Hz progress, backlog and visible FPS. No telemetry is uploaded.</p>
-  </section>
-  <details id="cns-debug" class="panel">
-    <summary>CNS debug output</summary>
-    <pre id="clipboard-output" aria-label="Actor debug clipboards">Start a match to inspect authored debug messages.</pre>
-  </details>
-  <footer>Separate Kotlin standard build · MUGEN 1.1 complete parity is not yet verified · Source-owned assets are imported locally</footer>
-</main><script type="module" src="../src/kotlin/page.js"></script></body></html>
+
+    <footer>
+      <span>Kenjatime Core</span>
+      <a href="https://github.com/celerycore/kenjatime/blob/main/kotlin-core/MIGRATION_STATUS.md">Compatibility</a>
+      <a href="https://github.com/celerycore/kenjatime/releases">Downloads</a>
+    </footer>
+  </main>
+  <script type="module" src="../src/kotlin/page.js"></script>
+</body>
+</html>

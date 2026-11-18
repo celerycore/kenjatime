@@ -355,7 +355,7 @@ trigger1=NumExplod(712)=0
 id=712
 anim=712
 postype=none
-pos=0,-300
+pos=0,-45
 ontop=1
 removetime=-1
 [State -2, ordinary art]
@@ -364,7 +364,7 @@ trigger1=NumExplod(713)=0
 id=713
 anim=712
 postype=none
-pos=50,-300
+pos=50,-45
 sprpriority=5
 removetime=-1
 `);
@@ -423,11 +423,11 @@ fallShakeFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(fallShakeFiles["kfm/
 [Begin Action 714]
 Clsn1Default:1
 Clsn1[0]=-500,-60,500,0
-0,0,0,-300,-1
+0,0,0,-45,-1
 [Begin Action 715]
-0,0,0,-300,-1
+0,0,0,-45,-1
 [Begin Action 716]
-0,1,0,-300,-1
+0,1,0,-45,-1
 `);
 writeFileSync("test-output/kotlin-kfm-fall-shake.zip",zipSync(fallShakeFiles));
 
@@ -446,6 +446,10 @@ type=ScreenBound
 trigger1=1
 value=Time>=60
 movecamera=0,Time>=60 && Time<120
+[State 0, raise the camera target once tracking is enabled]
+type=PosSet
+trigger1=Time=60
+y=-120
 [State 0, camera follows]
 type=ChangeAnim
 trigger1=Time=60
@@ -459,9 +463,9 @@ boundsFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(boundsFiles["kfm/kfm.ai
 [Begin Action 717]
 0,0,0,0,-1
 [Begin Action 718]
-0,0,0,-300,-1
+0,0,0,-45,-1
 [Begin Action 719]
-0,1,0,-300,-1
+0,1,0,-45,-1
 `);
 writeFileSync("test-output/kotlin-kfm-screen-bound.zip",zipSync(boundsFiles));
 
@@ -517,19 +521,19 @@ value=ifelse(command="held",727,ifelse(command="helper_button",726,725))
 `);
 inputFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(inputFiles["kfm/kfm.air"])+`
 [Begin Action 720]
-0,0,0,-300,-1
+0,0,0,-45,-1
 [Begin Action 721]
-0,0,0,-300,-1
+0,0,0,-45,-1
 [Begin Action 722]
-0,1,0,-300,-1
+0,1,0,-45,-1
 [Begin Action 723]
-0,2,0,-300,-1
+0,2,0,-45,-1
 [Begin Action 725]
-0,0,0,-300,-1
+0,0,0,-45,-1
 [Begin Action 726]
-0,1,0,-300,-1
+0,1,0,-45,-1
 [Begin Action 727]
-0,2,0,-300,-1
+0,2,0,-45,-1
 `);
 writeFileSync("test-output/kotlin-kfm-assert-input.zip",zipSync(inputFiles));
 
@@ -558,7 +562,7 @@ ${spec[1]?`alpha=${spec[1]}`:''}
 `:'').join(''));
 blendFiles['kfm/kfm.air']=encoder.encode(decoder.decode(blendFiles['kfm/kfm.air'])+`
 [Begin Action 728]
-0,0,0,-300,-1,,AS64D192
+0,0,0,-45,-1,,AS64D192
 `);
 writeFileSync('test-output/kotlin-kfm-trans.zip',zipSync(blendFiles));
 const blendBank=sff(all['kfm/kfm.sff']);
@@ -629,7 +633,7 @@ params=var(0)
 `);
 clipboardFiles['kfm/kfm.air']=encoder.encode(decoder.decode(clipboardFiles['kfm/kfm.air'])+`
 [Begin Action 730]
-0,0,0,-300,-1
+0,0,0,-45,-1
 `);
 writeFileSync('test-output/kotlin-kfm-clipboard.zip',zipSync(clipboardFiles));
 
@@ -677,7 +681,7 @@ ctrl=0
 `);
 paletteFiles['kfm/kfm.air']=encoder.encode(decoder.decode(paletteFiles['kfm/kfm.air'])+[731,732,733].map(n=>`
 [Begin Action ${n}]
-0,0,0,-300,-1
+0,0,0,-45,-1
 `).join(''));
 writeFileSync('test-output/kotlin-kfm-palette.zip',zipSync(paletteFiles));
 
@@ -738,7 +742,7 @@ writeFileSync('test-output/kotlin-kfm-remappal.zip', zipSync(remapFiles));
 const pauseFiles = Object.fromEntries(raw);
 pauseFiles['kfm/kfm.air'] = encoder.encode(decoder.decode(pauseFiles['kfm/kfm.air']) + `
 [Begin Action 772]
-0,0,0,-280,-1
+0,0,0,-25,-1
 `);
 pauseFiles['kfm/kfm.cns'] = encoder.encode(`[Statedef 0]
 type=S
@@ -827,7 +831,7 @@ palmul=1,1,1
 `);
 afterimageFiles['kfm/kfm.air']=encoder.encode(decoder.decode(afterimageFiles['kfm/kfm.air'])+[740,741].map(n=>`
 [Begin Action ${n}]
-0,0,0,-340,-1
+0,0,0,-85,-1
 `).join(''));
 writeFileSync('test-output/kotlin-kfm-afterimage.zip',zipSync(afterimageFiles));
 
@@ -873,7 +877,7 @@ abspan=-160
 `);
 soundFiles['kfm/kfm.air']=encoder.encode(decoder.decode(soundFiles['kfm/kfm.air'])+`
 [Begin Action 760]
-0,0,0,-300,-1
+0,0,0,-45,-1
 `);
 writeFileSync('test-output/kotlin-kfm-sound.zip',zipSync(soundFiles));
 
@@ -962,7 +966,7 @@ Clsn1Default:1
 Clsn1[0]=0,-80,200,0
 Clsn2Default:1
 Clsn2[0]=-10,-80,10,0
-0,0,0,${n===752?-340:-300},-1
+0,0,0,${n===752?-85:-45},-1
 `).join(''));
  writeFileSync(`test-output/kotlin-kfm-reversal-${side}.zip`,zipSync(files));
 }

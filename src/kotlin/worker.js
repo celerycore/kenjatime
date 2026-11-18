@@ -8,7 +8,7 @@ let debugEnabled=false;
 let matchToken=0;
 let lastSnapshot=-Infinity,lastStats=-Infinity,elapsedCpuMs=0,completedInWindow=0,
   lastBatchCpu=0,callbacks=0,backendVersion="";
-const emit=(type,data={})=>self.postMessage({type,...data});
+const emit=(type,data={})=>self.postMessage({type,matchToken,...data});
 function release() {
   working=false;
   if(handle && api){try{api.ktCoreRelease(handle)}catch{}}
@@ -43,9 +43,9 @@ function pump(){
       else api.ktCoreAdvance(handle,controls[0].directions,controls[0].buttons,
         controls[1].directions,controls[1].buttons);
       const audio=JSON.parse(api.ktCoreSoundEvents(handle));
-      if(audio.length)emit("audio",{events:audio,matchToken});
+      if(audio.length)emit("audio",{events:audio});
       const rumble=api.ktCoreForceFeedback(handle);
-      if(rumble!=="[]")emit("rumble",{motors:JSON.parse(rumble),matchToken});
+      if(rumble!=="[]")emit("rumble",{motors:JSON.parse(rumble)});
       api.ktCoreClockCompletedOne(clock);
       cpu+=performance.now()-start;
     }
@@ -75,7 +75,7 @@ function pump(){
     }
     if(!endless && typeof api.ktCoreRoundState==="function"){
       const round=JSON.parse(api.ktCoreRoundState(handle));
-      if(round?.finished){working=false;emit("complete",{round,matchToken});return}
+      if(round?.finished){working=false;emit("complete",{round});return}
     }
     // Kotlin's clock is the only authority on owed 60Hz ticks. Present fewer
     // snapshots when behind, but always process the same input/time sequence.
@@ -156,7 +156,9 @@ self.onmessage=async({data})=>{
       }
       emit("paused",{value:paused});
     }else if(data.type==="stop"){
-      release();emit("stopped");
+      release();
+      matchToken=data.matchToken;
+      emit("stopped");
     }
   }catch(error){failure(error)}
 };

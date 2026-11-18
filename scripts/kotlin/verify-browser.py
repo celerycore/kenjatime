@@ -31,6 +31,8 @@ try:
         assert page.locator("#preset").is_disabled(), "Missing third-party archives cannot appear installed"
         assert page.locator("#cpu").is_checked()
         assert page.locator("#endless").is_checked()
+        assert page.locator(".arena-preview").is_visible()
+        assert page.locator("#preview-name-1").inner_text() == "Kung Fu Man"
         page.locator("#start").click()
         page.wait_for_function("""() =>
           document.querySelector('#banner')?.textContent?.includes('60 Hz combat') &&
@@ -40,6 +42,11 @@ try:
         # always drew rectangular placeholders despite passing engine tests.
         page.wait_for_function("window.__kenjatimeKotlinQA?.spritePaints > 5",
             timeout=30000)
+        page.wait_for_function("""() =>
+          window.__kenjatimeKotlinQA?.paintedRenderPlan?.frame >= 28 &&
+          window.__kenjatimeKotlinQA.paintedRenderPlan.draws
+            .filter(draw => draw.kind === 'fighter').every(draw => draw.axisY >= 0 && draw.axisY < 540)
+        """)
         plan=page.evaluate("window.__kenjatimeKotlinQA.renderPlan")
         assert plan["targetFps"] in [12,20,30,60],plan
         assert plan["backlog"]>=0,plan
@@ -49,7 +56,11 @@ try:
                    for draw in plan["draws"]),plan
         assert page.evaluate("window.__kenjatimeKotlinQA.placeholderPaints") < (
             page.evaluate("window.__kenjatimeKotlinQA.spritePaints") * 2)
+        assert not page.locator(".arena-preview").is_visible()
         page.locator("#record").click()
+        # Editing the next setup must leave the active benchmark's mode intact.
+        page.locator("#endless").uncheck()
+        page.locator("#ai-level").select_option("8")
         page.wait_for_timeout(2300)
         page.locator("#stop-record").click()
         assert page.locator("#csv").is_enabled()
@@ -60,6 +71,9 @@ try:
         csv_text=Path(download.path()).read_text()
         data=list(csv.DictReader(io.StringIO(csv_text)))
         assert len(data)>=2,data
+        assert all(row["endless_mode"]=="1" and row["cpu_level"]=="4" for row in data), data
+        page.locator("#endless").check()
+        page.locator("#ai-level").select_option("4")
         assert all(row["engine_backend"]=="Kotlin/WASM" for row in data)
         assert all(row["engine_version"].endswith("kotlin-wasm-standard") for row in data)
         assert all(row["simulation_ticks"] for row in data)
@@ -72,6 +86,11 @@ try:
         # script and SFF archives; avoid a mock-file shortcut that cannot catch
         # the Android "both async and sync fetching of wasm failed" bug.
         page.locator("#reset").click()
+        page.wait_for_function("""() =>
+          document.querySelector('#banner').dataset.phase === 'ready' &&
+          !document.querySelector('#arena-box').classList.contains('has-frame') &&
+          window.__kenjatimeKotlinQA.lastVisualFrame === 0
+        """)
         page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-script.rar"))
         page.wait_for_function("""()=>
           document.querySelector('#setup-status')?.textContent?.includes('incomplete') &&
@@ -337,7 +356,7 @@ try:
             plan=observed["plan"]
             offset={"impact":6,"fall":12,"expired":0}[mode]
             assert abs(plan["stageOffsetY"]-offset*1.1*plan["cameraZoom"])<1e-8,observed
-            expected_y=435-(plan["cameraY"]+300)*1.1*plan["cameraZoom"]+plan["stageOffsetY"]
+            expected_y=435-(plan["cameraY"]+45)*1.1*plan["cameraZoom"]+plan["stageOffsetY"]
             assert abs(observed["actor"]["y"]-expected_y)<1e-4,observed
             assert observed["line"]==[83,123,117,255],observed
         assert not fall_shake_errors,fall_shake_errors
@@ -364,15 +383,16 @@ try:
               if(!plan||plan.frame<1||!paint||paint.frame!==plan.frame)return false;
               const actor=plan.draws.find(d=>d.kind==='fighter'&&d.side===0);
               if(actor?.action!==({unbound:717,tracking:718,frozen:719}[mode]))return false;
-              if(mode==='tracking'&&plan.cameraY>=-250)return false;
+              if(mode==='tracking'&&plan.cameraY>=-95)return false;
               return {plan,paint,actor};
             }""",arg=mode,timeout=30000).json_value()
             plan=observed["plan"]
             assert plan["cameraX"]==0 and plan["cameraZoom"]==1,observed
             expected_x=900 if mode=="unbound" else 830
             assert abs(observed["paint"]["x"]-expected_x)<1e-4,observed
-            air_offset=0 if mode=="unbound" else -300
-            expected_y=435+(air_offset-plan["cameraY"])*1.1
+            air_offset=0 if mode=="unbound" else -45
+            actor_y=0 if mode=="unbound" else -120
+            expected_y=435+(actor_y+air_offset-plan["cameraY"])*1.1
             assert abs(observed["paint"]["y"]-expected_y)<1e-4,observed
             if mode=="unbound":
                 assert plan["cameraY"]==0,observed
@@ -474,7 +494,7 @@ try:
               const qa=window.__kenjatimeKotlinQA,p=qa?.paintedRenderPlan,paint=qa?.lastActorTransformPaint;
               if(!p||p.frame<1||!paint||paint.frame!==p.frame||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
               const actor=p.draws.find(d=>d.kind==='fighter'&&d.side===0);
-              if(actor?.action!==728||actor.sprpriority!==phase-5||p.environment?.color?.red!==40||p.cameraY>-220)return false;
+              if(actor?.action!==728||actor.sprpriority!==phase-5||p.environment?.color?.red!==40)return false;
               const c=document.querySelector('#arena'),x=c.getContext('2d'),scale=c.width/960;
               const pixels=fixture.samples.map(s=>{
                 const sx=s.x-fixture.axisX+.5,sy=s.y-fixture.axisY+.5;
@@ -591,7 +611,7 @@ try:
         for phase in range(10):
             observed=palette_page.wait_for_function("""({phase,fixture})=>{
               const qa=window.__kenjatimeKotlinQA,p=qa?.paintedRenderPlan;
-              if(!p||p.frame<1||p.cameraY>-220||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
+              if(!p||p.frame<1||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
               const first=p.draws.find(d=>d.kind==='fighter'&&d.side===0),second=p.draws.find(d=>d.kind==='fighter'&&d.side===1);
               const shared=p.draws.find(d=>d.kind==='helper'&&d.action===732),own=p.draws.find(d=>d.kind==='helper'&&d.action===733);
               if(first?.action!==731||first.sprpriority!==phase-5||!second||!shared||!own)return false;
@@ -654,7 +674,7 @@ try:
         ]:
             observed = remap.wait_for_function("""({phase, fixture}) => {
               const qa = window.__kenjatimeKotlinQA, plan = qa?.paintedRenderPlan;
-              if (!plan || plan.cameraY > -220 || qa.lastSpritePaintOrder?.frame !== plan.frame) return false;
+              if (!plan || qa.lastSpritePaintOrder?.frame !== plan.frame) return false;
               const root = plan.draws.find(d => d.kind === 'fighter' && d.side === 0);
               const rival = plan.draws.find(d => d.kind === 'fighter' && d.side === 1);
               const shared = plan.draws.find(d => d.kind === 'helper' && d.action === 732);
@@ -810,7 +830,7 @@ try:
             stopped=phase in [5,7,9]
             observed=trails.wait_for_function("""({phase,stopped,fixture})=>{
               const qa=window.__kenjatimeKotlinQA,p=qa?.paintedRenderPlan;
-              if(!p||p.cameraY>-220||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
+              if(!p||qa.lastSpritePaintOrder?.frame!==p.frame)return false;
               const root=p.draws.find(d=>d.kind==='fighter'&&d.side===0);
               if(root?.action!==740||root.sprpriority!==phase-5)return false;
               const rootGhosts=p.draws.filter(d=>d.kind==='afterimage'&&d.afterimageOwnerId===1);
@@ -1076,7 +1096,7 @@ try:
           document.querySelector('#version')?.textContent?.includes('kotlin-wasm-standard')
         """,timeout=120000)
         layout=mobile.evaluate("""() => {
-          const panel=document.querySelector('.panel').getBoundingClientRect();
+          const panel=document.querySelector('#match-setup').getBoundingClientRect();
           const left=document.querySelector('#p1-select').getBoundingClientRect();
           const right=document.querySelector('#p2-select').getBoundingClientRect();
           return {vw:innerWidth,scroll:document.documentElement.scrollWidth,
@@ -1089,6 +1109,7 @@ try:
         assert layout["top"]>=28,layout
         assert layout["panelLeft"]-1<=layout["left"][0]<layout["left"][1]<=layout["panelRight"]+1,layout
         assert layout["panelLeft"]-1<=layout["right"][0]<layout["right"][1]<=layout["panelRight"]+1,layout
+        assert layout["left"][1] <= layout["right"][0],layout
         assert "android-shell" in layout["bodyClass"],layout
         mobile.screenshot(path=str(ROOT / "test-output/kotlin-android-layout.png"),full_page=True)
         result["mobileLayout"]=layout

@@ -1243,9 +1243,14 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         require(leftPixels in -100_000..100_000 && rightPixels in -100_000..100_000)
         arena = ArenaRules(leftPixels*Fixed.ONE,rightPixels*Fixed.ONE,
             groundPixels*Fixed.ONE,pushPlayers=push,autoFaceIdle=autoFace)
-        camera = MugenCamera(CameraConfig(
+        val viewport = CameraConfig()
+        // The draw plan projects y from its floor line. The camera target is
+        // the tracked actors' floor-relative view, so allow its bottom half
+        // to extend below a grounded target instead of clamping that target
+        // to the center of the entire stage height.
+        camera = MugenCamera(viewport.copy(
             left=leftPixels.toDouble(),right=rightPixels.toDouble(),
-            top=(groundPixels-600).toDouble(),bottom=groundPixels.toDouble()))
+            top=groundPixels-600.0,bottom=groundPixels+viewport.height/2.0))
     }
     var frame: Long = 0
         private set

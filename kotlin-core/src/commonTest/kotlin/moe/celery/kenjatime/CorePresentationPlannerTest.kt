@@ -87,6 +87,15 @@ class CorePresentationPlannerTest {
         assertTrue(json.contains("\"number\":2"),json)
     }
 
+    @Test fun groundLevelActorsStayInsideTheArenaAfterCameraSettles() {
+        val definition = FighterDefinition("fighter")
+        val fight = DeterministicFight(FightingCharacter(definition,1),FightingCharacter(definition,2))
+        fight.configureArena(-250,250)
+        repeat(120) { fight.step() }
+        assertEquals(0.0,fight.camera?.y)
+        assertEquals(435.0,CorePresentationPlanner.pixelY(fight.p1.posY,fight.camera))
+    }
+
     @Test fun KotlinCameraAndSpriteAxesDriveVisualPosition() {
         val a=FightingCharacter(FighterDefinition("A"),1)
         val b=FightingCharacter(FighterDefinition("B"),2)
