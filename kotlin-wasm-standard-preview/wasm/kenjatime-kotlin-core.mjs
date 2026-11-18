@@ -101,6 +101,7 @@ export const {
     ktCoreProjectileClashes,
     ktCoreProjectileHistory,
     ktCoreEvents,
+    ktCoreHelperDiagnostics,
     ktCoreIssues,
     ktCoreCommonAnimations,
     ktCoreForceFeedback,
