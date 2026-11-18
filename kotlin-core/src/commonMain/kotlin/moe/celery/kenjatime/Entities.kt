@@ -215,7 +215,7 @@ class CoreEntities(private val match: DeterministicFight) {
             if (helper.actor.destroyed) continue
             val physical=if(!helper.keyControl)InputFrame() else if(helper.actor.rootActor() === match.p1)p1Input else p2Input
             helper.actor.roundState=match.p1.roundState
-            match.pauses.tickActor(helper.actor, physical, true, errors)
+            match.pauses.tickActor(helper.actor, physical, true, errors, helperKeyControl = helper.keyControl)
             if (!helper.actor.destroyed) pendingRequests.addAll(helper.actor.flushEntityRequests())
         }
     }

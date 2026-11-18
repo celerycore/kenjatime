@@ -66,7 +66,10 @@ internal class CorePauses {
         return if (actor in window.targets) window.targetDefence else 1.0
     }
 
-    fun tickActor(actor: FightingCharacter, input: InputFrame, enabled: Boolean, issues: MutableSet<String>) {
+    fun tickActor(
+        actor: FightingCharacter, input: InputFrame, enabled: Boolean, issues: MutableSet<String>,
+        helperKeyControl: Boolean = false,
+    ) {
         val wasFrozen = actor.globalPauseThisTick
         actor.globalPauseThisTick = frozen(actor)
         if (actor.globalPauseThisTick) {
@@ -82,7 +85,7 @@ internal class CorePauses {
         if (wasFrozen) actor.input.discardMovesKeepLastSample()
         CoreAssertedInputs.sample(actor, input, enabled)
         if (!enabled) actor.pauseCommands.clear()
-        actor.tick(issues)
+        actor.tick(issues, helperKeyControl)
         if (!actor.hitPauseThisTick) actor.pauseCommands.clear()
     }
 

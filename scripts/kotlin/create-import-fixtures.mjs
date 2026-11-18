@@ -59,6 +59,32 @@ function presetFixture(folder, characterName, displayName) {
  delete files[folder+"/kfm.sff"];
  return files;
 }
+const helperLoopFiles=presetFixture("helper-loop","Helper loop fixture","Helper loop fixture");
+helperLoopFiles["helper-loop/kfm.cmd"]=encoder.encode("");
+helperLoopFiles["helper-loop/kfm.cns"]=encoder.encode(`
+[Statedef 0]
+physics=N
+anim=0
+ctrl=0
+[Statedef -3]
+[State -3, root watcher]
+type=Helper
+trigger1=NumHelper(71)=0
+id=71
+stateno=700
+pos=22,-15
+[Statedef -2]
+[State -2, root watcher]
+type=Helper
+trigger1=NumHelper(72)=0
+id=72
+stateno=700
+pos=-22,-15
+[Statedef 700]
+physics=N
+anim=0
+`);
+writeFileSync("test-output/kotlin-helper-loop.zip",zipSync(helperLoopFiles));
 const nu13Preset=presetFixture("nu13","Nu-13","Nu-13");
 const tomokaPreset=presetFixture("tomoka","Tomoka Minato","Tomoka training fixture");
 const tomokaCompanion={"tomoka/tomoka.sff":tomokaPreset["tomoka/tomoka.sff"]};

@@ -146,6 +146,36 @@ try:
         result["presetMissingArchiveThenAuthoredIdentity"] = "passed"
         preset.close()
 
+        helpers = browser.new_page(viewport={"width": 1000, "height": 780}, accept_downloads=True)
+        helpers.goto(base, wait_until="domcontentloaded", timeout=30000)
+        helpers.wait_for_function("!document.querySelector('#start')?.disabled", timeout=120000)
+        helpers.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-helper-loop.zip"))
+        helpers.wait_for_function("window.__kenjatimeKotlinQA?.importedCount===1", timeout=45000)
+        helpers.locator("#p1-select").select_option("installed:helper-loop/helper-loop.def")
+        helpers.locator("#start").click()
+        helpers.wait_for_function("window.__kenjatimeKotlinQA?.renderPlan?.frame>=45", timeout=15000)
+        assert helpers.evaluate("window.__kenjatimeKotlinQA.renderPlan.helpers") == 2
+        helpers.locator("#record").click()
+        helpers.wait_for_function("""() =>
+          /Recording [2-9] samples/.test(document.querySelector('#record-status').textContent)
+        """, timeout=15000)
+        helpers.locator("#stop-record").click()
+        with helpers.expect_download() as helper_csv:
+            helpers.locator("#csv").click()
+        helper_rows = list(csv.DictReader(io.StringIO(Path(helper_csv.value.path()).read_text())))
+        assert len(helper_rows) >= 2 and all(row["helpers_alive"] == "2" for row in helper_rows)
+        assert int(helper_rows[-1]["simulation_ticks"]) > int(helper_rows[0]["simulation_ticks"])
+        helpers.locator("#pause").click()
+        helpers.wait_for_function("""() =>
+          document.querySelector('#banner').dataset.phase === 'paused' &&
+          window.__kenjatimeKotlinQA.paintedRenderPlan?.frame === window.__kenjatimeKotlinQA.lastVisualFrame
+        """)
+        paints = helpers.evaluate("window.__kenjatimeKotlinQA.spritePaints")
+        helpers.wait_for_timeout(200)
+        assert helpers.evaluate("window.__kenjatimeKotlinQA.spritePaints") == paints
+        helpers.close()
+        result["rootHelperWatchersAndUniqueBenchmarkFrames"] = "passed"
+
         # A separate context imports public KFM art with a synthetic Explod
         # controller, then requires decoded effect sprites to reach Canvas.
         effects=browser.new_page(viewport={"width":1000,"height":780})

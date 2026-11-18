@@ -251,8 +251,8 @@ function whiteSpriteMask(item,img){
 }
 function render(){
   requestAnimationFrame(render);
+  if(!latest||latest.frame===lastPaintedRenderPlan?.frame)return;
   const now=performance.now();
-  if(!latest)return;
   const targetFps=latest.targetFps||60; // authoritative Kotlin plan
   const interval=1000/targetFps;
   if(now-lastDraw<interval-1.5)return;
@@ -472,6 +472,8 @@ function begin(){
   audio.configure(soundBanks);audio.setEnabled(byId("sound").checked);audio.setPaused(false);audio.prepare();
   images=[p1,p2];activeNames=[p1.name,p2.name];
   startedAt=performance.now();previousTime=0;previousTick=0;workerStats=null;latest=null;
+  lastPaintedRenderPlan=null;
+  frameSamples=0;renderFps=0;measureStart=startedAt;
   lastClipboards=null;byId("clipboard-output").textContent="Waiting for authored debug messages…";
   worker.postMessage({type:"start",
     matchToken:++matchToken,
@@ -499,6 +501,7 @@ byId("reset").onclick=()=>{
   worker.postMessage({type:"stop",matchToken});
   audio.reset();audio.setPaused(false);rumble.stop();
   running=false;paused=false;latest=null;workerStats=null;
+  lastPaintedRenderPlan=null;
   inputs.pressed.clear();
   updateInput();
   finishRecording();
@@ -605,6 +608,7 @@ worker.onmessage=({data})=>{
     byId("tickcpu").textContent=data.averageTickCpuMs.toFixed(2)+" ms";
     record(data);
   }else if(data.type==="paused"){
+    if(!data.value){frameSamples=0;measureStart=performance.now();}
     setBanner(data.value?"paused":"running",data.value?"Paused":
       activeOptions.endless?"Endless · 60 Hz combat":"60 Hz combat");
   }else if(data.type==="complete"){

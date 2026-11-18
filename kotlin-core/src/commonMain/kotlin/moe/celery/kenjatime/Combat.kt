@@ -1037,7 +1037,7 @@ class FightingCharacter(
         }
         return false
     }
-    fun tick(errors: MutableSet<String>) {
+    fun tick(errors: MutableSet<String>, helperKeyControl: Boolean = false) {
         if (destroyed) return
         capturedTargets.keys.removeAll { !liveTarget(it) }
         reversalTargets.keys.retainAll(capturedTargets.keys)
@@ -1058,10 +1058,13 @@ class FightingCharacter(
         if (!paused && hitStunLeft > 0) hitStunLeft--
         if (!paused && getHitData.time >= 0)getHitData.time--
         CoreFallRecovery.advance(this,paused)
-        // Global state controllers participate in the pause only when explicitly opted in.
-        val changed = (stateOwner === this && executeState(-3, errors, paused)) ||
-            executeState(-2, errors, paused) ||
-            (stateOwner === this && executeState(-1, errors, paused)) ||
+        // Root-only global controllers must never run on spawned helpers.
+        // A helper inherits the command state only when Helper.keyctrl is set.
+        val root = parent == null
+        val ownState = stateOwner === this
+        val changed = (root && ownState && executeState(-3, errors, paused)) ||
+            (root && executeState(-2, errors, paused)) ||
+            ((root || helperKeyControl) && stateOwner === this && executeState(-1, errors, paused)) ||
             executeState(stateNo, errors, paused, stateOwner)
         // CNS observes 1 through hitpause and the first active controller phase.
         // Advance afterward, independently of State Time and state transitions.
