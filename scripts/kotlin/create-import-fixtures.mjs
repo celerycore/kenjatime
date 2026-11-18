@@ -61,6 +61,8 @@ function presetFixture(folder, characterName, displayName) {
 }
 const helperLoopFiles=presetFixture("helper-loop","Helper loop fixture","Helper loop fixture");
 helperLoopFiles["helper-loop/kfm.cmd"]=encoder.encode("");
+helperLoopFiles["helper-loop/kfm.air"]=encoder.encode(
+ decoder.decode(helperLoopFiles["helper-loop/kfm.air"])+"\n[Begin Action 8999]\n8999,0,0,0,-1\n");
 helperLoopFiles["helper-loop/kfm.cns"]=encoder.encode(`
 [Statedef 0]
 physics=N
@@ -84,7 +86,7 @@ stateno=700
 pos=-22,-15
 [Statedef 700]
 physics=N
-anim=0
+anim=8999
 [State -2, grow only the helper]
 type=AngleDraw
 trigger1=1

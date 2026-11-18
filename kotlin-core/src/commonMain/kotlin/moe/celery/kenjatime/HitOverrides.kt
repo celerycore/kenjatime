@@ -65,5 +65,6 @@ internal data class CoreGetHitData(
     val fallRecover: Boolean=false,val fallRecoverTime: Int=4,var fallTime: Int=0,
     val accelerationY: Int=0,val animationType: HitAnimationType=HitAnimationType.LIGHT,
     val slideTime: Int=0,val controlTime: Int=0,
-    var fallShake: HitShakeDefinition=HitShakeDefinition()
+    var fallShake: HitShakeDefinition=HitShakeDefinition(),
+    val groundType: Int = 1, val airType: Int = 1
 )

@@ -38,6 +38,12 @@ internal class CoreSounds(private val fight: DeterministicFight) {
     fun stopChannel(actor: FightingCharacter,channel: Int) {
         for(voice in voices.toList())if(channel==-1 || voice.actor===actor && voice.channel==channel)stop(voice)
     }
+    fun continueWithCatalogs(previous: CoreSounds) {
+        previous.banks.copyInto(banks)
+        for (voice in previous.voices.toList()) previous.stop(voice)
+        events.addAll(previous.events)
+        nextVoice = previous.nextVoice
+    }
     fun beginTick() {
         events.clear()
         for(voice in voices.toList()) {

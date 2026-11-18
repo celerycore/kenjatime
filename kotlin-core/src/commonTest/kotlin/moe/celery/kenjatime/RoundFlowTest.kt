@@ -3,6 +3,35 @@ package moe.celery.kenjatime
 import kotlin.test.*
 
 class RoundFlowTest {
+    @Test fun endlessKnockoutStartsFreshActorsAndKeepsTheClockAndAssets() {
+        val definition = FighterDefinition("endless probe")
+        val fight = DeterministicFight(FightingCharacter(definition, 1), FightingCharacter(definition, 2))
+        fight.configureArena(-250, 250)
+        fight.p1.posX = -70 * Fixed.ONE
+        fight.p2.posX = 70 * Fixed.ONE
+        fight.commonAnimations.catalog("[Begin Action 77]\n3,2,0,0,-1", 0.5)
+        fight.enableEndlessRounds(2)
+        fight.p1.posX = -250 * Fixed.ONE
+        fight.p1.vars[0] = 59
+        fight.p2.life = 0
+        repeat(2) {
+            fight.step()
+            assertSame(fight, fight.continueEndlessRounds())
+        }
+        fight.step()
+        val next = fight.continueEndlessRounds()
+        assertNotSame(fight, next)
+        assertEquals(3L, next.frame)
+        assertEquals(2, next.roundNumber)
+        assertEquals(1000, next.p2.life)
+        assertEquals(-70 * Fixed.ONE, next.p1.posX)
+        assertEquals(70 * Fixed.ONE, next.p2.posX)
+        assertEquals(0, next.p1.vars[0])
+        assertEquals(fight.arena, next.arena)
+        assertEquals(0.5, next.commonAnimations.scale)
+        assertEquals(3, next.commonAnimations.action(77)?.frames?.single()?.group)
+        assertSame(next, next.continueEndlessRounds())
+    }
     private fun match():DeterministicFight =
         DeterministicFight(
             FightingCharacter(FighterDefinition("A"),1),

@@ -54,7 +54,7 @@ try:
         assert len(plan["draws"])>=2,plan
         assert all("spriteScaleX" in draw and "spriteScaleY" in draw
                    for draw in plan["draws"]),plan
-        assert page.evaluate("window.__kenjatimeKotlinQA.placeholderPaints") < (
+        assert page.evaluate("window.__kenjatimeKotlinQA.missingSpriteDraws") < (
             page.evaluate("window.__kenjatimeKotlinQA.spritePaints") * 2)
         assert not page.locator(".arena-preview").is_visible()
         page.locator("#record").click()
@@ -183,6 +183,16 @@ try:
         assert helper_plan["helpers"] == 2
         assert all(d["spriteScaleX"] == 1 for d in helper_plan["draws"] if d["kind"] == "fighter"), helper_plan
         assert sum(d["spriteScaleX"] > 2 for d in helper_plan["draws"] if d["kind"] == "helper") == 2, helper_plan
+        assert helpers.evaluate("""() => {
+          const qa=window.__kenjatimeKotlinQA;
+          const canvas=document.querySelector('#arena');
+          const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+          for(let i=0;i<pixels.length;i+=4){
+            if(pixels[i]===166 && pixels[i+1]===221 && pixels[i+2]===132)return false;
+            if(pixels[i]===140 && pixels[i+1]===196 && pixels[i+2]===234)return false;
+          }
+          return qa.missingSpriteDraws>0 && qa.spritePaints>0;
+        }"""), "Missing helper sprites must not paint colored rectangles"
         helpers.locator("#record").click()
         helpers.wait_for_function("""() =>
           /Recording [2-9] samples/.test(document.querySelector('#record-status').textContent)
@@ -1079,10 +1089,14 @@ try:
         assert quote.text_content() == "Good round; <strong>rematch</strong>!\nReady?"
         assert quote.locator("strong").count() == 0
         assert "wins · Player 1" in victory.locator("#banner").text_content()
+        victory.locator("#endless").check()
         victory.locator("#start").click()
         quote.wait_for(state="hidden", timeout=10000)
+        victory.wait_for_function("window.__kenjatimeKotlinQA?.paintedRenderPlan?.roundNumber>=2", timeout=12000)
+        assert victory.locator("#banner").get_attribute("data-phase") == "running"
         assert not victory_errors, victory_errors
         result["victoryQuoteAndHitCountInCompletedMatch"] = "passed"
+        result["endlessKnockoutStartsNewRound"] = "passed"
         victory.close()
 
         for width in [320,640]:

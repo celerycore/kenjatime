@@ -7,6 +7,13 @@ enum class HitAnimationType(val code: Int) {
 /** Static HitDef strings; selected reaction data stays independent of later AIR/state changes. */
 internal data class CoreHitAnimations(val ground: HitAnimationType,val air: HitAnimationType,val fall: HitAnimationType) {
     companion object {
+        fun reactionType(raw: String?): Int = when (raw?.trim()?.lowercase()) {
+            "none" -> 0
+            "low" -> 2
+            "trip" -> 3
+            else -> 1
+        }
+
         fun parse(args: Map<String,String>,errors: MutableSet<String>): CoreHitAnimations? = try {
             fun type(key: String,default: HitAnimationType): HitAnimationType = args[key]?.let {
                 when(it.trim().lowercase()) {

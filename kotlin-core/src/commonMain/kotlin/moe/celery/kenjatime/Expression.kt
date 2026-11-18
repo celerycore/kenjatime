@@ -90,7 +90,7 @@ object CoreExpression {
                 "facing" -> if (f.facingRight) 1.0 else -1.0
                 "pos x" -> f.coordinates.toLocal(f.posX)
                 "pos y" -> f.coordinates.toLocal(f.posY)
-                "vel x" -> f.coordinates.toLocal(f.velX)
+                "vel x" -> f.coordinates.toLocal(f.authoredHorizontal(f.velX))
                 "vel y" -> f.coordinates.toLocal(f.velY)
                 "p2dist x" -> p?.let { f.coordinates.toLocal(it.posX.toLong()-f.posX) * if(f.facingRight)1 else -1 } ?: 0.0
                 "p2dist y" -> p?.let { f.coordinates.toLocal(it.posY.toLong()-f.posY) } ?: 0.0
@@ -181,6 +181,21 @@ object CoreExpression {
             }
             fun idx(i:Int)=a(i).toInt()
             val v=when(name) {
+                "const" -> {
+                    val key = (args.singleOrNull() as? Variable)?.key
+                        ?: throw IllegalArgumentException("Const requires one named field")
+                    val constants = f.stateOwner.definition.scriptConstants
+                    constants[key] ?: when (key) {
+                        "movement.air.gethit.groundlevel" -> 0.0
+                        "data.liedown.time" -> 60.0
+                        else -> throw IllegalArgumentException("Unknown character constant: $key")
+                    }
+                }
+                "const240p", "const480p", "const720p" -> {
+                    require(args.size == 1) { "$name requires one argument" }
+                    val referenceScale = when (name) { "const240p" -> 1; "const480p" -> 2; else -> 4 }
+                    a(0)/(referenceScale*f.coordinates.scale)
+                }
                 "map" -> {
                     require(args.size==1) { "Map requires one name" }
                     val key=when(val arg=args[0]) {

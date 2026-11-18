@@ -50,6 +50,7 @@ object CorePresentationPlanner {
         val stageOffsetY=fight.environment.offsetY*VERTICAL_SCALE*(camera?.zoom ?: 1.0)
         val json = StringBuilder(2048)
         json.append("{\"frame\":").append(fight.frame)
+            .append(",\"roundNumber\":").append(fight.roundNumber)
             .append(",\"targetFps\":").append(targetFps(backlog))
             .append(",\"backlog\":").append(backlog.coerceAtLeast(0))
             .append(",\"cameraZoom\":").append(camera?.zoom ?: 1.0)
@@ -104,8 +105,12 @@ object CorePresentationPlanner {
             val matrixB=cleanZero(-s*spriteScaleX*VERTICAL_SCALE*zoom*face*flipX)
             val matrixC=cleanZero(s*spriteScaleY*HORIZONTAL_SCALE*zoom*flipY)
             val matrixD=cleanZero(c*pixelScaleY*flipY)
+            val ownDefinition = if (side == 0) fight.p1.definition else fight.p2.definition
+            val otherDefinition = if (side == 0) fight.p2.definition else fight.p1.definition
+            val spriteSide = if (definition !== ownDefinition && definition === otherDefinition) 1 - side else side
             json.append("{\"side\":").append(side)
                 .append(",\"kind\":\"").append(kind).append("\"")
+                .append(",\"spriteSide\":").append(spriteSide)
                 .append(",\"x\":").append(drawX)
                 .append(",\"y\":").append(drawY)
                 .append(",\"axisX\":").append(axisX)
@@ -144,7 +149,7 @@ object CorePresentationPlanner {
             if (frame != null && commonScale == null) {
                 val remaps = pose?.paletteRemaps ?: projectile?.paletteEffects?.remaps
                     ?: effect?.paletteEffects?.remaps ?: emptyMap()
-                fight.paletteBanks.resolve(side, frame.group, frame.sprite, remaps)?.let {
+                fight.paletteBanks.resolve(spriteSide, frame.group, frame.sprite, remaps)?.let {
                     json.append(",\"remapPalette\":").append(it.json())
                 }
             }

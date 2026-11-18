@@ -237,7 +237,7 @@ class HitOverrideTest {
     @Test fun unsupportedGetHitFieldsAndDynamicFieldExpressionsAreDiagnosed() {
         val w=fight()
         assertEquals(0.0,value(w.p2,"damage"));assertEquals(-1.0,value(w.p2,"hittime"))
-        for(expr in listOf("GetHitVar(groundtype)","GetHitVar()","GetHitVar(var(0))","GetHitVar(damage+1)")) {
+        for(expr in listOf("GetHitVar(unsupportedfield)","GetHitVar()","GetHitVar(var(0))","GetHitVar(damage+1)")) {
             val errors=linkedSetOf<String>()
             assertNull(CoreExpression.number(expr,w.p2,errors));assertTrue(errors.isNotEmpty(),expr)
         }

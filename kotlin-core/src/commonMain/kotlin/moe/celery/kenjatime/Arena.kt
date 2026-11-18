@@ -40,15 +40,25 @@ data class ArenaRules(
             }
         }
         if(autoFaceIdle) {
-            if(!p1.globalPauseThisTick && p1.binding == null && p1.control && p1.stateType=="S")p1.facingRight=p1.posX<=p2.posX
-            if(!p2.globalPauseThisTick && p2.binding == null && p2.control && p2.stateType=="S")p2.facingRight=p2.posX<=p1.posX
+            faceOpponent(p1,p2)
+            faceOpponent(p2,p1)
         }
+    }
+    private fun faceOpponent(actor: FightingCharacter, opponent: FightingCharacter) {
+        if (actor.globalPauseThisTick || actor.binding != null || !actor.control) return
+        if (actor.definition.authoredCns) {
+            if (actor.hitPauseThisTick || actor.moveType != "I" || "noautoturn" in actor.asserted ||
+                (actor.stateType != "S" && actor.stateType != "C") || actor.posX == opponent.posX) return
+        } else if (actor.stateType != "S") return
+        actor.facingRight = actor.posX <= opponent.posX
     }
     private fun individual(p:FightingCharacter) {
         if(p.binding != null) return
         clampHorizontal(p)
         if(p.advanceFallbackReaction(ground))return
         val physics=p.stateProgram?.physics?.uppercase()
+        // Scripted reactions own their floor crossing and bounce animations.
+        if(p.definition.authoredCns && physics != "A")return
         if(physics=="A" && p.stateType=="A")p.velY+=p.definition.coordinates.fixedToWorld(p.definition.airGravity)
         if(p.posY>=ground && p.velY>0) {
             p.posY=ground
@@ -78,9 +88,9 @@ data class ArenaRules(
         if(abs(diff)>=minDistance)return
         val penetration=minDistance-abs(diff)
         val limits1=horizontalLimits(p1);val limits2=horizontalLimits(p2)
-        val room1=if(p1.positionFrozen || p1.globalPauseThisTick)0L else (if(forward>0)p1.posX.toLong()-limits1.first
+        val room1=if(p1.positionFrozen || p1.globalPauseThisTick || p1.definition.authoredCns && p1.hitPauseThisTick)0L else (if(forward>0)p1.posX.toLong()-limits1.first
             else limits1.second.toLong()-p1.posX).coerceAtLeast(0)
-        val room2=if(p2.positionFrozen || p2.globalPauseThisTick)0L else (if(forward>0)limits2.second.toLong()-p2.posX
+        val room2=if(p2.positionFrozen || p2.globalPauseThisTick || p2.definition.authoredCns && p2.hitPauseThisTick)0L else (if(forward>0)limits2.second.toLong()-p2.posX
             else p2.posX.toLong()-limits2.first).coerceAtLeast(0)
         var travel1=minOf(penetration/2,room1)
         val travel2=minOf(penetration-travel1,room2)

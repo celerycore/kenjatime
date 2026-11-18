@@ -7,6 +7,10 @@ private object Fights {
     var next = 1
     val active = mutableMapOf<Int, DeterministicFight>()
     fun get(handle: Int): DeterministicFight = active[handle] ?: error("Unknown fight handle")
+    fun finishTick(handle: Int, fight: DeterministicFight) {
+        val next = fight.continueEndlessRounds()
+        if (next !== fight) active[handle] = next
+    }
 }
 /** Kotlin/Wasm is the authoritative engine of the 0.6 web + Android channel. */
 @JsExport fun ktCoreVersion(): String = "0.7.0-kotlin-wasm-standard"
@@ -92,6 +96,9 @@ private fun createFight(
         CoreRoundRules(introFrames,roundFrames,fightFrames,koFrames,outroFrames,timerSeconds)
     )
 }
+@JsExport fun ktCoreEnableEndlessRounds(handle: Int, knockoutFrames: Int) {
+    Fights.get(handle).enableEndlessRounds(knockoutFrames)
+}
 @JsExport fun ktCoreRoundState(handle: Int): String =
     Fights.get(handle).roundFlow?.statusJson() ?: "{\"enabled\":false}"
 @JsExport fun ktCoreCamera(handle: Int): String {
@@ -107,6 +114,7 @@ private fun createFight(
     val fight = Fights.get(handle)
     fight.step(InputFrame(p1Direction, p1Buttons.lowercase().toSet()),
         InputFrame(p2Direction, p2Buttons.lowercase().toSet()))
+    Fights.finishTick(handle, fight)
 }
 /** Benchmark AI runs in Kotlin, not in the JavaScript UI or renderer. */
 @JsExport fun ktCoreAdvanceCpu(handle: Int, level: Int) {
@@ -114,6 +122,7 @@ private fun createFight(
     val sample=CoreCpu.input(fight.p1, fight.p2, fight.frame, level)
     val rival=CoreCpu.input(fight.p2, fight.p1, fight.frame, level)
     fight.step(sample,rival,cpuLevel = level.coerceIn(1, 8))
+    Fights.finishTick(handle, fight)
 }
 
 @JsExport fun ktCoreChecksum(handle: Int): String = Fights.get(handle).checksum()

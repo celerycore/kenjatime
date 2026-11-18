@@ -97,6 +97,7 @@ async function load(){
     await imported.default():imported.default;
   const found=[produced,imported,produced?.exports].find(v=>
     v&&typeof v.ktCoreCreateFromArchives==="function"&&
+    typeof v.ktCoreEnableEndlessRounds==="function"&&
     typeof v.ktCoreAdvanceCpu==="function"&&
     typeof v.ktCoreClockClaim==="function"&&
     typeof v.ktCoreRenderPlan==="function"&&
@@ -127,7 +128,8 @@ self.onmessage=async({data})=>{
       api.ktCoreSetup(handle,-70*256,0,70*256,0);
       api.ktCoreConfigureArena(handle,-250,250,0,true,true);
       endless=data.endless!==false;
-      if(!endless)api.ktCoreEnableRoundFlow(handle,45,30,30,55,60,99);
+      if(endless)api.ktCoreEnableEndlessRounds(handle,90);
+      else api.ktCoreEnableRoundFlow(handle,45,30,30,55,60,99);
       clock=api.ktCoreClockCreate(6);
       api.ktCoreClockReset(clock,performance.now());
       level=data.level||4;

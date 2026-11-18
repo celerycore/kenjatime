@@ -14,6 +14,7 @@ internal class CoreFightPaletteBanks(private val fight: DeterministicFight) {
     )
 
     private val banks = arrayOfNulls<Bank>(2)
+    fun copyCatalogs(previous: CoreFightPaletteBanks) { previous.banks.copyInto(banks) }
 
     fun catalog(side: Int, paletteRows: String, spriteRows: String) {
         require(side in 0..1 && fight.frame == 0L) { "Palette catalogs must be loaded before stepping" }

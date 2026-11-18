@@ -39,6 +39,7 @@ internal class CoreForceFeedback(private val fight: DeterministicFight) {
         effects[side] = null
         reset[side] = true
     }
+    fun resetMotors() { for (side in effects.indices) stop(side) }
 
     fun execute(actor: FightingCharacter, controller: StateController, errors: MutableSet<String>) {
         try {

@@ -52,7 +52,8 @@ data class HitDefinition(
     val forceNoFall: Boolean = false,
     val guardDistance: Int = 160*Fixed.ONE,
     val impactShake: HitShakeDefinition = HitShakeDefinition(),
-    val fallShake: HitShakeDefinition = HitShakeDefinition()
+    val fallShake: HitShakeDefinition = HitShakeDefinition(),
+    val groundHitType: Int = 1, val airHitType: Int = 1
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -118,7 +119,8 @@ data class FighterDefinition(
     val drawOffsetX: Int = 0,val drawOffsetY: Int = 0,
     val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE,
     val initialMaps: Map<String,Double> = emptyMap(),val initialMapIssues: Set<String> = emptySet(),
-    val victoryQuotes: Map<Int, String> = emptyMap(), val victoryQuoteIssues: Set<String> = emptySet()
+    val victoryQuotes: Map<Int, String> = emptyMap(), val victoryQuoteIssues: Set<String> = emptySet(),
+    val authoredCns: Boolean = false, val scriptConstants: Map<String, Double> = emptyMap()
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -165,13 +167,29 @@ data class FighterDefinition(
                 if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack,
                 constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY,
                 constants.attackDistance,constants.projectileAttackDistance,maps.first,maps.second,
-                quotes.first, quotes.second
+                quotes.first, quotes.second, useAuthoredStateDefs, MugenCnsParser.scriptConstants(cns)
             )
         }
     }
 }
 
 object MugenCnsParser {
+    internal fun scriptConstants(source: String): Map<String, Double> {
+        val file = MugenDefParser.parse(source)
+        return buildMap {
+            for (name in listOf("data", "size", "velocity", "movement")) {
+                for ((key, raw) in file.section(name)?.entries.orEmpty()) {
+                    val values = raw.split(',').map { it.trim().toDoubleOrNull()?.takeIf(Double::isFinite) }
+                    values.firstOrNull()?.let { put("$name.$key", it) }
+                    if ((name == "velocity" && !key.endsWith(".x") && !key.endsWith(".y")) ||
+                        (name == "size" && key.endsWith(".pos"))) {
+                        values.firstOrNull()?.let { put("$name.$key.x", it) }
+                        values.getOrNull(1)?.let { put("$name.$key.y", it) }
+                    }
+                }
+            }
+        }
+    }
     /** Read fighter base constants without coupling actors to script text. */
     fun constants(source: String): MugenConstants {
         val script = MugenDefParser.parse(source)
@@ -359,7 +377,9 @@ class FightingCharacter(
     fun getHitVar(name: String): Double = when(name) {
         "damage" -> getHitData.damage.toDouble()
         "animtype" -> getHitData.animationType.code.toDouble()
-        "xvel" -> coordinates.toLocal(getHitData.velocityX)
+        "xvel" -> coordinates.toLocal(authoredHorizontal(getHitData.velocityX))
+        "groundtype" -> getHitData.groundType.toDouble()
+        "airtype" -> getHitData.airType.toDouble()
         "yvel" -> coordinates.toLocal(getHitData.velocityY)
         "yaccel" -> coordinates.toLocal(getHitData.accelerationY)
         "hittime" -> getHitData.time.toDouble()
@@ -368,7 +388,7 @@ class FightingCharacter(
         "hitshaketime" -> hitPauseLeft.toDouble()
         "guarded" -> if(getHitData.guarded)1.0 else 0.0
         "fall" -> if(getHitData.fall)1.0 else 0.0
-        "fall.xvel" -> coordinates.toLocal(getHitData.fallVelocityX ?: 0)
+        "fall.xvel" -> coordinates.toLocal(authoredHorizontal(getHitData.fallVelocityX ?: 0))
         "fall.yvel" -> coordinates.toLocal(getHitData.fallVelocityY)
         "fall.damage" -> getHitData.fallDamage.toDouble()
         "fall.recover" -> if(getHitData.fallRecover)1.0 else 0.0
@@ -488,6 +508,13 @@ class FightingCharacter(
     var velX = 0
     var velY = 0
     var facingRight = true
+        set(value) {
+            if (value != field && definition.authoredCns) velX = reverseHorizontal(velX)
+            field = value
+        }
+    private fun reverseHorizontal(value: Int) = (-value.toLong()).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    internal fun authoredHorizontal(value: Int) =
+        if (definition.authoredCns && !facingRight) reverseHorizontal(value) else value
     var stateNo = 0
         private set
     internal var previousStateNo = 0
@@ -573,8 +600,13 @@ class FightingCharacter(
         stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
         moveType = program?.moveType ?: (if (state >= 5000) "H" else "I")
         control = program?.control ?: controlOverride ?: if (neutralFallback) true else control
-        program?.velocityX?.let { velX = coordinates.toWorld(it) }
+        program?.velocityX?.let { velX = authoredHorizontal(coordinates.toWorld(it)) }
         program?.velocityY?.let { velY = coordinates.toWorld(it) }
+        if (definition.authoredCns && owner === this && state == 5150 && life == 0) {
+            // The authored lying state starts on the floor, after the fall.
+            posY = world?.arena?.ground ?: 0
+            velX = 0; velY = 0
+        }
         // Missing StateDef anim preserves the current AIR, including a
         // borrowed ChangeAnim2 action. Initial synthetic actors may use 0.
         val newAnim = program?.animation ?: if (neutralFallback || animation == null && state == 0) 0 else null
@@ -618,8 +650,13 @@ class FightingCharacter(
         val args = c.params
         when (c.type.lowercase()) {
             "null" -> {}
-            "velset" -> { velX = number(args["x"], velX); velY = number(args["y"], velY) }
-            "veladd" -> { velX += number(args["x"]); velY += number(args["y"]) }
+            "velset" -> {
+                args["x"]?.let { raw ->
+                    CoreExpression.number(raw, this, errors)?.let { velX = authoredHorizontal(coordinates.toWorld(it)) }
+                }
+                velY = number(args["y"], velY)
+            }
+            "veladd" -> { velX += authoredHorizontal(number(args["x"])); velY += number(args["y"]) }
             "velmul" -> {
                 val x = args["x"]?.trim()?.toDoubleOrNull() ?: 1.0
                 val y = args["y"]?.trim()?.toDoubleOrNull() ?: 1.0
@@ -628,7 +665,7 @@ class FightingCharacter(
             }
             "gravity" -> { velY += definition.coordinates.fixedToWorld(definition.airGravity) }
             "turn" -> { facingRight = !facingRight }
-            "posadd" -> { posX += number(args["x"]); posY += number(args["y"]) }
+            "posadd" -> { posX += authoredHorizontal(number(args["x"])); posY += number(args["y"]) }
             "posset" -> { posX = number(args["x"], posX); posY = number(args["y"], posY) }
             "posfreeze" -> CorePositionFreeze.execute(this,c,errors)
             "playerpush", "width" -> CoreBodySpace.execute(this,c,errors)
@@ -896,6 +933,8 @@ class FightingCharacter(
                 val ownPalette=args["ownpal"]?.let {value(it)!=0.0} ?: false
                 val hit = HitDefinition(
                     impactShake=shakes.impact,fallShake=shakes.fall,
+                    groundHitType=CoreHitAnimations.reactionType(args["ground.type"]),
+                    airHitType=CoreHitAnimations.reactionType(args["air.type"]),
                     guardDistance=guardDistance,
                     attr = args["attr"] ?: args["projattr"] ?: "S, SP",
                     id = integer(args["id"]),
@@ -973,6 +1012,8 @@ class FightingCharacter(
                 val shakes=CoreHitShakes.parse(args,this,errors) ?: return false
                 val next = HitDefinition(
                     impactShake=shakes.impact,fallShake=shakes.fall,
+                    groundHitType=CoreHitAnimations.reactionType(args["ground.type"]),
+                    airHitType=CoreHitAnimations.reactionType(args["air.type"]),
                     guardDistance=nextGuardDistance,
                     attr = args["attr"] ?: "S, NA",
                     damage = hitDamage,
@@ -1139,17 +1180,20 @@ class FightingCharacter(
         val override=if(guarded)null else hitOverrides.matching(hit)
         val airborne=!guarded && (stateType == "A" || override?.forceAir == true)
         val damage=CoreDamage.contact(hit,attacker,this,guarded)
+        val minimumLife=if(if(guarded)hit.guardKill else hit.kill)0 else 1
+        val remainingLife=(life - damage).coerceAtLeast(minimumLife)
+        val authoredHit=(hit.stateOwner ?: attacker)?.definition?.authoredCns == true
+        val knockbackRight=attackerFacingRight != authoredHit
         attacker?.addPower(if(guarded)hit.guardGetPower else hit.getPower)
         addPower(if(guarded)hit.guardGivePower else hit.givePower)
-        fun facing(value: Int)=(value.toLong()*(if(attackerFacingRight)1 else -1))
-            .coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
+        fun facing(value: Int)=if(knockbackRight)value else reverseHorizontal(value)
         val airGuard=guarded && initialType == "A"
         val x=facing(when { airGuard -> hit.airGuardVelocityX;guarded -> hit.guardVelocityX
             airborne -> hit.airVelocityX;else -> hit.velocityX })
         val y=when { airGuard -> hit.airGuardVelocityY;guarded -> hit.guardVelocityY
             airborne -> hit.airVelocityY;else -> hit.velocityY }
         val duration=if(guarded)hit.guardHitTime else if(airborne)hit.airHitTime else hit.hitTime
-        val falling=CoreHitFalls.resolve(hit,this,airborne,guarded)
+        val falling=(definition.authoredCns && remainingLife == 0) || CoreHitFalls.resolve(hit,this,airborne,guarded)
         val animationType=CoreHitAnimations.select(hit,initialType == "A" || override?.forceAir == true,falling,y)
         // Unguarded hits preserve the prior guard control threshold, as in MUGEN.
         val controlTime=if(guarded) { if(airGuard)hit.airGuardControlTime else hit.guardControlTime } else getHitData.controlTime
@@ -1158,14 +1202,24 @@ class FightingCharacter(
             fallDamage=hit.fallDamage,fallKill=hit.fallKill,
             fallRecover=hit.fallRecover,fallRecoverTime=hit.fallRecoverTime,accelerationY=hit.hitAccelerationY,animationType=animationType,
             slideTime=if(guarded)hit.guardSlideTime else hit.groundSlideTime,controlTime=controlTime,
-            fallShake=if(guarded)getHitData.fallShake else hit.fallShake)
+            fallShake=if(guarded)getHitData.fallShake else hit.fallShake,
+            groundType=hit.groundHitType, airType=hit.airHitType)
         world?.environment?.startShake(hit.impactShake)
         world?.effects?.onHit(this)
-        val minimumLife=if(if(guarded)hit.guardKill else hit.kill)0 else 1
-        life = (life - damage).coerceAtLeast(minimumLife)
-        val resultingState = if (life == 0) 5150 else if (guarded)
-            when (stateType) { "A" -> 152; "C" -> 151; else -> 150 }
-        else 5000
+        life = remainingLife
+        val resultingState = when {
+            life == 0 && !definition.authoredCns -> 5150
+            guarded && life > 0 -> when (stateType) {
+                "A" -> if (definition.authoredCns && 154 in definition.states) 154 else 152
+                "C" -> if (definition.authoredCns && 152 in definition.states) 152 else 151
+                else -> 150
+            }
+            definition.authoredCns && initialType == "L" && 5080 in definition.states -> 5080
+            definition.authoredCns && initialType == "A" && 5020 in definition.states -> 5020
+            definition.authoredCns && initialType == "C" && 5010 in definition.states -> 5010
+            definition.authoredCns && hit.groundHitType == 3 && 5070 in definition.states -> 5070
+            else -> 5000
+        }
         if(override != null) {
             velX=x;velY=y
             if(override.forceAir)stateType="A"
@@ -1243,8 +1297,51 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
     }
     var roundFlow: CoreRoundFlow? = null
         private set
+    var roundNumber = 1
+        private set
+    private data class EndlessRound(val starts: List<Pair<Int, Int>>, val knockoutFrames: Int)
+    private var endlessRound: EndlessRound? = null
+    private var knockoutAge = 0
+
     fun enableRoundFlow(rules: CoreRoundRules = CoreRoundRules()) {
+        endlessRound = null
         roundFlow = CoreRoundFlow(rules)
+    }
+    internal fun enableEndlessRounds(knockoutFrames: Int) {
+        require(knockoutFrames in 0..3600)
+        roundFlow = null
+        endlessRound = EndlessRound(listOf(p1.posX to p1.posY, p2.posX to p2.posY), knockoutFrames)
+        knockoutAge = 0
+    }
+
+    /** Start a clean round with the installed banks and the continuous match clock. */
+    internal fun continueEndlessRounds(): DeterministicFight {
+        val rules = endlessRound ?: return this
+        if (p1.life > 0 && p2.life > 0) {
+            knockoutAge = 0
+            return this
+        }
+        if (knockoutAge++ < rules.knockoutFrames) return this
+
+        val next = DeterministicFight(FightingCharacter(p1.definition, p1.id, p1.commands),
+            FightingCharacter(p2.definition, p2.id, p2.commands))
+        next.p2.facingRight = false
+        for ((actor, position) in listOf(next.p1, next.p2).zip(rules.starts)) {
+            actor.posX = position.first
+            actor.posY = position.second
+        }
+        next.arena = arena
+        next.camera = camera?.let { MugenCamera(it.config) }
+        next.hitPowerRules = hitPowerRules
+        next.sounds.continueWithCatalogs(sounds)
+        next.paletteBanks.copyCatalogs(paletteBanks)
+        next.commonAnimations.copyCatalog(commonAnimations)
+        next.forceFeedback.resetMotors()
+        next.issues.addAll(issues)
+        next.frame = frame
+        next.roundNumber = roundNumber + 1
+        next.endlessRound = rules
+        return next
     }
     var arena: ArenaRules? = null
         private set
@@ -1285,8 +1382,8 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         sounds.beginTick()
         forceFeedback.beginTick()
         val sequence = roundFlow
-        p1.roundState = sequence?.roundState() ?: 2
-        p2.roundState = sequence?.roundState() ?: 2
+        p1.roundState = sequence?.roundState() ?: if (knockoutAge > 0) 3 else 2
+        p2.roundState = p1.roundState
         if (sequence?.finished == true) { frame++; return }
         if (!pauses.backgroundFrozen) environment.beginTick()
         palettes.beginTick()

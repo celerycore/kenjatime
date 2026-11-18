@@ -39,7 +39,7 @@ window.addEventListener("pagehide",()=>{audio.dispose();rumble.stop();});
 const fighters=new Map();
 const installedTables=new Map();
 let importedFightFx=null,matchFightFx=null,importedCommonSound=null;
-let importInProgress=false,paintedSpriteCount=0,placeholderCount=0,paintedExplodCount=0,paintedProjectileCount=0;
+let importInProgress=false,paintedSpriteCount=0,missingSpriteCount=0,paintedExplodCount=0,paintedProjectileCount=0;
 let lastExplodPaint=null,lastProjectilePaint=null;
 let lastSpritePaintOrder=null,lastActorTransformPaint=null;
 let lastEnvironmentPaint=null;
@@ -281,7 +281,7 @@ function render(){
   }
   const draws=latest.draws||[];
   const paintedDraws=[];
-  const visual=recording?{frame:latest.frame,cameraZoom:latest.cameraZoom,
+  const visual=recording?{frame:latest.frame,roundNumber:latest.roundNumber,cameraZoom:latest.cameraZoom,
     explods:latest.explods,fighters:[],largestEffect:null}:null;
   let largestEffectExtent=0;
   let darkened=false;
@@ -296,7 +296,7 @@ function render(){
     // AIR uses negative sprite indices to suppress drawing for that frame.
     if(fighter.group<0||fighter.number<0)continue;
     const common=fighter.common===true;
-    const item=common?matchFightFx:images[fighter.side]||images[0];
+    const item=common?matchFightFx:images[fighter.spriteSide??fighter.side]||images[0];
     const x=fighter.x;
     const y=fighter.y; // both projected by Kotlin's deterministic camera
     const img=spriteImage(item,fighter.group,fighter.number,fighter.remapPalette);
@@ -344,7 +344,7 @@ function render(){
         if(root||extent>largestEffectExtent){
           const sample={side:fighter.side+1,kind:fighter.kind,state:fighter.stateNo,
             action:fighter.action,group:fighter.group,number:fighter.number,
-            scaleX:sx,scaleY:sy,width,height};
+            scaleX:sx,scaleY:sy,width,height,life:fighter.life,x,y,facing:fighter.facing};
           if(root)visual.fighters.push(sample);
           else{visual.largestEffect=sample;largestEffectExtent=extent;}
         }
@@ -357,14 +357,7 @@ function render(){
       paintedSpriteCount++;
       if(fighter.kind==="explod"&&sx!==0&&sy!==0)paintedExplodCount++;
       if(fighter.kind==="projectile"&&sx!==0&&sy!==0)paintedProjectileCount++;
-    }else if(!common){
-      // When huge SFF sprites cannot be decoded on this phone, show a
-      // visible placeholder without inventing artwork or blocking combat.
-      ctx.fillStyle=fighter.side?"#8cc4ea":"#a6dd84";
-      const size=fighter.kind==="fighter"?17:8;
-      ctx.fillRect(x-size,y-size*3,size*2,size*3);
-      placeholderCount++;
-    }
+    }else missingSpriteCount++;
   }
   darkenArena();
   lastSpritePaintOrder=Object.freeze({frame:latest.frame,draws:Object.freeze(paintedDraws)});
@@ -681,7 +674,7 @@ window.__kenjatimeKotlinQA=Object.freeze({
   get lastActorTransformPaint(){return lastActorTransformPaint},
   get lastEnvironmentPaint(){return lastEnvironmentPaint},
   get spritePaints(){return paintedSpriteCount},
-  get placeholderPaints(){return placeholderCount},
+  get missingSpriteDraws(){return missingSpriteCount},
   get importedCount(){return fighters.size-1},
   get sources(){return [...installedTables.values()].map(x=>x.name)},
   get lastVisualFrame(){return latest?.frame??0},

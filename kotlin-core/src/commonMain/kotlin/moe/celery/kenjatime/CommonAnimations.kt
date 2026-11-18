@@ -23,6 +23,10 @@ internal class CoreCommonAnimations(private val fight: DeterministicFight) {
     val all: List<CoreCommonAnimation> get() = effects
 
     fun action(number: Int): AirAction? = actions[number]
+    fun copyCatalog(previous: CoreCommonAnimations) {
+        actions = previous.actions
+        scale = previous.scale
+    }
 
     fun catalog(air: String, scale: Double) {
         require(fight.frame == 0L && effects.isEmpty()) { "Load fightfx before stepping" }

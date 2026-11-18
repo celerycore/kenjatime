@@ -87,6 +87,16 @@ class CorePresentationPlannerTest {
         assertTrue(json.contains("\"number\":2"),json)
     }
 
+    @Test fun borrowedAnimationUsesTheOtherFightersSpriteBank() {
+        val source = FighterDefinition.fromScript("thrower", "[Begin Action 820]\n820,0,0,0,-1", "")
+        val victim = FighterDefinition.fromScript("victim", "[Begin Action 0]\n0,0,0,0,-1", "")
+        val fight = DeterministicFight(FightingCharacter(source, 1), FightingCharacter(victim, 2))
+        assertTrue(fight.p2.changeAnimation(820, fight.p1))
+        val plan = CorePresentationPlanner.snapshot(fight, 0)
+        assertTrue(plan.contains("\"side\":1,\"kind\":\"fighter\",\"spriteSide\":0"), plan)
+        assertTrue(plan.contains("\"group\":820"), plan)
+    }
+
     @Test fun groundLevelActorsStayInsideTheArenaAfterCameraSettles() {
         val definition = FighterDefinition("fighter")
         val fight = DeterministicFight(FightingCharacter(definition,1),FightingCharacter(definition,2))
