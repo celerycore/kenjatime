@@ -1,0 +1,42 @@
+{
+  "sources": {
+    "kotlin/index.html": "caecfafd981ae9e4523e3b361584a57dc505c2ecfeee29f9bbc0e7b3cb6acf22",
+    "src/archive-kind.js": "dcf3907f4c3fb0b482834c0e105e4de11948b2ccde5797bfcb4ff01571be04b3",
+    "src/archive-limits.js": "e186ccb28385474dc0a775bb8603143ae8235e9f1b907317593fb6aec29d6102",
+    "src/archive-reader.js": "7929afbb0cbd045f98d3e674ab356892af0d3cd26c384663b07eda8b8d18333d",
+    "src/archive-volumes.js": "5d9607c02f909e30cc8766cbc9880aa15f810fbcfbcac4cb7f2ec6039ff91fc4",
+    "src/core/benchmark-device.js": "6f616cf872a2d8db71b7bda1ab08c6c4e607aa6204315ababd8904cd9ff1a4e2",
+    "src/core/benchmark-roster.js": "515de944d18fc71d712cd102bfd53c585760df97c844ae0e8d4408404dce26bd",
+    "src/core/common-effects.js": "9fc31b5a5f2c8286461dfa9451232d596e6d56b3657756c9a37d7cabf5781d4f",
+    "src/formats.js": "26690205eb8bc6f7a3d4ef9994c38238885e6e3f361f80ad5a0ecf9d459aafc3",
+    "src/gamepads.js": "d11bbdf8ebf93704923a84498e0065f16c2eb77b1e29487a0a319c56851cd451",
+    "src/haptics.js": "85fef38bf11a6ca968f6200b2bf9fd48f17444b29bf8b5a6d91a4dc74e51a600",
+    "src/input-buffer.js": "947c4571edd46adfef272f9bd83bd72a9bf752ee06a720395aaa87431843247a",
+    "src/kotlin/app.css": "6f5b12dda1382ebe876b61db482e3991a4cb0c037084a34319dfc9320b7191c2",
+    "src/kotlin/archive-import.js": "6b86eb01f4e883a1f884f7dba23b7c9448b3a2025aaca3c1b295cc905e801743",
+    "src/kotlin/audio.js": "5eb60dab3c3b42070a1f1908d71a685b07fa6ad401eae33e04f608f4ddffaac9",
+    "src/kotlin/page.js": "2188af999acde3a780af81d50510484a51fb0a84d9d2c03597b1b868ee1f4d35",
+    "src/kotlin/sound-assets.js": "2f873d0d8dab10617d72b89ec82784516f696f58201a003fad536f9326e3a986",
+    "src/kotlin/sprite-blend.js": "44187c64736b1fafb77c310c48682465972c5b7707cb627435b022accfd63862",
+    "src/kotlin/sprite-palette.js": "a3c9fbf5e3fa5af634c246d13ddcfc67cd94121899a9efcb419aa16c96a030e2",
+    "src/memory-cache.js": "de77963f9cf3d3ec83ab66560dd19f63160e52d3959f561f05b7efde604eb280",
+    "src/mobile-library.js": "812daba5308a5e0967ba5728950b621a726d82b64f3530707cb9ea8e357d4eaa",
+    "src/multi-archive.js": "29bfa35a2a6c7a2919f7d8cc2ef513580e4c69dbfd1293bc178c211cad53638b",
+    "src/palettes.js": "54ab03b399df87c1c3257d254422242d284a354d27ba4cf55ad87bb519cc96a5",
+    "src/rar-reader.js": "c7cf0f9fc1ac1b3af463b93198980b2e9851de5de67dd4c873f698fbfa03907c",
+    "src/seven-archive.js": "19921cb4816451381452d8cac1e0bbedd7cf9a101f97e622d0ae2002bf8a4747",
+    "src/uploads.js": "f7c26b561fbc880d03814172805f8c7a844bf2ab8b8978cce72b0bb0762c53c7",
+    "src/zip-encrypted.js": "c58ee915671a0830dd9fe4834bd7e01e4390eacc4c0abde0f2cd9be4eeb7e5e3",
+    "src/zip-lzma.js": "54619d449e7a23c74893268e2df8deda89c9e0d94807c4f27f3e3f95fabae5ac"
+  },
+  "thirdPartyPackages": [
+    "7z-wasm",
+    "@zip.js/zip.js",
+    "fflate",
+    "fzstd",
+    "libarchive-wasm",
+    "lzma",
+    "node-unrar-js"
+  ],
+  "scope": "Distribution dependency boundary. Third-party graphics, audio, archive and platform libraries retain their own authorship and licenses. This policy does not certify universal behavioral compatibility."
+}

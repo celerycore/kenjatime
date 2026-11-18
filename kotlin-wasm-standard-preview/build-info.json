@@ -1,7 +1,7 @@
 {
   "engine": "Kotlin/WASM",
   "channel": "kotlin-standard",
-  "sourceCommit": "916c987db8f4a6a38a3eeeede564adc46e9f704b",
+  "sourceCommit": "8f5069a413113a4a18e41cfe61e0cd3511859852",
   "browserAndAndroidUseSameWasm": true,
   "nativeMugen11ParityCertified": false,
   "physicalAndroidPerformanceVerified": false,
