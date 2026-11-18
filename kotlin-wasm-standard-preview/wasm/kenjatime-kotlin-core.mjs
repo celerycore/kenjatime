@@ -80,6 +80,7 @@ export const {
     ktCoreCreate,
     ktCoreCreateWithCommands,
     ktCoreCreateWithDefinitions,
+    ktCoreCreateFromArchives,
     ktCoreSetup,
     ktCoreConfigureArena,
     ktCoreDebugForceState,
