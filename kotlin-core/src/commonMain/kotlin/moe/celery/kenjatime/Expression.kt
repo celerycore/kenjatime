@@ -185,7 +185,8 @@ object CoreExpression {
                     val key = (args.singleOrNull() as? Variable)?.key
                         ?: throw IllegalArgumentException("Const requires one named field")
                     val constants = f.stateOwner.definition.scriptConstants
-                    constants[key] ?: when (key) {
+                    val movement = if (f.stateOwner.definition.authoredCns) CoreCommonMovement.constants[key] else null
+                    constants[key] ?: movement ?: when (key) {
                         "movement.air.gethit.groundlevel" -> 0.0
                         "data.liedown.time" -> 60.0
                         else -> throw IllegalArgumentException("Unknown character constant: $key")

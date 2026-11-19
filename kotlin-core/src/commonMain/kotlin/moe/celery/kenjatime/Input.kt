@@ -83,6 +83,7 @@ class InputBuffer(private val capacity: Int = 360) {
         usableSamples = 0
     }
     fun latest(): InputFrame? = history.firstOrNull()
+    internal fun previous(): InputFrame? = history.getOrNull(1)
     /** Preserve held-input edges while excluding paused samples from motion searches. */
     internal fun discardMovesKeepLastSample() {
         val previous = latest()

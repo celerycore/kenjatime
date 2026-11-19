@@ -1,5 +1,33 @@
 # Kenjatime Kotlin/Wasm combat migration
 
+## Common movement and guard recovery
+
+Archive fighters use their authored walk, crouch, jump, and guard states
+from directional input during active combat. Air jumps require a fresh Up
+press and respect the CNS height and count limits. The ground jump and
+landing reset the available air jumps. Fighters that reference
+`common1.cns` get Kotlin defaults for missing movement StateDefs. Imported
+definitions retain precedence.
+
+StateDef `U` preserves the active state type, move type, or physics.
+StateTypeSet can switch physics during a state. StateDef `facep2` turns the
+fighter before applying its entry velocity. Standing and crouching physics
+use their authored friction coefficients. A fighter holding Back in attack
+range enters the common guard state. The guard-end animation leads back to
+standing, crouching, or airborne movement.
+
+The reference replay exercises forward and backward walking, crouch and
+release, air-jump limits, and light punches on both stock KFM variants.
+It also checks guard entry and recovery on KFM720. Chromium exercises
+movement with the bundled fighter without an imported `common1.cns`. JVM,
+Wasm, adapter, and browser regression suites passed. Both Nu-13 fighters
+landed and recorded hits in a 3,600-tick mirror that reached round two.
+
+The supplied Windows executable crashed before opening a match under Wine
+WoW64 in this environment. The reference replay measures behavior of its
+original character data in Kotlin/Wasm. Native tick ordering, numeric
+rounding, and full common-state timing still require direct comparison.
+
 ## MUGEN 1.1b1 reference distribution
 
 The supplied `mugen-11b1.zip` passed ZIP integrity checks. Its 195 files

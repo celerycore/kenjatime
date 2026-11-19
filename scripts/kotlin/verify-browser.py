@@ -97,6 +97,32 @@ try:
           !document.querySelector('#arena-box').classList.contains('has-frame') &&
           window.__kenjatimeKotlinQA.lastVisualFrame === 0
         """)
+        page.locator("#cpu").uncheck()
+        page.locator("#start").click()
+        player_state = """({state, x = null, y = null}) => {
+          const fighter = window.__kenjatimeKotlinQA.paintedRenderPlan?.draws
+            .find(draw => draw.kind === 'fighter' && draw.side === 0);
+          return fighter?.stateNo === state && (x === null || fighter.axisX > x) &&
+            (y === null || fighter.axisY < y) ? fighter : false;
+        }"""
+        neutral = {"state": 0}
+        initial = page.wait_for_function(player_state, arg=neutral, timeout=15000).json_value()
+        page.keyboard.down("ArrowRight")
+        page.wait_for_function(player_state, arg={"state": 20, "x": initial["axisX"] + 8}, timeout=15000)
+        page.keyboard.up("ArrowRight")
+        page.wait_for_function(player_state, arg=neutral, timeout=15000)
+        page.keyboard.down("ArrowDown")
+        page.wait_for_function(player_state, arg={"state": 11}, timeout=15000)
+        page.keyboard.up("ArrowDown")
+        page.wait_for_function(player_state, arg=neutral, timeout=15000)
+        page.keyboard.down("ArrowUp")
+        page.wait_for_function(player_state, arg={"state": 50, "y": initial["axisY"] - 12}, timeout=15000)
+        page.keyboard.up("ArrowUp")
+        page.wait_for_function(player_state, arg=neutral, timeout=15000)
+        result["bundledFighterKeyboardMovement"] = "passed"
+        page.locator("#reset").click()
+        page.locator("#cpu").check()
+
         page.locator("#archive").set_input_files(str(ROOT / "test-output/kotlin-kfm-script.rar"))
         page.wait_for_function("""()=>
           document.querySelector('#setup-status')?.textContent?.includes('incomplete') &&

@@ -78,7 +78,8 @@ data class StateProgram(
     val hitDefPersist: String? = null,
     val moveHitPersist: String? = null,
     val hitCountPersist: String? = null,
-    val spritePriority: String? = null
+    val spritePriority: String? = null,
+    val faceOpponent: Boolean = false
 )
 data class MugenConstants(
     val maxLife: Int = 1000,
@@ -148,7 +149,8 @@ data class FighterDefinition(
             val quotes = CoreVictoryQuotes.read(cns)
             // Character localcoord is authored in DEF, not the AIR or CNS.
             // Nu-13 uses 1008x756. Never assume every character is 320x240.
-            val info = if(defText.isBlank()) null else MugenDefParser.parse(defText).section("info")
+            val definition = if(defText.isBlank()) null else MugenDefParser.parse(defText)
+            val info = definition?.section("info")
             val local = info?.get("localcoord")?.split(',') ?: emptyList()
             val localWidth=local.getOrNull(0)?.trim()?.toIntOrNull()
                 ?.takeIf { it in 160..4096 } ?: 320
@@ -157,10 +159,15 @@ data class FighterDefinition(
             // MUGEN CMD embeds StateDef -1 and controllers AFTER [Command] sections.
             // Motion definitions alone cannot activate any authored combat move.
             val allStates = if (cmd.isBlank()) cns else cns + "\n" + cmd
+            val authored = MugenCnsParser.parse(allStates, useAuthoredStateDefs)
+            val commonName = definition?.section("files")?.get("stcommon")?.replace('\\', '/')?.substringAfterLast('/')
+            val states = if (useAuthoredStateDefs && commonName.equals("common1.cns", true)) {
+                CoreCommonMovement.defaults + authored
+            } else authored
             val version=info?.get("mugenversion")?.trim()?.trim('"','\'') ?: ""
             val modern=Regex("^1\\.(\\d+)").find(version)?.groupValues?.get(1)?.toIntOrNull()?.let { it >= 1 } ?: false
             return FighterDefinition(
-                name, MugenAirParser.parse(air), MugenCnsParser.parse(allStates, useAuthoredStateDefs),
+                name, MugenAirParser.parse(air), states,
                 constants.maxLife, constants.front, constants.back,
                 constants.gravity, constants.xScale, constants.yScale,
                 localWidth,localHeight,constants.headX,constants.headY,constants.midX,constants.midY,
@@ -276,7 +283,8 @@ object MugenCnsParser {
                 m?.get("physics")?.uppercase(), m?.get("ctrl")?.toIntOrNull()?.let { it != 0 },
                 velocity.getOrNull(0)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() },
                 velocity.getOrNull(1)?.trim()?.toDoubleOrNull()?.takeIf { it.isFinite() },
-                m?.get("hitdefpersist"),m?.get("movehitpersist"),m?.get("hitcountpersist"),m?.get("sprpriority"))
+                m?.get("hitdefpersist"),m?.get("movehitpersist"),m?.get("hitcountpersist"),m?.get("sprpriority"),
+                m?.int("facep2", 0) == 1)
         }
     }
 }
@@ -550,6 +558,9 @@ class FightingCharacter(
         private set
     var moveType = "I"
         private set
+    internal var physics = "N"
+        private set
+    private var airJumps = 0
     var control = true
     var activeHitDef: HitDefinition? = null
         private set
@@ -607,9 +618,18 @@ class FightingCharacter(
         if(!persistence.moveHit)clearMoveContact()
         if(!persistence.hitCount)hitCount=0
         val neutralFallback = owner === this && state == 0 && program == null
-        stateType = program?.stateType ?: (if (state >= 5000) "S" else stateType)
-        moveType = program?.moveType ?: (if (state >= 5000) "H" else "I")
+        val authored = definition.authoredCns && program != null
+        val nextType = program?.stateType ?: if (authored || state >= 5000) "S" else stateType
+        val nextMoveType = program?.moveType ?: if (!authored && state >= 5000) "H" else "I"
+        if (nextType != "U") stateType = nextType
+        if (nextMoveType != "U") moveType = nextMoveType
+        val nextPhysics = program?.physics ?: "N"
+        if (nextPhysics != "U") physics = nextPhysics
+        if (owner === this && state == 40) airJumps = 0
         control = program?.control ?: controlOverride ?: if (neutralFallback) true else control
+        if (program?.faceOpponent == true) {
+            opponent?.takeIf { !it.destroyed && it.posX != posX }?.let { facingRight = it.posX > posX }
+        }
         program?.velocityX?.let { velX = authoredHorizontal(coordinates.toWorld(it)) }
         program?.velocityY?.let { velY = coordinates.toWorld(it) }
         if (definition.authoredCns && owner === this && state == 5150 && life == 0) {
@@ -784,8 +804,9 @@ class FightingCharacter(
                     errors.add("Missing/invalid ${c.type} action or element: " + args["value"])
             }
             "statetypeset" -> {
-                args["statetype"]?.uppercase()?.let { stateType = it }
-                args["movetype"]?.uppercase()?.let { moveType = it }
+                args["statetype"]?.uppercase()?.takeIf { it != "U" }?.let { stateType = it }
+                args["movetype"]?.uppercase()?.takeIf { it != "U" }?.let { moveType = it }
+                args["physics"]?.uppercase()?.takeIf { it != "U" }?.let { physics = it }
             }
             "lifeadd", "lifeset", "targetlifeadd" -> CoreLifeControllers.execute(this,c,errors)
             "attackmulset", "defencemulset" -> CoreDamage.execute(this,c,errors)
@@ -1098,13 +1119,53 @@ class FightingCharacter(
         }
         return false
     }
-    private fun startGroundJump(): Boolean {
-        if (!definition.authoredCns || life <= 0 || !control || stateOwner !== this || roundState != 2 ||
-            moveType == "H" || (stateType != "S" && stateType != "C") || stateNo == 40 ||
-            40 !in definition.states || "nojump" in asserted) return false
+    private fun guardAllowed(): Boolean = when (stateType) {
+        "S" -> "nostandguard" !in asserted
+        "C" -> "nocrouchguard" !in asserted
+        "A" -> "noairguard" !in asserted
+        else -> false
+    }
+    private fun automaticTransition(): Boolean {
+        if (!definition.authoredCns || life <= 0 || stateOwner !== this || roundState != 2) return false
+        val ground = world?.arena?.ground ?: 0
+        if (stateType != "A" && posY >= ground) airJumps = 0
+        if (!control || moveType == "H") return false
+
         val directions = input.latest()?.directions ?: 0
-        if (directions and (Directions.U or Directions.D) != Directions.U) return false
-        changeState(40, this)
+        val vertical = directions and (Directions.U or Directions.D)
+        val horizontal = directions and (Directions.L or Directions.R)
+        val backward = if (facingRight) Directions.L else Directions.R
+        val states = definition.states
+        val next = when {
+            stateNo == 140 && (animation?.remaining == 0L || animation == null) -> when (stateType) {
+                "C" -> 11
+                "A" -> if (51 in states) 51 else 50
+                else -> 0
+            }
+            stateNo in 120..155 -> return false
+            horizontal == backward && inGuardDistance && guardAllowed() && 120 in states -> 120
+            stateType == "A" -> {
+                val previous = input.previous()?.directions ?: 0
+                val limit = definition.scriptConstants["movement.airjump.num"]?.toInt() ?: 0
+                val height = definition.scriptConstants["movement.airjump.height"] ?: 35.0
+                if (vertical != Directions.U || previous and (Directions.U or Directions.D) == Directions.U ||
+                    stateNo == 45 || "nojump" in asserted || 45 !in states || airJumps >= limit ||
+                    ground.toLong() - posY < definition.coordinates.toWorld(height)) return false
+                airJumps++
+                45
+            }
+            stateType != "S" && stateType != "C" -> return false
+            vertical == Directions.U && stateNo != 40 && "nojump" !in asserted && 40 in states -> 40
+            moveType != "I" -> return false
+            vertical == Directions.D && stateType == "S" && "nocrouch" !in asserted && 10 in states -> 10
+            vertical != Directions.D && stateType == "C" && 12 in states -> 12
+            stateNo == 20 && (horizontal == 0 || horizontal == (Directions.L or Directions.R)) -> 0
+            stateType == "S" && vertical != Directions.D && stateNo != 20 && "nowalk" !in asserted &&
+                (horizontal == Directions.L || horizontal == Directions.R) && 20 in states -> 20
+            else -> return false
+        }
+        if (next != 0 && next !in states) return false
+        changeState(next, this)
         return true
     }
     fun tick(errors: MutableSet<String>, helperKeyControl: Boolean = false) {
@@ -1139,8 +1200,8 @@ class FightingCharacter(
         val changed = (root && ownState && executeState(-3, errors, paused)) ||
             (root && executeState(-2, errors, paused)) ||
             ((root || helperKeyControl) && stateOwner === this && executeState(-1, errors, paused)) ||
-            (root && !paused && startGroundJump()) ||
-            executeState(stateNo, errors, paused, stateOwner)
+            executeState(stateNo, errors, paused, stateOwner) ||
+            (root && !paused && automaticTransition())
         // CNS observes 1 through hitpause and the first active controller phase.
         // Advance afterward, independently of State Time and state transitions.
         if(!paused)advanceMoveContact()
@@ -1175,9 +1236,11 @@ class FightingCharacter(
         return true
     }
     fun blocks(hit: HitDefinition): Boolean {
-        if (!control && stateNo !in 150..152) return false
+        val guardStates = if (definition.authoredCns) 120..155 else 150..152
+        if (!control && stateNo !in guardStates) return false
+        if (definition.authoredCns && !guardAllowed()) return false
         val backwards = if (facingRight) Directions.L else Directions.R
-        if (input.latest()?.directions?.and(backwards) != backwards) return false
+        if (input.latest()?.directions?.and(Directions.L or Directions.R) != backwards) return false
         val flag = hit.guardFlag
         return when (stateType) {
             "A" -> 'A' in flag

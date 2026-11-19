@@ -112,7 +112,7 @@ class ArenaSimulationTest {
             fighter.facingRight = direction > 0
             victim.facingRight = direction < 0
             fighter.changeState(20)
-            fight.step()
+            fight.step(InputFrame(if (direction > 0) Directions.R else Directions.L))
             assertEquals(direction * 5 * Fixed.ONE, fighter.posX)
             assertEquals(3.0, CoreExpression.number("Vel X", fighter, fight.issues))
             victim.posX = direction * 98 * Fixed.ONE

@@ -56,14 +56,25 @@ data class ArenaRules(
         if(p.binding != null) return
         clampHorizontal(p)
         if(p.advanceFallbackReaction(ground))return
-        val physics=p.stateProgram?.physics?.uppercase()
-        // Scripted reactions own their floor crossing and bounce animations.
-        if(p.definition.authoredCns && physics != "A")return
-        if(physics=="A" && p.stateType=="A")p.velY+=p.definition.coordinates.fixedToWorld(p.definition.airGravity)
+        val physics = p.physics
+        if (p.definition.authoredCns) {
+            if (physics == "S" || physics == "C") {
+                val key = if (physics == "S") "movement.stand.friction" else "movement.crouch.friction"
+                val coefficient = p.definition.scriptConstants[key] ?: CoreCommonMovement.constants.getValue(key)
+                p.velX = (p.velX * coefficient).toInt()
+            }
+            // Authored no-physics states handle their own floor crossing. The back hop
+            // evaluates its floor trigger and enters its own landing state (106).
+            if (physics != "A") return
+            p.velY += p.definition.coordinates.fixedToWorld(p.definition.airGravity)
+            if (p.stateNo == 105 && 106 in p.stateOwner.definition.states) return
+        } else if (physics == "A" && p.stateType == "A") {
+            p.velY += p.definition.coordinates.fixedToWorld(p.definition.airGravity)
+        }
         if(p.posY>=ground && p.velY>0) {
             p.posY=ground
             p.velY=0
-            if(p.stateType=="A") {
+            if(p.definition.authoredCns || p.stateType=="A") {
                 val landing=if(p.definition.states.containsKey(52))52 else 0
                 p.changeState(landing, p)
             }

@@ -39,6 +39,47 @@ function runMatch(left, right, separation, sample) {
     }
 }
 
+function replay(handle, frames, inputs) {
+    const sides = [[], []];
+    for (let tick = 0; tick < frames; tick++) {
+        const [left, right] = inputs(tick);
+        api.ktCoreAdvance(handle, left, "", right, "");
+        for (let side = 0; side < sides.length; side++) {
+            sides[side].push(JSON.parse(api.ktCoreSnapshot(handle, side)));
+        }
+    }
+    return sides;
+}
+
+const statesSeen = frames => frames.map(frame => frame.state).filter((state, tick, states) => state !== states[tick - 1]);
+function groundedMovement(left, right) {
+    return runMatch(left, right, 90, handle => {
+        const movement = replay(handle, 68, tick => {
+            if (tick < 11) return [8, 4];
+            if (tick >= 18 && tick < 28) return [4, 8];
+            if (tick >= 36 && tick < 56) return [2, 2];
+            return [0, 0];
+        });
+        return movement.map((frames, side) => {
+            const states = statesSeen(frames);
+            assert.deepEqual(states, [20, 0, 20, 0, 10, 11, 12, 0]);
+            const start = frames[0].x256;
+            const forward = (frames[10].x256 - start) * (side === 0 ? 1 : -1) / 256;
+            const back = (frames[27].x256 - frames[18].x256) * (side === 0 ? -1 : 1) / 256;
+            assert.ok(forward > 15 && back > 10, `Mirrored walk motion must use authored velocities: ${forward}, ${back}`);
+            assert.equal(frames[10].anim, 20);
+            assert.equal(frames[27].anim, 21);
+            return { states, forward, back };
+        });
+    });
+}
+
+const locomotion = groundedMovement(...variants);
+const bundledFiles = packageFiles(readFileSync(new URL("../../public/kfm.zip", import.meta.url)));
+const bundled = availableKotlinFighters(bundledFiles, "bundled").ready[0];
+assert.ok(bundled);
+const bundledLocomotion = groundedMovement(bundled, bundled);
+
 const jumps = runMatch(...variants, 70, handle => {
     const sides = [{ states: [], apex: 0 }, { states: [], apex: 0 }];
     for (let tick = 0; tick < 100; tick++) {
@@ -56,6 +97,37 @@ const jumps = runMatch(...variants, 70, handle => {
         assert.ok(result.apex < -10, "The authored jump must rise above the stage floor");
     }
     return sides;
+});
+
+const airJumps = runMatch(...variants, 70, handle => {
+    const motion = replay(handle, 150, tick => {
+        const up = tick < 17 || tick === 18 || tick === 35 ? 1 : 0;
+        return [up, up];
+    });
+    return motion.map(frames => {
+        const states = statesSeen(frames);
+        assert.deepEqual(states, [40, 50, 45, 50, 52, 0]);
+        assert.equal(frames[18].state, 45);
+        assert.equal(frames[35].state, 50);
+        return { states, apex: Math.min(...frames.map(frame => frame.y256 / 256)) };
+    });
+});
+
+const guard = runMatch(...variants, 12, handle => {
+    const defenderStates = [];
+    const guardedContacts = [];
+    for (let tick = 0; tick < 100; tick++) {
+        api.ktCoreAdvance(handle, 0, tick === 0 ? "x" : "", tick < 34 ? 8 : 0, "");
+        defenderStates.push(JSON.parse(api.ktCoreSnapshot(handle, 1)));
+        guardedContacts.push(...JSON.parse(api.ktCoreContacts(handle)));
+    }
+    const states = statesSeen(defenderStates);
+    assert.ok(states.includes(120) && states.includes(150) && states.includes(140), states.join(","));
+    assert.equal(states.at(-1), 0);
+    assert.equal(guardedContacts.length, 1);
+    assert.equal(guardedContacts[0].guarded, true);
+    assert.equal(defenderStates.at(-1).life, 1000);
+    return { states, contacts: guardedContacts };
 });
 
 const punches = variants.map((_, attacker) => runMatch(...variants, 14, handle => {
@@ -84,6 +156,10 @@ console.log(JSON.stringify({
     documentedControllers: headings("sctrls").length,
     documentedTriggers: headings("trigger").length,
     fighters: variants.map(fighter => fighter.definitionPath),
+    locomotion,
+    bundledLocomotion,
     jumps,
+    airJumps,
+    guard,
     punches
 }, null, 2));
