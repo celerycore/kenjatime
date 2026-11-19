@@ -202,8 +202,9 @@ object CorePresentationPlanner {
             val priority = if (effect.under) Int.MIN_VALUE.toLong() - 2 else Int.MAX_VALUE.toLong()
             enqueue(priority) {
                 val definition = if (effect.side == 0) fight.p1.definition else fight.p2.definition
-                draw(effect.side, "gameanim", effect.x, effect.y, effect.facingRight, effect.animation,
-                    definition, 0, priority = priority, commonScale = fight.commonAnimations.scale)
+                val kind = if (effect.contact) "spark" else "gameanim"
+                draw(effect.side, kind, effect.x, effect.y, effect.facingRight, effect.animation,
+                    definition, 0, priority = priority, commonScale = fight.commonAnimations.scale.takeIf { effect.common })
             }
         }
         fight.pauses.flash?.let { flash ->

@@ -23,6 +23,35 @@ test("palette metadata respects linked SFF v2 palettes and excludes true-color a
 });
 
 const kfm=packageFiles(new Uint8Array(readFileSync("public/kfm.zip")));
+test("SFF v1 shared palette lengths can count omitted RGB bytes",()=>{
+ const pcx=new Uint8Array(128+2+769);
+ pcx.set([10,5,1,8]);
+ pcx[8]=1;
+ pcx[65]=1;
+ pcx[66]=2;
+ pcx.set([1,2,12],128);
+ pcx.set([240,50,80,130,200,90],134);
+ const first=512,second=first+32+pcx.length;
+ const sffBytes=new Uint8Array(second+32+pcx.length-768);
+ sffBytes.set(new TextEncoder().encode("ElecbyteSpr"));
+ sffBytes[15]=1;
+ const header=new DataView(sffBytes.buffer);
+ header.setUint32(20,2,true);
+ header.setUint32(24,first,true);
+ for(const [index,entry] of [first,second].entries()){
+  header.setUint32(entry,index===0?second:sffBytes.length,true);
+  header.setUint32(entry+4,pcx.length,true);
+  header.setUint16(entry+14,index,true);
+  sffBytes[entry+18]=index;
+  sffBytes.set(index===0?pcx:pcx.subarray(0,pcx.length-768),entry+32);
+ }
+ const bank=sff(sffBytes);
+ assert.deepEqual(bank.decode(1).rgba,bank.decode(0).rgba);
+ assert.deepEqual([...bank.decodeIndexOnly(1).indices],[1,2]);
+ sffBytes[sffBytes.length-1]=0;
+ assert.throws(()=>sff(sffBytes),/Truncated SFF v1 sprite/);
+});
+
 test("a full installation supplies common states before the character's own overrides",()=>{
  const encoder=new TextEncoder(),decoder=new TextDecoder("windows-1252");
  const files=Object.fromEntries(Object.entries(kfm).map(([file,data])=>[`reference/chars/${file}`,data]));

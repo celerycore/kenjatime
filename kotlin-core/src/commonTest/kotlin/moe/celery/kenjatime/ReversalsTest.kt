@@ -128,7 +128,7 @@ class ReversalsTest {
         val bad=listOf("","reversal.attr=","reversal.attr=S","reversal.attr=,NA","reversal.attr=Z,NA","reversal.attr=S,ZZ",
             "reversal.attr=S,NA\nid=-1","reversal.attr=S,NA\npausetime=1,unknown","reversal.attr=S,NA\np1stateno=999",
             "reversal.attr=S,NA\np2stateno=999","reversal.attr=S,NA\np2getp1state=1/0","reversal.attr=S,NA\ndamage=99",
-            "reversal.attr=S,NA\nsparkno=1","reversal.attr=S,NA\nhitsound=1,0","reversal.attr=S,NA\nredirectid=2")
+            "reversal.attr=S,NA\nredirectid=2")
         for(params in bad) {
             val w=fight();execute(w.p1);val prior=w.p1.activeReversal;execute(w.p1,params)
             assertSame(prior,w.p1.activeReversal,params);assertTrue(w.issues.isNotEmpty(),params)

@@ -7,7 +7,7 @@ internal data class CoreDebugNumber(val value: Double,val floating: Boolean)
 /** Bounded, cached, immutable CNS expression trees. Unknown syntax fails closed. */
 object CoreExpression {
     private data class Token(val value: String, val type: Char)
-    private sealed interface Node { fun read(f: FightingCharacter): Value }
+    private sealed interface Node { fun read(f: FightingCharacter, contactCue: Boolean = false): Value }
     private data class Value(val n: Double? = null, val s: String? = null,
                              val range: Pair<Double,Double>? = null,val floating: Boolean=false) {
         fun number(): Double = n ?: s?.toDoubleOrNull() ?: 0.0
@@ -22,8 +22,8 @@ object CoreExpression {
         companion object { fun num(d: Double,floating: Boolean=d%1.0!=0.0) = Value(n=d,floating=floating); fun str(s: String) = Value(s=s) }
     }
     private data class Redirect(val name: String, val argument: Node?, val value: Node) : Node {
-        override fun read(f: FightingCharacter): Value {
-            val index = argument?.let { numeric(it, f, "Redirect argument").toInt() } ?: 0
+        override fun read(f: FightingCharacter, contactCue: Boolean): Value {
+            val index = argument?.let { numeric(it, f, "Redirect argument", contactCue).toInt() } ?: 0
             val actor = when (name) {
                 "root" -> f.rootActor()
                 "parent" -> f.parent
@@ -32,13 +32,13 @@ object CoreExpression {
                 else -> null
             }
             require(actor != null && !actor.destroyed) { "Unavailable $name redirect" }
-            return value.read(actor)
+            return value.read(actor, contactCue)
         }
     }
     private val redirects = setOf("parent", "root", "helper", "enemy", "enemynear")
-    private data class Literal(val v: Value): Node { override fun read(f: FightingCharacter) = v }
-    private fun numeric(node: Node,f: FightingCharacter,label: String): Double {
-        val n=node.read(f).n ?: throw IllegalArgumentException("$label requires a numeric expression")
+    private data class Literal(val v: Value): Node { override fun read(f: FightingCharacter, contactCue: Boolean) = v }
+    private fun numeric(node: Node,f: FightingCharacter,label: String,contactCue: Boolean = false): Double {
+        val n=node.read(f, contactCue).n ?: throw IllegalArgumentException("$label requires a numeric expression")
         require(n.isFinite()) { "Nonfinite $label" }
         return n
     }
@@ -52,9 +52,9 @@ object CoreExpression {
     private val projectilePredicate = Regex("proj(hit|contact|guarded)(\\d*)")
     private data class ProjectilePredicate(val kind: ProjectileContactKind?,val id: Int,
         val expected: Node,val op: String,val limit: Node): Node {
-        override fun read(f: FightingCharacter): Value {
-            val wanted=numeric(expected,f,"Projectile trigger value") != 0.0
-            val cutoff=numeric(limit,f,"Projectile trigger time")
+        override fun read(f: FightingCharacter, contactCue: Boolean): Value {
+            val wanted=numeric(expected,f,"Projectile trigger value",contactCue) != 0.0
+            val cutoff=numeric(limit,f,"Projectile trigger time",contactCue)
             val age=f.projectileHistory.latestAge(kind,id,f.world?.frame ?: 0L)
             val comparison=when(op) {
                 "=","==" -> age.toDouble() == cutoff
@@ -69,17 +69,17 @@ object CoreExpression {
         }
     }
     private data class InclusiveRange(val lower: Node, val upper: Node): Node {
-        override fun read(f:FightingCharacter) =
-            Value(range=Pair(lower.read(f).number(),upper.read(f).number()))
+        override fun read(f:FightingCharacter,contactCue: Boolean) =
+            Value(range=Pair(lower.read(f, contactCue).number(),upper.read(f, contactCue).number()))
     }
     private data class Variable(val key: String): Node {
-        override fun read(f: FightingCharacter): Value {
+        override fun read(f: FightingCharacter, contactCue: Boolean): Value {
             val p = f.opponent
             val v = when (key) {
                 "time" -> f.timeInState.toDouble()
                 "stateno" -> f.stateNo.toDouble()
                 "prevstateno" -> f.previousStateNo.toDouble()
-                "random" -> f.nextRandom(1000).toDouble()
+                "random" -> f.nextRandom(1000, contactCue).toDouble()
                 "ailevel" -> (f.world?.cpuLevel ?: 0).toDouble()
                 "numenemy" -> if (p != null && !p.destroyed) 1.0 else 0.0
                 "life" -> f.life.toDouble()
@@ -164,18 +164,18 @@ object CoreExpression {
         }
     }
     private data class FunctionCall(val name:String,val args:List<Node>): Node {
-        override fun read(f: FightingCharacter): Value {
+        override fun read(f: FightingCharacter, contactCue: Boolean): Value {
             var floating=false
             fun a(i:Int): Double {
-                val value=args.getOrNull(i)?.read(f) ?: throw IllegalArgumentException("Missing argument for "+name)
+                val value=args.getOrNull(i)?.read(f, contactCue) ?: throw IllegalArgumentException("Missing argument for "+name)
                 floating=floating || value.floating;return value.number()
             }
             if (name == "cond") {
                 require(args.size == 3) { "Cond requires three arguments" }
-                return args[if (args[0].read(f).bool()) 1 else 2].read(f)
+                return args[if (args[0].read(f, contactCue).bool()) 1 else 2].read(f, contactCue)
             }
             if(name=="ifelse") {
-                val selected=args.getOrNull(if(a(0)!=0.0)1 else 2)?.read(f)
+                val selected=args.getOrNull(if(a(0)!=0.0)1 else 2)?.read(f, contactCue)
                     ?: throw IllegalArgumentException("Missing argument for ifelse")
                 return Value.num(selected.number(),selected.floating)
             }
@@ -210,7 +210,7 @@ object CoreExpression {
                 "projhit","projguarded","projcontact" -> {
                     val timed=name.endsWith("time")
                     require(args.size == 1 || !timed && args.isEmpty()) { "$name requires ${if(timed)"one" else "zero or one"} argument" }
-                    val requested=if(args.isEmpty())0.0 else numeric(args[0],f,name)
+                    val requested=if(args.isEmpty())0.0 else numeric(args[0],f,name,contactCue)
                     require(requested <= Int.MAX_VALUE.toDouble()) { "Projectile ID out of range" }
                     val id=requested.toInt().coerceAtLeast(0)
                     val kind=projectileKind(name)
@@ -248,13 +248,13 @@ object CoreExpression {
                 }
                 "numhelper" -> {
                     require(args.size <= 1) { "NumHelper requires zero or one argument" }
-                    val id = if (args.isEmpty()) 0 else numeric(args[0], f, name).toInt()
+                    val id = if (args.isEmpty()) 0 else numeric(args[0], f, name, contactCue).toInt()
                     f.world?.entities?.countHelpers(f, id)?.toDouble() ?: 0.0
                 }
                 "ishelper" -> {
                     require(args.size <= 1) { "IsHelper requires zero or one argument" }
                     val matches = if (args.isEmpty()) f.parent != null
-                        else f.world?.entities?.isHelper(f, numeric(args[0], f, name).toInt()) == true
+                        else f.world?.entities?.isHelper(f, numeric(args[0], f, name, contactCue).toInt()) == true
                     if (matches) 1.0 else 0.0
                 }
                 "numprojid" -> f.world?.entities?.projectiles?.count {
@@ -278,19 +278,19 @@ object CoreExpression {
         }
     }
     private data class Unary(val op:String,val x:Node): Node {
-        override fun read(f:FightingCharacter):Value {
-            val value=x.read(f);val n=value.number()
+        override fun read(f:FightingCharacter,contactCue: Boolean):Value {
+            val value=x.read(f, contactCue);val n=value.number()
             if(op == "~")return Value.num(value.bitwiseInteger().inv().toDouble())
             return Value.num(when(op) { "-"->-n; "+"->n; "!"->if(n==0.0)1.0 else 0.0
                 else -> throw IllegalArgumentException("Bad unary operator") },op!="!" && value.floating)
         }
     }
     private data class Binary(val op:String,val x:Node,val y:Node):Node {
-        override fun read(f:FightingCharacter):Value {
-            val a=x.read(f)
+        override fun read(f:FightingCharacter,contactCue: Boolean):Value {
+            val a=x.read(f, contactCue)
             if(op=="&&"&&!a.bool())return Value.num(0.0)
             if(op=="||"&&a.bool())return Value.num(1.0)
-            val b=y.read(f)
+            val b=y.read(f, contactCue)
             val left=a.number();val right=b.number()
             val comparison:Boolean?=when(op) {
                 "&&"->a.bool()&&b.bool()
@@ -477,8 +477,14 @@ object CoreExpression {
         if(cache.size>=4096)cache.clear()
         cache[s]=it
     }
-    fun number(raw:String,actor:FightingCharacter,errors:MutableSet<String>):Double?=try{
-        val n=parse(raw.trim()).read(actor).number()
+    fun number(raw:String,actor:FightingCharacter,errors:MutableSet<String>):Double? =
+        number(raw, actor, errors, contactCue = false)
+
+    internal fun contactNumber(raw: String, actor: FightingCharacter, errors: MutableSet<String>): Double? =
+        number(raw, actor, errors, contactCue = true)
+
+    private fun number(raw:String,actor:FightingCharacter,errors:MutableSet<String>,contactCue: Boolean):Double?=try{
+        val n=parse(raw.trim()).read(actor, contactCue).number()
         if(!n.isFinite())throw IllegalArgumentException("Nonfinite")
         n
     }catch(e:IllegalArgumentException){

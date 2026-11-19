@@ -2,7 +2,7 @@ package moe.celery.kenjatime
 
 internal data class CoreReversalDefinition(val attribute: CoreHitAttribute,val id: Int,
     val pause: Pair<Int,Int>,val p1State: Int?,val p2State: Int?,val p2OwnState: Boolean,
-    val source: FightingCharacter)
+    val source: FightingCharacter, val presentation: ContactPresentation)
 internal data class CoreReversalContact(val reverser: Int,val attacker: Int,val id: Int) {
     fun json()="{\"reverser\":$reverser,\"attacker\":$attacker,\"id\":$id}"
 }
@@ -48,6 +48,7 @@ internal class CoreReversals(private val fight: DeterministicFight) {
             if(reversal.p2State?.let {it !in p2Bank.definition.states && !(it==0 && p2Bank===b)}==true) {
                 fight.issues.add("Missing ReversalDef target state: ${reversal.p2State} (owner ${p2Bank.id})");continue
             }
+            CoreContactPresentation.reversal(fight, a, b, reversal.presentation, b.activeHitDef!!.presentation)
             a.markHit(b.id);a.recordMoveContact(false)
             b.neutralizeAttack();b.recordMoveReversed()
             reversal.p2State?.let {b.enterAuthoredState(it,p2Bank,fight.issues,false)}
@@ -69,7 +70,8 @@ internal class CoreReversals(private val fight: DeterministicFight) {
         fun execute(actor: FightingCharacter,controller: StateController,source: FightingCharacter,errors: MutableSet<String>) {
             try {
                 val args=controller.params
-                require(args.keys.all {it in setOf("type","persistent","ignorehitpause","reversal.attr","pausetime","p1stateno","p2stateno","p2getp1state","id")}) {
+                require(args.keys.all {it in setOf("type","persistent","ignorehitpause","reversal.attr","pausetime","p1stateno","p2stateno","p2getp1state","id",
+                    "sparkno","sparkxy","hitsound")}) {
                     "Unsupported ReversalDef parameter"
                 }
                 val attribute=CoreHitAttribute.parse(args["reversal.attr"] ?: throw IllegalArgumentException("Missing reversal.attr"))
@@ -86,7 +88,10 @@ internal class CoreReversals(private val fight: DeterministicFight) {
                 require(p1==null || p1 in source.definition.states || p1==0 && source===actor) {"Missing ReversalDef p1 state: $p1"}
                 require(p2==null || own || p2 in source.definition.states || p2==0 && source===actor) {"Missing ReversalDef p2 state: $p2"}
                 val pause=CoreHitPauses.parse(args,actor,errors)?.hit ?: throw IllegalArgumentException("Invalid pausetime")
-                actor.installReversal(CoreReversalDefinition(attribute,id,pause,p1,p2,own,source))
+                actor.installReversal {
+                    CoreReversalDefinition(attribute,id,pause,p1,p2,own,source,
+                        CoreContactPresentation.capture(actor, args, errors, reversal = true))
+                }
             }catch(e: IllegalArgumentException) {errors.add("Invalid ReversalDef: ${e.message}")}
         }
     }

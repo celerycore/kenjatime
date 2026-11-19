@@ -325,7 +325,7 @@ class CoreEntities(private val match: DeterministicFight) {
                     CoreDamage.contact(projectile.hit,projectile.owner,enemy,guarded)))
                 projectile.owner.projectileHistory.record(projectile.projectileId,
                     if(guarded)ProjectileContactKind.GUARDED else ProjectileContactKind.HIT,match.frame,errors)
-                enemy.receiveHit(projectile.hit, projectile.facingRight, guarded, projectile.owner)
+                enemy.receiveHit(projectile.hit, projectile.facingRight, guarded, projectile.owner, projectile)
                 targetHurt.remove(enemy)
                 projectile.onContact(guarded)
             }

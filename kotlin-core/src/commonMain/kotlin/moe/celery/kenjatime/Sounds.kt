@@ -58,6 +58,48 @@ internal class CoreSounds(private val fight: DeterministicFight) {
     }
     fun json()=voices.joinToString(prefix="[",postfix="]",separator=","){it.json()}
     fun eventJson()=events.joinToString(prefix="[",postfix="]",separator=",")
+
+    fun contact(actor: FightingCharacter, sound: ContactSound, x: Int) {
+        val root = actor.rootActor()
+        val side = if (root === fight.p1) 0 else 1
+        val bank = if (sound.common) COMMON_SOUND_BANK else side
+        if (banks[bank].isNullOrEmpty()) return
+        val pan = ((Fixed.pixels(x) - (fight.camera?.x ?: 0.0)) / 160).coerceIn(-1.0, 1.0)
+        try {
+            play(root, bank, sound.group, sound.number, fight.issues, pan = pan)
+        } catch (e: IllegalArgumentException) {
+            fight.issues.add("Invalid contact sound: ${e.message}")
+        }
+    }
+
+    private fun play(
+        actor: FightingCharacter, bank: Int, group: Int, number: Int, errors: MutableSet<String>,
+        channel: Int = -1, gain: Double = 1.0, frequency: Double = 1.0,
+        loop: Boolean = false, lowPriority: Boolean = false, pan: Double = 0.0,
+    ) {
+        val side = if (actor.rootActor() === fight.p1) 0 else 1
+        val catalog = banks[bank]
+        if (catalog == null && bank == side) return
+        val sample = catalog?.get(group to number) ?: run {
+            val source = if (bank == COMMON_SOUND_BANK) "in common.snd" else "for player ${side + 1}"
+            errors.add("Missing sound $group,$number $source")
+            return
+        }
+        val old = if (channel >= 0) voices.firstOrNull { it.actor === actor && it.channel == channel } else null
+        if (old != null && lowPriority) return
+        val replacing = if (old != null) 1 else 0
+        require(voices.size - replacing < 128 && voices.count { it.actor === actor } - replacing < 32) {
+            "Sound voice limit exceeded"
+        }
+        old?.let(::stop)
+        val ticks = ceil(sample.frames * 60.0 / sample.rate / frequency - 1e-10).toInt().coerceAtLeast(1)
+        val voice = CoreSoundVoice(nextVoice++, actor, side, sample, bank == COMMON_SOUND_BANK,
+            channel, gain, frequency, loop, pan,
+            if (loop) -1 else ticks)
+        voices.add(voice)
+        events.add("{\"type\":\"play\",\"data\":${voice.json()}}")
+    }
+
     fun execute(actor: FightingCharacter,controller: StateController,errors: MutableSet<String>) {
         try {
             val args=controller.params;val type=controller.type.lowercase()
@@ -102,20 +144,8 @@ internal class CoreSounds(private val fight: DeterministicFight) {
             // Preserve the original public metadata queue independently of asset availability.
             fight.presentation.add(CorePresentationEvent(type,group,sound,channel,ref.common))
             val side=if(actor.rootActor()===fight.p1)0 else 1
-            val bank = banks[if (ref.common) COMMON_SOUND_BANK else side]
-            if (bank == null && !ref.common) return
-            val sample = bank?.get(group to sound) ?: run {
-                val source = if (ref.common) "in common.snd" else "for player ${side + 1}"
-                errors.add("Missing sound $group,$sound $source")
-                return
-            }
-            val old=if(channel>=0)voices.firstOrNull {it.actor===actor && it.channel==channel} else null
-            if(old!=null && low)return
-            require(voices.size-(if(old!=null)1 else 0)<128 && voices.count {it.actor===actor}-(if(old!=null)1 else 0)<32) {"Sound voice limit exceeded"}
-            old?.let(::stop)
-            val ticks=ceil(sample.frames*60.0/sample.rate/frequency-1e-10).toInt().coerceAtLeast(1)
-            val voice=CoreSoundVoice(nextVoice++,actor,side,sample,ref.common,channel,gain,frequency,loop,pan,if(loop)-1 else ticks)
-            voices.add(voice);events.add("{\"type\":\"play\",\"data\":${voice.json()}}")
+            play(actor, if (ref.common) COMMON_SOUND_BANK else side, group, sound, errors,
+                channel, gain, frequency, loop, low, pan)
         }catch(e: IllegalArgumentException) {errors.add("Invalid ${controller.type}: ${e.message}")}
     }
 }

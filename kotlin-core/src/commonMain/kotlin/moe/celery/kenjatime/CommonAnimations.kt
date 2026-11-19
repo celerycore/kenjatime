@@ -1,6 +1,6 @@
 package moe.celery.kenjatime
 
-internal data class CoreCommonAnimation(
+internal data class CoreFightAnimation(
     val animation: AirAnimationPlayer,
     val x: Int,
     val y: Int,
@@ -9,18 +9,20 @@ internal data class CoreCommonAnimation(
     val side: Int,
     val born: Long,
     var age: Int = 0,
+    val contact: Boolean = false,
+    val common: Boolean = true,
 )
 
-/** Shared fightfx AIR actions use stage-space sprite scale and capture the
- * executing actor's position once. They are independent of Explod IDs. */
+/** Fight effects capture their positions once and are independent of Explod
+ * IDs. Shared fightfx AIR uses stage-space sprite scale. */
 internal class CoreCommonAnimations(private val fight: DeterministicFight) {
     private var actions = emptyMap<Int, AirAction>()
     var scale = 1.0
         private set
-    private val effects = mutableListOf<CoreCommonAnimation>()
+    private val effects = mutableListOf<CoreFightAnimation>()
     // Cosmetic jitter must leave gameplay RNG reproducible when artwork is missing.
     private var jitterState = 0x6d2b79f5
-    val all: List<CoreCommonAnimation> get() = effects
+    val all: List<CoreFightAnimation> get() = effects
 
     fun action(number: Int): AirAction? = actions[number]
     fun copyCatalog(previous: CoreCommonAnimations) {
@@ -34,6 +36,23 @@ internal class CoreCommonAnimations(private val fight: DeterministicFight) {
         val parsed = MugenAirParser.parse(air)
         this.scale = scale
         actions = parsed
+    }
+
+    fun contact(actor: FightingCharacter, spark: ContactSpark, x: Int, y: Int, facingRight: Boolean) {
+        if (spark.common && actions.isEmpty()) return
+        val action = if (spark.common) actions[spark.action] else actor.definition.animations[spark.action]
+        if (action == null || action.frames.isEmpty()) {
+            fight.issues.add("Missing contact spark ${if (spark.common) "F" else "S"}${spark.action}")
+            return
+        }
+        val side = if (actor.rootActor() === fight.p1) 0 else 1
+        add(CoreFightAnimation(AirAnimationPlayer(action), x, y, facingRight, false, side, fight.frame,
+            contact = true, common = spark.common))
+    }
+
+    private fun add(effect: CoreFightAnimation) {
+        if (effects.size >= 256) effects.removeAt(0)
+        effects.add(effect)
     }
 
     fun execute(
@@ -88,8 +107,7 @@ internal class CoreCommonAnimations(private val fight: DeterministicFight) {
         // Jitter is independent on each axis and always in stage orientation.
         val dx = pos.first * (if (actor.facingRight) 1 else -1) + jitter()
         val dy = pos.second + jitter()
-        if (effects.size >= 256) effects.removeAt(0)
-        effects.add(CoreCommonAnimation(AirAnimationPlayer(action), axis(actor.posX, dx), axis(actor.posY, dy),
+        add(CoreFightAnimation(AirAnimationPlayer(action), axis(actor.posX, dx), axis(actor.posY, dy),
             actor.facingRight, under, side, fight.frame))
     }
 
@@ -98,7 +116,8 @@ internal class CoreCommonAnimations(private val fight: DeterministicFight) {
         effects.removeAll { effect ->
             if (effect.born == fight.frame) return@removeAll false
             effect.animation.advance()
-            ++effect.age > 3600 || effect.animation.finished && effect.animation.action.loopIndex == null
+            ++effect.age > 3600 || effect.animation.finished &&
+                (effect.contact || effect.animation.action.loopIndex == null)
         }
     }
 }

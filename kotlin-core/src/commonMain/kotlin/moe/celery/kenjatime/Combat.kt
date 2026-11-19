@@ -53,7 +53,8 @@ data class HitDefinition(
     val guardDistance: Int = 160*Fixed.ONE,
     val impactShake: HitShakeDefinition = HitShakeDefinition(),
     val fallShake: HitShakeDefinition = HitShakeDefinition(),
-    val groundHitType: Int = 1, val airHitType: Int = 1
+    val groundHitType: Int = 1, val airHitType: Int = 1,
+    val presentation: ContactPresentation = ContactPresentation.EMPTY
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -96,7 +97,8 @@ data class MugenConstants(
     val attack: Int = 100,
     val airFront: Int = front,val airBack: Int = back,
     val drawOffsetX: Int = 0,val drawOffsetY: Int = 0,
-    val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE
+    val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE,
+    val contactDefaults: Map<String, String> = emptyMap()
 )
 data class FighterDefinition(
     val name: String, val animations: Map<Int, AirAction> = emptyMap(),
@@ -121,7 +123,8 @@ data class FighterDefinition(
     val attackDistance: Int = 160*Fixed.ONE,val projectileAttackDistance: Int = 90*Fixed.ONE,
     val initialMaps: Map<String,Double> = emptyMap(),val initialMapIssues: Set<String> = emptySet(),
     val victoryQuotes: Map<Int, String> = emptyMap(), val victoryQuoteIssues: Set<String> = emptySet(),
-    val authoredCns: Boolean = false, val scriptConstants: Map<String, Double> = emptyMap()
+    val authoredCns: Boolean = false, val scriptConstants: Map<String, Double> = emptyMap(),
+    val contactDefaults: Map<String, String> = emptyMap()
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -174,7 +177,8 @@ data class FighterDefinition(
                 if(modern)"none" else "p1",constants.projectileDoScale,constants.maxPower,constants.defence,constants.attack,
                 constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY,
                 constants.attackDistance,constants.projectileAttackDistance,maps.first,maps.second,
-                quotes.first, quotes.second, useAuthoredStateDefs, MugenCnsParser.scriptConstants(cns)
+                quotes.first, quotes.second, useAuthoredStateDefs, MugenCnsParser.scriptConstants(cns),
+                constants.contactDefaults
             )
         }
     }
@@ -204,6 +208,7 @@ object MugenCnsParser {
     /** Read fighter base constants without coupling actors to script text. */
     fun constants(source: String): MugenConstants {
         val script = MugenDefParser.parse(source)
+        val data = script.section("Data")
         val size = script.section("Size")
         val movement = script.section("Movement")
         fun point(key: String, component: Int, fallback: Int): Int = size?.get(key)
@@ -214,7 +219,7 @@ object MugenCnsParser {
                 Fixed.of(it.coerceIn(0.1,4.0))
             } ?: fallback
         return MugenConstants(
-            maxLife = script.section("Data")?.int("life",1000)?.coerceIn(1,100000) ?: 1000,
+            maxLife = data?.int("life",1000)?.coerceIn(1,100000) ?: 1000,
             front = size?.int("ground.front",15)?.coerceIn(0,200) ?: 15,
             back = size?.int("ground.back",15)?.coerceIn(0,200) ?: 15,
             gravity = movement?.get("yaccel")?.toDoubleOrNull()?.let {
@@ -226,14 +231,16 @@ object MugenCnsParser {
             midX = point("mid.pos",0,0), midY = point("mid.pos",1,-60*Fixed.ONE),
             projectileDoScale = size?.get("proj.doscale")?.toDoubleOrNull()
                 ?.takeIf { it.isFinite() }?.let { it != 0.0 } ?: false,
-            maxPower = script.section("Data")?.int("power",3000)?.coerceAtLeast(0) ?: 3000,
-            defence = script.section("Data")?.int("defence",100)?.coerceIn(1,100000) ?: 100,
-            attack = script.section("Data")?.int("attack",100)?.coerceIn(0,100000) ?: 100,
+            maxPower = data?.int("power",3000)?.coerceAtLeast(0) ?: 3000,
+            defence = data?.int("defence",100)?.coerceIn(1,100000) ?: 100,
+            attack = data?.int("attack",100)?.coerceIn(0,100000) ?: 100,
             airFront = size?.int("air.front",size.int("ground.front",15))?.coerceIn(0,200) ?: 15,
             airBack = size?.int("air.back",size.int("ground.back",15))?.coerceIn(0,200) ?: 15,
             drawOffsetX = point("draw.offset",0,0),drawOffsetY = point("draw.offset",1,0),
             attackDistance = point("attack.dist",0,160*Fixed.ONE).coerceAtLeast(0),
-            projectileAttackDistance = point("proj.attack.dist",0,90*Fixed.ONE).coerceAtLeast(0)
+            projectileAttackDistance = point("proj.attack.dist",0,90*Fixed.ONE).coerceAtLeast(0),
+            contactDefaults = data?.entries.orEmpty()
+                .filter { (field, _) -> field in CoreContactPresentation.defaultParameters }.toMap()
         )
     }
     private val controllerSection = Regex("state(?:\\s+.*)?", RegexOption.IGNORE_CASE)
@@ -482,9 +489,12 @@ class FightingCharacter(
     var hitCount = 0
     internal var victoryQuoteIndex = -1
     private var randomState = 0x6d2b79f5 xor id
-    internal fun nextRandom(bound: Int): Int {
-        randomState = randomState * 1664525 + 1013904223
-        return (randomState ushr 1) % bound
+    private var contactRandomState = 0x18c1c731 xor id
+    internal fun nextRandom(bound: Int, contactCue: Boolean = false): Int {
+        val previous = if (contactCue) contactRandomState else randomState
+        val next = previous * 1664525 + 1013904223
+        if (contactCue) contactRandomState = next else randomState = next
+        return (next ushr 1) % bound
     }
     internal val dustTicks = mutableMapOf<Pair<Int, Int>, Long>()
     val asserted: MutableSet<String> = linkedSetOf()
@@ -570,9 +580,9 @@ class FightingCharacter(
         private set
     internal fun neutralizeAttack() {hitDefReversed=true}
     internal fun canReverse(target: Int)=activeReversal!=null && target !in struck
-    internal fun installReversal(next: CoreReversalDefinition) {
+    internal fun installReversal(next: () -> CoreReversalDefinition) {
         if(activeReversal==null || carriedHitDef) {
-            activeHitDef=null;activeReversal=next;struck.clear();hitDefReversed=false;carriedHitDef=false
+            activeHitDef=null;activeReversal=next();struck.clear();hitDefReversed=false;carriedHitDef=false
         }
     }
     internal var guardDistance=definition.coordinates.fixedToWorld(definition.attackDistance)
@@ -1003,7 +1013,8 @@ class FightingCharacter(
                     p1State = args["p1stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
                     p2State = args["p2stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
                     p2GetP1State = integer(args["p2getp1state"],1) != 0,
-                    stateOwner = scriptOwner
+                    stateOwner = scriptOwner,
+                    presentation = CoreContactPresentation.capture(this, args, errors)
                 )
                 entityRequests.add(EntityRequest.Projectile(
                     this,
@@ -1042,6 +1053,7 @@ class FightingCharacter(
                 val priority = (args["priority"] ?: "4,Hit").split(',')
                 val nextGuardDistance=CoreGuardDistance.parse(args,this,errors) ?: return false
                 val shakes=CoreHitShakes.parse(args,this,errors) ?: return false
+                val installsHit = activeHitDef == null || carriedHitDef
                 val next = HitDefinition(
                     impactShake=shakes.impact,fallShake=shakes.fall,
                     groundHitType=CoreHitAnimations.reactionType(args["ground.type"]),
@@ -1084,11 +1096,13 @@ class FightingCharacter(
                     airVelocityY = hitVelocities.air.y,
                     airHitTime = integer(args["air.hittime"],20).coerceIn(0,600),
                     guardHitTime = guardHitTime,
-                    fall = hitFalls.ground,airFall = hitFalls.air,forceNoFall = hitFalls.forceNoFall
+                    fall = hitFalls.ground,airFall = hitFalls.air,forceNoFall = hitFalls.forceNoFall,
+                    presentation = if (installsHit) CoreContactPresentation.capture(this, args, errors)
+                        else ContactPresentation.EMPTY
                 )
                 // A valid definition may replace a carried attack once. Repeated
                 // evaluation within a state must not reset its struck-target set.
-                if (activeHitDef == null || carriedHitDef) {
+                if (installsHit) {
                     if(carriedHitDef || activeReversal!=null)struck.clear()
                     activeHitDef=next
                     activeReversal=null;hitDefReversed=false
@@ -1261,9 +1275,12 @@ class FightingCharacter(
         return CoreHitFlags.allows(hit.hitFlag,this,world?.issues ?: evaluationIssues)
     }
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
-                   attacker: FightingCharacter? = null) {
+                   attacker: FightingCharacter? = null, projectile: CoreProjectile? = null) {
         if(!canReceive(hit))return
         if(!guarded)world?.sounds?.stopChannel(this,0)
+        if (attacker != null && hit.presentation !== ContactPresentation.EMPTY) {
+            world?.let { CoreContactPresentation.hit(it, attacker, this, hit.presentation, guarded, projectile) }
+        }
         val initialType=stateType
         val override=if(guarded)null else hitOverrides.matching(hit)
         val airborne=!guarded && (stateType == "A" || override?.forceAir == true)

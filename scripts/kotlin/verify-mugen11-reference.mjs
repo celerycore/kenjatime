@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { decodeText, packageFiles } from "../../src/formats.js";
-import { availableKotlinFighters } from "../../src/kotlin/archive-import.js";
+import { decodeText, packageFiles, sff } from "../../src/formats.js";
+import { availableKotlinFighters, availableKotlinSharedAssets } from "../../src/kotlin/archive-import.js";
+import { readSoundBank } from "../../src/kotlin/sound-assets.js";
 
 // Exercise the compiled Kotlin entry points with an independently supplied
 // reference distribution. Only read the packaged assets and documentation.
@@ -18,6 +19,11 @@ const documentation = name => decodeText(files[`${root}docs/${name}.html`]);
 const headings = name => [...documentation(name).matchAll(/<h2><a class="toc-backref" href="[^"]+">([^<]+)<\/a><\/h2>/g)]
     .map(match => match[1]);
 const stock = availableKotlinFighters(files, "mugen11-reference");
+const shared = availableKotlinSharedAssets(files);
+assert.ok(shared.fightFx && shared.soundBytes, "Expected the original fightfx and common.snd banks");
+const fightFxSprites = sff(shared.fightFx.spriteBytes);
+for (const [index] of fightFxSprites.sprites.entries()) fightFxSprites.decode(index);
+const commonSound = readSoundBank(shared.soundBytes);
 const variants = ["kfm", "kfm720"].map(name => {
     const fighter = stock.ready.find(item => item.definitionName === name);
     assert.ok(fighter, `Could not import ${name}: ${JSON.stringify(stock.missing)}`);
@@ -37,6 +43,27 @@ function runMatch(left, right, separation, sample) {
     } finally {
         api.ktCoreRelease(handle);
     }
+}
+
+function loadContactAssets(handle) {
+    api.ktCoreCommonAnimations(handle, shared.fightFx.air, shared.fightFx.scale);
+    api.ktCoreCommonSoundCatalog(handle, commonSound.catalog);
+}
+
+function contactPresentation(handle, action, group) {
+    const plan = JSON.parse(api.ktCoreRenderPlan(handle, 0));
+    const spark = plan.draws.find(draw => draw.kind === "spark");
+    assert.ok(spark?.common, `Expected a shared spark at frame ${plan.frame}`);
+    assert.equal(spark.action, action);
+    const index = fightFxSprites.sprites.findIndex(sprite => sprite.group === spark.group && sprite.number === spark.number);
+    assert.ok(index >= 0, "The spark must reference an original fightfx SFF sprite");
+    assert.ok(fightFxSprites.decode(index).rgba.some((component, index) => index % 4 === 3 && component > 0));
+    const events = JSON.parse(api.ktCoreSoundEvents(handle));
+    const play = events.find(event => event.type === "play" && event.data.group === group && event.data.number === 0);
+    assert.ok(play?.data.common && play.data.channel === -1, "Expected a common one-shot contact sample");
+    const sample = commonSound.samples.get(`${group}:0`);
+    assert.equal(play.data.remaining, Math.ceil(sample.frames * 60 / sample.rate));
+    return { action, sprite: [spark.group, spark.number], sound: [group, 0], sampleFrames: sample.frames };
 }
 
 function replay(handle, frames, inputs) {
@@ -114,12 +141,16 @@ const airJumps = runMatch(...variants, 70, handle => {
 });
 
 const guard = runMatch(...variants, 12, handle => {
+    loadContactAssets(handle);
     const defenderStates = [];
     const guardedContacts = [];
+    const presentation = [];
     for (let tick = 0; tick < 100; tick++) {
         api.ktCoreAdvance(handle, 0, tick === 0 ? "x" : "", tick < 34 ? 8 : 0, "");
         defenderStates.push(JSON.parse(api.ktCoreSnapshot(handle, 1)));
-        guardedContacts.push(...JSON.parse(api.ktCoreContacts(handle)));
+        const contacts = JSON.parse(api.ktCoreContacts(handle));
+        guardedContacts.push(...contacts);
+        if (contacts.length) presentation.push(contactPresentation(handle, 40, 6));
     }
     const states = statesSeen(defenderStates);
     assert.ok(states.includes(120) && states.includes(150) && states.includes(140), states.join(","));
@@ -127,11 +158,13 @@ const guard = runMatch(...variants, 12, handle => {
     assert.equal(guardedContacts.length, 1);
     assert.equal(guardedContacts[0].guarded, true);
     assert.equal(defenderStates.at(-1).life, 1000);
-    return { states, contacts: guardedContacts };
+    return { states, contacts: guardedContacts, presentation: presentation[0] };
 });
 
 const punches = variants.map((_, attacker) => runMatch(...variants, 14, handle => {
+    loadContactAssets(handle);
     let damage = 0;
+    const presentation = [];
     for (let tick = 0; tick < 35; tick++) {
         api.ktCoreAdvance(handle, 0, tick === 0 && attacker === 0 ? "x" : "",
             0, tick === 0 && attacker === 1 ? "x" : "");
@@ -139,12 +172,13 @@ const punches = variants.map((_, attacker) => runMatch(...variants, 14, handle =
             assert.equal(contact.attacker, attacker + 1);
             assert.equal(contact.defender, 2 - attacker);
             damage += contact.damage;
+            presentation.push(contactPresentation(handle, 0, 5));
         }
     }
     const life = JSON.parse(api.ktCoreSnapshot(handle, 1 - attacker)).life;
     assert.equal(damage, 23);
     assert.equal(life, 977);
-    return { attacker: attacker + 1, damage, defenderLife: life };
+    return { attacker: attacker + 1, damage, defenderLife: life, presentation: presentation[0] };
 }));
 
 console.log(JSON.stringify({
@@ -155,6 +189,7 @@ console.log(JSON.stringify({
     executable,
     documentedControllers: headings("sctrls").length,
     documentedTriggers: headings("trigger").length,
+    fightFxSpritesDecoded: fightFxSprites.sprites.length,
     fighters: variants.map(fighter => fighter.definitionPath),
     locomotion,
     bundledLocomotion,

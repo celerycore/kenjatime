@@ -1,5 +1,32 @@
 # Kenjatime Kotlin/Wasm combat migration
 
+## Hit, guard, and reversal feedback
+
+HitDef, Projectile, and ReversalDef capture their authored spark and sound
+expressions. Contact selects the hit or guard cue, with `[Data]` defaults
+and negative IDs for disabled cues. Shared sparks use imported fightfx
+AIR/SFF and shared contact sounds use `common.snd`. S-prefixed values
+select the executing fighter's assets. Contact cue expressions have their
+own deterministic random stream, including redirected expressions.
+
+The spark position is captured at impact. Body contact uses the victim's
+body width for X and the attacking fighter's position for Y. Projectiles
+use the shot's position and launch facing. An accepted ReversalDef offsets
+the incoming attack's spark position and plays its own cue. Finite contact
+animations advance during actor hitstop and expire after their first cycle.
+
+The original MUGEN 1.1b1 fightfx SFF v1 counts 768 palette bytes in 84
+sprite entries that inherit their palette. The decoder follows the
+subfile links and reads the remaining PCX data with the inherited palette.
+All 104 sprites from that bank decode.
+
+The compiled reference replay verified stock KFM's light-hit action 0
+and common sound 5,0 from both sides. The guarded punch selected action 40
+and sound 6,0 and dealt zero damage. Chromium drew and played the original
+light-hit assets from the supplied ZIP. The 3,600-tick Nu-13 replay matched
+the previous jump, contact, and round totals. Exact native offsets, effect
+phases, and audio mixing remain unverified.
+
 ## Common movement and guard recovery
 
 Archive fighters use their authored walk, crouch, jump, and guard states

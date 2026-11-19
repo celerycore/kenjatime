@@ -960,9 +960,20 @@ try:
           return flash?.action === 30 && flash.common && flash.group === 777 &&
             draw.draws.at(-1)?.kind === "superpause" && qa.audio.counts.started >= 2;
         }""", timeout=15000)
+        shared.wait_for_function("""() => {
+          const qa = window.__kenjatimeKotlinQA, plan = qa?.paintedRenderPlan;
+          const draw = qa?.lastSpritePaintOrder;
+          if (!plan || draw?.frame !== plan.frame) return false;
+          const spark = plan.draws.find(d => d.kind === "spark");
+          return spark?.common && spark.action === 52 && spark.group === 777 &&
+            draw.draws.some(d => d.kind === "spark") &&
+            plan.draws.some(d => d.kind === "fighter" && d.side === 1 && d.life === 982) &&
+            qa.audio.voices.some(v => v.group === 778 && v.common && v.channel === -1 && v.started);
+        }""", timeout=15000)
         assert not shared_errors, shared_errors
         result["commonFightFxDrawingAndForceFeedback"] = "passed"
         result["commonExplodAndSuperPauseWithImportedSound"] = "passed"
+        result["hitSparkAndCommonContactSound"] = "passed"
         shared.close()
 
         trails=browser.new_page(viewport={"width":1000,"height":780})

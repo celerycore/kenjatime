@@ -1162,14 +1162,20 @@ writeFileSync("test-output/kotlin-fightfx.zip",zipSync({
 }));
 const sharedSoundBank=all["kfm/kfm.snd"].slice();
 const sharedSoundHeader=new DataView(sharedSoundBank.buffer,sharedSoundBank.byteOffset,sharedSoundBank.byteLength);
-sharedSoundHeader.setInt32(sharedSoundHeader.getUint32(20,true)+8,777,true);
+const firstSharedSound=sharedSoundHeader.getUint32(20,true);
+const secondSharedSound=sharedSoundHeader.getUint32(firstSharedSound,true);
+sharedSoundHeader.setInt32(firstSharedSound+8,777,true);
+sharedSoundHeader.setInt32(secondSharedSound+8,778,true);
+sharedSoundHeader.setInt32(secondSharedSound+12,0,true);
 writeFileSync("test-output/kotlin-common-sound.zip",zipSync({"installation/data/common.snd":sharedSoundBank}));
 const sharedEffectFiles=Object.fromEntries(raw);
 sharedEffectFiles["kfm/kfm.cns"]=encoder.encode(`
+[Data]
+sparkno=52
 [Statedef 0]
 type=S
 physics=N
-anim=0
+anim=751
 ctrl=0
 [State 0, shared foreground]
 type=GameMakeAnim
@@ -1209,5 +1215,18 @@ trigger1=GameTime=90
 time=35
 sound=777,0
 pos=25,-50
+[State 0, contact spark and common sound]
+type=HitDef
+trigger1=GameTime=145
+attr=S,NA
+damage=18
+sparkxy=-8,-34
+hitsound=778,0
+`);
+sharedEffectFiles["kfm/kfm.air"]=encoder.encode(decoder.decode(sharedEffectFiles["kfm/kfm.air"])+`
+[Begin Action 751]
+Clsn1Default: 1
+Clsn1[0] = 0,-90,190,0
+0,0,0,0,-1
 `);
 writeFileSync("test-output/kotlin-kfm-shared-effects.zip",zipSync(sharedEffectFiles));

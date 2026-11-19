@@ -327,6 +327,20 @@ export function sff(bytes,options={}) {
  return {sprites,decode,decodeIndexed,spriteMetrics,decodeWithPalette,paletteColors,palettes,version:2,clearDecodedCache:()=>cache.clear(),cacheStats:()=>({bytes:cache.bytes,entries:cache.size,evictions:cache.evictions})};
 }
 
+function sffV1Payload(bytes,start,declared,next,shared){
+ const end=next||bytes.length,available=end-start;
+ if(available<0||end>bytes.length)throw Error('Invalid SFF v1 sprite table link');
+ if(declared>available){
+  // SprMaker can retain the palette marker and count its omitted RGB bytes
+  // in the stored length when a PCX uses the preceding sprite's palette.
+  if(shared&&available>=129&&declared-available===768&&bytes[end-1]===12)
+   return {length:available,paletteBytes:1};
+  throw Error('Truncated SFF v1 sprite');
+ }
+ const embedded=declared>=897&&bytes[start+declared-769]===12;
+ return {length:declared,paletteBytes:embedded?769:0};
+}
+
 function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),u=p=>view.getUint32(p,true),h=p=>view.getUint16(p,true),signed=p=>view.getInt16(p,true);
  const sprites=[],palettes=[],colors=[],visited=new Set(),count=u(20);let offset=u(24),previous=-1,base=-1;
@@ -334,17 +348,18 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
  const addPalette=rgb=>{const rgba=new Uint8Array(1024);for(let i=0;i<256;i++)rgba.set([rgb[i*3],rgb[i*3+1],rgb[i*3+2],i?255:0],i*4);colors.push(rgba);return colors.length-1;};
  for(let i=0;i<count;i++){
   if(offset<32||offset+32>bytes.length||visited.has(offset))throw Error('Invalid SFF v1 sprite table link');visited.add(offset);
-  const length=u(offset+4),sp={group:h(offset+12),number:h(offset+14),x:signed(offset+8),y:signed(offset+10),link:h(offset+16),offset:offset+32,length,shared:bytes[offset+18],palette:previous};
-  if(sp.offset+length>bytes.length)throw Error('Truncated SFF v1 sprite');
-  if(length){
-   const embedded=length>=897&&bytes[sp.offset+length-769]===12;
-   if((!sp.shared||previous<0)&&embedded)sp.palette=addPalette(bytes.subarray(sp.offset+length-768,sp.offset+length));
+  const next=u(offset),start=offset+32,shared=bytes[offset+18];
+  const payload=sffV1Payload(bytes,start,u(offset+4),next,shared);
+  const sp={group:h(offset+12),number:h(offset+14),x:signed(offset+8),y:signed(offset+10),link:h(offset+16),offset:start,...payload,shared,palette:previous};
+  if(sp.length){
+   if((!sp.shared||previous<0)&&sp.paletteBytes===769)
+    sp.palette=addPalette(bytes.subarray(start+sp.length-768,start+sp.length));
    if(sp.palette<0&&externalPalettes.has(1)){colors.push(externalPalettes.get(1));sp.palette=colors.length-1;}
    if(sp.palette>=0&&base<0)base=sp.palette;
    if(sp.group===0&&sp.number===0&&sp.palette>=0)base=sp.palette;
    previous=sp.palette;
   }else sp.palette=undefined;
-  sprites.push(sp);offset=u(offset);
+  sprites.push(sp);offset=next;
   if(!offset&&i+1<count)throw Error('Truncated SFF v1 sprite table');
  }
  // Independent PCX entries with the character's base colors also participate in palette selection.
@@ -368,7 +383,7 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
   const d=new DataView(data.buffer,data.byteOffset,data.byteLength),w=d.getUint16(8,true)-d.getUint16(4,true)+1,height=d.getUint16(10,true)-d.getUint16(6,true)+1,stride=d.getUint16(66,true);
   if(w<=0||height<=0||w*height>4e6||stride*height>8e6||stride<w)throw Error('Invalid PCX dimensions');
   const palette=colors[sp.palette];if(!palette)throw Error('PCX palette missing');
-  const end=data.length>=897&&data[data.length-769]===12?data.length-769:data.length,pixels=new Uint8Array(stride*height);let pos=128,cursor=0;
+  const end=data.length-sp.paletteBytes,pixels=new Uint8Array(stride*height);let pos=128,cursor=0;
   while(cursor<pixels.length){
    if(pos>=end){if(allowTruncated)break;throw Error('Truncated PCX');}
    let value=data[pos++],run=1;
@@ -428,7 +443,7 @@ function sffV1(bytes,{externalPalettes=new Map(),cacheBytes=16*1024*1024}={}){
   const meta=spriteMetrics(index),data=bytes.subarray(sp.offset,sp.offset+sp.length);
   const total=meta.stride*meta.h;
   const flat=new Uint8Array(total);
-  const end=data.length>=897&&data[data.length-769]===12?data.length-769:data.length;
+  const end=data.length-sp.paletteBytes;
   let pos=128,cursor=0;
   while(cursor<total){
    if(pos>=end)break;
@@ -477,14 +492,16 @@ export function embeddedSffV1RgbPalette(bytes){
  for(let i=0;i<count;i++){
   if(offset<512||offset+32>bytes.length||visited.has(offset))break;
   visited.add(offset);
-  const length=view.getUint32(offset+4,true),end=offset+32+length;
-  if(end>bytes.length)break;
-  if(length>=897&&bytes[end-769]===12){
+  const next=view.getUint32(offset,true),start=offset+32;
+  let payload;
+  try{payload=sffV1Payload(bytes,start,view.getUint32(offset+4,true),next,bytes[offset+18]);}
+  catch{break;}
+  const end=start+payload.length;
+  if(payload.paletteBytes===769){
    const palette=bytes.subarray(end-768,end);
    if(!first)first=palette;
    if(view.getUint16(offset+12,true)===0&&view.getUint16(offset+14,true)===0)return palette;
   }
-  const next=view.getUint32(offset,true);
   if(!next)break;
   offset=next;
  }
