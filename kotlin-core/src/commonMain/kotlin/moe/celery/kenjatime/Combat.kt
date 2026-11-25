@@ -54,7 +54,8 @@ data class HitDefinition(
     val impactShake: HitShakeDefinition = HitShakeDefinition(),
     val fallShake: HitShakeDefinition = HitShakeDefinition(),
     val groundHitType: Int = 1, val airHitType: Int = 1,
-    val presentation: ContactPresentation = ContactPresentation.EMPTY
+    val presentation: ContactPresentation = ContactPresentation.EMPTY,
+    val impactPalette: CorePaletteEffect? = null,
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -1014,7 +1015,8 @@ class FightingCharacter(
                     p2State = args["p2stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
                     p2GetP1State = integer(args["p2getp1state"],1) != 0,
                     stateOwner = scriptOwner,
-                    presentation = CoreContactPresentation.capture(this, args, errors)
+                    presentation = CoreContactPresentation.capture(this, args, errors),
+                    impactPalette = CorePaletteEffect.captureImpact(args, this, errors),
                 )
                 entityRequests.add(EntityRequest.Projectile(
                     this,
@@ -1098,7 +1100,8 @@ class FightingCharacter(
                     guardHitTime = guardHitTime,
                     fall = hitFalls.ground,airFall = hitFalls.air,forceNoFall = hitFalls.forceNoFall,
                     presentation = if (installsHit) CoreContactPresentation.capture(this, args, errors)
-                        else ContactPresentation.EMPTY
+                        else ContactPresentation.EMPTY,
+                    impactPalette = if (installsHit) CorePaletteEffect.captureImpact(args, this, errors) else null,
                 )
                 // A valid definition may replace a carried attack once. Repeated
                 // evaluation within a state must not reset its struck-target set.
@@ -1277,7 +1280,10 @@ class FightingCharacter(
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
                    attacker: FightingCharacter? = null, projectile: CoreProjectile? = null) {
         if(!canReceive(hit))return
-        if(!guarded)world?.sounds?.stopChannel(this,0)
+        if (!guarded) {
+            world?.sounds?.stopChannel(this, 0)
+            hit.impactPalette?.let(paletteEffects::replace)
+        }
         if (attacker != null && hit.presentation !== ContactPresentation.EMPTY) {
             world?.let { CoreContactPresentation.hit(it, attacker, this, hit.presentation, guarded, projectile) }
         }

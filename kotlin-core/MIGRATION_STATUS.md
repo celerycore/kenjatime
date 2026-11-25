@@ -15,6 +15,11 @@ use the shot's position and launch facing. An accepted ReversalDef offsets
 the incoming attack's spark position and plays its own cue. Finite contact
 animations advance during actor hitstop and expire after their first cycle.
 
+HitDef and Projectile also capture `palfx.time`, `palfx.add` and
+`palfx.mul`. An unguarded hit starts or replaces the defender's local
+palette effect. Its clock starts at impact and runs through hitstop.
+Zero duration leaves the defender's current palette effect in place.
+
 The original MUGEN 1.1b1 fightfx SFF v1 counts 768 palette bytes in 84
 sprite entries that inherit their palette. The decoder follows the
 subfile links and reads the remaining PCX data with the inherited palette.

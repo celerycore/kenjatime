@@ -178,6 +178,89 @@ class ContactPresentationTest {
         assertTrue(w.issues.isEmpty(), w.issues.toString())
     }
 
+    @Test fun hitDefColorsTheDefenderForTheAuthoredDurationDuringHitPause() {
+        val w = fight(fighter(1, controller = """
+            type=HitDef
+            attr=S,NA
+            damage=15
+            pausetime=5,5
+            palfx.time=2
+            palfx.add=ifelse(Var(0),64,32),0,-16
+            palfx.mul=128,256,256
+        """.trimIndent()), fighter(2))
+        w.p1.posX = -100 * Fixed.ONE
+        w.p1.changeState(200)
+        w.step()
+        assertTrue(w.contacts.isEmpty())
+        assertNull(w.p2.paletteEffects.effect)
+        w.p1.vars[0] = 1
+        w.p1.posX = -12 * Fixed.ONE
+        w.step()
+        assertEquals(985, w.p2.life)
+        assertNull(w.p1.paletteEffects.effect)
+        assertNull(w.palettes.all.effect)
+        val layers = w.palettes.layers(w.p2.paletteEffects)
+        assertEquals(listOf(66, 80, 44), CoreFightPalettes.rgb(listOf(100, 80, 60), layers))
+        assertContains(CorePresentationPlanner.snapshot(w, 0), "\"add\":[32,0,-16]")
+        assertEquals(2, w.p2.paletteEffects.effect?.remaining)
+        w.step()
+        assertEquals(1, w.p2.paletteEffects.effect?.remaining)
+        w.step()
+        assertNull(w.p2.paletteEffects.effect)
+        assertTrue(w.p2.hitPauseLeft > 0)
+        assertTrue(w.issues.isEmpty(), w.issues.toString())
+    }
+
+    @Test fun guardAndDisabledOrInvalidEffectsPreserveTheDefendersPalette() {
+        for ((params, guarded) in listOf(
+            "palfx.time=3\npalfx.add=40,0,0" to true,
+            "palfx.time=0" to false,
+            "palfx.time=3\npalfx.mul=128,256" to false,
+        )) {
+            val w = fight(fighter(1, controller = """
+                type=HitDef
+                attr=S,NA
+                damage=10,2
+                guardflag=M
+                $params
+            """.trimIndent()), fighter(2))
+            val before = CorePaletteEffect(-1, listOf(0, 20, 0), listOf(256, 256, 256),
+                256, false, listOf(0, 0, 0), 0)
+            w.p2.paletteEffects.replace(before)
+            w.p1.changeState(200)
+            w.step(b = if (guarded) InputFrame(Directions.R) else InputFrame())
+            assertEquals(guarded, w.contacts.single().guarded)
+            assertEquals(if (guarded) 998 else 990, w.p2.life)
+            assertEquals(before.copy(age = 1), w.p2.paletteEffects.effect)
+            assertEquals("palfx.mul" in params, w.issues.any { it.startsWith("Invalid impact PalFX") })
+        }
+    }
+
+    @Test fun projectileCapturesPaletteAtLaunchAndStartsItsClockAtContact() {
+        val w = fight(fighter(1, controller = """
+            type=Projectile
+            persistent=0
+            attr=S,NP
+            projanim=200
+            offset=68,-14
+            velocity=3,0
+            damage=7
+            palfx.time=3
+            palfx.add=Var(0),20,30
+        """.trimIndent()), fighter(2))
+        w.p1.posX = -60 * Fixed.ONE
+        w.p1.vars[0] = 10
+        w.p1.changeState(200)
+        w.step()
+        assertNull(w.p2.paletteEffects.effect)
+        w.p1.vars[0] = 90
+        w.step()
+        assertEquals(993, w.p2.life)
+        assertEquals(listOf(10, 20, 30), w.p2.paletteEffects.effect?.add)
+        assertEquals(3, w.p2.paletteEffects.effect?.remaining)
+        assertTrue(w.issues.isEmpty(), w.issues.toString())
+    }
+
     @Test fun randomContactExpressionsPreserveCombatRandomAcrossRedirects() {
         val w = fight(fighter(1), fighter(2))
         val baseline = fight(fighter(1), fighter(2))
