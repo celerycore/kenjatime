@@ -153,8 +153,8 @@ def sample(window):
 
 def capture(game, guard, log_path):
     with log_path.open("wb") as log:
-        process = subprocess.Popen([os.getenv("WINE", "wine"), "./mugen.exe", "-p1", "ktpal1",
-                                    "-p2", "ktpal2", "-s", "stages/ktpal.def"], cwd=game,
+        process = subprocess.Popen([os.getenv("WINE", "wine"), "./mugen.exe", "ktpal1",
+                                    "ktpal2", "-s", "ktpal"], cwd=game,
                                    stdout=log, stderr=subprocess.STDOUT)
         try:
             deadline = time.monotonic() + 50
