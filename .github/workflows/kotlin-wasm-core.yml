@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
+      - run: npm ci
       - name: Check opt-in JavaScript browser bridge
         run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js
       - name: Verify deterministic Kotlin/JVM tests
@@ -31,8 +33,6 @@ jobs:
         run: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack --stacktrace
       - name: Execute the actual compiled Kotlin/Wasm JavaScript ABI
         run: node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
-      - name: Install benchmark archive decoder
-        run: npm ci
       - name: Smoke and profile actual bundled KFM scripts inside compiled Wasm
         run: node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs
       - name: Package raw Kotlin/Wasm ESM exports and Wasm companion
