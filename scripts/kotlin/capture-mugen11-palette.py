@@ -91,6 +91,7 @@ value = 200
         (fighter / "probe.cmd").write_text(command_text)
         states = "".join(
             f"\n[Statedef {state}]\ntype = S\nmovetype = {move}\nphysics = N\nanim = {anim}\nctrl = {ctrl}\nvelset = 0,0\n"
+            f"[State {state}, hold]\ntype = Null\ntrigger1 = 1\n"
             for state, move, anim, ctrl in [(0, "I", 0, 1), (20, "I", 0, 1), (150, "H", 150, 0), (5000, "H", 5000, 0)]
         )
         (fighter / "probe.st").write_text(states + f"""
