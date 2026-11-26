@@ -79,15 +79,17 @@ anim = probe.air
             f'[Command]\nname = "{name}"\ncommand = {command}\ntime = 1\n'
             for name, command in commands.items()
         )
+        command_text += "\n[Statedef -1]\n"
         if side == 1:
             command_text += """
-[Statedef -1]
 [State -1, attack]
 type = ChangeState
 triggerall = RoundState = 2
 trigger1 = Ctrl && Command = "probe"
 value = 200
 """
+        else:
+            command_text += "[State -1, hold]\ntype = Null\ntrigger1 = 1\n"
         (fighter / "probe.cmd").write_text(command_text)
         states = "".join(
             f"\n[Statedef {state}]\ntype = S\nmovetype = {move}\nphysics = N\nanim = {anim}\nctrl = {ctrl}\nvelset = 0,0\n"
