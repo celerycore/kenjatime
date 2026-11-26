@@ -27,7 +27,7 @@ def write_sff(path, colors):
     # Independently authored 32×48 rectangles, with palette index 0 transparent.
     header = bytearray(512)
     header[:12] = b"ElecbyteSpr\0"
-    header[12] = header[15] = 1
+    header[13] = header[15] = 1
     struct.pack_into("<IIII", header, 16, 1, len(colors), len(header), 32)
     data = bytearray(header)
     for number, color in enumerate(colors):
@@ -58,7 +58,7 @@ def prepare(game):
         name = f"ktpal{side}"
         fighter = game / "chars" / name
         fighter.mkdir()
-        write_sff(fighter / "probe.sff", [*colors, (0, 0, 0)])
+        write_sff(fighter / "probe.sff", colors)
         (fighter / f"{name}.def").write_text(f"""[Info]
 name = "Palette Probe {side}"
 mugenversion = 1.1
@@ -73,18 +73,20 @@ anim = probe.air
 """)
         commands = {"holdback": "/B", "holdfwd": "/F", "holdup": "/U",
                     "holddown": "/D", "recovery": "x+y", "probe": "x"}
-        (fighter / "probe.cmd").write_text("\n".join(
+        command_text = "\n".join(
             f'[Command]\nname = "{name}"\ncommand = {command}\ntime = 1\n'
             for name, command in commands.items()
-        ) + """
+        )
+        if side == 1:
+            command_text += """
 [Statedef -1]
 [State -1, attack]
 type = ChangeState
-triggerall = TeamSide = 1
 triggerall = RoundState = 2
 trigger1 = Ctrl && Command = "probe"
 value = 200
-""")
+"""
+        (fighter / "probe.cmd").write_text(command_text)
         states = "".join(
             f"\n[Statedef {state}]\ntype = S\nmovetype = {move}\nphysics = N\nanim = {anim}\nctrl = {ctrl}\nvelset = 0,0\n"
             for state, move, anim, ctrl in [(0, "I", 0, 1), (20, "I", 0, 1), (150, "H", 150, 0), (5000, "H", 5000, 0)]
@@ -127,18 +129,10 @@ Clsn1[0] = 0,-48,95,0
 0,1,0,0,40
 """)
 
-    stage = (game / "stages/stage0.def").read_text(encoding="latin-1").split("[BGDef]", 1)[0]
-    for key, value in {"p1startx": -32, "p2startx": 32, "boundleft": 0, "boundright": 0}.items():
+    stage = (game / "stages/stage0.def").read_text(encoding="latin-1")
+    for key, value in {"p1startx": -32, "p2startx": 32}.items():
         stage = re.sub(rf"^{key}\s*=.*$", f"{key} = {value}", stage, flags=re.M | re.I)
-    (game / "stages/ktpal.def").write_text(stage + """
-[BGDef]
-spr = ../chars/ktpal2/probe.sff
-[BG black]
-type = normal
-spriteno = 0,3
-tile = 1,1
-mask = 0
-""", encoding="latin-1")
+    (game / "stages/ktpal.def").write_text(stage, encoding="latin-1")
 
 
 def xdotool(*args):
@@ -149,9 +143,12 @@ def sample(window):
     geometry = dict(line.split("=", 1) for line in xdotool("getwindowgeometry", "--shell", window).splitlines())
     x, y, width, height = (int(geometry[key]) for key in ("X", "Y", "WIDTH", "HEIGHT"))
     screen = ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).convert("RGB")
-    return [Counter(screen.crop((center - 10, y + height * 64 // 100,
-                                 center + 10, y + height * 74 // 100)).getdata()).most_common(1)[0][0]
-            for center in (x + width * 4 // 10, x + width * 6 // 10)]
+    colors = []
+    for center in (x + width * 4 // 10, x + width * 6 // 10):
+        pixels = screen.crop((center - 10, y + height * 64 // 100,
+                              center + 10, y + height * 74 // 100)).tobytes()
+        colors.append(Counter(zip(pixels[0::3], pixels[1::3], pixels[2::3])).most_common(1)[0][0])
+    return colors
 
 
 def capture(game, guard, log_path):
