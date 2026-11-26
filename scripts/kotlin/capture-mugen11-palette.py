@@ -1,10 +1,8 @@
 """Record hit and guard palette colors from the original MUGEN executable."""
 
 import argparse
-import base64
 from collections import Counter
 import hashlib
-import io
 import json
 import os
 from pathlib import Path
@@ -198,14 +196,6 @@ def capture(game, guard, log_path):
             for path in (log_path, game / "mugen.log"):
                 if path.is_file():
                     print(path.read_text(encoding="latin-1", errors="replace")[-12000:], flush=True)
-            size = ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).size
-            xdotool("mousemove", str(size[0] // 2), str(size[1] // 2), "click", "--repeat", "16", "4")
-            time.sleep(0.15)
-            png = io.BytesIO()
-            ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).save(png, format="PNG")
-            encoded = base64.b64encode(png.getvalue()).decode("ascii")
-            for offset in range(0, len(encoded), 4096):
-                print("PROBE_DISPLAY " + encoded[offset:offset + 4096])
             raise
         finally:
             if process.poll() is None:
@@ -220,6 +210,7 @@ def capture(game, guard, log_path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path, help="Original MUGEN 1.1b1 ZIP")
+    parser.add_argument("--expected", type=Path, help="Check the contact window against a recorded trace")
     args = parser.parse_args()
     with args.archive.open("rb") as archive:
         if hashlib.file_digest(archive, "sha256").hexdigest() != ARCHIVE_SHA:
@@ -235,6 +226,14 @@ def main():
             traces = {key: capture(game, key == "guard", root / f"{key}.log") for key in ("hit", "guard")}
         finally:
             subprocess.run(["wineserver", "-k"], check=False, timeout=10)
+        if args.expected:
+            expected = json.loads(args.expected.read_text())["probes"]
+            for case, frames in traces.items():
+                impact = next(i for i, frame in enumerate(frames) if frame["attackerRgb"] == ATTACKER[2])
+                window = [[frame["tick"] - impact, list(frame["attackerRgb"]), list(frame["defenderRgb"])]
+                          for frame in frames[impact - 1:impact + 14]]
+                if window != expected[case]:
+                    raise RuntimeError(f"Native {case} colors differ from the saved trace: {window}")
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
                           "add": ADD, "mul": MUL, "traces": traces}, indent=2))
 

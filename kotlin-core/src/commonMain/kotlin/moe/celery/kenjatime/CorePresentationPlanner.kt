@@ -70,7 +70,7 @@ object CorePresentationPlanner {
         fun draw(side: Int, kind: String, x256: Int, y256: Int,
                  facingRight: Boolean, action: AirAnimationPlayer?,
                  definition: FighterDefinition, life: Int, effect: CoreExplod? = null,projectile: CoreProjectile? = null,priority: Long = 0,actor: FightingCharacter? = null,
-                 pose: CoreActorPose?=actor?.let {CoreActorPose.capture(it,fight.frame)},trail: CoreAfterImageDraw?=null,ownerId: Int=0,commonScale: Double?=null) {
+                 pose: CoreActorPose?=null,trail: CoreAfterImageDraw?=null,ownerId: Int=0,commonScale: Double?=null) {
             if(fight.environment.color?.under == false && effect?.config?.onTop != true && kind != "superpause")return
             val frame = if(pose!=null)pose.frame else action?.visualFrame()
             val blend=trail?.blend ?: actor?.drawBlend ?: frame?.blend ?: SpriteBlend.NORMAL
@@ -183,8 +183,11 @@ object CorePresentationPlanner {
                 draw(side,"afterimage",pose.x,pose.y,pose.facingRight,null,pose.definition,0,
                     priority=trail.priority,pose=pose,trail=trail,ownerId=actor.id)
             }
-            enqueue(priority) { draw(side,kind,actor.posX,actor.posY,actor.facingRight,actor.animation,
-                actor.animationOwner.definition,actor.life,priority=priority,actor=actor) }
+            enqueue(priority) {
+                val pose = actor.presentationPose(fight.frame)
+                draw(side,kind,actor.posX,actor.posY,actor.facingRight,null,
+                    pose.definition,actor.life,priority=priority,actor=actor,pose=pose)
+            }
         }
         actorDraw(0,"fighter",fight.p1)
         actorDraw(1,"fighter",fight.p2)

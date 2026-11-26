@@ -549,7 +549,13 @@ class FightingCharacter(
         private set
     internal var contactStateRevision = 0L
         private set
-    internal fun beginContactPhase() { contactStateRevision=stateRevision }
+    private var contactPose: CoreActorPose? = null
+    internal fun beginContactPhase() {
+        contactStateRevision = stateRevision
+        contactPose = null
+    }
+    internal fun presentationPose(frame: Long): CoreActorPose =
+        contactPose?.takeIf { it.capturedAt == frame } ?: CoreActorPose.capture(this, frame)
     internal fun followSuccessfulHit(hit: HitDefinition,errors: MutableSet<String>) {
         val next=hit.p1State ?: return
         if(destroyed || life <= 0)return
@@ -609,6 +615,7 @@ class FightingCharacter(
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
                     controlOverride: Boolean? = null,
                     errors: MutableSet<String> = world?.issues ?: evaluationIssues) {
+        contactPose = null
         fallbackHitReaction = false
         stateRevision++
         stateOwner = owner
@@ -1338,7 +1345,12 @@ class FightingCharacter(
             changeState(override.state,this,false)
         }else {
             // Normal hit/guard/KO restores the victim's own state bank.
+            // MUGEN draws the previous pose with the new palette on the impact frame.
+            val priorPose = if (definition.authoredCns && parent == null && projectile == null &&
+                life > 0 && (guarded || hit.p2State == null) && resultingState in definition.states
+            ) world?.let { presentationPose(it.frame + 1) } else null
             changeState(resultingState,this,false)
+            contactPose = priorPose
             velX=x;velY=y
         }
         hitPauseLeft = if (guarded) hit.guardDefenderPause else hit.defenderPause

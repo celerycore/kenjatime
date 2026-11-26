@@ -19,6 +19,10 @@ class ContactPresentationTest {
         8,1,0,0,2
         [Begin Action 811]
         8,2,0,0,4
+        [Begin Action 150]
+        0,2,0,0,-1
+        [Begin Action 5000]
+        0,1,0,0,-1
     """.trimIndent()
     private val sharedAir = """
         [Begin Action 40]
@@ -28,7 +32,8 @@ class ContactPresentationTest {
         7,6,0,0,3
     """.trimIndent()
 
-    private fun fighter(id: Int, width: Int = 320, controller: String = "type=Null", data: String = "") =
+    private fun fighter(id: Int, width: Int = 320, controller: String = "type=Null", data: String = "",
+                        extraStates: String = "") =
         FightingCharacter(FighterDefinition.fromScript("fighter $id", air, """
             [Data]
             $data
@@ -48,6 +53,7 @@ class ContactPresentationTest {
             [State contact]
             trigger1=1
             $controller
+            $extraStates
         """.trimIndent(), defText = "[Info]\nlocalcoord=$width,240", useAuthoredStateDefs = true), id)
 
     private fun fight(first: FightingCharacter, second: FightingCharacter): DeterministicFight {
@@ -209,6 +215,54 @@ class ContactPresentationTest {
         assertNull(w.p2.paletteEffects.effect)
         assertTrue(w.p2.hitPauseLeft > 0)
         assertTrue(w.issues.isEmpty(), w.issues.toString())
+    }
+
+    @Test fun authoredBodyHitAndGuardDrawThePreviousSpriteOnTheContactTick() {
+        val idleColor = listOf(96, 120, 144)
+        val hitColor = listOf(120, 100, 160)
+        val guardColor = listOf(56, 200, 104)
+        for (guarded in listOf(false, true)) {
+            val attacker = fighter(1, controller = """
+                type=HitDef
+                attr=S,NA
+                damage=10,2
+                guardflag=M
+                pausetime=8,8
+                guard.pausetime=8,8
+                palfx.time=4
+                palfx.add=64,-32,32
+                palfx.mul=192,320,256
+            """.trimIndent())
+            val victim = fighter(2, extraStates = """
+                [Statedef 150]
+                type=S
+                movetype=H
+                anim=150
+                [Statedef 5000]
+                type=S
+                movetype=H
+                anim=5000
+            """.trimIndent())
+            val w = fight(attacker, victim)
+            attacker.changeState(200)
+            val input = if (guarded) InputFrame(Directions.R) else InputFrame()
+            fun draw() = CorePresentationPlanner.snapshot(w, 0)
+                .substringAfter("\"side\":1,\"kind\":\"fighter\"")
+                .substringBefore("},")
+            fun rgb(source: List<Int>) = CoreFightPalettes.rgb(source, w.palettes.layers(victim.paletteEffects))
+
+            w.step(b = input)
+            assertEquals(guarded, w.contacts.single().guarded)
+            assertEquals(if (guarded) 150 else 5000, victim.stateNo)
+            assertContains(draw(), "\"number\":0")
+            assertEquals(if (guarded) idleColor else listOf(120, 110, 176), rgb(idleColor))
+
+            w.step(b = input)
+            assertContains(draw(), if (guarded) "\"number\":2" else "\"number\":1")
+            assertEquals(if (guarded) guardColor else listOf(138, 85, 192), rgb(if (guarded) guardColor else hitColor))
+            assertTrue(victim.hitPauseLeft > 0)
+            assertTrue(w.issues.isEmpty(), w.issues.toString())
+        }
     }
 
     @Test fun guardAndDisabledOrInvalidEffectsPreserveTheDefendersPalette() {
