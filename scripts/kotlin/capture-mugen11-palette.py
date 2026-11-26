@@ -53,13 +53,13 @@ def prepare(game):
         config = re.sub(rf"^{key}\s*=.*$", f"{key} = {value}", config, flags=re.M)
     cfg.write_text(config, encoding="latin-1")
 
-    kfm = (game / "chars/kfm/kfm.cns").read_text(encoding="latin-1")
-    constants = re.split(r"^\[Statedef\s", kfm, flags=re.I | re.M, maxsplit=1)[0]
+    constants = (game / "chars/kfm/kfm.cns").read_bytes()
     defense = "Clsn2Default: 1\nClsn2[0] = -12,-48,12,0\n"
     for side, colors in enumerate((ATTACKER, DEFENDER), start=1):
         name = f"ktpal{side}"
         fighter = game / "chars" / name
         fighter.mkdir()
+        (fighter / "base.cns").write_bytes(constants)
         write_sff(fighter / "probe.sff", colors)
         (fighter / f"{name}.def").write_text(f"""[Info]
 name = "Palette Probe {side}"
@@ -67,8 +67,8 @@ mugenversion = 1.1
 localcoord = 320,240
 [Files]
 cmd = probe.cmd
-cns = probe.cns
-st = probe.cns
+cns = base.cns
+st = probe.st
 stcommon = common1.cns
 sprite = probe.sff
 anim = probe.air
@@ -93,7 +93,7 @@ value = 200
             f"\n[Statedef {state}]\ntype = S\nmovetype = {move}\nphysics = N\nanim = {anim}\nctrl = {ctrl}\nvelset = 0,0\n"
             for state, move, anim, ctrl in [(0, "I", 0, 1), (20, "I", 0, 1), (150, "H", 150, 0), (5000, "H", 5000, 0)]
         )
-        (fighter / "probe.cns").write_text(constants + states + f"""
+        (fighter / "probe.st").write_text(states + f"""
 [Statedef 200]
 type = S
 movetype = A
@@ -116,7 +116,7 @@ guard.sparkno = -1
 palfx.time = 4
 palfx.add = {','.join(map(str, ADD))}
 palfx.mul = {','.join(map(str, MUL))}
-""", encoding="latin-1")
+""", encoding="latin-1", newline="\r\n")
         idle_actions = "".join(
             f"[Begin Action {action}]\n{defense}0,{sprite},0,0,-1\n\n"
             for action, sprite in [(0, 0), (20, 0), (120, 0), (130, 0), (140, 0), (150, 2), (5000, 1)]
@@ -194,6 +194,9 @@ def capture(game, guard, log_path):
             for path in (log_path, game / "mugen.log"):
                 if path.is_file():
                     print(path.read_text(encoding="latin-1", errors="replace")[-12000:], flush=True)
+            size = ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).size
+            xdotool("mousemove", str(size[0] // 2), str(size[1] // 2), "click", "--repeat", "16", "4")
+            time.sleep(0.15)
             png = io.BytesIO()
             ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).save(png, format="PNG")
             encoded = base64.b64encode(png.getvalue()).decode("ascii")
