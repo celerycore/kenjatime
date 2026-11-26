@@ -1,8 +1,10 @@
 """Record hit and guard palette colors from the original MUGEN executable."""
 
 import argparse
+import base64
 from collections import Counter
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -111,8 +113,6 @@ ground.velocity = 0,0
 guard.velocity = 0
 sparkno = -1
 guard.sparkno = -1
-hitsound = -1
-guardsound = -1
 palfx.time = 4
 palfx.add = {','.join(map(str, ADD))}
 palfx.mul = {','.join(map(str, MUL))}
@@ -194,6 +194,11 @@ def capture(game, guard, log_path):
             for path in (log_path, game / "mugen.log"):
                 if path.is_file():
                     print(path.read_text(encoding="latin-1", errors="replace")[-12000:], flush=True)
+            png = io.BytesIO()
+            ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).save(png, format="PNG")
+            encoded = base64.b64encode(png.getvalue()).decode("ascii")
+            for offset in range(0, len(encoded), 4096):
+                print("PROBE_DISPLAY " + encoded[offset:offset + 4096])
             raise
         finally:
             if process.poll() is None:
