@@ -1346,7 +1346,7 @@ class FightingCharacter(
         }else {
             // Normal hit/guard/KO restores the victim's own state bank.
             // MUGEN draws the previous pose with the new palette on the impact frame.
-            val priorPose = if (definition.authoredCns && parent == null && projectile == null &&
+            val priorPose = if (definition.authoredCns && parent == null &&
                 life > 0 && (guarded || hit.p2State == null) && resultingState in definition.states
             ) world?.let { presentationPose(it.frame + 1) } else null
             changeState(resultingState,this,false)

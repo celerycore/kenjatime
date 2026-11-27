@@ -5,7 +5,9 @@ on:
     paths:
       - 'kotlin-core/**'
       - 'src/core/kotlin-wasm-backend.js'
+      - 'src/kotlin/sprite-palette.js'
       - 'scripts/kotlin/capture-mugen11-palette.py'
+      - 'scripts/kotlin/verify-mugen11-palette.mjs'
       - 'test/fixtures/core/mugen11-hit-palette-native.json'
       - '.github/workflows/kotlin-wasm-core.yml'
 permissions:
@@ -76,12 +78,22 @@ jobs:
         run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/rare-akuma-dual.test.js test/core/rare-akuma-hardening.test.js test/core/rare-akuma-jump.test.js test/core/rare-akuma-ai-activation.test.js
 
   mugen11-palette-capture:
-    name: Capture native MUGEN 1.1b1 hit and guard colors
+    name: Compare MUGEN 1.1b1 and Kotlin/Wasm contact colors
+    needs: portable-core
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: kenjatime-kotlin-wasm
+          path: ${{ runner.temp }}/kenjatime-kotlin-wasm
       - name: Install display and pixel capture tools
         run: |
           sudo apt-get update
@@ -107,7 +119,8 @@ jobs:
           set -euo pipefail
           export PATH="$RUNNER_TEMP/wine/bin:$PATH"
           xvfb-run -a -s '-screen 0 800x600x24' /usr/bin/python3 scripts/kotlin/capture-mugen11-palette.py \
-            "$RUNNER_TEMP/mugen-11b1.zip" --expected test/fixtures/core/mugen11-hit-palette-native.json | tee mugen11-palette.json
+            "$RUNNER_TEMP/mugen-11b1.zip" --expected test/fixtures/core/mugen11-hit-palette-native.json \
+            --wasm "$RUNNER_TEMP/kenjatime-kotlin-wasm/kenjatime-kotlin-core.mjs" | tee mugen11-palette.json
       - uses: actions/upload-artifact@v4
         with:
           name: mugen11-palette-trace

@@ -167,7 +167,16 @@ class ContactPresentationTest {
             sparkno=S810
             sparkxy=5,-9
             hitsound=S6,0
-        """.trimIndent()), fighter(2))
+            pausetime=8,8
+            palfx.time=4
+            palfx.add=64,-32,32
+            palfx.mul=192,320,256
+        """.trimIndent()), fighter(2, extraStates = """
+            [Statedef 5000]
+            type=S
+            movetype=H
+            anim=5000
+        """.trimIndent()))
         w.p1.posX = -60 * Fixed.ONE
         w.p1.changeState(200)
         w.step()
@@ -181,6 +190,15 @@ class ContactPresentationTest {
         assertEquals(16 * Fixed.ONE, spark.x)
         assertEquals(-23 * Fixed.ONE, spark.y)
         assertFalse(w.sounds.voices.single().common)
+        fun defenderSprite() = CorePresentationPlanner.snapshot(w, 0)
+            .substringAfter("\"side\":1,\"kind\":\"fighter\"")
+            .substringBefore("},")
+        val initialLayers = w.palettes.layers(w.p2.paletteEffects)
+        assertContains(defenderSprite(), "\"number\":0")
+        assertEquals(listOf(120, 110, 176), CoreFightPalettes.rgb(listOf(96, 120, 144), initialLayers))
+        w.step()
+        assertContains(defenderSprite(), "\"number\":1")
+        assertTrue(w.p2.hitPauseLeft > 0)
         assertTrue(w.issues.isEmpty(), w.issues.toString())
     }
 

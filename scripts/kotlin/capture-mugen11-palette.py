@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import struct
 import subprocess
+import sys
 from tempfile import TemporaryDirectory
 import time
 import zipfile
@@ -232,7 +233,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path, help="Original MUGEN 1.1b1 ZIP")
     parser.add_argument("--expected", type=Path, help="Check the contact window against a recorded trace")
+    parser.add_argument("--wasm", type=Path, help="Verify the same fixtures with the compiled Kotlin/Wasm module")
     args = parser.parse_args()
+    if args.wasm and not args.expected:
+        parser.error("--wasm requires --expected")
     with args.archive.open("rb") as archive:
         if hashlib.file_digest(archive, "sha256").hexdigest() != ARCHIVE_SHA:
             parser.error("The archive does not match the original MUGEN 1.1b1 checksum")
@@ -242,11 +246,16 @@ def main():
         with zipfile.ZipFile(args.archive) as archive:
             archive.extractall(root)
         game = root / "mugen-1.1b1"
-        prepare(game)
+        traces = {}
         try:
-            traces = {key: capture(game, key == "guard", root / f"{key}.log") for key in ("hit", "guard")}
-            prepare(game, projectile=True)
-            traces["projectile"] = capture(game, False, root / "projectile.log")
+            for case in ("hit", "guard", "projectile"):
+                if case != "guard":
+                    prepare(game, projectile=case == "projectile")
+                traces[case] = capture(game, case == "guard", root / f"{case}.log")
+                if args.wasm:
+                    verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
+                    subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
+                                    str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
         finally:
             subprocess.run(["wineserver", "-k"], check=False, timeout=10)
         windows = {case: contact_window(case, frames) for case, frames in traces.items()}
@@ -255,7 +264,7 @@ def main():
             for case, window in expected.items():
                 if windows[case] != window:
                     raise RuntimeError(f"Native {case} colors differ from the saved trace: {windows[case]}")
-        print("Native contact windows: " + json.dumps(windows))
+        print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
                           "add": ADD, "mul": MUL, "traces": traces}, indent=2))
 
