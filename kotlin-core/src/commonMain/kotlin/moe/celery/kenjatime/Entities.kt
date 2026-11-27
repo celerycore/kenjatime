@@ -65,6 +65,7 @@ class CoreProjectile(
 ) {
     internal val paletteEffects=if(ownPalette)owner.paletteEffects.copyRemaps() else owner.paletteEffects
     val hit=hit.copy(capturedAttackMultiplier=hit.capturedAttackMultiplier ?: owner.attackMultiplier)
+    internal val validGuardAttribute = CoreGuardDistance.validProjectileAttribute(this.hit.attr)
     companion object {
         const val MAX_SCALE = 64.0
         // FighterDefinition bounds its fixed-point Size factors to 256.
@@ -275,6 +276,26 @@ class CoreEntities(private val match: DeterministicFight) {
             if (!helper.actor.destroyed) pendingRequests.addAll(helper.actor.flushEntityRequests())
         }
     }
+    private fun dispatchLaunchProjectiles(requests: List<EntityRequest>, errors: MutableSet<String>): List<EntityRequest> {
+        if (requests.isEmpty()) return requests
+        val (projectiles, deferred) = requests.partition {
+            it is EntityRequest.Projectile && it.owner.definition.mugen11Timing
+        }
+        if (projectiles.isEmpty()) return requests
+        add(projectiles, errors)
+        return deferred
+    }
+
+    internal fun addLaunchProjectiles(roots: List<EntityRequest>, errors: MutableSet<String>): List<EntityRequest> {
+        // MUGEN 1.1 projectiles move and can hit in the same tick as their controller.
+        val deferred = dispatchLaunchProjectiles(pendingRequests, errors)
+        if (deferred !== pendingRequests) {
+            pendingRequests.clear()
+            pendingRequests.addAll(deferred)
+        }
+        return dispatchLaunchProjectiles(roots, errors)
+    }
+
     fun resolveContacts(errors: MutableSet<String>) {
         if (helpers.isEmpty() && projectiles.isEmpty()) return
         // Special moves can have dozens of helpers/projectiles against the

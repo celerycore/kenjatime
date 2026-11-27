@@ -258,22 +258,25 @@ def main():
                 if case != "guard":
                     prepare(game, case)
                 traces[case] = capture(game, case == "guard", root / f"{case}.log")
-                if args.wasm and case in expected["probes"]:
+                if args.wasm:
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
                                     str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
         finally:
             subprocess.run(["wineserver", "-k"], check=False, timeout=10)
         windows = {case: contact_window(case, frames) for case, frames in traces.items()}
-        for case, window in expected.get("probes", {}).items():
-            if windows[case] != window:
-                raise RuntimeError(f"Native {case} colors differ from the saved trace: {windows[case]}")
         timing = {
             case: impact_index(case, frames) - next(
                 i for i, frame in enumerate(frames) if frame["attackerRgb"] == ATTACKER[1]
             )
             for case, frames in traces.items() if case.endswith("projectile")
         }
+        if args.expected:
+            for case, window in windows.items():
+                if expected["probes"][case] != window:
+                    raise RuntimeError(f"Native {case} colors differ from the saved trace: {window}")
+            if expected["launchToContactTicks"] != timing:
+                raise RuntimeError(f"Native launch to contact timing differs from the saved trace: {timing}")
         print("Native launch to contact ticks: " + json.dumps(timing), file=sys.stderr)
         print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,

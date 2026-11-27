@@ -6,9 +6,10 @@ import { sff } from '../../src/formats.js';
 import { paletteRgba } from '../../src/kotlin/sprite-palette.js';
 
 const [game, modulePath, caseName, expectedPath] = process.argv.slice(2);
-assert.ok(expectedPath && ['hit', 'guard', 'projectile'].includes(caseName),
+assert.ok(expectedPath && ['hit', 'guard', 'projectile', 'moving-projectile'].includes(caseName),
     'Pass the prepared game directory, Wasm module, probe case, and native trace.');
-const expected = JSON.parse(readFileSync(expectedPath, 'utf8')).probes[caseName];
+const reference = JSON.parse(readFileSync(expectedPath, 'utf8'));
+const expected = reference.probes[caseName];
 const api = await import(pathToFileURL(resolve(modulePath)).href);
 const shared = readFileSync(`${game}/data/common1.cns`, 'latin1');
 const file = (side, name) => readFileSync(`${game}/chars/ktpal${side}/${name}`);
@@ -16,7 +17,7 @@ const text = (side, name) => file(side, name).toString('latin1');
 const both = name => [text(1, name), text(2, name)];
 const cns = side => [shared, text(side, 'base.cns').split(/^\[statedef\s/im)[0], text(side, 'probe.st')].join('\n');
 const guarded = caseName === 'guard';
-const projectile = caseName === 'projectile';
+const projectile = caseName.endsWith('projectile');
 const handle = api.ktCoreCreateFromArchives('Palette Probe 1', 'Palette Probe 2',
     ...both('probe.air'), cns(1), cns(2), ...both('probe.cmd'), text(1, 'ktpal1.def'), text(2, 'ktpal2.def'));
 try {
@@ -39,12 +40,15 @@ try {
     assert.equal(contacts.length, 1);
     const {tick: impact, attacker, defender, guarded: wasGuarded, damage} = contacts[0];
     assert.deepEqual([attacker, defender, wasGuarded, damage], [projectile ? 3 : 1, 2, guarded, guarded ? 2 : 10]);
-    for (const [tick, left, right] of expected) {
-        // Projectile creation timing is tracked independently from the defender's contact presentation.
-        const actual = frames[impact + tick];
-        assert.deepEqual(projectile ? actual[1] : actual, projectile ? right : [left, right], `${caseName} tick ${tick}`);
+    if (projectile) {
+        const firstWindup = frames.findIndex(([left]) => left.join(',') === '20,190,70');
+        assert.ok(firstWindup >= 0, 'Projectile windup was not rendered.');
+        assert.equal(impact - firstWindup, reference.launchToContactTicks[caseName], `${caseName} launch to contact ticks`);
     }
-    console.log(`${caseName}: ${expected.length} native RGB samples matched${projectile ? ' on the defender' : ''}.`);
+    for (const [tick, left, right] of expected) {
+        assert.deepEqual(frames[impact + tick], [left, right], `${caseName} tick ${tick}`);
+    }
+    console.log(`${caseName}: ${expected.length} native RGB samples matched on both fighters.`);
 } finally {
     api.ktCoreRelease(handle);
 }

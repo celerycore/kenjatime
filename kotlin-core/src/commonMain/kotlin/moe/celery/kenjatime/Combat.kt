@@ -125,7 +125,8 @@ data class FighterDefinition(
     val initialMaps: Map<String,Double> = emptyMap(),val initialMapIssues: Set<String> = emptySet(),
     val victoryQuotes: Map<Int, String> = emptyMap(), val victoryQuoteIssues: Set<String> = emptySet(),
     val authoredCns: Boolean = false, val scriptConstants: Map<String, Double> = emptyMap(),
-    val contactDefaults: Map<String, String> = emptyMap()
+    val contactDefaults: Map<String, String> = emptyMap(),
+    val mugen11Timing: Boolean = false
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -179,7 +180,7 @@ data class FighterDefinition(
                 constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY,
                 constants.attackDistance,constants.projectileAttackDistance,maps.first,maps.second,
                 quotes.first, quotes.second, useAuthoredStateDefs, MugenCnsParser.scriptConstants(cns),
-                constants.contactDefaults
+                constants.contactDefaults, mugen11Timing = useAuthoredStateDefs && modern
             )
         }
     }
@@ -1143,6 +1144,23 @@ class FightingCharacter(
         }
         return false
     }
+    private fun executeMugen11States(errors: MutableSet<String>, paused: Boolean,
+                                    root: Boolean, helperKeyControl: Boolean): Boolean {
+        var transitioned = false
+        // Each special state gets one pass. A transition skips only the remainder of that state.
+        if (root && stateOwner === this && executeState(-3, errors, paused)) transitioned = true
+        if (root && executeState(-2, errors, paused)) transitioned = true
+        if ((root || helperKeyControl) && stateOwner === this && executeState(-1, errors, paused))
+            transitioned = true
+        // A current-state transition runs the destination's Time = 0 controllers now.
+        repeat(256) {
+            if (!executeState(stateNo, errors, paused, stateOwner))
+                return !transitioned && root && !paused && automaticTransition()
+            transitioned = true
+        }
+        errors.add("Too many state transitions in one tick for actor $id")
+        return true
+    }
     private fun guardAllowed(): Boolean = when (stateType) {
         "S" -> "nostandguard" !in asserted
         "C" -> "nocrouchguard" !in asserted
@@ -1220,8 +1238,8 @@ class FightingCharacter(
         // Root-only global controllers must never run on spawned helpers.
         // A helper inherits the command state only when Helper.keyctrl is set.
         val root = parent == null
-        val ownState = stateOwner === this
-        val changed = (root && ownState && executeState(-3, errors, paused)) ||
+        val deferUpdate = if (definition.mugen11Timing) executeMugen11States(errors, paused, root, helperKeyControl)
+        else (root && stateOwner === this && executeState(-3, errors, paused)) ||
             (root && executeState(-2, errors, paused)) ||
             ((root || helperKeyControl) && stateOwner === this && executeState(-1, errors, paused)) ||
             executeState(stateNo, errors, paused, stateOwner) ||
@@ -1229,7 +1247,7 @@ class FightingCharacter(
         // CNS observes 1 through hitpause and the first active controller phase.
         // Advance afterward, independently of State Time and state transitions.
         if(!paused)advanceMoveContact()
-        if (changed || paused) return
+        if (deferUpdate || paused) return
         if(!positionFrozen) { posX += velX;posY += velY }
         timeInState++
         if (definition.authoredCns) advanceAnimationOnNextTick = true else animation?.advance()
@@ -1558,9 +1576,13 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         }
         if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB, p1)
         if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA, p2)
-        if (allowCombat) entities.resolveContacts(issues)
+        var spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
+        if (allowCombat) {
+            if (p1.definition.mugen11Timing || p2.definition.mugen11Timing)
+                spawned = entities.addLaunchProjectiles(spawned, issues)
+            entities.resolveContacts(issues)
+        }
         finishContactPhase()
-        val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
         if(allowCombat)for(shot in entities.projectiles)if(!pauses.entityFrozen(shot.pauseMoves))
             CoreGuardDistance.projectile(this,shot)
