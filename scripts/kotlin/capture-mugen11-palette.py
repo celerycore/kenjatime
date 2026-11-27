@@ -46,7 +46,7 @@ def write_sff(path, colors):
     path.write_bytes(data)
 
 
-def prepare(game, projectile=False):
+def prepare(game, case):
     cfg = game / "data/mugen.cfg"
     config = cfg.read_text(encoding="latin-1")
     for key, value in {"GameWidth": 640, "GameHeight": 480, "Sound": 0, "Debug": 1}.items():
@@ -89,11 +89,13 @@ anim = probe.air
             for state, move, anim, ctrl in [(0, "I", 0, 1), (20, "I", 0, 1), (150, "H", 150, 0), (5000, "H", 5000, 0)]
         )
         contact = "HitDef\ntrigger1 = Time = 0\nattr = S,NA"
-        if projectile:
-            contact = """Projectile
+        if case.endswith("projectile"):
+            offset, velocity = (24, 7) if case == "moving-projectile" else (64, 0)
+            contact = f"""Projectile
 trigger1 = Time = 0
 postype = p1
-offset = 64,0
+offset = {offset},0
+velocity = {velocity},0
 projanim = 201
 projremovetime = 60
 attr = S,SP"""
@@ -220,11 +222,14 @@ def capture(game, guard, log_path):
                     process.wait()
 
 
+def impact_index(case, frames):
+    if case.endswith("projectile"):
+        return next(i for i, frame in enumerate(frames) if frame["defenderRgb"] != DEFENDER[0])
+    return next(i for i, frame in enumerate(frames) if frame["attackerRgb"] == ATTACKER[2])
+
+
 def contact_window(case, frames):
-    if case == "projectile":
-        impact = next(i for i, frame in enumerate(frames) if frame["defenderRgb"] != DEFENDER[0])
-    else:
-        impact = next(i for i, frame in enumerate(frames) if frame["attackerRgb"] == ATTACKER[2])
+    impact = impact_index(case, frames)
     return [[frame["tick"] - impact, list(frame["attackerRgb"]), list(frame["defenderRgb"])]
             for frame in frames[impact - 1:impact + 14]]
 
@@ -246,24 +251,30 @@ def main():
         with zipfile.ZipFile(args.archive) as archive:
             archive.extractall(root)
         game = root / "mugen-1.1b1"
+        expected = json.loads(args.expected.read_text()) if args.expected else {}
         traces = {}
         try:
-            for case in ("hit", "guard", "projectile"):
+            for case in ("hit", "guard", "projectile", "moving-projectile"):
                 if case != "guard":
-                    prepare(game, projectile=case == "projectile")
+                    prepare(game, case)
                 traces[case] = capture(game, case == "guard", root / f"{case}.log")
-                if args.wasm:
+                if args.wasm and case in expected["probes"]:
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
                                     str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
         finally:
             subprocess.run(["wineserver", "-k"], check=False, timeout=10)
         windows = {case: contact_window(case, frames) for case, frames in traces.items()}
-        if args.expected:
-            expected = json.loads(args.expected.read_text())["probes"]
-            for case, window in expected.items():
-                if windows[case] != window:
-                    raise RuntimeError(f"Native {case} colors differ from the saved trace: {windows[case]}")
+        for case, window in expected.get("probes", {}).items():
+            if windows[case] != window:
+                raise RuntimeError(f"Native {case} colors differ from the saved trace: {windows[case]}")
+        timing = {
+            case: impact_index(case, frames) - next(
+                i for i, frame in enumerate(frames) if frame["attackerRgb"] == ATTACKER[1]
+            )
+            for case, frames in traces.items() if case.endswith("projectile")
+        }
+        print("Native launch to contact ticks: " + json.dumps(timing), file=sys.stderr)
         print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
                           "add": ADD, "mul": MUL, "traces": traces}, indent=2))
