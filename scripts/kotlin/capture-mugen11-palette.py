@@ -45,7 +45,7 @@ def write_sff(path, colors):
     path.write_bytes(data)
 
 
-def prepare(game):
+def prepare(game, projectile=False):
     cfg = game / "data/mugen.cfg"
     config = cfg.read_text(encoding="latin-1")
     for key, value in {"GameWidth": 640, "GameHeight": 480, "Sound": 0, "Debug": 1}.items():
@@ -57,7 +57,7 @@ def prepare(game):
     for side, colors in enumerate((ATTACKER, DEFENDER), start=1):
         name = f"ktpal{side}"
         fighter = game / "chars" / name
-        fighter.mkdir()
+        fighter.mkdir(exist_ok=True)
         (fighter / "base.cns").write_bytes(constants)
         write_sff(fighter / "probe.sff", [*colors, READY])
         (fighter / f"{name}.def").write_text(f"""[Info]
@@ -87,6 +87,15 @@ anim = probe.air
                if side == 1 and state == 0 else "")
             for state, move, anim, ctrl in [(0, "I", 0, 1), (20, "I", 0, 1), (150, "H", 150, 0), (5000, "H", 5000, 0)]
         )
+        contact = "HitDef\ntrigger1 = Time = 0\nattr = S,NA"
+        if projectile:
+            contact = """Projectile
+trigger1 = Time = 0
+postype = p1
+offset = 64,0
+projanim = 201
+projremovetime = 60
+attr = S,SP"""
         (fighter / "probe.st").write_text(states + f"""
 [Statedef 190]
 type = S
@@ -107,9 +116,7 @@ anim = 200
 ctrl = 0
 velset = 0,0
 [State 200, contact]
-type = HitDef
-trigger1 = Time = 0
-attr = S,NA
+type = {contact}
 damage = 10,2
 guardflag = M
 pausetime = 8,8
@@ -132,6 +139,11 @@ Clsn1: 1
 Clsn1[0] = 0,-48,95,0
 0,2,0,0,1
 0,1,0,0,40
+
+[Begin Action 201]
+Clsn1Default: 1
+Clsn1[0] = -8,-48,8,0
+0,1,0,-75,-1
 """)
 
     stage = (game / "stages/stage0.def").read_text(encoding="latin-1")
@@ -207,6 +219,15 @@ def capture(game, guard, log_path):
                     process.wait()
 
 
+def contact_window(case, frames):
+    if case == "projectile":
+        impact = next(i for i, frame in enumerate(frames) if frame["defenderRgb"] != DEFENDER[0])
+    else:
+        impact = next(i for i, frame in enumerate(frames) if frame["attackerRgb"] == ATTACKER[2])
+    return [[frame["tick"] - impact, list(frame["attackerRgb"]), list(frame["defenderRgb"])]
+            for frame in frames[impact - 1:impact + 14]]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("archive", type=Path, help="Original MUGEN 1.1b1 ZIP")
@@ -224,16 +245,17 @@ def main():
         prepare(game)
         try:
             traces = {key: capture(game, key == "guard", root / f"{key}.log") for key in ("hit", "guard")}
+            prepare(game, projectile=True)
+            traces["projectile"] = capture(game, False, root / "projectile.log")
         finally:
             subprocess.run(["wineserver", "-k"], check=False, timeout=10)
+        windows = {case: contact_window(case, frames) for case, frames in traces.items()}
         if args.expected:
             expected = json.loads(args.expected.read_text())["probes"]
-            for case, frames in traces.items():
-                impact = next(i for i, frame in enumerate(frames) if frame["attackerRgb"] == ATTACKER[2])
-                window = [[frame["tick"] - impact, list(frame["attackerRgb"]), list(frame["defenderRgb"])]
-                          for frame in frames[impact - 1:impact + 14]]
-                if window != expected[case]:
-                    raise RuntimeError(f"Native {case} colors differ from the saved trace: {window}")
+            for case, window in expected.items():
+                if windows[case] != window:
+                    raise RuntimeError(f"Native {case} colors differ from the saved trace: {windows[case]}")
+        print("Native contact windows: " + json.dumps(windows))
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
                           "add": ADD, "mul": MUL, "traces": traces}, indent=2))
 
