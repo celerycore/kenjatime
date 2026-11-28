@@ -23,6 +23,64 @@ DEFENDER = [(96, 120, 144), (120, 100, 160), (56, 200, 104)]
 READY = (45, 125, 55)
 ADD = (64, -32, 32)
 MUL = (192, 320, 256)
+PROJECTILE_MARKERS = {
+    "timed": (205, 42, 187),
+    "expired": (247, 144, 13),
+    "shot": (55, 226, 174),
+    "hit": (170, 23, 239),
+    "clash-left": (20, 143, 219),
+    "cancelled-left": (240, 214, 28),
+    "clash-right": (155, 92, 21),
+    "cancelled-right": (222, 76, 142),
+}
+
+
+def lifecycle_controllers(side):
+    if side == 1:
+        specs = [
+            (210, "-72,0", "projremovetime = 4\nprojremanim = 211\nremvelocity = 3,0"),
+            (220, "64,0", "projhitanim = 221\nremvelocity = 2,0\ndamage = 10,0"),
+            (230, "32,-95", "projremanim = 211\nprojcancelanim = 231\nremvelocity = -2,0"),
+        ]
+        state = 200
+        trigger = "Time = 0"
+    else:
+        specs = [(240, "32,-95", "projremanim = 241\nremvelocity = -2,0")]
+        state = -2
+        trigger = "EnemyNear,StateNo = 200 && Var(0) = 0"
+    source = "".join(
+        f"""\n[State {state}, projectile {animation}]
+type = Projectile
+trigger1 = {trigger}
+postype = p1
+offset = {offset}
+projid = {animation}
+projanim = {animation}
+attr = S,SP
+pausetime = 0,0
+ground.velocity = 0,0
+sparkno = -1
+{parameters}
+"""
+        for animation, offset, parameters in specs
+    )
+    if side == 2:
+        source = f"\n[Statedef -2]\n{source}\n[State -2, launched]\ntype = VarSet\ntrigger1 = {trigger}\nv = 0\nvalue = 1\n"
+    return source
+
+
+def lifecycle_air():
+    actions = []
+    for index, (action, y) in enumerate([(210, -75), (211, -75), (220, -75), (221, -75),
+                                        (230, -35), (231, -35), (240, 20), (241, 20)]):
+        boxes = {
+            220: "Clsn1Default: 1\nClsn1[0] = -8,-48,8,0\n",
+            230: "Clsn2Default: 1\nClsn2[0] = -8,-12,8,0\n",
+            240: "Clsn2Default: 1\nClsn2[0] = -8,-12,8,0\n",
+        }.get(action, "")
+        duration = -1 if action % 10 == 0 else 3
+        actions.append(f"\n[Begin Action {action}]\n{boxes}0,{index + 4},0,{y},{duration}\n")
+    return "".join(actions)
 
 
 def write_sff(path, colors):
@@ -54,13 +112,17 @@ def prepare(game, case):
     cfg.write_text(config, encoding="latin-1")
 
     constants = (game / "chars/kfm/kfm.cns").read_bytes()
+    lifecycle = case == "projectile-lifecycle"
     defense = "Clsn2Default: 1\nClsn2[0] = -12,-48,12,0\n"
     for side, colors in enumerate((ATTACKER, DEFENDER), start=1):
         name = f"ktpal{side}"
         fighter = game / "chars" / name
         fighter.mkdir(exist_ok=True)
         (fighter / "base.cns").write_bytes(constants)
-        write_sff(fighter / "probe.sff", [*colors, READY])
+        sprites = [*colors, READY]
+        if lifecycle:
+            sprites.extend(PROJECTILE_MARKERS.values())
+        write_sff(fighter / "probe.sff", sprites)
         (fighter / f"{name}.def").write_text(f"""[Info]
 name = "Palette Probe {side}"
 mugenversion = 1.1
@@ -99,7 +161,7 @@ velocity = {velocity},0
 projanim = 201
 projremovetime = 60
 attr = S,SP"""
-        (fighter / "probe.st").write_text(states + f"""
+        attack_state = """
 [Statedef 190]
 type = S
 movetype = I
@@ -118,6 +180,8 @@ physics = N
 anim = 200
 ctrl = 0
 velset = 0,0
+"""
+        controller = f"""
 [State 200, contact]
 type = {contact}
 damage = 10,2
@@ -131,12 +195,15 @@ guard.sparkno = -1
 palfx.time = 4
 palfx.add = {','.join(map(str, ADD))}
 palfx.mul = {','.join(map(str, MUL))}
-""", encoding="latin-1", newline="\r\n")
+"""
+        if lifecycle:
+            controller = lifecycle_controllers(side)
+        (fighter / "probe.st").write_text(states + attack_state + controller, encoding="latin-1", newline="\r\n")
         idle_actions = "".join(
             f"[Begin Action {action}]\n{defense}0,{sprite},0,0,-1\n\n"
             for action, sprite in [(0, 0), (20, 0), (120, 0), (130, 0), (140, 0), (150, 2), (190, 3), (5000, 1)]
         )
-        (fighter / "probe.air").write_text(idle_actions + f"""[Begin Action 200]
+        actions = idle_actions + f"""[Begin Action 200]
 {defense}0,1,0,0,4
 Clsn1: 1
 Clsn1[0] = 0,-48,95,0
@@ -147,7 +214,10 @@ Clsn1[0] = 0,-48,95,0
 Clsn1Default: 1
 Clsn1[0] = -8,-48,8,0
 0,1,0,-75,-1
-""")
+"""
+        if lifecycle:
+            actions += lifecycle_air()
+        (fighter / "probe.air").write_text(actions)
 
     stage = (game / "stages/stage0.def").read_text(encoding="latin-1")
     for key, value in {"p1startx": -32, "p2startx": 32}.items():
@@ -159,7 +229,7 @@ def xdotool(*args):
     return subprocess.check_output(["xdotool", *args], text=True, stderr=subprocess.DEVNULL).strip()
 
 
-def sample(window):
+def sample(window, markers=False):
     geometry = dict(line.split("=", 1) for line in xdotool("getwindowgeometry", "--shell", window).splitlines())
     x, y, width, height = (int(geometry[key]) for key in ("X", "Y", "WIDTH", "HEIGHT"))
     screen = ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).convert("RGB")
@@ -168,10 +238,23 @@ def sample(window):
         pixels = screen.crop((center - 10, y + height * 64 // 100,
                               center + 10, y + height * 74 // 100)).tobytes()
         colors.append(Counter(zip(pixels[0::3], pixels[1::3], pixels[2::3])).most_common(1)[0][0])
-    return colors
+    positions = {}
+    if markers:
+        names = {color: name for name, color in PROJECTILE_MARKERS.items()}
+        bounds = {}
+        pixels = screen.crop((x, y, x + width, y + height)).getdata()
+        for index, pixel in enumerate(pixels):
+            name = names.get(pixel)
+            if name is not None:
+                column = index % width
+                left, right = bounds.get(name, (column, column))
+                bounds[name] = min(left, column), max(right, column)
+        positions = {name: (left + right + 1 - width) * 160 / width
+                     for name, (left, right) in sorted(bounds.items())}
+    return colors, positions
 
 
-def capture(game, guard, log_path):
+def capture(game, guard, log_path, markers=False):
     with log_path.open("wb") as log:
         process = subprocess.Popen([os.getenv("WINE", "wine"), "./mugen.exe", "ktpal1",
                                     "ktpal2", "-s", "ktpal"], cwd=game,
@@ -182,7 +265,7 @@ def capture(game, guard, log_path):
             while time.monotonic() < deadline and process.poll() is None:
                 try:
                     window = xdotool("search", "--onlyvisible", "--name", "M.U.G.E.N").splitlines()[0]
-                    last = sample(window)
+                    last, _ = sample(window)
                     if last == [READY, DEFENDER[0]]:
                         break
                 except (IndexError, subprocess.CalledProcessError):
@@ -199,8 +282,11 @@ def capture(game, guard, log_path):
                 for tick in range(75):
                     xdotool("key", "Scroll_Lock")
                     time.sleep(0.045)
-                    left, right = sample(window)
-                    frames.append({"tick": tick, "attackerRgb": left, "defenderRgb": right})
+                    (left, right), positions = sample(window, markers)
+                    frame = {"tick": tick, "attackerRgb": left, "defenderRgb": right}
+                    if markers:
+                        frame["projectiles"] = positions
+                    frames.append(frame)
             finally:
                 if guard:
                     xdotool("keyup", "d")
@@ -262,6 +348,8 @@ def main():
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
                                     str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
+            prepare(game, "projectile-lifecycle")
+            lifecycle = capture(game, False, root / "projectile-lifecycle.log", markers=True)
         finally:
             subprocess.run(["wineserver", "-k"], check=False, timeout=10)
         windows = {case: contact_window(case, frames) for case, frames in traces.items()}
@@ -279,8 +367,11 @@ def main():
                 raise RuntimeError(f"Native launch to contact timing differs from the saved trace: {timing}")
         print("Native launch to contact ticks: " + json.dumps(timing), file=sys.stderr)
         print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
+        launch = next(i for i, frame in enumerate(lifecycle) if frame["attackerRgb"] == ATTACKER[1])
+        lifecycle = [frame["projectiles"] for frame in lifecycle[launch - 1:launch + 12]]
+        print("Native projectile lifecycle: " + json.dumps(lifecycle), file=sys.stderr)
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
-                          "add": ADD, "mul": MUL, "traces": traces}, indent=2))
+                          "add": ADD, "mul": MUL, "traces": traces, "projectileLifecycle": lifecycle}, indent=2))
 
 
 if __name__ == "__main__":
