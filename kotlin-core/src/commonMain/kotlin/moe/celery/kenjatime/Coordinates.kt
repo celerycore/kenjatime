@@ -41,17 +41,28 @@ class MugenCoordinates(val width: Int) {
     /** Dimensionless authored projectile scales need not fit the fighter's
      * 1/256 Size metadata. Truncate each complete offset once before adding
      * the world axis; saturate before addition to avoid Long overflow. */
-    fun scaledBox(rect: MugenRect,x: Int,y: Int,right: Boolean,scaleX: Double,scaleY: Double): MugenRect {
+    fun scaledBox(rect: MugenRect,x: Int,y: Int,right: Boolean,scaleX: Double,scaleY: Double): MugenRect =
+        scaledBoxOffsets(rect, right, scaleX, scaleY).translate(x, y, ::MugenRect)
+
+    internal fun scaledBoxOffsets(rect: MugenRect, right: Boolean, scaleX: Double, scaleY: Double): ScaledBoxOffsets {
         require(scaleX.isFinite() && scaleY.isFinite())
-        fun axis(origin: Int,value: Int,factor: Double,face: Int): Int {
-            val offset=(value.toDouble()*factor*Fixed.ONE*320/width*face).toLong()
-            if(offset > Int.MAX_VALUE.toLong()-origin)return Int.MAX_VALUE
-            if(offset < Int.MIN_VALUE.toLong()-origin)return Int.MIN_VALUE
-            return (origin.toLong()+offset).toInt()
-        }
-        val face=if(right)1 else -1
-        val a=axis(x,rect.x1,scaleX,face);val b=axis(x,rect.x2,scaleX,face)
-        val c=axis(y,rect.y1,scaleY,1);val d=axis(y,rect.y2,scaleY,1)
-        return MugenRect(minOf(a,b),minOf(c,d),maxOf(a,b),maxOf(c,d))
+        fun offset(value: Int, factor: Double, face: Int) =
+            (value.toDouble()*factor*Fixed.ONE*320/width*face).toLong()
+        val face = if (right) 1 else -1
+        val a = offset(rect.x1, scaleX, face); val b = offset(rect.x2, scaleX, face)
+        val c = offset(rect.y1, scaleY, 1); val d = offset(rect.y2, scaleY, 1)
+        return ScaledBoxOffsets(minOf(a, b), minOf(c, d), maxOf(a, b), maxOf(c, d))
+    }
+}
+
+/** Scaling is fixed for a projectile's current AIR element. Only its origin moves. */
+internal class ScaledBoxOffsets(private val left: Long, private val top: Long,
+                                private val right: Long, private val bottom: Long) {
+    inline fun <T> translate(x: Int, y: Int, result: (Int, Int, Int, Int) -> T): T =
+        result(translateAxis(x, left), translateAxis(y, top), translateAxis(x, right), translateAxis(y, bottom))
+
+    private fun translateAxis(origin: Int, offset: Long): Int {
+        val bounded = offset.coerceIn(Int.MIN_VALUE.toLong() - origin, Int.MAX_VALUE.toLong() - origin)
+        return (origin + bounded).toInt()
     }
 }

@@ -116,6 +116,23 @@ class ProjectileScaleTest {
         }
     }
 
+    @Test fun projectileContactRefreshesScaledBoxesOnAnAirElementChange() {
+        val w = fight()
+        val active = w.p1.definition.animations.getValue(200).frames.first()
+        val action = AirAction(200, listOf(active.copy(boxes = emptyList()), active.copy(duration = -1)))
+        val shot = CoreProjectile(w.p1, 3, 7, AirAnimationPlayer(action), HitDefinition(damage = 10),
+            0, 0, Fixed.ONE, 0, -1)
+        w.entities.projectiles.add(shot)
+        w.p2.posX = 8 * Fixed.ONE
+
+        w.step()
+        assertEquals(1000, w.p2.life)
+        assertTrue(shot.hitBoxes().isEmpty())
+        w.step()
+        assertEquals(990, w.p2.life)
+        assertEquals(2 * Fixed.ONE, shot.hitBoxes().single().x1)
+    }
+
     @Test fun verticalScaleChangesContactHeightWithoutMovingTheAxis() {
         for(scale in listOf(1.0,2.0)) {
             val w=fight();w.p2.posX=5*Fixed.ONE;w.p2.posY=-30*Fixed.ONE

@@ -42,6 +42,30 @@ class ProjectileMotionTest {
         assertEquals(2*Fixed.ONE,p.vx);assertEquals(-Fixed.ONE,p.vy)
     }
 
+    @Test fun opponentLaunchUsesItsHorizontalAxisAndTheShootersVerticalAxis() {
+        val w = fight(source("postype=p2\noffset=8,6") + """
+
+            [State 0, move after launch]
+            type=PosAdd
+            trigger1=Time=0
+            x=12
+            y=16
+        """.trimIndent().let { "\n$it" }, width = 640)
+        w.p1.facingRight = false
+        w.p1.posY = -18 * Fixed.ONE
+        w.p2.posX = 50 * Fixed.ONE
+        w.p2.posY = -50 * Fixed.ONE
+
+        w.step()
+
+        val shot = w.entities.projectiles.single()
+        assertEquals(46 * Fixed.ONE, shot.x)
+        assertEquals(-15 * Fixed.ONE, shot.y)
+        assertEquals(-10 * Fixed.ONE, w.p1.posY)
+        assertFalse(shot.facingRight)
+        assertTrue(w.issues.isEmpty(), w.issues.toString())
+    }
+
     @Test fun accelerationUpdatesVelocityAfterEachMovement() {
         val w=fight();val p=spawn(w,vy=-2*Fixed.ONE,ax=Fixed.ONE,ay=Fixed.ONE/2)
         w.step();assertEquals(2*Fixed.ONE,p.x);assertEquals(-2*Fixed.ONE,p.y)

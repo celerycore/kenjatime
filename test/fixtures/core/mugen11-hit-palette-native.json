@@ -5,7 +5,29 @@
   "projectileWorkflowRun": "https://github.com/celerycore/kenjatime/actions/runs/45959813782",
   "movingProjectileWorkflowRun": "https://github.com/celerycore/kenjatime/actions/runs/45969577708",
   "projectileLifecycleWorkflowRun": "https://github.com/celerycore/kenjatime/actions/runs/46153100381",
+  "projectileOriginsWorkflowRun": "https://github.com/celerycore/kenjatime/actions/runs/46156700010",
   "projectileLifecycleAnchor": "One tick before the first displayed windup sprite",
+  "projectileOriginsAnchor": "Horizontal positions relative to the fighters' starting midpoint",
+  "projectileOrigins": {
+    "projectile-origin": [
+      {},
+      {"back":-57.5,"front":58.5,"left":24,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-24},
+      {"back":-57.5,"front":58.5,"left":24,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-24},
+      {"back":-57.5,"front":58.5,"left":24,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-24},
+      {"back":-57.5,"front":58.5,"left":24,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-24},
+      {},
+      {}
+    ],
+    "projectile-origin-shifted": [
+      {},
+      {"back":-97.5,"front":18.5,"left":-16,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-64},
+      {"back":-97.5,"front":18.5,"left":-16,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-64},
+      {"back":-97.5,"front":18.5,"left":-16,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-64},
+      {"back":-97.5,"front":18.5,"left":-16,"p1-left":48.5,"p1-right":-72,"p2-left":-75.5,"p2-right":76,"right":-64},
+      {},
+      {}
+    ]
+  },
   "anchor": "First displayed attack sprite",
   "projectileAnchor": "First displayed defender tint",
   "launchToContactTicks": {

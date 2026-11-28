@@ -37,6 +37,8 @@ ORIGIN_MARKERS = dict(zip(
     ("p1-right", "p2-right", "left", "right", "p1-left", "p2-left", "front", "back"),
     PROJECTILE_MARKERS.values(),
 ))
+ORIGIN_CASES = ("projectile-origin", "projectile-origin-shifted")
+SCREEN_OFFSETS = {"left": 24, "right": -24, "front": 58, "back": -58}
 
 
 def origin_controllers(side):
@@ -136,7 +138,7 @@ def prepare(game, case):
 
     constants = (game / "chars/kfm/kfm.cns").read_bytes()
     lifecycle = case == "projectile-lifecycle"
-    origin = case in ("projectile-origin", "projectile-origin-shifted")
+    origin = case in ORIGIN_CASES
     defense = "Clsn2Default: 1\nClsn2[0] = -12,-48,12,0\n"
     for side, colors in enumerate((ATTACKER, DEFENDER), start=1):
         name = f"ktpal{side}"
@@ -292,6 +294,9 @@ def sample(window, markers=None, track_fighters=False):
         positions = {name: (left + right + 1 - width) * 160 / width
                      for name, (left, right) in sorted(bounds.items())}
         if track_fighters:
+            for name, expected in SCREEN_OFFSETS.items():
+                if name in positions and abs(positions[name] - expected) > 0.5:
+                    raise RuntimeError(f"Native {name} is not centered at screen offset {expected}: {positions}")
             # P1 remains 32 units left of the fixture midpoint. Its sprite
             # gives a reference axis even if MUGEN re-centers the camera.
             attacker = positions.pop("attacker-axis", None)
@@ -386,15 +391,14 @@ def main():
         expected = json.loads(args.expected.read_text()) if args.expected else {}
         traces = {}
         try:
-            for case in ("hit", "guard", "projectile", "moving-projectile", "projectile-lifecycle",
-                         "projectile-origin", "projectile-origin-shifted"):
+            for case in ("hit", "guard", "projectile", "moving-projectile", "projectile-lifecycle", *ORIGIN_CASES):
                 if case != "guard":
                     prepare(game, case)
-                markers = ORIGIN_MARKERS if case.startswith("projectile-origin") else (
+                markers = ORIGIN_MARKERS if case in ORIGIN_CASES else (
                     PROJECTILE_MARKERS if case == "projectile-lifecycle" else None)
                 traces[case] = capture(game, case == "guard", root / f"{case}.log", markers=markers,
-                                       track_fighters=case.startswith("projectile-origin"))
-                if args.wasm and not case.startswith("projectile-origin"):
+                                       track_fighters=case in ORIGIN_CASES)
+                if args.wasm:
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
                                     str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
@@ -404,7 +408,7 @@ def main():
         launch = next(i for i, frame in enumerate(lifecycle) if frame["attackerRgb"] == ATTACKER[1])
         lifecycle = [frame["projectiles"] for frame in lifecycle[launch - 1:launch + 12]]
         origins = {}
-        for case in ("projectile-origin", "projectile-origin-shifted"):
+        for case in ORIGIN_CASES:
             trace = traces.pop(case)
             launch = next(i for i, frame in enumerate(trace) if frame["attackerRgb"] == ATTACKER[1])
             origins[case] = [frame["projectiles"] for frame in trace[launch - 1:launch + 6]]
@@ -423,6 +427,8 @@ def main():
                 raise RuntimeError(f"Native launch to contact timing differs from the saved trace: {timing}")
             if expected["projectileLifecycle"] != lifecycle:
                 raise RuntimeError(f"Native projectile removal frames differ from the saved trace: {lifecycle}")
+            if expected["projectileOrigins"] != origins:
+                raise RuntimeError(f"Native projectile origins differ from the saved trace: {origins}")
         print("Native launch to contact ticks: " + json.dumps(timing), file=sys.stderr)
         print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
         print("Native projectile lifecycle: " + json.dumps(lifecycle), file=sys.stderr)

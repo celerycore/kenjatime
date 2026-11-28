@@ -4,17 +4,22 @@ import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
 
 const [before, after, mode = 'guard'] = process.argv.slice(2);
-assert.ok(before && after && ['guard', 'clash'].includes(mode),
-    'Pass paths to equivalent baseline and candidate Wasm modules, followed by optional guard or clash mode.');
+assert.ok(before && after && ['guard', 'clash', 'contact'].includes(mode),
+    'Pass paths to equivalent baseline and candidate Wasm modules, followed by guard, clash, or contact.');
 const clashes = mode === 'clash';
+const boxes = mode === 'contact' ? 8 : 1;
+const attacks = boxes === 1 ? 'Clsn1[0] = -8,-24,8,0' : Array.from({length: boxes}, (_, index) => {
+    const y = -3 * index;
+    return `Clsn1[${index}] = -8,${y - 3},8,${y}`;
+}).join('\n');
 const modules = await Promise.all([before, after].map(path => import(pathToFileURL(resolve(path)).href)));
 const air = `[Begin Action 0]
 Clsn2Default: 1
 Clsn2[0] = -12,-48,12,0
 0,0,0,0,-1
 [Begin Action 1]
-Clsn1Default: 1
-Clsn1[0] = -8,-24,8,0
+Clsn1Default: ${boxes}
+${attacks}
 Clsn2Default: 1
 Clsn2[0] = -8,-24,8,0
 0,1,0,0,-1`;
@@ -70,7 +75,8 @@ for (const projectiles of [16, 256]) {
         for (const [index, result] of results.entries()) samples[index].push(result.msPerTick);
     }
     const [baseline, candidate] = samples.map(sample => sample.sort((a, b) => a - b)[Math.floor(trials / 2)]);
-    console.log(`${projectiles} moving projectiles, ${clashes ? 'two teams' : 'one team'}, ${frames} ticks per trial, ${trials} trials. ` +
+    console.log(`${projectiles} moving projectiles, ${clashes ? 'two teams' : 'one team'}, ${boxes} attack boxes per shot, ` +
+        `${frames} ticks per trial, ${trials} trials. ` +
         `Median ${baseline.toFixed(3)} → ${candidate.toFixed(3)} ms/tick (${(baseline / candidate).toFixed(2)}×). ` +
         'Final states match.');
 }

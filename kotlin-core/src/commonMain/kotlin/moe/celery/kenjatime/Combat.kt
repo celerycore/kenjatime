@@ -934,6 +934,7 @@ class FightingCharacter(
                     return value(parts[0]) to (parts.getOrNull(1)?.let(::value) ?: y)
                 }
                 val position=vector("offset")
+                val postype = args["postype"]?.trim()?.trim('"', '\'')?.lowercase() ?: "p1"
                 val velocity=vector("velocity")
                 val acceleration=vector("accel")
                 val multiplier=vector("velmul",1.0,1.0)
@@ -1052,7 +1053,8 @@ class FightingCharacter(
                     stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
                     removeOnHit=removeOnHit,hits=hits,missTime=missTime,priority=projectilePriority,
                     scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority,ownPalette=ownPalette,
-                    pauseMoves=CorePauseMoves.read(args, this, errors), removal=removal
+                    pauseMoves=CorePauseMoves.read(args, this, errors), removal=removal,
+                    origin=ProjectileOrigin.capture(this, postype, errors)
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")
