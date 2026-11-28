@@ -192,7 +192,9 @@ object CorePresentationPlanner {
         actorDraw(0,"fighter",fight.p1)
         actorDraw(1,"fighter",fight.p2)
         for(helper in fight.entities.helpers)actorDraw(if(helper.actor.opponent === fight.p2)0 else 1,"helper",helper.actor)
-        for(projectile in fight.entities.projectiles)enqueue(projectile.spritePriority.toLong()) {
+        val projectiles = if (fight.entities.projectileRemovals.isEmpty()) fight.entities.projectiles
+            else (fight.entities.projectiles + fight.entities.projectileRemovals).sortedBy { it.entityId }
+        for(projectile in projectiles)enqueue(projectile.spritePriority.toLong()) {
             draw(if(projectile.owner.opponent === fight.p2)0 else 1,"projectile",projectile.x,projectile.y,
                 projectile.facingRight,projectile.action,projectile.owner.definition,0,projectile=projectile,priority=projectile.spritePriority.toLong())
         }

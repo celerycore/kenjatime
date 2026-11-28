@@ -81,6 +81,7 @@ internal class CoreFightPalettes(private val fight: DeterministicFight) {
         for (actor in listOf(fight.p1, fight.p2)) if (!pauses.frozen(actor)) groups.add(actor.paletteEffects)
         for(h in fight.entities.helpers) if (!pauses.frozen(h.actor)) groups.add(h.actor.paletteEffects)
         for(p in fight.entities.projectiles) if (!pauses.entityFrozen(p.pauseMoves)) groups.add(p.paletteEffects)
+        for(p in fight.entities.projectileRemovals) if (!pauses.entityFrozen(p.pauseMoves)) groups.add(p.paletteEffects)
         for(e in fight.effects.all) if (!pauses.entityFrozen(e.config.pauseMoves)) groups.add(e.paletteEffects)
         for(group in groups)group.beginTick()
     }

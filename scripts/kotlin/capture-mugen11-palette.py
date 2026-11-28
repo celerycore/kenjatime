@@ -1,4 +1,4 @@
-"""Record hit and guard palette colors from the original MUGEN executable."""
+"""Record contact colors and projectile removal frames from the original MUGEN executable."""
 
 import argparse
 from collections import Counter
@@ -335,18 +335,20 @@ def main():
         expected = json.loads(args.expected.read_text()) if args.expected else {}
         traces = {}
         try:
-            for case in ("hit", "guard", "projectile", "moving-projectile"):
+            for case in ("hit", "guard", "projectile", "moving-projectile", "projectile-lifecycle"):
                 if case != "guard":
                     prepare(game, case)
-                traces[case] = capture(game, case == "guard", root / f"{case}.log")
+                traces[case] = capture(game, case == "guard", root / f"{case}.log",
+                                       markers=case == "projectile-lifecycle")
                 if args.wasm:
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
                                     str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
-            prepare(game, "projectile-lifecycle")
-            lifecycle = capture(game, False, root / "projectile-lifecycle.log", markers=True)
         finally:
             subprocess.run(["wineserver", "-k"], check=False, timeout=10)
+        lifecycle = traces.pop("projectile-lifecycle")
+        launch = next(i for i, frame in enumerate(lifecycle) if frame["attackerRgb"] == ATTACKER[1])
+        lifecycle = [frame["projectiles"] for frame in lifecycle[launch - 1:launch + 12]]
         windows = {case: contact_window(case, frames) for case, frames in traces.items()}
         timing = {
             case: impact_index(case, frames) - next(
@@ -360,10 +362,10 @@ def main():
                     raise RuntimeError(f"Native {case} colors differ from the saved trace: {window}")
             if expected["launchToContactTicks"] != timing:
                 raise RuntimeError(f"Native launch to contact timing differs from the saved trace: {timing}")
+            if expected["projectileLifecycle"] != lifecycle:
+                raise RuntimeError(f"Native projectile removal frames differ from the saved trace: {lifecycle}")
         print("Native launch to contact ticks: " + json.dumps(timing), file=sys.stderr)
         print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
-        launch = next(i for i, frame in enumerate(lifecycle) if frame["attackerRgb"] == ATTACKER[1])
-        lifecycle = [frame["projectiles"] for frame in lifecycle[launch - 1:launch + 12]]
         print("Native projectile lifecycle: " + json.dumps(lifecycle), file=sys.stderr)
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
                           "add": ADD, "mul": MUL, "traces": traces, "projectileLifecycle": lifecycle}, indent=2))

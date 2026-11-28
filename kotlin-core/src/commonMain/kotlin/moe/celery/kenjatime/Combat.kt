@@ -963,6 +963,19 @@ class FightingCharacter(
                 val projectilePriority=allowance("projpriority",1)
                 require(projectilePriority >= 1) { "Projectile projpriority must be positive" }
                 val removeOnHit=(args["projremove"]?.let(::value) ?: 1.0) != 0.0
+                fun removalAnimation(key: String, fallback: Int = -1): Int {
+                    val n = args[key]?.let(::value) ?: return fallback
+                    require(n in -1.0..Int.MAX_VALUE.toDouble()) { "Projectile $key must be -1 or nonnegative" }
+                    return n.toInt()
+                }
+                val hitAnimation = removalAnimation("projhitanim")
+                val expiryAnimation = removalAnimation("projremanim", hitAnimation)
+                val cancelAnimation = removalAnimation("projcancelanim", expiryAnimation)
+                val removal = if (hitAnimation >= 0 || expiryAnimation >= 0 || cancelAnimation >= 0) {
+                    val (x, y) = vector("remvelocity")
+                    ProjectileRemoval(hitAnimation, expiryAnimation, cancelAnimation,
+                        coordinates.toWorld(x), coordinates.toWorld(y))
+                } else null
                 val pauses=CoreHitPauses.parse(args,this,errors,true) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hitFlags=CoreHitFlags.parse(args["hitflag"] ?: args["projhitflag"],errors) ?: return false
@@ -1039,7 +1052,7 @@ class FightingCharacter(
                     stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
                     removeOnHit=removeOnHit,hits=hits,missTime=missTime,priority=projectilePriority,
                     scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority,ownPalette=ownPalette,
-                    pauseMoves=CorePauseMoves.read(args, this, errors)
+                    pauseMoves=CorePauseMoves.read(args, this, errors), removal=removal
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")

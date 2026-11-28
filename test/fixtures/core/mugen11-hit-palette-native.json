@@ -4,12 +4,29 @@
   "workflowRun": "https://github.com/celerycore/kenjatime/actions/runs/45825649907",
   "projectileWorkflowRun": "https://github.com/celerycore/kenjatime/actions/runs/45959813782",
   "movingProjectileWorkflowRun": "https://github.com/celerycore/kenjatime/actions/runs/45969577708",
+  "projectileLifecycleWorkflowRun": "https://github.com/celerycore/kenjatime/actions/runs/46153100381",
+  "projectileLifecycleAnchor": "One tick before the first displayed windup sprite",
   "anchor": "First displayed attack sprite",
   "projectileAnchor": "First displayed defender tint",
   "launchToContactTicks": {
     "projectile": 0,
     "moving-projectile": 2
   },
+  "projectileLifecycle": [
+    {},
+    {"clash-left":0,"clash-right":0.5,"shot":32.25,"timed":-104},
+    {"cancelled-left":0,"cancelled-right":0.5,"hit":32.25,"timed":-104},
+    {"cancelled-left":-2,"cancelled-right":2.5,"hit":34.25,"timed":-104},
+    {"cancelled-left":-4,"cancelled-right":4.5,"hit":36.25,"timed":-104},
+    {"expired":-104},
+    {"expired":-101},
+    {"expired":-98},
+    {},
+    {},
+    {},
+    {},
+    {}
+  ],
   "columns": [
     "tick",
     "attackerRgb",
