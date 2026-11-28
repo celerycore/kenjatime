@@ -136,7 +136,7 @@ def prepare(game, case):
 
     constants = (game / "chars/kfm/kfm.cns").read_bytes()
     lifecycle = case == "projectile-lifecycle"
-    origin = case == "projectile-origin"
+    origin = case in ("projectile-origin", "projectile-origin-shifted")
     defense = "Clsn2Default: 1\nClsn2[0] = -12,-48,12,0\n"
     for side, colors in enumerate((ATTACKER, DEFENDER), start=1):
         name = f"ktpal{side}"
@@ -249,7 +249,8 @@ Clsn1[0] = -8,-48,8,0
         (fighter / "probe.air").write_text(actions)
 
     stage = (game / "stages/stage0.def").read_text(encoding="latin-1")
-    for key, value in {"p1startx": -32, "p2startx": 32}.items():
+    center = 80 if case == "projectile-origin-shifted" else 0
+    for key, value in {"startx": center, "p1startx": center - 32, "p2startx": center + 32}.items():
         stage = re.sub(rf"^{key}\s*=.*$", f"{key} = {value}", stage, flags=re.M | re.I)
     (game / "stages/ktpal.def").write_text(stage, encoding="latin-1")
 
@@ -369,12 +370,14 @@ def main():
         expected = json.loads(args.expected.read_text()) if args.expected else {}
         traces = {}
         try:
-            for case in ("hit", "guard", "projectile", "moving-projectile", "projectile-lifecycle", "projectile-origin"):
+            for case in ("hit", "guard", "projectile", "moving-projectile", "projectile-lifecycle",
+                         "projectile-origin", "projectile-origin-shifted"):
                 if case != "guard":
                     prepare(game, case)
-                markers = {"projectile-lifecycle": PROJECTILE_MARKERS, "projectile-origin": ORIGIN_MARKERS}.get(case)
+                markers = ORIGIN_MARKERS if case.startswith("projectile-origin") else (
+                    PROJECTILE_MARKERS if case == "projectile-lifecycle" else None)
                 traces[case] = capture(game, case == "guard", root / f"{case}.log", markers=markers)
-                if args.wasm and case != "projectile-origin":
+                if args.wasm and not case.startswith("projectile-origin"):
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
                                     str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
@@ -383,9 +386,11 @@ def main():
         lifecycle = traces.pop("projectile-lifecycle")
         launch = next(i for i, frame in enumerate(lifecycle) if frame["attackerRgb"] == ATTACKER[1])
         lifecycle = [frame["projectiles"] for frame in lifecycle[launch - 1:launch + 12]]
-        origin = traces.pop("projectile-origin")
-        launch = next(i for i, frame in enumerate(origin) if frame["attackerRgb"] == ATTACKER[1])
-        origin = [frame["projectiles"] for frame in origin[launch - 1:launch + 6]]
+        origins = {}
+        for case in ("projectile-origin", "projectile-origin-shifted"):
+            trace = traces.pop(case)
+            launch = next(i for i, frame in enumerate(trace) if frame["attackerRgb"] == ATTACKER[1])
+            origins[case] = [frame["projectiles"] for frame in trace[launch - 1:launch + 6]]
         windows = {case: contact_window(case, frames) for case, frames in traces.items()}
         timing = {
             case: impact_index(case, frames) - next(
@@ -404,10 +409,10 @@ def main():
         print("Native launch to contact ticks: " + json.dumps(timing), file=sys.stderr)
         print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
         print("Native projectile lifecycle: " + json.dumps(lifecycle), file=sys.stderr)
-        print("Native projectile origins: " + json.dumps(origin), file=sys.stderr)
+        print("Native projectile origins: " + json.dumps(origins), file=sys.stderr)
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
                           "add": ADD, "mul": MUL, "traces": traces, "projectileLifecycle": lifecycle,
-                          "projectileOrigins": origin}, indent=2))
+                          "projectileOrigins": origins}, indent=2))
 
 
 if __name__ == "__main__":
