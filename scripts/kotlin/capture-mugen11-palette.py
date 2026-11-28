@@ -33,6 +33,36 @@ PROJECTILE_MARKERS = {
     "clash-right": (155, 92, 21),
     "cancelled-right": (222, 76, 142),
 }
+ORIGIN_MARKERS = dict(zip(
+    ("p1-right", "p2-right", "left", "right", "p1-left", "p2-left", "front", "back"),
+    PROJECTILE_MARKERS.values(),
+))
+
+
+def origin_controllers(side):
+    # Move the player twice in one controller pass. Shots should keep the axes
+    # seen at their own launch, despite the player returning to the same spot.
+    shift = -12 if side == 1 else 12
+    specs = (
+        [("p1", -28, -100), ("p2", 44, -100), ("left", 24, -170), ("right", -24, -170)]
+        if side == 1 else
+        [("p1", -28, -45), ("p2", 44, -45), ("front", -58, -110), ("back", 58, -110)]
+    )
+    reset = f"\n[State 200, restore axis]\ntype = PosAdd\ntrigger1 = Time = 0\nx = {-shift}\n"
+    source = f"\n[State 200, move axis]\ntype = PosAdd\ntrigger1 = Time = 0\nx = {shift}\n"
+    for index, (postype, x, y) in enumerate(specs, start=(side - 1) * 4):
+        if index % 4 == 1:
+            source += reset
+        source += f"""\n[State 200, origin {postype}]
+type = Projectile
+trigger1 = Time = 0
+postype = {postype}
+offset = {x},{y}
+projanim = {250 + index}
+projremovetime = 4
+projedgebound = 120
+"""
+    return source
 
 
 def lifecycle_controllers(side):
@@ -106,6 +136,7 @@ def prepare(game, case):
 
     constants = (game / "chars/kfm/kfm.cns").read_bytes()
     lifecycle = case == "projectile-lifecycle"
+    origin = case == "projectile-origin"
     defense = "Clsn2Default: 1\nClsn2[0] = -12,-48,12,0\n"
     for side, colors in enumerate((ATTACKER, DEFENDER), start=1):
         name = f"ktpal{side}"
@@ -113,7 +144,7 @@ def prepare(game, case):
         fighter.mkdir(exist_ok=True)
         (fighter / "base.cns").write_bytes(constants)
         sprites = [*colors, READY]
-        if lifecycle:
+        if lifecycle or origin:
             sprites.extend(PROJECTILE_MARKERS.values())
         write_sff(fighter / "probe.sff", sprites)
         (fighter / f"{name}.def").write_text(f"""[Info]
@@ -140,7 +171,7 @@ anim = probe.air
             f"\n[Statedef {state}]\ntype = S\nmovetype = {move}\nphysics = N\nanim = {anim}\nctrl = {ctrl}\nvelset = 0,0\n"
             f"[State {state}, hold]\ntype = Null\ntrigger1 = 1\n"
             + ("[State 0, arm]\ntype = ChangeState\ntrigger1 = RoundState = 2\nvalue = 190\n"
-               if (side == 1 or lifecycle) and state == 0 else "")
+               if (side == 1 or lifecycle or origin) and state == 0 else "")
             for state, move, anim, ctrl in [(0, "I", 0, 1), (20, "I", 0, 1), (150, "H", 150, 0), (5000, "H", 5000, 0)]
         )
         contact = "HitDef\ntrigger1 = Time = 0\nattr = S,NA"
@@ -189,8 +220,8 @@ palfx.time = 4
 palfx.add = {','.join(map(str, ADD))}
 palfx.mul = {','.join(map(str, MUL))}
 """
-        if lifecycle:
-            controller = lifecycle_controllers(side)
+        if lifecycle or origin:
+            controller = origin_controllers(side) if origin else lifecycle_controllers(side)
             if side == 2:
                 attack_state = attack_state.replace("anim = 190", "anim = 0").replace("anim = 200", "anim = 0")
         (fighter / "probe.st").write_text(states + attack_state + controller, encoding="latin-1", newline="\r\n")
@@ -212,6 +243,9 @@ Clsn1[0] = -8,-48,8,0
 """
         if lifecycle:
             actions += lifecycle_air()
+        if origin:
+            actions += "".join(f"\n[Begin Action {250 + index}]\n0,{4 + index},0,0,-1\n"
+                               for index in range(len(ORIGIN_MARKERS)))
         (fighter / "probe.air").write_text(actions)
 
     stage = (game / "stages/stage0.def").read_text(encoding="latin-1")
@@ -224,7 +258,7 @@ def xdotool(*args):
     return subprocess.check_output(["xdotool", *args], text=True, stderr=subprocess.DEVNULL).strip()
 
 
-def sample(window, markers=False):
+def sample(window, markers=None):
     geometry = dict(line.split("=", 1) for line in xdotool("getwindowgeometry", "--shell", window).splitlines())
     x, y, width, height = (int(geometry[key]) for key in ("X", "Y", "WIDTH", "HEIGHT"))
     screen = ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).convert("RGB")
@@ -235,7 +269,7 @@ def sample(window, markers=False):
         colors.append(Counter(zip(pixels[0::3], pixels[1::3], pixels[2::3])).most_common(1)[0][0])
     positions = {}
     if markers:
-        names = {color: name for name, color in PROJECTILE_MARKERS.items()}
+        names = {color: name for name, color in markers.items()}
         bounds = {}
         pixels = screen.crop((x, y, x + width, y + height)).getdata()
         for index, pixel in enumerate(pixels):
@@ -249,7 +283,7 @@ def sample(window, markers=False):
     return colors, positions
 
 
-def capture(game, guard, log_path, markers=False):
+def capture(game, guard, log_path, markers=None):
     with log_path.open("wb") as log:
         process = subprocess.Popen([os.getenv("WINE", "wine"), "./mugen.exe", "ktpal1",
                                     "ktpal2", "-s", "ktpal"], cwd=game,
@@ -335,12 +369,12 @@ def main():
         expected = json.loads(args.expected.read_text()) if args.expected else {}
         traces = {}
         try:
-            for case in ("hit", "guard", "projectile", "moving-projectile", "projectile-lifecycle"):
+            for case in ("hit", "guard", "projectile", "moving-projectile", "projectile-lifecycle", "projectile-origin"):
                 if case != "guard":
                     prepare(game, case)
-                traces[case] = capture(game, case == "guard", root / f"{case}.log",
-                                       markers=case == "projectile-lifecycle")
-                if args.wasm:
+                markers = {"projectile-lifecycle": PROJECTILE_MARKERS, "projectile-origin": ORIGIN_MARKERS}.get(case)
+                traces[case] = capture(game, case == "guard", root / f"{case}.log", markers=markers)
+                if args.wasm and case != "projectile-origin":
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
                                     str(args.wasm), case, str(args.expected)], check=True, stdout=sys.stderr)
@@ -349,6 +383,9 @@ def main():
         lifecycle = traces.pop("projectile-lifecycle")
         launch = next(i for i, frame in enumerate(lifecycle) if frame["attackerRgb"] == ATTACKER[1])
         lifecycle = [frame["projectiles"] for frame in lifecycle[launch - 1:launch + 12]]
+        origin = traces.pop("projectile-origin")
+        launch = next(i for i, frame in enumerate(origin) if frame["attackerRgb"] == ATTACKER[1])
+        origin = [frame["projectiles"] for frame in origin[launch - 1:launch + 6]]
         windows = {case: contact_window(case, frames) for case, frames in traces.items()}
         timing = {
             case: impact_index(case, frames) - next(
@@ -367,8 +404,10 @@ def main():
         print("Native launch to contact ticks: " + json.dumps(timing), file=sys.stderr)
         print("Native contact windows: " + json.dumps(windows), file=sys.stderr)
         print("Native projectile lifecycle: " + json.dumps(lifecycle), file=sys.stderr)
+        print("Native projectile origins: " + json.dumps(origin), file=sys.stderr)
         print(json.dumps({"referenceSha256": ARCHIVE_SHA, "duration": 4, "hitPause": 8,
-                          "add": ADD, "mul": MUL, "traces": traces, "projectileLifecycle": lifecycle}, indent=2))
+                          "add": ADD, "mul": MUL, "traces": traces, "projectileLifecycle": lifecycle,
+                          "projectileOrigins": origin}, indent=2))
 
 
 if __name__ == "__main__":
