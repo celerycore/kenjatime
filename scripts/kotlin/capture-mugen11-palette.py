@@ -259,18 +259,28 @@ def xdotool(*args):
     return subprocess.check_output(["xdotool", *args], text=True, stderr=subprocess.DEVNULL).strip()
 
 
-def sample(window, markers=None):
+def sample(window, markers=None, track_fighters=False):
     geometry = dict(line.split("=", 1) for line in xdotool("getwindowgeometry", "--shell", window).splitlines())
     x, y, width, height = (int(geometry[key]) for key in ("X", "Y", "WIDTH", "HEIGHT"))
     screen = ImageGrab.grab(xdisplay=os.environ["DISPLAY"]).convert("RGB")
     colors = []
-    for center in (x + width * 4 // 10, x + width * 6 // 10):
-        pixels = screen.crop((center - 10, y + height * 64 // 100,
-                              center + 10, y + height * 74 // 100)).tobytes()
-        colors.append(Counter(zip(pixels[0::3], pixels[1::3], pixels[2::3])).most_common(1)[0][0])
+    y1, y2 = y + height * 64 // 100, y + height * 74 // 100
+    if track_fighters:
+        # Offset stages need not keep the player axes at 40% and 60% of the window.
+        band = screen.crop((x, y1, x + width, y2))
+        counts = Counter(band.getdata())
+        for choices in ([*ATTACKER, READY], DEFENDER):
+            best = max(choices, key=counts.__getitem__)
+            colors.append(best if counts[best] >= 100 else None)
+    else:
+        for center in (x + width * 4 // 10, x + width * 6 // 10):
+            pixels = screen.crop((center - 10, y1, center + 10, y2)).tobytes()
+            colors.append(Counter(zip(pixels[0::3], pixels[1::3], pixels[2::3])).most_common(1)[0][0])
     positions = {}
     if markers:
         names = {color: name for name, color in markers.items()}
+        if track_fighters and colors[0] is not None:
+            names[colors[0]] = "attacker-axis"
         bounds = {}
         pixels = screen.crop((x, y, x + width, y + height)).getdata()
         for index, pixel in enumerate(pixels):
@@ -281,10 +291,16 @@ def sample(window, markers=None):
                 bounds[name] = min(left, column), max(right, column)
         positions = {name: (left + right + 1 - width) * 160 / width
                      for name, (left, right) in sorted(bounds.items())}
+        if track_fighters:
+            # P1 remains 32 units left of the fixture midpoint. Its sprite
+            # gives a reference axis even if MUGEN re-centers the camera.
+            attacker = positions.pop("attacker-axis", None)
+            if attacker is not None:
+                positions = {name: value - attacker - 32 for name, value in positions.items()}
     return colors, positions
 
 
-def capture(game, guard, log_path, markers=None):
+def capture(game, guard, log_path, markers=None, track_fighters=False):
     with log_path.open("wb") as log:
         process = subprocess.Popen([os.getenv("WINE", "wine"), "./mugen.exe", "ktpal1",
                                     "ktpal2", "-s", "ktpal"], cwd=game,
@@ -295,7 +311,7 @@ def capture(game, guard, log_path, markers=None):
             while time.monotonic() < deadline and process.poll() is None:
                 try:
                     window = xdotool("search", "--onlyvisible", "--name", "M.U.G.E.N").splitlines()[0]
-                    last, _ = sample(window)
+                    last, _ = sample(window, track_fighters=track_fighters)
                     if last == [READY, DEFENDER[0]]:
                         break
                 except (IndexError, subprocess.CalledProcessError):
@@ -312,7 +328,7 @@ def capture(game, guard, log_path, markers=None):
                 for tick in range(75):
                     xdotool("key", "Scroll_Lock")
                     time.sleep(0.045)
-                    (left, right), positions = sample(window, markers)
+                    (left, right), positions = sample(window, markers, track_fighters)
                     frame = {"tick": tick, "attackerRgb": left, "defenderRgb": right}
                     if markers:
                         frame["projectiles"] = positions
@@ -320,7 +336,7 @@ def capture(game, guard, log_path, markers=None):
             finally:
                 if guard:
                     xdotool("keyup", "d")
-            if not any(tuple(frame["attackerRgb"]) == ATTACKER[2] for frame in frames):
+            if not any(frame["attackerRgb"] == ATTACKER[2] for frame in frames):
                 raise RuntimeError(f"MUGEN did not render the attack frame. Samples: {frames}")
             return frames
         except Exception:
@@ -376,7 +392,8 @@ def main():
                     prepare(game, case)
                 markers = ORIGIN_MARKERS if case.startswith("projectile-origin") else (
                     PROJECTILE_MARKERS if case == "projectile-lifecycle" else None)
-                traces[case] = capture(game, case == "guard", root / f"{case}.log", markers=markers)
+                traces[case] = capture(game, case == "guard", root / f"{case}.log", markers=markers,
+                                       track_fighters=case.startswith("projectile-origin"))
                 if args.wasm and not case.startswith("projectile-origin"):
                     verifier = Path(__file__).with_name("verify-mugen11-palette.mjs")
                     subprocess.run(["node", "--experimental-wasm-modules", str(verifier), str(game),
