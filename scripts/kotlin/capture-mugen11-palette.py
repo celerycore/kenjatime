@@ -42,16 +42,12 @@ def lifecycle_controllers(side):
             (220, "64,0", "projhitanim = 221\nremvelocity = 2,0\ndamage = 10,0"),
             (230, "32,-95", "projremanim = 211\nprojcancelanim = 231\nremvelocity = -2,0"),
         ]
-        state = 200
-        trigger = "Time = 0"
     else:
         specs = [(240, "32,-95", "projremanim = 241\nremvelocity = -2,0")]
-        state = -2
-        trigger = "EnemyNear,StateNo = 200 && Var(0) = 0"
-    source = "".join(
-        f"""\n[State {state}, projectile {animation}]
+    return "".join(
+        f"""\n[State 200, projectile {animation}]
 type = Projectile
-trigger1 = {trigger}
+trigger1 = Time = 0
 postype = p1
 offset = {offset}
 projid = {animation}
@@ -64,9 +60,6 @@ sparkno = -1
 """
         for animation, offset, parameters in specs
     )
-    if side == 2:
-        source = f"\n[Statedef -2]\n{source}\n[State -2, launched]\ntype = VarSet\ntrigger1 = {trigger}\nv = 0\nvalue = 1\n"
-    return source
 
 
 def lifecycle_air():
@@ -147,7 +140,7 @@ anim = probe.air
             f"\n[Statedef {state}]\ntype = S\nmovetype = {move}\nphysics = N\nanim = {anim}\nctrl = {ctrl}\nvelset = 0,0\n"
             f"[State {state}, hold]\ntype = Null\ntrigger1 = 1\n"
             + ("[State 0, arm]\ntype = ChangeState\ntrigger1 = RoundState = 2\nvalue = 190\n"
-               if side == 1 and state == 0 else "")
+               if (side == 1 or lifecycle) and state == 0 else "")
             for state, move, anim, ctrl in [(0, "I", 0, 1), (20, "I", 0, 1), (150, "H", 150, 0), (5000, "H", 5000, 0)]
         )
         contact = "HitDef\ntrigger1 = Time = 0\nattr = S,NA"
@@ -198,6 +191,8 @@ palfx.mul = {','.join(map(str, MUL))}
 """
         if lifecycle:
             controller = lifecycle_controllers(side)
+            if side == 2:
+                attack_state = attack_state.replace("anim = 190", "anim = 0").replace("anim = 200", "anim = 0")
         (fighter / "probe.st").write_text(states + attack_state + controller, encoding="latin-1", newline="\r\n")
         idle_actions = "".join(
             f"[Begin Action {action}]\n{defense}0,{sprite},0,0,-1\n\n"
