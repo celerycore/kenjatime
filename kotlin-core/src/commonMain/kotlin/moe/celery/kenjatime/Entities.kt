@@ -22,8 +22,33 @@ sealed class EntityRequest {
         val priority: Int = 1,val scaleX: Double = 1.0,val scaleY: Double = 1.0,
         val attackMultiplier: Double = hit.capturedAttackMultiplier ?: owner.attackMultiplier,
         val spritePriority: Int = 3,val ownPalette: Boolean=false,
-        val pauseMoves: CorePauseMoves = CorePauseMoves()
+        val pauseMoves: CorePauseMoves = CorePauseMoves(),
+        val removal: ProjectileRemoval? = null,
+        val origin: ProjectileOrigin? = null
     ) : EntityRequest()
+}
+
+data class ProjectileRemoval(val hit: Int, val expired: Int, val cancelled: Int, val vx: Int, val vy: Int)
+
+data class ProjectileOrigin(val x: Int, val y: Int) {
+    internal companion object {
+        fun capture(actor: FightingCharacter, postype: String, issues: MutableSet<String>): ProjectileOrigin {
+            val x = when (postype) {
+                "p1" -> actor.posX
+                "p2" -> {
+                    val opponent = actor.opponent
+                    if (opponent != null && !opponent.destroyed) opponent.posX else {
+                        issues.add("Projectile P2 is unavailable; using P1")
+                        actor.posX
+                    }
+                }
+                // MUGEN 1.1b1 applies these offsets from the camera center.
+                "left", "right", "front", "back" -> Fixed.of(actor.world?.camera?.x ?: 0.0)
+                else -> throw IllegalArgumentException("Unsupported postype: $postype")
+            }
+            return ProjectileOrigin(x, actor.posY)
+        }
+    }
 }
 
 /** Helpers reuse the immutable FighterDefinition, never re-decode or copy sprite resources. */
@@ -46,7 +71,7 @@ class CoreProjectile(
     val owner: FightingCharacter,
     val entityId: Int,
     val projectileId: Int,
-    val action: AirAnimationPlayer,
+    action: AirAnimationPlayer,
     hit: HitDefinition,
     var x: Int, var y: Int,
     var vx: Int, var vy: Int,
@@ -61,10 +86,14 @@ class CoreProjectile(
     val removeOnHit: Boolean = true,hits: Int = 1,val missTime: Int = 0,priority: Int = 1,
     /** Captured effective scale: projscale, optionally multiplied by own Size. */
     val scaleX: Double = 1.0,val scaleY: Double = 1.0,val spritePriority: Int = 3,val ownPalette: Boolean=false,
-    val pauseMoves: CorePauseMoves = CorePauseMoves()
+    val pauseMoves: CorePauseMoves = CorePauseMoves(),
+    private val removal: ProjectileRemoval? = null
 ) {
+    var action = action
+        private set
     internal val paletteEffects=if(ownPalette)owner.paletteEffects.copyRemaps() else owner.paletteEffects
     val hit=hit.copy(capturedAttackMultiplier=hit.capturedAttackMultiplier ?: owner.attackMultiplier)
+    internal val validGuardAttribute = CoreGuardDistance.validProjectileAttribute(this.hit.attr)
     companion object {
         const val MAX_SCALE = 64.0
         // FighterDefinition bounds its fixed-point Size factors to 256.
@@ -83,7 +112,15 @@ class CoreProjectile(
         private set
     var hitPauseLeft = 0
         private set
+    internal var advancedInContactPhase = false
     private var advancedOnce = false
+    private var removedByHit = false
+    private var expiredOnUpdate = false
+    private var nextRemovalAction: AirAction? = null
+    private var finalFrameOnly = false
+    private data class ProjectileBox(val attack: Boolean, val offsets: ScaledBoxOffsets)
+    private var collisionFrame: AirFrame? = null
+    private var collisionBoxes: List<ProjectileBox> = emptyList()
     val alive: Boolean get() = ticksLeft != 0
     /** False for every frozen tick, including the last one. An active final
      * lifetime update may still contact before the collection retires it. */
@@ -91,24 +128,53 @@ class CoreProjectile(
         if(!alive)return false
         if(hitPauseLeft > 0) { hitPauseLeft--;return false }
         if(missTimeLeft > 0)missTimeLeft--
-        fun bounded(value: Long)=value.coerceIn(Int.MIN_VALUE.toLong(),Int.MAX_VALUE.toLong()).toInt()
-        x=bounded(x.toLong()+vx)
-        y=bounded(y.toLong()+vy)
+        move()
         // Move using this tick's velocity, then accelerate and multiply for
         // the next tick. Conversion back to fixed point happens once.
         vx=((vx.toLong()+accelerationX).toDouble()*multiplierX).toInt()
         vy=((vy.toLong()+accelerationY).toDouble()*multiplierY).toInt()
         if (!owner.definition.authoredCns || advancedOnce) action.advance()
         advancedOnce = true
-        if(ticksLeft > 0)ticksLeft--
+        if (ticksLeft > 0 && --ticksLeft == 0) expiredOnUpdate = true
         return true
     }
-    private fun boxes(attack: Boolean): List<MugenRect> = action.frame?.boxes?.filter { it.attack == attack }
-        ?.map { owner.definition.let { d ->
-            d.coordinates.scaledBox(it.rect,x,y,facingRight,scaleX,scaleY) } }
-        ?.filter { it.x1 < it.x2 && it.y1 < it.y2 } ?: emptyList()
+    private fun move() {
+        x = (x.toLong() + vx).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
+        y = (y.toLong() + vy).coerceIn(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).toInt()
+    }
+    private fun scaledBoxes(): List<ProjectileBox> {
+        val frame = action.frame
+        if (frame !== collisionFrame) {
+            collisionFrame = frame
+            val coordinates = owner.definition.coordinates
+            collisionBoxes = frame?.boxes?.map {
+                ProjectileBox(it.attack, coordinates.scaledBoxOffsets(it.rect, facingRight, scaleX, scaleY))
+            }.orEmpty()
+        }
+        return collisionBoxes
+    }
+    private inline fun forEachBox(attack: Boolean, visit: (Int, Int, Int, Int) -> Unit) {
+        for (box in scaledBoxes()) {
+            if (box.attack != attack) continue
+            box.offsets.translate(x, y) { left, top, right, bottom ->
+                if (left < right && top < bottom) visit(left, top, right, bottom)
+            }
+        }
+    }
+    private fun boxes(attack: Boolean): List<MugenRect> = buildList {
+        forEachBox(attack) { left, top, right, bottom -> add(MugenRect(left, top, right, bottom)) }
+    }
     fun hitBoxes(): List<MugenRect> = boxes(true)
     fun clashBoxes(): List<MugenRect> = boxes(false)
+    internal fun connects(hurtBoxes: List<MugenRect>): Boolean {
+        if (hurtBoxes.isEmpty()) return false
+        forEachBox(true) { left, top, right, bottom ->
+            for (hurt in hurtBoxes) {
+                if (hurt.intersects(left, top, right, bottom)) return true
+            }
+        }
+        return false
+    }
     fun canHit(id: Int): Boolean = !cancelled && id != owner.id && hitsLeft > 0 && missTimeLeft == 0 && hitPauseLeft == 0
     internal fun canClash(): Boolean = !cancelled && hitsLeft > 0
     internal fun clash(otherPriority: Int) {
@@ -123,8 +189,45 @@ class CoreProjectile(
         hitsLeft--
         missTimeLeft=missTime
         hitPauseLeft=(if(guarded)hit.guardPause else hit.hitPause).coerceAtLeast(0)
-        if(removeOnHit && hitsLeft == 0)ticksLeft=0
+        if(removeOnHit && hitsLeft == 0) {
+            removedByHit = true
+            ticksLeft = 0
+        }
         if(!alive)hitPauseLeft=0
+    }
+    internal fun beginRemoval(errors: MutableSet<String>): Boolean {
+        val animation = when {
+            cancelled -> removal?.cancelled
+            removedByHit -> removal?.hit
+            else -> removal?.expired
+        } ?: -1
+        if (animation < 0) {
+            finalFrameOnly = owner.definition.mugen11Timing && expiredOnUpdate && !cancelled && !removedByHit
+            return finalFrameOnly
+        }
+        val next = owner.definition.animations[animation]
+        if (next == null || next.frames.isEmpty()) {
+            errors.add("Projectile removal animation missing: $animation")
+            return false
+        }
+        // The active pose is still displayed on the tick that removed the shot.
+        nextRemovalAction = next.takeUnless { it === action.action }
+        val velocity = checkNotNull(removal)
+        vx = velocity.vx
+        vy = velocity.vy
+        return nextRemovalAction != null || !action.finished
+    }
+    internal fun advanceRemoval(): Boolean {
+        if (finalFrameOnly) return false
+        nextRemovalAction?.let {
+            action = AirAnimationPlayer(it)
+            nextRemovalAction = null
+            return true
+        }
+        action.advance()
+        if (action.finished) return false
+        move()
+        return true
     }
     fun outside(arena: ArenaRules): Boolean =
         x.toLong() < arena.left.toLong()-stageBound && vx < 0 ||
@@ -140,6 +243,7 @@ class CoreProjectile(
 class CoreEntities(private val match: DeterministicFight) {
     val helpers: MutableList<HelperEntity> = ArrayList()
     val projectiles: MutableList<CoreProjectile> = ArrayList()
+    internal val projectileRemovals: MutableList<CoreProjectile> = ArrayList()
     val clashes: MutableList<ProjectileClash> = ArrayList()
     private var nextId = 3
     var maxHelpers = 56
@@ -236,7 +340,7 @@ class CoreEntities(private val match: DeterministicFight) {
                     continue
                 }
                 if(request.lifeTime == 0)continue
-                if (projectiles.size >= maxProjectiles) {
+                if (projectiles.size + projectileRemovals.size >= maxProjectiles) {
                     errors.add("Projectile resource limit exceeded")
                     continue
                 }
@@ -249,12 +353,13 @@ class CoreEntities(private val match: DeterministicFight) {
                 fun facing(value: Int)=bounded(value.toLong()*if(request.facingRight)1 else -1)
                 projectiles.add(CoreProjectile(owner, nextId++, request.projectileId,
                     AirAnimationPlayer(action), request.hit.copy(capturedAttackMultiplier=request.attackMultiplier),
-                    bounded(owner.posX.toLong()+facing(request.offsetX)),
-                    bounded(owner.posY.toLong()+request.offsetY),
+                    bounded((request.origin?.x ?: owner.posX).toLong()+facing(request.offsetX)),
+                    bounded((request.origin?.y ?: owner.posY).toLong()+request.offsetY),
                     facing(request.vx),request.vy,request.lifeTime,request.facingRight,
                     facing(request.accelerationX),request.accelerationY,request.multiplierX,request.multiplierY,
                     request.stageBound,request.heightTop,request.heightBottom,
-                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY,request.spritePriority,request.ownPalette,request.pauseMoves))
+                    request.removeOnHit,request.hits,request.missTime,request.priority,scaleX,scaleY,request.spritePriority,
+                    request.ownPalette,request.pauseMoves,request.removal?.let { it.copy(vx = facing(it.vx)) }))
             }
         }
     }
@@ -275,7 +380,28 @@ class CoreEntities(private val match: DeterministicFight) {
             if (!helper.actor.destroyed) pendingRequests.addAll(helper.actor.flushEntityRequests())
         }
     }
+    private fun dispatchLaunchProjectiles(requests: List<EntityRequest>, errors: MutableSet<String>): List<EntityRequest> {
+        if (requests.isEmpty()) return requests
+        val (projectiles, deferred) = requests.partition {
+            it is EntityRequest.Projectile && it.owner.definition.mugen11Timing
+        }
+        if (projectiles.isEmpty()) return requests
+        add(projectiles, errors)
+        return deferred
+    }
+
+    internal fun addLaunchProjectiles(roots: List<EntityRequest>, errors: MutableSet<String>): List<EntityRequest> {
+        // MUGEN 1.1 projectiles move and can hit in the same tick as their controller.
+        val deferred = dispatchLaunchProjectiles(pendingRequests, errors)
+        if (deferred !== pendingRequests) {
+            pendingRequests.clear()
+            pendingRequests.addAll(deferred)
+        }
+        return dispatchLaunchProjectiles(roots, errors)
+    }
+
     fun resolveContacts(errors: MutableSet<String>) {
+        projectileRemovals.removeAll { !match.pauses.entityFrozen(it.pauseMoves) && !it.advanceRemoval() }
         if (helpers.isEmpty() && projectiles.isEmpty()) return
         // Special moves can have dozens of helpers/projectiles against the
         // same victim. Reuse its immutable world-space hurtboxes *within this
@@ -302,7 +428,7 @@ class CoreEntities(private val match: DeterministicFight) {
                 targetHurt.remove(enemy) // Next helper sees the new hit animation.
             }
         }
-        val phases=mutableListOf<ProjectilePhase>()
+        val shots = ArrayList<CoreProjectile>(projectiles.size)
         for (projectile in projectiles) {
             if (!projectile.alive || match.pauses.entityFrozen(projectile.pauseMoves)) continue
             val arena=match.arena
@@ -310,16 +436,16 @@ class CoreEntities(private val match: DeterministicFight) {
                 projectile.ticksLeft=0
                 continue
             }
-            phases.add(ProjectilePhase(projectile,projectile.step()))
+            projectile.advancedInContactPhase = projectile.step()
+            shots.add(projectile)
         }
-        resolveClashes(phases)
-        for(phase in phases)CoreGuardDistance.projectile(match,phase.projectile,phase.advanced)
-        for(phase in phases) {
-            val projectile=phase.projectile
-            if(!phase.advanced)continue
+        resolveClashes(shots)
+        for (shot in shots) CoreGuardDistance.projectile(match, shot, shot.advancedInContactPhase)
+        for (projectile in shots) {
+            if (!projectile.advancedInContactPhase) continue
             val enemy = projectile.owner.opponent ?: match.p2
             if (!projectile.canHit(enemy.id) || !enemy.canReceive(projectile.hit)) continue
-            if (projectile.hitBoxes().any { box -> hurt(enemy).any { box.intersects(it) } }) {
+            if (projectile.connects(hurt(enemy))) {
                 val guarded = enemy.blocks(projectile.hit)
                 match.contacts.add(FightContact(projectile.entityId, enemy.id, guarded,
                     CoreDamage.contact(projectile.hit,projectile.owner,enemy,guarded)))
@@ -331,35 +457,49 @@ class CoreEntities(private val match: DeterministicFight) {
             }
         }
         helpers.removeAll { it.actor.destroyed }
-        projectiles.removeAll { !it.alive }
+        projectiles.removeAll {
+            if (it.alive) false else {
+                if (it.beginRemoval(errors)) projectileRemovals.add(it)
+                true
+            }
+        }
         add(pendingRequests, errors)
         pendingRequests.clear()
     }
 
-    private data class ProjectilePhase(val projectile: CoreProjectile,val advanced: Boolean)
-    private data class ClashBody(val projectile: CoreProjectile,val boxes: List<MugenRect>,val bounds: MugenRect)
+    private data class ClashBody(val projectile: CoreProjectile, val boxes: List<MugenRect>, val bounds: MugenRect,
+                                 val leftSide: Boolean)
     private data class ClashPair(val a: ClashBody,val b: ClashBody,val distance: Double)
 
-    private fun resolveClashes(phases: List<ProjectilePhase>) {
+    private fun resolveClashes(shots: List<CoreProjectile>) {
         // No clash geometry or pair allocations for one-sided projectile streams.
-        val eligible=phases.filter { it.projectile.canClash() }
-        fun left(p: CoreProjectile)=p.owner.opponent === match.p2
-        if(eligible.none { left(it.projectile) } || eligible.none { !left(it.projectile) })return
-        val bodies=eligible.mapNotNull { phase ->
-            val p=phase.projectile
+        var sides = 0
+        for (p in shots) {
+            if (!p.canClash()) continue
+            sides = sides or (if (p.owner.opponent === match.p2) 1 else 2)
+            if (sides == 3) break
+        }
+        if (sides != 3) return
+        val bodies=shots.mapNotNull { p ->
+            if (!p.canClash()) return@mapNotNull null
             val boxes=p.clashBoxes()
             if(boxes.isEmpty())null else ClashBody(p,boxes,MugenRect(
-                boxes.minOf { it.x1 },boxes.minOf { it.y1 },boxes.maxOf { it.x2 },boxes.maxOf { it.y2 }))
-        }.sortedBy { it.projectile.entityId }
+                boxes.minOf { it.x1 },boxes.minOf { it.y1 },boxes.maxOf { it.x2 },boxes.maxOf { it.y2 }),
+                p.owner.opponent === match.p2)
+        }.sortedBy { it.bounds.x1 }
         val pairs=mutableListOf<ClashPair>()
         for(i in bodies.indices)for(j in i+1 until bodies.size) {
             val a=bodies[i];val b=bodies[j]
-            if(left(a.projectile) == left(b.projectile) || !a.bounds.intersects(b.bounds))continue
+            // Every later left edge is at least this far right.
+            if (b.bounds.x1 >= a.bounds.x2) break
+            if(a.leftSide == b.leftSide || !a.bounds.intersects(b.bounds))continue
             if(!a.boxes.any { x -> b.boxes.any(x::intersects) })continue
             // Double distance avoids Long overflow at opposite fixed-point limits.
             val dx=a.projectile.x.toDouble()-b.projectile.x
             val dy=a.projectile.y.toDouble()-b.projectile.y
-            pairs.add(ClashPair(a,b,dx*dx+dy*dy))
+            val distance = dx*dx + dy*dy
+            // Range order must not change the contact IDs or distance tie-breaks.
+            pairs.add(if (a.projectile.entityId < b.projectile.entityId) ClashPair(a,b,distance) else ClashPair(b,a,distance))
         }
         pairs.sortWith(compareBy<ClashPair> { it.distance }
             .thenBy { it.a.projectile.entityId }.thenBy { it.b.projectile.entityId })

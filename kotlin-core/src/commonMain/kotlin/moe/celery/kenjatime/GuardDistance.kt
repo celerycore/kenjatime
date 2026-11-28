@@ -3,6 +3,8 @@ package moe.celery.kenjatime
 /** Proximity is latched after controllers, never recomputed by an expression read. */
 internal object CoreGuardDistance {
     private val projectileAttribute=Regex("[SCA],[NSH][ATP]")
+    fun validProjectileAttribute(attr: String): Boolean =
+        projectileAttribute.matches(attr.filterNot { it.isWhitespace() }.uppercase())
     private fun actors(fight: DeterministicFight)=listOf(fight.p1,fight.p2)+fight.entities.helpers.map { it.actor }
     private fun firstSide(actor: FightingCharacter,fight: DeterministicFight)=actor === fight.p1 || actor.opponent === fight.p2
     private fun inside(x: Int,face: Boolean,range: Int,target: FightingCharacter): Boolean {
@@ -20,9 +22,16 @@ internal object CoreGuardDistance {
     }
     fun projectile(fight: DeterministicFight,shot: CoreProjectile,finalTick: Boolean=false) {
         if(shot.cancelled || shot.hitsLeft<=0 || !shot.alive && !finalTick)return
-        if(!projectileAttribute.matches(shot.hit.attr.filterNot { it.isWhitespace() }.uppercase()))return
-        for(target in actors(fight))if(!target.destroyed && firstSide(shot.owner,fight) != firstSide(target,fight) &&
-            inside(shot.x,shot.facingRight,shot.hit.guardDistance,target))target.inGuardDistance=true
+        if(!shot.validGuardAttribute)return
+        val first = firstSide(shot.owner, fight)
+        latch(shot, if (first) fight.p2 else fight.p1)
+        for(helper in fight.entities.helpers) {
+            if (first != firstSide(helper.actor, fight)) latch(shot, helper.actor)
+        }
+    }
+    private fun latch(shot: CoreProjectile, target: FightingCharacter) {
+        if (!target.inGuardDistance && !target.destroyed &&
+            inside(shot.x, shot.facingRight, shot.hit.guardDistance, target)) target.inGuardDistance = true
     }
     fun parse(args: Map<String,String>,actor: FightingCharacter,errors: MutableSet<String>,projectile: Boolean=false): Int? = try {
         val raw=args["guard.dist"] ?: if(projectile)args["projguard.dist"] else null

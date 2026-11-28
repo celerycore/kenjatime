@@ -5,6 +5,10 @@ on:
     paths:
       - 'kotlin-core/**'
       - 'src/core/kotlin-wasm-backend.js'
+      - 'src/kotlin/sprite-palette.js'
+      - 'scripts/kotlin/capture-mugen11-palette.py'
+      - 'scripts/kotlin/verify-mugen11-palette.mjs'
+      - 'test/fixtures/core/mugen11-hit-palette-native.json'
       - '.github/workflows/kotlin-wasm-core.yml'
 permissions:
   contents: read
@@ -21,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
+      - run: npm ci
       - name: Check opt-in JavaScript browser bridge
         run: node --test test/core/kotlin-wasm-backend.test.js test/core/kotlin-parity-status.test.js
       - name: Verify deterministic Kotlin/JVM tests
@@ -31,8 +37,6 @@ jobs:
         run: ./android/gradlew -p kotlin-core wasmJsBrowserProductionWebpack --stacktrace
       - name: Execute the actual compiled Kotlin/Wasm JavaScript ABI
         run: node --experimental-wasm-modules scripts/core/verify-kotlin-wasm-module.mjs
-      - name: Install benchmark archive decoder
-        run: npm ci
       - name: Smoke and profile actual bundled KFM scripts inside compiled Wasm
         run: node --experimental-wasm-modules scripts/core/benchmark-kotlin-wasm.mjs
       - name: Package raw Kotlin/Wasm ESM exports and Wasm companion
@@ -72,3 +76,53 @@ jobs:
         run: npm run verify:core:movesets
       - name: Exercise Rare Akuma synthetic and inventory regression suite in existing JS engine
         run: node --test test/core/rare-akuma-contract.test.js test/core/rare-akuma-compatibility.test.js test/core/rare-akuma-2026.test.js test/core/rare-akuma-dual.test.js test/core/rare-akuma-hardening.test.js test/core/rare-akuma-jump.test.js test/core/rare-akuma-ai-activation.test.js
+
+  mugen11-palette-capture:
+    name: Compare MUGEN 1.1b1 and Kotlin/Wasm contact colors
+    needs: portable-core
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: kenjatime-kotlin-wasm
+          path: ${{ runner.temp }}/kenjatime-kotlin-wasm
+      - name: Install display and pixel capture tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth xdotool python3-pil
+      - name: Download verified reference and Wine runtime
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location --retry 2 https://gamebanana.com/dl/383804 -o mugen-11b1.zip
+          curl --fail --silent --show-error --location --retry 2 https://github.com/Kron4ek/Wine-Builds/releases/download/proton-11.0-3/wine-proton-11.0-3-amd64-wow64.tar.xz -o wine.tar.xz
+          sha256sum -c <<'SHA256'
+          67f55cafa49107f29e4317a245e35b17a718044de8e88ee824ad64862667b356  mugen-11b1.zip
+          152cfcbc7b5e97ab40bfb648aecb8f874fd4a17246b6491c77fe8295374c9718  wine.tar.xz
+          SHA256
+          mkdir wine
+          tar -xJf wine.tar.xz --strip-components=1 -C wine
+      - name: Advance the original executable one tick at a time
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          WINEDEBUG: -all
+          WINEDLLOVERRIDES: 'mscoree,mshtml='
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/wine/bin:$PATH"
+          xvfb-run -a -s '-screen 0 800x600x24' /usr/bin/python3 scripts/kotlin/capture-mugen11-palette.py \
+            "$RUNNER_TEMP/mugen-11b1.zip" --expected test/fixtures/core/mugen11-hit-palette-native.json \
+            --wasm "$RUNNER_TEMP/kenjatime-kotlin-wasm/kenjatime-kotlin-core.mjs" | tee mugen11-palette.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mugen11-palette-trace
+          path: mugen11-palette.json
+          if-no-files-found: error

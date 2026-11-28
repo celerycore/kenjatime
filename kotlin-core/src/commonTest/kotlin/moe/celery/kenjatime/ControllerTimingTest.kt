@@ -132,4 +132,54 @@ class ControllerTimingTest {
         assertEquals(0,a.timeInState)
         assertTrue(w.issues.isEmpty(),w.issues.joinToString())
     }
+
+    @Test fun mugen11FinishesSpecialStatesAndRunsTheDestinationAtTimeZero() {
+        val source = """
+            [Statedef -3]
+            [State -3, enter]
+            type=ChangeState
+            trigger1=StateNo=0
+            value=100
+            [State -3, skipped]
+            type=VarAdd
+            trigger1=StateNo=100
+            v=0
+            value=1000
+            [Statedef -2]
+            [State -2, keep processing]
+            type=VarAdd
+            trigger1=StateNo=100
+            v=0
+            value=1
+            [Statedef -1]
+            [State -1, keep processing]
+            type=VarAdd
+            trigger1=StateNo=100
+            v=0
+            value=10
+            [Statedef 100]
+            [State 100, enter]
+            type=ChangeState
+            trigger1=Time=0
+            value=200
+            [Statedef 200]
+            [State 200, startup]
+            type=VarAdd
+            trigger1=Time=0
+            v=1
+            value=100
+        """.trimIndent()
+        val definition = FighterDefinition.fromScript("timing", "", source,
+            defText = "[Info]\nmugenversion=1.1", useAuthoredStateDefs = true)
+        val actor = FightingCharacter(definition, 1)
+        val fight = DeterministicFight(actor, FightingCharacter(FighterDefinition("dummy"), 2))
+        fight.step()
+        assertEquals(11, actor.vars[0])
+        assertEquals(200, actor.stateNo)
+        assertEquals(100, actor.vars[1])
+        assertEquals(1, actor.timeInState)
+        fight.step()
+        assertEquals(100, actor.vars[1])
+        assertTrue(fight.issues.isEmpty(), fight.issues.toString())
+    }
 }

@@ -679,6 +679,20 @@ try {
   assert.deepEqual(JSON.parse(api.ktCoreContacts(chain)),[]);
   assert.equal(api.ktCoreIssues(chain),"");
 } finally { api.ktCoreRelease(chain); }
+const tiedClashes = api.ktCoreCreate("one shot", "two equidistant shots", clashAir, clashAir,
+  `${motionIdle}\n${clashController("offset=30,0")}`,
+  `${motionIdle}\n${clashController("offset=25,0")}\n${clashController("offset=35,0")}`);
+try {
+  api.ktCoreSetup(tiedClashes, -30 * 256, 0, 30 * 256, 0);
+  api.ktCoreAdvance(tiedClashes, 0, "", 0, "");
+  const [first, second, third] = JSON.parse(api.ktCoreProjectiles(tiedClashes));
+  assert.ok(third.x256 < first.x256 && first.x256 < second.x256);
+  api.ktCoreAdvance(tiedClashes, 0, "", 0, "");
+  assert.deepEqual(JSON.parse(api.ktCoreProjectileClashes(tiedClashes)), [
+    {first: first.entityId, second: second.entityId, firstCancelled: true, secondCancelled: true}
+  ]);
+  assert.equal(JSON.parse(api.ktCoreProjectiles(tiedClashes))[0].entityId, third.entityId);
+} finally { api.ktCoreRelease(tiedClashes); }
 console.log("Native Wasm Projectile mutual cancellation / priority spending / nearest-pair chain / fighter contact / pure events: OK (synthetic)");
 
 // Keep CNS feedback bonuses observable independently of ordinary contact power.

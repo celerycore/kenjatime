@@ -9,8 +9,9 @@ data class MugenRect(val x1: Int, val y1: Int, val x2: Int, val y2: Int) {
         return MugenRect(minOf(a, b), minOf(y + y1 * scaleY, y + y2 * scaleY),
             maxOf(a, b), maxOf(y + y1 * scaleY, y + y2 * scaleY))
     }
-    fun intersects(other: MugenRect): Boolean = x1 < other.x2 && x2 > other.x1 &&
-        y1 < other.y2 && y2 > other.y1
+    fun intersects(other: MugenRect): Boolean = intersects(other.x1, other.y1, other.x2, other.y2)
+    internal fun intersects(left: Int, top: Int, right: Int, bottom: Int): Boolean =
+        x1 < right && x2 > left && y1 < bottom && y2 > top
 }
 data class AirBox(val attack: Boolean, val rect: MugenRect)
 data class AirFrame(

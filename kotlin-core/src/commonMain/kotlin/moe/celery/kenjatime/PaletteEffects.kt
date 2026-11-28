@@ -12,11 +12,51 @@ internal data class CorePaletteLayer(val add: List<Int>,val mul: List<Number>,va
         (if(post.any {it!=0})",\"post\":[${post.joinToString(",")}]" else "")+
         (if(repeat!=1)",\"repeat\":$repeat" else "")+"}"
 }
-internal data class CorePaletteEffect(val remaining: Int,val add: List<Int>,val mul: List<Int>,
+data class CorePaletteEffect(val remaining: Int,val add: List<Int>,val mul: List<Int>,
     val color: Int,val invert: Boolean,val amplitude: List<Int>,val period: Int,val age: Long=0) {
-    fun resolved(): CorePaletteLayer {
+    internal fun resolved(): CorePaletteLayer {
         val wave=if(period==0)0.0 else sin(2*PI*(age%abs(period)).toDouble()/period)
         return CorePaletteLayer(add.indices.map {add[it]+(amplitude[it]*wave).toInt()},mul,color,invert)
+    }
+
+    companion object {
+        internal fun read(args: Map<String, String?>, number: (String) -> Double): CorePaletteEffect {
+            fun integer(raw: String, low: Int, high: Int): Int {
+                val value = number(raw)
+                require(value in low.toDouble()..high.toDouble()) { "Palette parameter out of range" }
+                return value.toInt()
+            }
+            fun vector(key: String, default: List<Int>, low: Int, high: Int): List<Int> {
+                val parts = args[key]?.let(CnsArguments::split) ?: return default
+                require(parts.size == default.size) { "$key requires ${default.size} components" }
+                return parts.map { integer(it, low, high) }
+            }
+            val time = args["time"]?.let { integer(it, -1, 36000) } ?: 0
+            val add = vector("add", listOf(0, 0, 0), -100000, 100000)
+            val mul = vector("mul", listOf(256, 256, 256), 0, 65536)
+            val color = args["color"]?.let { integer(it, 0, 256) } ?: 256
+            val invert = args["invertall"]?.let { number(it) != 0.0 } ?: false
+            val sine = args["sinadd"]?.let(CnsArguments::split)
+            require(sine == null || sine.size == 4) { "sinadd requires four components" }
+            val amplitude = sine?.take(3)?.map { integer(it, -100000, 100000) } ?: listOf(0, 0, 0)
+            val period = sine?.get(3)?.let { integer(it, -36000, 36000) } ?: 0
+            return CorePaletteEffect(time, add, mul, color, invert, amplitude, period)
+        }
+
+        internal fun captureImpact(
+            args: Map<String, String>, actor: FightingCharacter, errors: MutableSet<String>,
+        ): CorePaletteEffect? {
+            val time = args["palfx.time"] ?: return null
+            val params = mapOf("time" to time, "add" to args["palfx.add"], "mul" to args["palfx.mul"])
+            return try {
+                read(params) { raw ->
+                    CoreExpression.contactNumber(raw, actor, errors) ?: throw IllegalArgumentException("Invalid expression")
+                }.takeUnless { it.remaining == 0 }
+            } catch (e: IllegalArgumentException) {
+                errors.add("Invalid impact PalFX: ${e.message}")
+                null
+            }
+        }
     }
 }
 /** Shared palette families age once per fight tick, independently of actor count or drawing. */
@@ -41,6 +81,7 @@ internal class CoreFightPalettes(private val fight: DeterministicFight) {
         for (actor in listOf(fight.p1, fight.p2)) if (!pauses.frozen(actor)) groups.add(actor.paletteEffects)
         for(h in fight.entities.helpers) if (!pauses.frozen(h.actor)) groups.add(h.actor.paletteEffects)
         for(p in fight.entities.projectiles) if (!pauses.entityFrozen(p.pauseMoves)) groups.add(p.paletteEffects)
+        for(p in fight.entities.projectileRemovals) if (!pauses.entityFrozen(p.pauseMoves)) groups.add(p.paletteEffects)
         for(e in fight.effects.all) if (!pauses.entityFrozen(e.config.pauseMoves)) groups.add(e.paletteEffects)
         for(group in groups)group.beginTick()
     }
@@ -50,25 +91,9 @@ internal class CoreFightPalettes(private val fight: DeterministicFight) {
         try {
             val args=controller.params
             require(args.keys.all {it in setOf("type","persistent","ignorehitpause","time","add","mul","color","invertall","sinadd")}) {"Unsupported palette parameter"}
-            fun number(raw: String)=CoreExpression.number(raw,actor,errors) ?: throw IllegalArgumentException("Invalid expression")
-            fun integer(raw: String,low: Int,high: Int): Int {
-                val n=number(raw);require(n in low.toDouble()..high.toDouble()) {"Palette parameter out of range"};return n.toInt()
+            val next = CorePaletteEffect.read(args) { raw ->
+                CoreExpression.number(raw, actor, errors) ?: throw IllegalArgumentException("Invalid expression")
             }
-            fun vector(key: String,default: List<Int>,low: Int,high: Int): List<Int> {
-                val parts=args[key]?.let(CnsArguments::split) ?: return default
-                require(parts.size==default.size) {"$key requires ${default.size} components"}
-                return parts.map {integer(it,low,high)}
-            }
-            val time=args["time"]?.let {integer(it,-1,36000)} ?: 0
-            val add=vector("add",listOf(0,0,0),-100000,100000)
-            val mul=vector("mul",listOf(256,256,256),0,65536)
-            val color=args["color"]?.let {integer(it,0,256)} ?: 256
-            val invert=args["invertall"]?.let {number(it)!=0.0} ?: false
-            val sine=args["sinadd"]?.let(CnsArguments::split)
-            require(sine==null || sine.size==4) {"sinadd requires four components"}
-            val amplitude=sine?.take(3)?.map {integer(it,-100000,100000)} ?: listOf(0,0,0)
-            val period=sine?.get(3)?.let {integer(it,-36000,36000)} ?: 0
-            val next=CorePaletteEffect(time,add,mul,color,invert,amplitude,period)
             when(controller.type.lowercase()) {
                 "allpalfx" -> all.replace(next)
                 "bgpalfx" -> background.replace(next)

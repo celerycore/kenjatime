@@ -54,7 +54,8 @@ data class HitDefinition(
     val impactShake: HitShakeDefinition = HitShakeDefinition(),
     val fallShake: HitShakeDefinition = HitShakeDefinition(),
     val groundHitType: Int = 1, val airHitType: Int = 1,
-    val presentation: ContactPresentation = ContactPresentation.EMPTY
+    val presentation: ContactPresentation = ContactPresentation.EMPTY,
+    val impactPalette: CorePaletteEffect? = null,
 ) {
     init { require(capturedAttackMultiplier == null || capturedAttackMultiplier in 0.0..Float.MAX_VALUE.toDouble()) {
         "Invalid captured attack multiplier"
@@ -124,7 +125,8 @@ data class FighterDefinition(
     val initialMaps: Map<String,Double> = emptyMap(),val initialMapIssues: Set<String> = emptySet(),
     val victoryQuotes: Map<Int, String> = emptyMap(), val victoryQuoteIssues: Set<String> = emptySet(),
     val authoredCns: Boolean = false, val scriptConstants: Map<String, Double> = emptyMap(),
-    val contactDefaults: Map<String, String> = emptyMap()
+    val contactDefaults: Map<String, String> = emptyMap(),
+    val mugen11Timing: Boolean = false
 ) {
     init {
         require(localCoordWidth in 160..4096 && localCoordHeight in 120..4096) { "Invalid character localcoord" }
@@ -178,7 +180,7 @@ data class FighterDefinition(
                 constants.airFront,constants.airBack,constants.drawOffsetX,constants.drawOffsetY,
                 constants.attackDistance,constants.projectileAttackDistance,maps.first,maps.second,
                 quotes.first, quotes.second, useAuthoredStateDefs, MugenCnsParser.scriptConstants(cns),
-                constants.contactDefaults
+                constants.contactDefaults, mugen11Timing = useAuthoredStateDefs && modern
             )
         }
     }
@@ -548,7 +550,13 @@ class FightingCharacter(
         private set
     internal var contactStateRevision = 0L
         private set
-    internal fun beginContactPhase() { contactStateRevision=stateRevision }
+    private var contactPose: CoreActorPose? = null
+    internal fun beginContactPhase() {
+        contactStateRevision = stateRevision
+        contactPose = null
+    }
+    internal fun presentationPose(frame: Long): CoreActorPose =
+        contactPose?.takeIf { it.capturedAt == frame } ?: CoreActorPose.capture(this, frame)
     internal fun followSuccessfulHit(hit: HitDefinition,errors: MutableSet<String>) {
         val next=hit.p1State ?: return
         if(destroyed || life <= 0)return
@@ -608,6 +616,7 @@ class FightingCharacter(
     fun changeState(state: Int, owner: FightingCharacter = stateOwner,
                     controlOverride: Boolean? = null,
                     errors: MutableSet<String> = world?.issues ?: evaluationIssues) {
+        contactPose = null
         fallbackHitReaction = false
         stateRevision++
         stateOwner = owner
@@ -925,6 +934,7 @@ class FightingCharacter(
                     return value(parts[0]) to (parts.getOrNull(1)?.let(::value) ?: y)
                 }
                 val position=vector("offset")
+                val postype = args["postype"]?.trim()?.trim('"', '\'')?.lowercase() ?: "p1"
                 val velocity=vector("velocity")
                 val acceleration=vector("accel")
                 val multiplier=vector("velmul",1.0,1.0)
@@ -954,6 +964,19 @@ class FightingCharacter(
                 val projectilePriority=allowance("projpriority",1)
                 require(projectilePriority >= 1) { "Projectile projpriority must be positive" }
                 val removeOnHit=(args["projremove"]?.let(::value) ?: 1.0) != 0.0
+                fun removalAnimation(key: String, fallback: Int = -1): Int {
+                    val n = args[key]?.let(::value) ?: return fallback
+                    require(n in -1.0..Int.MAX_VALUE.toDouble()) { "Projectile $key must be -1 or nonnegative" }
+                    return n.toInt()
+                }
+                val hitAnimation = removalAnimation("projhitanim")
+                val expiryAnimation = removalAnimation("projremanim", hitAnimation)
+                val cancelAnimation = removalAnimation("projcancelanim", expiryAnimation)
+                val removal = if (hitAnimation >= 0 || expiryAnimation >= 0 || cancelAnimation >= 0) {
+                    val (x, y) = vector("remvelocity")
+                    ProjectileRemoval(hitAnimation, expiryAnimation, cancelAnimation,
+                        coordinates.toWorld(x), coordinates.toWorld(y))
+                } else null
                 val pauses=CoreHitPauses.parse(args,this,errors,true) ?: return false
                 val kills=CoreHitKills.parse(args,this,errors) ?: return false
                 val hitFlags=CoreHitFlags.parse(args["hitflag"] ?: args["projhitflag"],errors) ?: return false
@@ -1014,7 +1037,8 @@ class FightingCharacter(
                     p2State = args["p2stateno"]?.let { integer(it,-1) }?.takeIf { it >= 0 },
                     p2GetP1State = integer(args["p2getp1state"],1) != 0,
                     stateOwner = scriptOwner,
-                    presentation = CoreContactPresentation.capture(this, args, errors)
+                    presentation = CoreContactPresentation.capture(this, args, errors),
+                    impactPalette = CorePaletteEffect.captureImpact(args, this, errors),
                 )
                 entityRequests.add(EntityRequest.Projectile(
                     this,
@@ -1029,7 +1053,8 @@ class FightingCharacter(
                     stageBound=stageBound,heightTop=height.first,heightBottom=height.second,
                     removeOnHit=removeOnHit,hits=hits,missTime=missTime,priority=projectilePriority,
                     scaleX=scale.first,scaleY=scale.second,spritePriority=projectileSpritePriority,ownPalette=ownPalette,
-                    pauseMoves=CorePauseMoves.read(args, this, errors)
+                    pauseMoves=CorePauseMoves.read(args, this, errors), removal=removal,
+                    origin=ProjectileOrigin.capture(this, postype, errors)
                 ))
             }catch(e: IllegalArgumentException) {
                 errors.add("Invalid Projectile: ${e.message}")
@@ -1098,7 +1123,8 @@ class FightingCharacter(
                     guardHitTime = guardHitTime,
                     fall = hitFalls.ground,airFall = hitFalls.air,forceNoFall = hitFalls.forceNoFall,
                     presentation = if (installsHit) CoreContactPresentation.capture(this, args, errors)
-                        else ContactPresentation.EMPTY
+                        else ContactPresentation.EMPTY,
+                    impactPalette = if (installsHit) CorePaletteEffect.captureImpact(args, this, errors) else null,
                 )
                 // A valid definition may replace a carried attack once. Repeated
                 // evaluation within a state must not reset its struck-target set.
@@ -1132,6 +1158,23 @@ class FightingCharacter(
             if (runController(controller, key, errors)) return true
         }
         return false
+    }
+    private fun executeMugen11States(errors: MutableSet<String>, paused: Boolean,
+                                    root: Boolean, helperKeyControl: Boolean): Boolean {
+        var transitioned = false
+        // Each special state gets one pass. A transition skips only the remainder of that state.
+        if (root && stateOwner === this && executeState(-3, errors, paused)) transitioned = true
+        if (root && executeState(-2, errors, paused)) transitioned = true
+        if ((root || helperKeyControl) && stateOwner === this && executeState(-1, errors, paused))
+            transitioned = true
+        // A current-state transition runs the destination's Time = 0 controllers now.
+        repeat(256) {
+            if (!executeState(stateNo, errors, paused, stateOwner))
+                return !transitioned && root && !paused && automaticTransition()
+            transitioned = true
+        }
+        errors.add("Too many state transitions in one tick for actor $id")
+        return true
     }
     private fun guardAllowed(): Boolean = when (stateType) {
         "S" -> "nostandguard" !in asserted
@@ -1210,8 +1253,8 @@ class FightingCharacter(
         // Root-only global controllers must never run on spawned helpers.
         // A helper inherits the command state only when Helper.keyctrl is set.
         val root = parent == null
-        val ownState = stateOwner === this
-        val changed = (root && ownState && executeState(-3, errors, paused)) ||
+        val deferUpdate = if (definition.mugen11Timing) executeMugen11States(errors, paused, root, helperKeyControl)
+        else (root && stateOwner === this && executeState(-3, errors, paused)) ||
             (root && executeState(-2, errors, paused)) ||
             ((root || helperKeyControl) && stateOwner === this && executeState(-1, errors, paused)) ||
             executeState(stateNo, errors, paused, stateOwner) ||
@@ -1219,7 +1262,7 @@ class FightingCharacter(
         // CNS observes 1 through hitpause and the first active controller phase.
         // Advance afterward, independently of State Time and state transitions.
         if(!paused)advanceMoveContact()
-        if (changed || paused) return
+        if (deferUpdate || paused) return
         if(!positionFrozen) { posX += velX;posY += velY }
         timeInState++
         if (definition.authoredCns) advanceAnimationOnNextTick = true else animation?.advance()
@@ -1277,7 +1320,10 @@ class FightingCharacter(
     fun receiveHit(hit: HitDefinition, attackerFacingRight: Boolean, guarded: Boolean = false,
                    attacker: FightingCharacter? = null, projectile: CoreProjectile? = null) {
         if(!canReceive(hit))return
-        if(!guarded)world?.sounds?.stopChannel(this,0)
+        if (!guarded) {
+            world?.sounds?.stopChannel(this, 0)
+            hit.impactPalette?.let(paletteEffects::replace)
+        }
         if (attacker != null && hit.presentation !== ContactPresentation.EMPTY) {
             world?.let { CoreContactPresentation.hit(it, attacker, this, hit.presentation, guarded, projectile) }
         }
@@ -1332,7 +1378,12 @@ class FightingCharacter(
             changeState(override.state,this,false)
         }else {
             // Normal hit/guard/KO restores the victim's own state bank.
+            // MUGEN draws the previous pose with the new palette on the impact frame.
+            val priorPose = if (definition.authoredCns && parent == null &&
+                life > 0 && (guarded || hit.p2State == null) && resultingState in definition.states
+            ) world?.let { presentationPose(it.frame + 1) } else null
             changeState(resultingState,this,false)
+            contactPose = priorPose
             velX=x;velY=y
         }
         hitPauseLeft = if (guarded) hit.guardDefenderPause else hit.defenderPause
@@ -1540,9 +1591,13 @@ class DeterministicFight(val p1: FightingCharacter, val p2: FightingCharacter) {
         }
         if (ah != null) p2.receiveHit(ah, p1.facingRight, guardB, p1)
         if (bh != null) p1.receiveHit(bh, p2.facingRight, guardA, p2)
-        if (allowCombat) entities.resolveContacts(issues)
+        var spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
+        if (allowCombat) {
+            if (p1.definition.mugen11Timing || p2.definition.mugen11Timing)
+                spawned = entities.addLaunchProjectiles(spawned, issues)
+            entities.resolveContacts(issues)
+        }
         finishContactPhase()
-        val spawned = p1.flushEntityRequests() + p2.flushEntityRequests()
         entities.add(spawned, issues)
         if(allowCombat)for(shot in entities.projectiles)if(!pauses.entityFrozen(shot.pauseMoves))
             CoreGuardDistance.projectile(this,shot)
